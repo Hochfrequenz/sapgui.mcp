@@ -33,12 +33,13 @@ from sapguimcp.backend.desktop import _abap_editor
 from sapguimcp.backend.desktop._com_thread import (
     _RPC_E_DISCONNECTED,
     NO_SESSION_TARGET,
-    RETRYABLE_COM_ERRORS,
+    RERAISE_COM_ERRORS,
     ComThread,
     SapSessionHaltedError,
     _get_com_error_code,
     com_call_target,
     describe_com_error,
+    is_server_fault_error,
     is_transient_busy_error,
 )
 from sapguimcp.backend.desktop._landscape import _find_landscape_path, _parse_landscape_xml
@@ -443,7 +444,7 @@ def _read_selected(session: Any, element_id: str) -> bool | None:
     try:
         return bool(session.find_by_id(element_id).selected)
     except Exception as exc:  # pylint: disable=broad-exception-caught
-        if _get_com_error_code(exc) in (_RPC_E_DISCONNECTED, *RETRYABLE_COM_ERRORS):
+        if _get_com_error_code(exc) in (_RPC_E_DISCONNECTED, *RERAISE_COM_ERRORS):
             raise
         logger.debug("Could not read the state of %s", element_id, exc_info=True)
         return None
@@ -894,7 +895,7 @@ class DesktopBackend:
     #: point reports the session as unresponsive rather than blocking forever.
     _STATUS_PROBE_TIMEOUT_S: float = 5.0
 
-    async def get_session_status(self, session_id: str | None = None) -> SessionStatus:
+    async def get_session_status(self, session_id: str | None = None) -> SessionStatus:  # noqa: PLR0911
         """Check whether the SAP session is logged in and responsive.
 
         Args:
@@ -960,6 +961,13 @@ class DesktopBackend:
                     message=(
                         "Session is busy — a modal dialog may be blocking the SAP GUI. It is not dead; retry shortly."
                     ),
+                )
+            if is_server_fault_error(exc):
+                return SessionStatus(
+                    success=True,
+                    status="unknown",
+                    message="The SAP GUI answered with a server fault: the process is alive, the status is "
+                    "unknown. Retry shortly.",
                 )
             hint = describe_com_error(exc)
             return SessionStatus(success=True, status="unknown", message=hint or "Session not responsive")
@@ -1243,6 +1251,9 @@ class DesktopBackend:
                     extra={"session_id": session_id, "error": repr(exc)[:200]},
                 )
                 return False
+            if is_server_fault_error(exc):
+                logger.info("close_session_server_fault", extra={"session_id": session_id, "error": repr(exc)[:200]})
+                return False
             result = False
         self.registry.unregister(session_id)
         self._unwatch_orphaned_connections()
@@ -1267,6 +1278,9 @@ class DesktopBackend:
         The probe call uses ``max_retries=0`` so the COM thread does NOT
         retry on ``RPC_S_UNKNOWN_IF`` — a stale-interface error on a probe
         means "this session is dead", not "transient — try again".
+
+        A server fault (``RPC_E_SERVERFAULT``, 0x80010105) on a probe proves the
+        process answered, so the session is kept as alive (status unknown).
 
         A "server busy" error (``RPC_E_SERVERCALL_RETRYLATER`` /
         ``RPC_E_CALL_REJECTED``) is **not** treated as dead: it means the SAP
@@ -1362,6 +1376,14 @@ class DesktopBackend:
                         alive.append(sid)
                     else:
                         dead.append(sid)
+                    continue
+                if is_server_fault_error(exc):
+                    # The call reached the process and it threw: alive, status unknown.
+                    logger.info(
+                        "reconcile_session_server_fault",
+                        extra={"session_id": sid, "error": repr(exc)[:200]},
+                    )
+                    alive.append(sid)
                     continue
                 logger.info(
                     "reconcile_dead_session",

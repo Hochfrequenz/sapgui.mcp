@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
-from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RETRYABLE_COM_ERRORS, _get_com_error_code
+from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RERAISE_COM_ERRORS, _get_com_error_code
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.backend.webgui.parsers.se37_parser import SE37TabSnapshots, parse_se37_snapshot
 from sapguimcp.backend.webgui.types import AriaSnapshot
@@ -87,9 +87,9 @@ _TYPE_RADIO_BUTTON = 41
 
 
 def _reraise_if_transient(exc: Exception) -> None:
-    """Re-raise a lost connection and the errors the COM thread retries: swallowing them would return partial header
-    data (blank fields, RFC flag false) instead of retrying."""
-    if _get_com_error_code(exc) in (_RPC_E_DISCONNECTED, *RETRYABLE_COM_ERRORS):
+    """Re-raise a lost connection, the errors the COM thread retries and server faults: swallowing them would return
+    partial header data (blank fields, RFC flag false) instead of retrying."""
+    if _get_com_error_code(exc) in (_RPC_E_DISCONNECTED, *RERAISE_COM_ERRORS):
         raise exc
 
 
@@ -172,7 +172,7 @@ def _read_se37_table_control(session: Any, _flatten_fn: Any) -> list[dict[str, s
     """Find and read the first GuiTableControl (type 80) on screen.
 
     Scrolls through all rows with a settle delay after each scrollbar change
-    to avoid COM ``RPC_E_SERVERCALL_RETRYLATER`` errors (#387).
+    to avoid COM ``RPC_E_SERVERFAULT`` errors (#387).
     """
     return read_table_control(session, _flatten_fn)
 

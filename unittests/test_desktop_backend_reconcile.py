@@ -628,3 +628,20 @@ class TestHaltedProbeError:
 
         assert await backend.close_session("s2") is False
         assert backend.registry.list_sessions() == ["s1", "s2"]
+
+
+class TestReconcileServerFault:
+    """Issue #1012: RPC_E_SERVERFAULT (0x80010105) on a probe proves the process answered, so keep the session."""
+
+    @pytest.mark.anyio
+    async def test_server_fault_probe_keeps_the_session(self) -> None:
+        backend = _make_backend()
+        backend.registry.register(_make_mock_session("s1", alive=False, error=_com_error(-2147417851, "fault")))
+        backend.registry.register(_make_stale_interface_session("s2"))
+        backend.com.run = _passthrough_run
+
+        report = await backend.reconcile()
+
+        assert report["alive"] == ["s1"]
+        assert report["removed"] == ["s2"]
+        assert backend.registry.list_sessions() == ["s1"]

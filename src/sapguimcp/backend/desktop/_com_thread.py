@@ -11,8 +11,12 @@ low load (single agent), calls fire at full speed. Under high load
 (multiple parallel agents), the interval increases to prevent COM
 disconnection. Key signals:
 
-- **RPC_E_SERVERCALL_RETRYLATER** (0x80010105): COM is busy — back off.
-  This is the leading indicator before a full disconnect.
+- **RPC_E_SERVERCALL_RETRYLATER** (0x8001010A) and **RPC_E_CALL_REJECTED**
+  (0x80010001): COM is busy — back off. This is the leading indicator before
+  a full disconnect.
+- **RPC_E_SERVERFAULT** (0x80010105): the call reached the server and the
+  server threw. NOT a busy signal and never retried (the side effect may have
+  happened; typically a stale control proxy — re-fetch the element by id).
 - **RPC_S_UNKNOWN_IF** (0x800706B5): Stale COM proxy — the interface
   reference was invalidated (e.g. by a rapid screen transition). Retryable.
 - **RPC_E_DISCONNECTED** (-2147417848): Connection dead — fatal.
@@ -55,7 +59,8 @@ T = TypeVar("T")
 
 # COM error codes
 _RPC_E_DISCONNECTED = -2147417848
-_RPC_E_SERVERCALL_RETRYLATER = -2147417851  # 0x80010105
+_RPC_E_SERVERFAULT = -2147417851  # 0x80010105 — "The server threw an exception"
+_RPC_E_SERVERCALL_RETRYLATER = -2147417846  # 0x8001010A
 _RPC_E_CALL_REJECTED = -2147418111  # 0x80010001
 _RPC_S_UNKNOWN_IF = -2147023179  # 0x800706B5 — "The interface is unknown"
 
@@ -65,6 +70,18 @@ _RETRYABLE_COM_ERRORS = {_RPC_E_SERVERCALL_RETRYLATER, _RPC_E_CALL_REJECTED, _RP
 #: retry loop) check against the same set when deciding whether an error is a
 #: transient "COM is busy" signal the thread would have retried.
 RETRYABLE_COM_ERRORS = frozenset(_RETRYABLE_COM_ERRORS)
+
+#: Errors that helpers reading COM state must re-raise instead of swallowing:
+#: the retryable ones plus ``RPC_E_SERVERFAULT``. The thread does not retry a
+#: server fault, but swallowing it would return blank fields or ``None`` for a
+#: value that was never read; re-raising lets it reach the user.
+RERAISE_COM_ERRORS = RETRYABLE_COM_ERRORS | {_RPC_E_SERVERFAULT}
+
+_SERVER_FAULT_HINT = (
+    "COM server fault (RPC_E_SERVERFAULT, 0x80010105): the SAP GUI threw an exception while handling the call. "
+    "This is usually a stale control proxy (e.g. after a scroll or screen change): re-fetch the element by id "
+    "and try again. The call is not retried automatically because its side effect may already have happened."
+)
 
 #: Program of an ABAP debugger session. The debugger runs in its own session of the
 #: halted session's connection (window "ABAP Debugger(1)  (exklusiv) ...").
@@ -140,6 +157,7 @@ _FATAL_COM_ERROR_HINTS: dict[int, str] = {
         "transient stale proxy or a genuinely gone session. Retry the operation; if it persists, run "
         "sap_login to open a fresh session, and restart SAP Logon if that still fails."
     ),
+    _RPC_E_SERVERFAULT: _SERVER_FAULT_HINT,
     _RPC_E_DISCONNECTED: (
         "The SAP GUI connection was lost (RPC disconnected). Run sap_login to reconnect; "
         "if that fails, restart SAP Logon."
@@ -173,12 +191,23 @@ def is_transient_busy_error(exc: Exception) -> bool:
 
     This is deliberately narrower than ``_RETRYABLE_COM_ERRORS``, which also
     includes ``RPC_S_UNKNOWN_IF`` (stale interface — the session's window is
-    actually gone). Callers that need to tell "busy" apart from "dead" — e.g.
+    actually gone). ``RPC_E_SERVERFAULT`` is not "busy" either (see
+    ``is_server_fault_error``). Callers that need to tell "busy" apart from "dead" — e.g.
     a liveness probe deciding whether to prune a session — must use this
     instead of checking membership in ``_RETRYABLE_COM_ERRORS`` (issue #791:
     a modal debugger's busy signal was being treated as a dead session).
     """
     return _get_com_error_code(exc) in (_RPC_E_SERVERCALL_RETRYLATER, _RPC_E_CALL_REJECTED)
+
+
+def is_server_fault_error(exc: Exception) -> bool:
+    """True if *exc* is ``RPC_E_SERVERFAULT`` (0x80010105).
+
+    The call reached the SAP GUI process and it threw. That proves the process
+    is alive, but says nothing about busy or dead: liveness probes keep the
+    session and report an unknown status.
+    """
+    return _get_com_error_code(exc) == _RPC_E_SERVERFAULT
 
 
 class ComThread:  # pylint: disable=too-many-instance-attributes
@@ -425,6 +454,8 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                     wrapped.__cause__ = exc
                 else:
                     wrapped = exc
+                    if error_code == _RPC_E_SERVERFAULT:
+                        wrapped.add_note(_SERVER_FAULT_HINT)
                 # See the set_result guard above — a cancelled caller future
                 # must not crash the worker with InvalidStateError.
                 if not cf_future.done():
