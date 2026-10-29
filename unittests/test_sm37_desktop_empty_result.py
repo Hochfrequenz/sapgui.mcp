@@ -113,7 +113,7 @@ def _listing_backend(table: Any, session: Any) -> Any:
     backend.read_table = AsyncMock(return_value=table)
     backend.require_session = MagicMock(return_value=session)
     backend.com = MagicMock()
-    backend.com.run = AsyncMock(side_effect=lambda job: job())
+    backend.com.run = AsyncMock(side_effect=lambda job, **_: job())
     return backend
 
 

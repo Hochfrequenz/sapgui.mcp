@@ -155,7 +155,7 @@ _TYPE_CHECK_BOX = 42
 
 def _reraise_if_transient(exc: Exception) -> None:
     """Re-raise a lost connection, the errors the COM thread retries and server faults: swallowing them would return
-    partial header data instead of retrying."""
+    partial header data instead of surfacing the error."""
     if _get_com_error_code(exc) in (_RPC_E_DISCONNECTED, *RERAISE_COM_ERRORS):
         raise exc
 
@@ -219,11 +219,11 @@ async def _read_tab_rows(
         return read_table_control_all_rows(session, _flatten)
 
     label = await _click_tab_bilingual(backend, de_label, en_label)
-    rows = await com.run(_read_tc)
+    rows = await com.run(_read_tc, retry_server_fault=True)
     if label is not None and (not rows or rows == previous_rows):
         if not await backend.wait_for_condition(tab_table_control_loaded(label), timeout_ms=3000, poll_ms=250):
             logger.debug("SE24 tab %s: table control did not appear within 3 s", label)
-        rows = await com.run(_read_tc)
+        rows = await com.run(_read_tc, retry_server_fault=True)
     return rows
 
 
@@ -294,7 +294,7 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
     # Read methods tab: try reading first (default tab), click only if table is empty.
     # SAP lazily instantiates tab subscreen controls — the table control may not
     # exist in the widget tree until the tab is explicitly activated by a click.
-    methods_raw = await com.run(_read_tc)
+    methods_raw = await com.run(_read_tc, retry_server_fault=True)
     if not methods_raw:
         methods_raw = await _read_tab_rows(backend, "Methoden", "Methods", previous_rows=[])
     attrs_raw = await _read_tab_rows(backend, "Attribute", "Attributes", previous_rows=methods_raw)
@@ -308,7 +308,7 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
         named_text_field_present(_HEADER_DESCRIPTION_FIELDS), timeout_ms=3000, poll_ms=250
     ):
         logger.warning("SE24 properties tab: the description field did not appear within 3 s")
-    header = await com.run(lambda: _read_se24_header(session, _flatten))
+    header = await com.run(lambda: _read_se24_header(session, _flatten), retry_server_fault=True)
 
     # Detect interface vs class from screen title
     # DE: "Class Builder: Interface IF_XXX anzeigen" / "Klasse CL_XXX anzeigen"

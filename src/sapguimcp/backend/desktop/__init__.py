@@ -966,8 +966,9 @@ class DesktopBackend:
                 return SessionStatus(
                     success=True,
                     status="unknown",
-                    message="The SAP GUI answered with a server fault: the process is alive, the status is "
-                    "unknown. Retry shortly.",
+                    message="UNKNOWN: this session could not be confirmed active. The SAP GUI answered the "
+                    "probe with a server fault (the process responds, but the session state was not read). "
+                    "Do not assume it is usable; check again or call sap_login.",
                 )
             hint = describe_com_error(exc)
             return SessionStatus(success=True, status="unknown", message=hint or "Session not responsive")
@@ -1251,7 +1252,7 @@ class DesktopBackend:
                     extra={"session_id": session_id, "error": repr(exc)[:200]},
                 )
                 return False
-            if is_server_fault_error(exc):
+            if is_server_fault_error(exc) and await self._session_answers(session_id):
                 logger.info("close_session_server_fault", extra={"session_id": session_id, "error": repr(exc)[:200]})
                 return False
             result = False
@@ -1259,6 +1260,16 @@ class DesktopBackend:
         self._unwatch_orphaned_connections()
         logger.info("close_session", extra={"session_id": session_id, "success": result})
         return result
+
+    async def _session_answers(self, session_id: str) -> bool:
+        """True if the session still answers one ``Id`` read (fail-fast probe, no retries)."""
+        try:
+            target = self.registry.get_session(session_id)
+            with self._com_target(target):
+                await self.com.run(lambda: str(target.com.Id), max_retries=0)
+        except Exception:  # pylint: disable=broad-exception-caught
+            return False
+        return True
 
     # ---- Reconciliation & bulk cleanup (issue #637) ----
 
@@ -1580,7 +1591,7 @@ class DesktopBackend:
                 message_id, message_number, params = None, None, []
             return text, msg_type, message_id, message_number, params
 
-        text, msg_type, message_id, message_number, params = await self.com.run(_read)
+        text, msg_type, message_id, message_number, params = await self.com.run(_read, retry_server_fault=True)
         bar_type: StatusBarType = cast(StatusBarType, msg_type) if msg_type in ("S", "E", "W", "I", "A") else "none"
         logger.debug(
             "status_bar",
@@ -1613,7 +1624,7 @@ class DesktopBackend:
                 "user": str(info.user),
             }
 
-        data = await self.com.run(_read)
+        data = await self.com.run(_read, retry_server_fault=True)
         return ScreenInfo(success=True, url="desktop://sap", **data)
 
     async def get_screen_text(  # pylint: disable=unused-argument
@@ -1660,7 +1671,7 @@ class DesktopBackend:
                 "main_content": content,
             }
 
-        data = await self.com.run(_read)
+        data = await self.com.run(_read, retry_server_fault=True)
         return ScreenText(success=True, **data)
 
     async def discover_fields(self) -> list[FieldInfo]:
@@ -1674,7 +1685,7 @@ class DesktopBackend:
             flat = _flatten(tree)
             return _discover_fields_from_tree(flat)
 
-        items = await self.com.run(_discover)
+        items = await self.com.run(_discover, retry_server_fault=True)
         logger.debug("discover_fields", extra={"count": len(items)})
         return [FieldInfo(**item) for item in items]
 
@@ -1723,7 +1734,7 @@ class DesktopBackend:
                 fields.append(field_dict)
             return fields, wnd_id
 
-        items, active_wnd = await self.com.run(_discover)
+        items, active_wnd = await self.com.run(_discover, retry_server_fault=True)
         logger.debug("get_form_fields", extra={"count": len(items)})
 
         fields = [FormField(**item) for item in items]
@@ -1757,7 +1768,7 @@ class DesktopBackend:
                     buttons.append({"label": label, "id": elem.id, "selector": elem.id})
             return buttons
 
-        items = await self.com.run(_discover)
+        items = await self.com.run(_discover, retry_server_fault=True)
         logger.debug("discover_buttons", extra={"count": len(items)})
         return [ButtonInfo(**item) for item in items]
 
@@ -1812,7 +1823,7 @@ class DesktopBackend:
 
             return "\n".join(lines), max_depth_found, elements_hidden
 
-        text, max_depth_found, elements_hidden = await self.com.run(_dump)
+        text, max_depth_found, elements_hidden = await self.com.run(_dump, retry_server_fault=True)
         return ComTreeSnapshot(text), max_depth_found, elements_hidden
 
     async def take_screenshot(self) -> bytes:
@@ -1985,7 +1996,7 @@ class DesktopBackend:
             wnd_id = _active_window_id(session)
             return str(cast(Any, session.find_by_id(wnd_id)).text)
 
-        return await self.com.run(_title)
+        return await self.com.run(_title, retry_server_fault=True)
 
     # ---- SapUiPrimitives (only press_key in Phase 1) ----
 

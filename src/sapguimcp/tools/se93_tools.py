@@ -76,7 +76,7 @@ async def _read_checkbox(backend: WebGuiBackend | DesktopBackend, sap_name: str)
         except Exception:  # pylint: disable=broad-exception-caught
             return False
 
-    return await com.run(_read)
+    return await com.run(_read, retry_server_fault=True)
 
 
 async def _lookup_tcode_desktop(  # pylint: disable=too-many-locals

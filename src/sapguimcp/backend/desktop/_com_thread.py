@@ -189,10 +189,10 @@ def is_transient_busy_error(exc: Exception) -> bool:
     breakpoint) is running its own nested message loop. That is temporary and
     usually clears once the dialog is dismissed.
 
-    This is deliberately narrower than ``_RETRYABLE_COM_ERRORS``, which also
-    includes ``RPC_S_UNKNOWN_IF`` (stale interface — the session's window is
-    actually gone). ``RPC_E_SERVERFAULT`` is not "busy" either (see
-    ``is_server_fault_error``). Callers that need to tell "busy" apart from "dead" — e.g.
+    Deliberately narrower than ``RETRYABLE_COM_ERRORS``: ``RPC_S_UNKNOWN_IF``
+    (stale interface, the session's window is actually gone) is not "busy", and
+    neither is ``RPC_E_SERVERFAULT`` (see ``is_server_fault_error``). Liveness
+    probes use this to tell "busy" from "dead" (issue #791). Callers that need to tell "busy" apart from "dead" — e.g.
     a liveness probe deciding whether to prune a session — must use this
     instead of checking membership in ``_RETRYABLE_COM_ERRORS`` (issue #791:
     a modal debugger's busy signal was being treated as a dead session).
@@ -208,6 +208,18 @@ def is_server_fault_error(exc: Exception) -> bool:
     session and report an unknown status.
     """
     return _get_com_error_code(exc) == _RPC_E_SERVERFAULT
+
+
+class ComServerFaultError(RuntimeError):
+    """``RPC_E_SERVERFAULT`` surfaced by the COM thread, with an actionable hint in its message.
+
+    Carries the original ``com_error`` as ``__cause__`` and its HRESULT as ``hresult``, so
+    ``_get_com_error_code`` still classifies it.
+    """
+
+    def __init__(self, cause: BaseException) -> None:
+        super().__init__(f"{_SERVER_FAULT_HINT} Original error: {cause}")
+        self.hresult = _RPC_E_SERVERFAULT
 
 
 class ComThread:  # pylint: disable=too-many-instance-attributes
@@ -250,7 +262,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         # signals "this session is dead", not "try again".
         # The last element is the SAP connection the call targets (see ``com_call_target``).
         self._queue: queue.Queue[
-            tuple[Callable[[], Any], concurrent.futures.Future[Any], int | None, str | None] | None
+            tuple[Callable[[], Any], concurrent.futures.Future[Any], int | None, str | None, bool] | None
         ] = queue.Queue()
         # Halt watchdog state (see module docstring). ``_state_lock`` guards the
         # in-flight call bookkeeping shared between the worker and the watchdog.
@@ -292,7 +304,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 item = self._queue.get()
                 if item is None:
                     break
-                fn, cf_future, retries_override, target = item
+                fn, cf_future, retries_override, target, retry_server_fault = item
                 if not cf_future.set_running_or_notify_cancel():
                     # The caller already gave up (e.g. a liveness probe's wait_for timed
                     # out). Running it anyway could only block the worker for nothing —
@@ -302,7 +314,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 # stays under the local-variable cap (pylint too-many-locals).
                 max_retries = self._max_retries if retries_override is None else retries_override
                 tracked = functools.partial(self._invoke_tracked, fn, target)
-                self._execute_with_retry(tracked, cf_future, last_call, max_retries)
+                self._execute_with_retry(tracked, cf_future, last_call, max_retries, retry_server_fault)
                 last_call = time.monotonic()
         except Exception:
             # Forensic snapshot — without this, we can't tell *why* the worker
@@ -347,6 +359,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         cf_future: concurrent.futures.Future[Any],
         last_call: float,
         max_retries: int,
+        retry_server_fault: bool = False,
     ) -> None:
         """Execute a COM call with adaptive throttling and retry on transient errors.
 
@@ -360,6 +373,11 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         off instead of re-running completed steps — re-running them can repeat
         destructive side effects (issue #879). Callables that raise nothing
         special keep the plain ``fn()`` retry of before.
+
+        ``retry_server_fault`` opts a read-only callable that re-fetches its COM
+        objects inside itself into retrying ``RPC_E_SERVERFAULT`` too, with the
+        same budget. Such a retry backs off but never raises the throttle interval:
+        a server fault is not a load signal.
         """
         carrier: ComBatchInterruptedError | None = None
         for attempt in range(max_retries + 1):
@@ -426,6 +444,16 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                         cf_future.set_exception(exc)
                     return
 
+                if retry_server_fault and error_code == _RPC_E_SERVERFAULT and attempt < max_retries:
+                    backoff = max(self._current_interval_s, 0.05) * (2**attempt)
+                    logger.warning(
+                        "com_call_retry_server_fault",
+                        extra={"attempt": attempt + 1, "error_code": error_code, "backoff_ms": int(backoff * 1000)},
+                    )
+                    time.sleep(backoff)
+                    last_call = time.monotonic()
+                    continue
+
                 if error_code in _RETRYABLE_COM_ERRORS and attempt < max_retries:
                     # COM is busy — back off and retry
                     backoff = self._current_interval_s * (2**attempt)
@@ -455,7 +483,8 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 else:
                     wrapped = exc
                     if error_code == _RPC_E_SERVERFAULT:
-                        wrapped.add_note(_SERVER_FAULT_HINT)
+                        wrapped = ComServerFaultError(exc)
+                        wrapped.__cause__ = exc
                 # See the set_result guard above — a cancelled caller future
                 # must not crash the worker with InvalidStateError.
                 if not cf_future.done():
@@ -484,7 +513,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
             # Decay slowly: reduce by 10%
             self._current_interval_s = max(self._current_interval_s * 0.9, self._min_interval_s)
 
-    async def run(self, fn: Callable[[], T], *, max_retries: int | None = None) -> T:
+    async def run(self, fn: Callable[[], T], *, max_retries: int | None = None, retry_server_fault: bool = False) -> T:
         """Submit a callable to the COM thread and await its result.
 
         Args:
@@ -493,6 +522,10 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 the default ``self._max_retries``. Pass ``0`` for liveness
                 probes where retryable errors like ``RPC_S_UNKNOWN_IF`` mean
                 "this session is dead", not "transient — try again".
+            retry_server_fault: Opt in to retrying ``RPC_E_SERVERFAULT`` (same budget,
+                no throttle inflation). ONLY for read-only callables that re-fetch every
+                COM object inside the callable: a server fault means the call reached
+                the server, so a retry of anything with a side effect could repeat it.
         """
         if not self._thread.is_alive():
             # Pair this with ``com_thread_crashed`` from ``_run`` to bracket
@@ -507,7 +540,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 "cannot be revived. The BackendManager must rebuild it."
             )
         cf_future: concurrent.futures.Future[T] = concurrent.futures.Future()
-        self._queue.put((fn, cf_future, max_retries, com_call_target.get()))
+        self._queue.put((fn, cf_future, max_retries, com_call_target.get(), retry_server_fault))
         return await asyncio.wrap_future(cf_future)
 
     @property

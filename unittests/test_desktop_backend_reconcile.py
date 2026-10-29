@@ -645,3 +645,42 @@ class TestReconcileServerFault:
         assert report["alive"] == ["s1"]
         assert report["removed"] == ["s2"]
         assert backend.registry.list_sessions() == ["s1"]
+
+
+class TestCloseSessionServerFault:
+    """Issue #1012: a server fault while closing keeps the session only if it still answers a probe."""
+
+    @staticmethod
+    def _backend_with(session: MagicMock, probe_error: Exception | None) -> DesktopBackend:
+        backend = _make_backend()
+        backend._com_target = MagicMock()  # type: ignore[method-assign]
+        backend._unwatch_orphaned_connections = MagicMock()  # type: ignore[method-assign]
+        backend.registry.register(session)
+        session.com.Parent.CloseSession.side_effect = _com_error(-2147417851, "fault")
+        calls = {"n": 0}
+
+        async def run(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
+            calls["n"] += 1
+            if calls["n"] == 2 and probe_error is not None:
+                raise probe_error
+            return fn()
+
+        backend.com.run = run
+        return backend
+
+    @pytest.mark.anyio
+    async def test_answering_probe_keeps_the_session(self) -> None:
+        session = _make_mock_session("s1", alive=True)
+        backend = self._backend_with(session, None)
+
+        assert await backend.close_session("s1") is False
+        assert backend.registry.list_sessions() == ["s1"]
+
+    @pytest.mark.anyio
+    @pytest.mark.parametrize("code", [-2147417848, -2147023179])
+    async def test_dead_probe_unregisters_the_session(self, code: int) -> None:
+        session = _make_mock_session("s1", alive=True)
+        backend = self._backend_with(session, _com_error(code, "gone"))
+
+        assert await backend.close_session("s1") is False
+        assert backend.registry.list_sessions() == []
