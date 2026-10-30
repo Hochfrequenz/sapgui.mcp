@@ -76,3 +76,39 @@ class TreeContextMenuResult(ToolResult):
             "sap_com_snapshot or iterate the connection's child sessions to find the new screen."
         ),
     )
+
+
+class TreeColumn(BaseModel):
+    """One named column of a column tree."""
+
+    name: str = Field(description="Internal column name (use with GetItemText / ClickLink)")
+    title: str = Field(default="", description="Column header text")
+
+
+class TreeNode(BaseModel):
+    """One loaded node of a tree control — a payload, not a tool envelope."""
+
+    key: str = Field(description="Node key, an opaque string with significant padding (never strip it)")
+    text: str = Field(description="Node label")
+    level: int = Field(description="Hierarchy level (0 = root level)")
+    path: list[str] = Field(default_factory=list, description="Ancestor labels from the root down to the parent")
+    is_folder: bool = Field(
+        description="True when the node is expandable. A collapsed, not yet loaded folder may have no loaded children."
+    )
+    expanded: bool | None = Field(default=None, description="Whether the folder is expanded (None when unknown)")
+    items: dict[str, str] = Field(default_factory=dict, description="Column name to text (column trees only)")
+
+
+class TreeReadResult(ToolResult):
+    """Result from sap_tree_read — loaded nodes of a tree, never expanded by the tool."""
+
+    tree_id: str = Field(default="", description="Element ID of the tree that was read")
+    tree_type: str = Field(default="", description="simple, list or column")
+    columns: list[TreeColumn] = Field(default_factory=list, description="Named columns (column trees only)")
+    nodes: list[TreeNode] = Field(default_factory=list, description="Returned nodes (at most max_nodes)")
+    total_nodes: int = Field(default=0, description="Number of nodes currently loaded in the tree")
+    returned_nodes: int = Field(default=0, description="Number of nodes in `nodes`")
+    scanned_nodes: int = Field(default=0, description="Number of loaded nodes examined")
+    skipped_nodes: int = Field(default=0, description="Nodes skipped because of a per-node COM error")
+    truncated: bool = Field(default=False, description="True when more matching nodes exist than max_nodes")
+    scan_limit_hit: bool = Field(default=False, description="True when the tree exceeded the internal scan ceiling")

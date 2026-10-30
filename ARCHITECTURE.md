@@ -104,6 +104,7 @@ src/sapguimcp/
       _com_thread.py           # Dedicated COM thread (apartment-threading)
       _session_registry.py     # Multi-session tracking + per-session origin (opened/attached)
       _element_finder.py       # COM tree traversal helpers
+      _tree_helpers.py         # GuiTree locator and node reader (sap_tree_read)
       _key_mapping.py          # Key name → SAP VKey mapping
       _landscape.py            # SAP Logon XML parsing
       _discovery.py            # Client/system discovery via SE16N
