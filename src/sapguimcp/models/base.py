@@ -40,6 +40,7 @@ class PopupInfo(BaseModel):
         default=PopupType.UNKNOWN,
         description="Type of popup if detectable: help, confirm, error, info, or unknown",
     )
+    title: str | None = Field(default=None, description="Popup window title")
     message: str | None = Field(default=None, description="Popup message text")
     buttons: list[PopupButton] = Field(default_factory=list, description="Available buttons")
     close_button_id: str | None = Field(default=None, description="ID of X close button if present")

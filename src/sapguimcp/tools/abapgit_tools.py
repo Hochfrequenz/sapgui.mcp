@@ -41,6 +41,7 @@ if TYPE_CHECKING:
 
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
+    from sapguimcp.models.base import PopupInfo
 
 
 logger = logging.getLogger(__name__)
@@ -507,6 +508,19 @@ async def _execute_pull_transaction(
     return None
 
 
+_INACTIVE_OBJECTS_PHRASES = ("inaktive objekte", "inactive objects")
+
+
+def _is_inactive_objects_popup(popup: PopupInfo) -> bool:
+    """Return True if the popup is the "Inaktive Objekte" / "Inactive Objects" dialog.
+
+    The phrase may be in the window title (desktop: the message is built from the dialog's
+    labels, not its title) or in the message (WebGUI: the message comes from the header title).
+    """
+    haystack = f"{popup.title or ''} {popup.message or ''}".lower()
+    return any(phrase in haystack for phrase in _INACTIVE_OBJECTS_PHRASES)
+
+
 async def _run_pull_and_check_errors(
     backend: "WebGuiBackend | DesktopBackend", repo: str
 ) -> AbapGitActionResult | None:
@@ -528,16 +542,14 @@ async def _run_pull_and_check_errors(
     # SAP may show an "Inaktive Objekte" / "Inactive Objects" popup after pull.
     # Detect via check_popup() instead of parsing snapshot text.
     popup = await backend.check_popup()
-    if popup and popup.message:
-        msg_lower = popup.message.lower()
-        if "inaktive objekte" in msg_lower or "inactive objects" in msg_lower:
-            logger.info("Detected inactive objects popup, confirming with Enter")
-            await backend.press_key("Enter")
-            await backend.wait(2000)
-            try:
-                await backend.wait_for_ready(timeout_ms=30_000)
-            except Exception:  # pylint: disable=broad-exception-caught
-                pass
+    if popup and _is_inactive_objects_popup(popup):
+        logger.info("Detected inactive objects popup, confirming with Enter")
+        await backend.press_key("Enter")
+        await backend.wait(2000)
+        try:
+            await backend.wait_for_ready(timeout_ms=30_000)
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
 
     return await _handle_popup_error(backend, repo)
 

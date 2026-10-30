@@ -2611,6 +2611,7 @@ class DesktopBackend:
         )
         return PopupInfo(
             popup_type=popup_type,
+            title=data["title"],
             message=data["message"],
             buttons=popup_buttons,
         )
