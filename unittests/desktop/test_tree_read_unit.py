@@ -270,6 +270,58 @@ def test_scan_limit_hit_and_ceiling(monkeypatch: pytest.MonkeyPatch):
     assert result["total_nodes"] == 5
 
 
+def _transient(message: str = "disconnected") -> Exception:
+    exc = RuntimeError(message)
+    exc.hresult = -2147417848  # type: ignore[attr-defined]  # RPC_E_DISCONNECTED
+    return exc
+
+
+def test_transient_error_in_node_read_propagates_instead_of_skipping():
+    class _Disconnecting(FakeTree):
+        def GetNodeTextByKey(self, key: str) -> str:  # noqa: N802, ARG002
+            raise _transient()
+
+    tree = _Disconnecting("wnd[0]/shellcont/shell", _simple_nodes())
+    with pytest.raises(RuntimeError, match="disconnected"):
+        _read(_dock(tree))
+
+
+def test_transient_error_in_optional_call_propagates_instead_of_degrading():
+    class _Faulting(FakeTree):
+        def GetParent(self, key: str) -> str:  # noqa: N802, ARG002
+            raise _transient("server fault")
+
+    tree = _Faulting("wnd[0]/shellcont/shell", _simple_nodes())
+    with pytest.raises(RuntimeError, match="server fault"):
+        _read(_dock(tree))
+
+
+def test_key_retrieval_is_bounded_by_scan_ceiling(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(_tree_helpers, "MAX_SCAN_NODES", 2)
+    fetched: list[int] = []
+
+    class _Counting(FakeCollection):
+        def Item(self, i: int) -> Any:  # noqa: N802
+            fetched.append(i)
+            return super().Item(i)
+
+    class _Tree(FakeTree):
+        def GetAllNodeKeys(self) -> FakeCollection:  # noqa: N802
+            return _Counting(list(self._order))
+
+    result = _read(_dock(_Tree("wnd[0]/shellcont/shell", _simple_nodes())), max_nodes=1)
+    assert fetched == [0, 1]
+    assert result["total_nodes"] == 5
+    assert result["scan_limit_hit"] is True
+
+
+def test_popup_above_first_popup_is_searched():
+    main = FakeTree("wnd[0]/shellcont/shell", _simple_nodes())
+    top = FakeTree("wnd[2]/usr/shell", [N("T", "Top")])
+    session = FakeSession({"wnd[0]": [main], "wnd[2]": [top]})
+    assert _read(session)["tree_id"] == "wnd[2]/usr/shell"
+
+
 def test_missing_get_parent_degrades_to_empty_path_and_level_from_control():
     tree = FakeTree("wnd[0]/shellcont/shell", _simple_nodes(), broken_methods=("GetParent",))
     result = _read(_dock(tree))

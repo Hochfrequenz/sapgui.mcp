@@ -11,6 +11,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
+from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RERAISE_COM_ERRORS, _get_com_error_code
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -36,23 +38,40 @@ _ANCESTOR_LIMIT = 200
 _KEY_HINT_COUNT = 5
 
 
-def _collection(coll: Any) -> list[Any]:
-    """Materialise a COM collection (``Count`` + ``Item(i)``) into a list."""
+def _reraise_if_transient(exc: Exception) -> None:
+    """Re-raise a lost connection, the errors the COM thread retries and server faults.
+
+    Swallowing them would turn a failed read into missing parents or text, or even a "successful"
+    empty result, instead of letting ``ComThread`` retry or report the failure.
+    """
+    if _get_com_error_code(exc) in (_RPC_E_DISCONNECTED, *RERAISE_COM_ERRORS):
+        raise exc
+
+
+def _collection(coll: Any, limit: int | None = None) -> list[Any]:
+    """Materialise a COM collection (``Count`` + ``Item(i)``) into a list, at most ``limit`` items."""
     count = int(coll.Count)
+    if limit is not None:
+        count = min(count, limit)
     items: list[Any] = []
     for i in range(count):
         try:
             items.append(coll.Item(i))
-        except Exception:  # pylint: disable=broad-exception-caught
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            _reraise_if_transient(exc)
             items.append(coll(i))
     return items
 
 
 def _try(call: Callable[..., Any], *args: Any) -> Any | None:
-    """Return ``call(*args)``, or ``None`` when the method is missing or raises."""
+    """Return ``call(*args)``, or ``None`` when the method is missing or raises.
+
+    Transient COM errors (see ``_reraise_if_transient``) are not swallowed.
+    """
     try:
         return call(*args)
-    except Exception:  # pylint: disable=broad-exception-caught
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        _reraise_if_transient(exc)
         return None
 
 
@@ -73,14 +92,14 @@ def _walk(element: Any, found: list[dict[str, Any]], depth: int = 0) -> None:
 
 
 def find_tree_shells(raw_session: Any) -> list[dict[str, Any]]:
-    """Find tree shells in the topmost window that contains any (popup ``wnd[1]`` before ``wnd[0]``).
+    """Find tree shells in the topmost window that contains any (``wnd[3]`` down to ``wnd[0]``).
 
-    A popup without a tree falls through to ``wnd[0]``.
+    A popup without a tree falls through to the next window below it.
 
     Trees often live in docking containers (``wnd[0]/shellcont/...``), outside ``wnd[0]/usr``,
     so the whole window is walked, not just ``usr``.
     """
-    for window_id in ("wnd[1]", "wnd[0]"):
+    for window_id in ("wnd[3]", "wnd[2]", "wnd[1]", "wnd[0]"):
         window = _try(raw_session.FindById, window_id)
         if window is None:
             continue
@@ -101,6 +120,7 @@ def resolve_tree(raw_session: Any, tree_id: str | None) -> tuple[Any, str]:
         try:
             shell = raw_session.FindById(tree_id)
         except Exception as exc:
+            _reraise_if_transient(exc)
             raise RuntimeError(f"tree {tree_id!r} not found (FindById failed: {exc})") from exc
         kind, subtype = _try(getattr, shell, "Type"), _try(getattr, shell, "SubType")
         if kind != "GuiShell" or subtype != "Tree":
@@ -235,8 +255,12 @@ def read_tree(  # pylint: disable=too-many-locals
     tree, resolved_id = resolve_tree(raw_session, tree_id)
     try:
         tree_type = TREE_TYPE_NAMES.get(int(tree.GetTreeType()), "simple")
-        all_keys = [str(k) for k in _collection(tree.GetAllNodeKeys())]
+        key_collection = tree.GetAllNodeKeys()
+        total_nodes = int(key_collection.Count)
+        # Bound key retrieval: a huge tree must not monopolize the shared COM thread.
+        keys = [str(k) for k in _collection(key_collection, MAX_SCAN_NODES)]
     except Exception as exc:
+        _reraise_if_transient(exc)
         raise RuntimeError(f"tree {resolved_id!r}: reading node keys failed: {exc}") from exc
 
     columns = _read_columns(tree, tree_type)
@@ -245,14 +269,16 @@ def read_tree(  # pylint: disable=too-many-locals
             f"column {column!r} is not a column of tree {resolved_id!r} (type {tree_type}); "
             f"available columns: {[c['name'] for c in columns]}"
         )
-    if root_key is not None and root_key not in all_keys:
-        raise ValueError(
-            f"root_key {root_key!r} not found among the loaded nodes of tree {resolved_id!r}; "
-            f"some valid keys: {all_keys[:_KEY_HINT_COUNT]}"
-        )
+    if root_key is not None and root_key not in keys:
+        # Beyond the scan prefix the key cannot be listed; ask the control whether it exists at all.
+        beyond_prefix = total_nodes > len(keys) and _try(tree.GetNodeTextByKey, root_key) is not None
+        if not beyond_prefix:
+            raise ValueError(
+                f"root_key {root_key!r} not found among the loaded nodes of tree {resolved_id!r}; "
+                f"some valid keys: {keys[:_KEY_HINT_COUNT]}"
+            )
 
-    scan_limit_hit = len(all_keys) > MAX_SCAN_NODES
-    keys = all_keys[:MAX_SCAN_NODES]
+    scan_limit_hit = total_nodes > len(keys)
     reader = _TreeReader(tree, resolved_id)
     needle = search.casefold() if search is not None else None
 
@@ -276,6 +302,7 @@ def read_tree(  # pylint: disable=too-many-locals
                 break
             nodes.append(_build_node(reader, key, text, items))
         except Exception as exc:  # pylint: disable=broad-exception-caught
+            _reraise_if_transient(exc)
             skipped += 1
             logger.debug("tree %s: skipping node %r: %s", resolved_id, key, exc)
             continue
@@ -285,7 +312,7 @@ def read_tree(  # pylint: disable=too-many-locals
         "tree_type": tree_type,
         "columns": columns,
         "nodes": nodes,
-        "total_nodes": len(all_keys),
+        "total_nodes": total_nodes,
         "returned_nodes": len(nodes),
         "scanned_nodes": scanned,
         "skipped_nodes": skipped,
