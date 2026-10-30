@@ -11,7 +11,12 @@ See also: ``backend/webgui/types.py`` (AriaSnapshot),
 ``backend/desktop/types.py`` (ComTreeSnapshot).
 """
 
-from sapguimcp.models.abapgit_models import AbapGitActionResult, AbapGitListResult, AbapGitRepoInfo
+from sapguimcp.models.abapgit_models import (
+    AbapGitActionResult,
+    AbapGitListResult,
+    AbapGitRepoInfo,
+    AbapGitRepoSummary,
+)
 from sapguimcp.models.alv_models import (
     AlvCellInfo,
     AlvMetadata,
@@ -157,6 +162,7 @@ __all__ = [
     "AbapGitActionResult",
     "AbapGitListResult",
     "AbapGitRepoInfo",
+    "AbapGitRepoSummary",
     # Base
     "TCODE_PATTERN",
     "PopupButton",

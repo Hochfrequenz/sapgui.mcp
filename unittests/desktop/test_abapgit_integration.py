@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from sapguimcp.tools.abapgit_tools import _abapgit_list_repos, _abapgit_pull_via_api
+from sapguimcp.tools.abapgit_tools import _abapgit_list_repos, _abapgit_pull_via_api, _apply_list_filters
 from unittests.desktop.conftest import go_home, require_repo_registered, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
@@ -198,4 +198,32 @@ async def test_abapgit_list_repos(backend) -> None:
     assert "github.com" in public_repo.url
     assert public_repo.package
     assert public_repo.is_offline is False
+    await go_home(backend)
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_abapgit_list_repos_filters_and_counts(backend) -> None:
+    """One read-only list call; the filters and counts are applied to it as the tool does (#997).
+
+    The package is picked from the unfiltered list, so the test works on any system that has a repository.
+    """
+    raw = await _abapgit_list_repos(backend)
+    assert raw.success, f"List failed: {raw.error}"
+    assert raw.repos, "Expected at least one repo"
+    assert raw.total_count is not None
+    assert raw.total_count >= len(raw.repos)
+
+    everything = _apply_list_filters(raw, name="*")
+    assert everything.matched_count == len(raw.repos), "name='*' must equal the unfiltered count"
+    assert everything.total_count == raw.total_count
+
+    package = raw.repos[0].package
+    by_package = _apply_list_filters(raw, package=package)
+    assert by_package.matched_count >= 1
+    assert all(r.package == package for r in by_package.repos), "only repositories of that package"
+    assert by_package.matched_count <= by_package.total_count == raw.total_count
+
+    compact = _apply_list_filters(raw, package=package, compact=True)
+    assert all(set(r.model_dump()) == {"name", "package", "key"} for r in compact.repos)
     await go_home(backend)

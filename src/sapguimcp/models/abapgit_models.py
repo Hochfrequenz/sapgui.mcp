@@ -22,12 +22,33 @@ class AbapGitRepoInfo(BaseModel):
     last_pull_at: str | None = Field(default=None, description="Last pull timestamp (ABAP TIMESTAMPL type)")
     last_pull_by: str | None = Field(default=None, description="SAP user who last pulled")
     is_offline: bool = Field(default=False, description="Whether this is an offline repo")
+    key: str | None = Field(
+        default=None,
+        description="abapGit repository key (stable identifier); None when the report does not list it yet",
+    )
+
+
+class AbapGitRepoSummary(BaseModel):
+    """Short form of a registered abapGit repository, returned by ``compact=True``."""
+
+    name: str = Field(description="Repository name in SAP; for an offline repository without a name: its package")
+    package: str = Field(description="ABAP development package (devclass)")
+    key: str | None = Field(default=None, description="abapGit repository key; None when the report does not list it")
 
 
 class AbapGitListResult(ToolResult):
     """Result of listing registered abapGit repositories."""
 
-    repos: list[AbapGitRepoInfo] = Field(default_factory=list, description="Registered repositories")
+    repos: list[AbapGitRepoInfo | AbapGitRepoSummary] = Field(
+        default_factory=list,
+        description="Registered repositories that match the filters (AbapGitRepoSummary entries when compact=True)",
+    )
+    total_count: int | None = Field(
+        default=None,
+        description="Number of all registered repositories (before filtering); None when the list was not read",
+    )
+    matched_count: int = Field(default=0, description="Number of repositories that match the filters")
+    message: str | None = Field(default=None, description="Hint, e.g. when no repository matches the filters")
 
 
 class AbapGitActionResult(BaseModel):
