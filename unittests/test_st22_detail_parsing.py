@@ -120,7 +120,7 @@ def _backend() -> Any:
     backend = MagicMock(spec=DesktopBackend)
     backend.require_session = MagicMock(return_value=MagicMock())
     backend.com = MagicMock()
-    backend.com.run = AsyncMock(side_effect=lambda job: job())
+    backend.com.run = AsyncMock(side_effect=lambda job, **_: job())
     return backend
 
 

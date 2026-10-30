@@ -118,7 +118,7 @@ def test_a_checkbox_that_cannot_be_read_is_left_out_while_the_other_values_are_k
     assert "is_final" not in values
 
 
-@pytest.mark.parametrize("code", [*RETRYABLE_COM_ERRORS, _RPC_E_DISCONNECTED])
+@pytest.mark.parametrize("code", [*RETRYABLE_COM_ERRORS, -2147417851, _RPC_E_DISCONNECTED])
 def test_a_com_error_the_com_thread_retries_or_a_lost_connection_is_not_swallowed(code: int) -> None:
     window = SimpleNamespace(dump_tree=_class)
 

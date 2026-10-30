@@ -618,7 +618,9 @@ async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-retu
         )
 
     # Read the fields table control (SE11 shows fields on the main screen, no tabs)
-    rows = await com.run(lambda: read_table_control_all_rows(session, _flatten, read_checkboxes=True))
+    rows = await com.run(
+        lambda: read_table_control_all_rows(session, _flatten, read_checkboxes=True), retry_server_fault=True
+    )
 
     # Extract description from screen fields (DD02D-DDTEXT on the display screen)
     screen_fields = await backend.discover_fields()

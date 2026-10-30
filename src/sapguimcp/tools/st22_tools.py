@@ -239,7 +239,9 @@ async def _capture_desktop_detail(backend: "WebGuiBackend | DesktopBackend") -> 
     """
     desktop = cast("DesktopBackend", backend)
     session = desktop.require_session()
-    lines: list[str] = await desktop.com.run(lambda: read_classic_list_lines(session, _ST22_DETAIL_MAX_LINES))
+    lines: list[str] = await desktop.com.run(
+        lambda: read_classic_list_lines(session, _ST22_DETAIL_MAX_LINES), retry_server_fault=True
+    )
     if lines:
         if len(lines) >= _ST22_DETAIL_MAX_LINES and not any(
             _heading_key(line) in _CALL_STACK_HEADINGS for line in lines

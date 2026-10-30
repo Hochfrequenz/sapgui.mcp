@@ -223,7 +223,9 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
     # The logs are listed in a tree (next to a grid that holds the messages of the selected log), so read that first
     desktop = cast("DesktopBackend", backend)
     session = desktop.require_session()
-    tree_logs, tree_truncated = await desktop.com.run(lambda: _read_log_tree(session, _MAX_LOGS))
+    tree_logs, tree_truncated = await desktop.com.run(
+        lambda: _read_log_tree(session, _MAX_LOGS), retry_server_fault=True
+    )
     if tree_logs:
         return SLG1LogListResult(
             logs=tree_logs,

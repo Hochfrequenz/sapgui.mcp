@@ -78,8 +78,8 @@ async def test_a_box_whose_state_cannot_be_read_is_unknown_and_the_others_are_st
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
-    "code", [-2147417851, -2147418111, -2147023179, -2147417848]
-)  # retry later, rejected, stale, gone
+    "code", [-2147417846, -2147417851, -2147418111, -2147023179, -2147417848]
+)  # retry later, server fault, rejected, stale, gone
 async def test_a_transient_com_error_is_not_swallowed(code: int) -> None:
     session = _Session({"CHK_ON": _ComError(code), "CHK_OFF": False, "RAD_ON": False, "RAD_OFF": False})
     with pytest.raises(Exception) as excinfo:  # noqa: PT011 - the COM error type is a fake

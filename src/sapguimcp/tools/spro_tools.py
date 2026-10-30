@@ -293,7 +293,7 @@ async def _search_img_desktop(  # pylint: disable=too-many-locals
 
         return matches
 
-    raw_matches = await com.run(_read_and_search)
+    raw_matches = await com.run(_read_and_search, retry_server_fault=True)
 
     # Navigate back: F3 exits IMG tree, F3 exits SPRO
     await backend.press_key("F3")
