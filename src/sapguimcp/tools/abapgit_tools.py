@@ -981,11 +981,16 @@ _BRANCH_ECHO = re.compile(r"BRANCH~(refs/heads/\S+)")
 
 async def _read_branch_echo(backend: "WebGuiBackend | DesktopBackend") -> str | None:
     """Read the ``BRANCH~<full ref>`` line the report writes after a pull with a branch; None if not exactly one."""
+    problems: list[str] = []
     try:
-        raw_output = await _read_report_screen(backend, [])
+        raw_output = await _read_report_screen(backend, problems)
     except Exception:  # pylint: disable=broad-exception-caught
         # An outdated report writes no list: the screen is not a list and reading it may raise.
         logger.warning("Could not read the branch echo of the report", exc_info=True)
+        return None
+    if problems:
+        # A cut or inconsistently stitched line must not be read as a (mismatching) echo: fail closed.
+        logger.warning("The branch echo could not be read reliably: %s", "; ".join(problems[:3]))
         return None
     matches = [m for line in (raw_output or "").splitlines() if (m := _BRANCH_ECHO.fullmatch(line.strip()))]
     return matches[0].group(1) if len(matches) == 1 else None

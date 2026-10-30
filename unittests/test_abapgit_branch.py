@@ -148,3 +148,24 @@ def test_result_schema_and_roundtrip_carry_the_branch() -> None:
     result = AbapGitActionResult.success_result("pull", "R", "ok")
     result.branch = REF
     assert AbapGitActionResult.model_validate(result.model_dump(mode="json")).branch == REF
+
+
+@pytest.mark.anyio
+async def test_read_problems_make_the_echo_unconfirmed() -> None:
+    def read_with_problem(_session: Any, problems: list[str] | None = None) -> list[str]:
+        assert problems is not None
+        problems.append("slices of line 1 do not overlap consistently")
+        return [f"BRANCH~{REF}"]
+
+    with patch.object(abapgit_tools, "_read_list_lines", side_effect=read_with_problem):
+        result = await _abapgit_pull_via_api(_backend(_ok()), "R", "TRK1", None, None, "feature/x")
+    assert not result.success
+    assert "did not confirm" in (result.error or "")
+    assert "no readable `BRANCH~` line" in (result.error or "")
+
+
+@pytest.mark.anyio
+async def test_truncated_echo_line_is_not_confirmed_and_not_a_mismatch() -> None:
+    result = await _pull(_backend(_ok()), ["BRANCH~refs/heads/feature/"])
+    assert not result.success
+    assert "did not confirm" in (result.error or "")
