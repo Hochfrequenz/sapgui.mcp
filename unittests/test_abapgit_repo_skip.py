@@ -24,8 +24,9 @@ class _FakeBackend:
 
 
 @pytest.fixture(autouse=True)
-def _clear_cache() -> None:
-    desktop_conftest._REPO_LIST_CACHE.clear()
+def _fresh_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Use a fresh cache per test; monkeypatch restores the original on teardown."""
+    monkeypatch.setattr(desktop_conftest, "_REPO_LIST_CACHE", [])
 
 
 def _patch_list(monkeypatch: pytest.MonkeyPatch, result: AbapGitListResult) -> list[int]:
@@ -95,4 +96,13 @@ async def test_require_caches_successful_list(monkeypatch: pytest.MonkeyPatch) -
     calls = _patch_list(monkeypatch, AbapGitListResult(success=True, repos=[_info(REPO)]))
     await require_repo_registered(_FakeBackend(), REPO)
     await require_repo_registered(_FakeBackend(), REPO)
+    assert len(calls) == 1
+
+
+@pytest.mark.anyio
+async def test_require_still_skips_absent_name_on_cached_second_call(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = _patch_list(monkeypatch, AbapGitListResult(success=True, repos=[_info("OTHER")]))
+    for _ in range(2):
+        with pytest.raises(pytest.skip.Exception):
+            await require_repo_registered(_FakeBackend(), REPO)
     assert len(calls) == 1

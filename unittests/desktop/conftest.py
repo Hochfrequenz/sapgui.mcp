@@ -52,6 +52,7 @@ async def go_home(backend) -> None:  # type: ignore[no-untyped-def]
 
 
 # Successful, non-empty abapGit repo lists, cached to spare repeated SAP round trips.
+# Assumes one SAP system per pytest process.
 _REPO_LIST_CACHE: list[AbapGitRepoInfo] = []
 
 
