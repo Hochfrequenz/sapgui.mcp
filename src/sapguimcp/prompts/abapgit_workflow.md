@@ -57,6 +57,17 @@ sap_abapgit_pull(repo="YOUR_REPO_NAME", trkorr="DEVK900123", username="github-us
 
 `repo` is the abapGit repository name (hyphens allowed, e.g. `MY-PROJECT-ABAP`) or its full `https://` URL. The report matches it exactly, not as a pattern.
 
+### Pulling a specific repository by key
+
+abapGit allows two repositories with the same name or URL. To pull exactly one of them, look up its key and pass `key` instead of `repo` (exactly one of the two):
+
+```
+sap_abapgit_list_repos(name="YOUR_REPO_NAME", compact=True)   # note the 12-digit key
+sap_abapgit_pull(key="000000000012", trkorr="DEVK900123")
+```
+
+`key` takes 1 to 12 digits (zero-padded to 12) and works with `branch` and `trkorr` like `repo`. It needs the report version with `P_KEY`; an older report fails with a clear message and pulls nothing.
+
 To pull a branch other than the one selected for the repository, pass `branch`:
 
 ```
