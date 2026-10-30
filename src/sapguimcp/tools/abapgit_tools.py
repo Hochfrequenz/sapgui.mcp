@@ -28,10 +28,17 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapguimcp.backend.manager import get_backend
-from sapguimcp.models.abapgit_models import AbapGitActionResult, AbapGitListResult, AbapGitRepoInfo
+from sapguimcp.models.abapgit_models import (
+    AbapGitActionResult,
+    AbapGitListResult,
+    AbapGitRepoInfo,
+    AbapGitRepoSummary,
+)
 from sapguimcp.models.config import get_settings
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
 
@@ -548,7 +555,8 @@ _LIST_TOTAL_LINE = re.compile(r"^TOTAL~(\d+)(?:~|$)")
 def _parse_repo_lines(raw_output: str) -> tuple[list[AbapGitRepoInfo], int]:
     """Parse tilde-delimited WRITE output from Z_ABAPGIT_PULL_MCP_SHORTCUT LIST mode.
 
-    Expected format per line: name~url~package~branch~deserialized_at~deserialized_by~offline
+    Expected format per line: name~url~package~branch~deserialized_at~deserialized_by~offline[~key]
+    The trailing repository key is optional (reports that do not write it give ``key=None``).
     Uses ~ as delimiter because SAP WebGUI strips | (pipe) characters from WRITE output.
     Lines that don't match (headers, empty, UI noise) are skipped. Returns the repositories and the number of skipped
     lines that look like repository lines (at least four fields, not the TOTAL header), which are registered but cannot
@@ -585,6 +593,7 @@ def _parse_repo_lines(raw_output: str) -> tuple[list[AbapGitRepoInfo], int]:
                 last_pull_at=(_clean_timestamp(parts[4].strip())) if len(parts) > 4 else None,
                 last_pull_by=(parts[5].strip() or None) if len(parts) > 5 else None,
                 is_offline=is_offline,
+                key=(parts[7].strip() or None) if len(parts) > 7 else None,
             )
         )
     return repos, skipped
@@ -719,6 +728,114 @@ def _abapgit_list_displayed(session: Any) -> bool:
     return any(text.startswith("TOTAL~") or "~" in text for text in _list_screen_rows(usr).values())
 
 
+_FILTER_MAX_LENGTH = 200
+_KEY_FILTER = re.compile(r"[A-Za-z0-9]{1,12}")
+
+
+def _validate_list_filters(name: str | None, package: str | None, url: str | None, key: str | None) -> str | None:
+    """Return an error message when a list filter is blank, too long or (key) malformed, else None."""
+    for label, value in (("name", name), ("package", package), ("url", url), ("key", key)):
+        if value is None:
+            continue
+        if not value.strip():
+            return f"Invalid filter: {label} must not be empty"
+        if len(value) > _FILTER_MAX_LENGTH:
+            return f"Invalid filter: {label} is longer than {_FILTER_MAX_LENGTH} characters"
+    if key is not None and not _KEY_FILTER.fullmatch(key.strip()):
+        return "Invalid filter: key must be 1 to 12 letters or digits"
+    return None
+
+
+def _glob_match(pattern: str, text: str) -> bool:
+    """Match ``text`` against ``pattern`` where ``*`` is any run of characters and ``?`` any single one.
+
+    Iterative with a single backtrack point (O(len(pattern) * len(text)) worst case), so user input cannot cause
+    catastrophic backtracking as a regex built from it could.
+    """
+    p = t = 0
+    star = -1
+    mark = 0
+    while t < len(text):
+        if p < len(pattern) and pattern[p] == "*":
+            star = p
+            mark = t
+            p += 1
+        elif p < len(pattern) and pattern[p] in ("?", text[t]):
+            p += 1
+            t += 1
+        elif star >= 0:
+            p = star + 1
+            mark += 1
+            t = mark
+        else:
+            return False
+    return pattern[p:].strip("*") == ""
+
+
+def _text_matcher(value: str) -> Callable[[str], bool]:
+    """Case-insensitive matcher: a value with ``*`` or ``?`` is a glob for the whole string, else a substring.
+
+    Only ``*`` and ``?`` are wildcards; everything else, including ``[`` and ``.``, is literal.
+    """
+    needle = value.strip().casefold()
+    if "*" not in needle and "?" not in needle:
+        return lambda text: needle in text.casefold()
+    return lambda text: _glob_match(needle, text.casefold())
+
+
+def _filter_repos(
+    repos: list[AbapGitRepoInfo],
+    name: str | None = None,
+    package: str | None = None,
+    url: str | None = None,
+    key: str | None = None,
+) -> list[AbapGitRepoInfo]:
+    """Keep the repositories that match all given filters (AND).
+
+    ``name``, ``package`` and ``url`` are case-insensitive substrings or globs, ``key`` is an exact match. An offline
+    repository has an empty URL, so a ``url`` filter never matches it, and a repository without a key never matches
+    a ``key`` filter.
+    """
+    checks: list[Callable[[AbapGitRepoInfo], bool]] = []
+    if name is not None:
+        matches_name = _text_matcher(name)
+        checks.append(lambda repo: matches_name(repo.name))
+    if package is not None:
+        matches_package = _text_matcher(package)
+        checks.append(lambda repo: matches_package(repo.package))
+    if url is not None:
+        matches_url = _text_matcher(url)
+        checks.append(lambda repo: bool(repo.url) and matches_url(repo.url))
+    if key is not None:
+        wanted = key.strip().casefold()
+        checks.append(lambda repo: repo.key is not None and repo.key.casefold() == wanted)
+    return [repo for repo in repos if all(check(repo) for check in checks)]
+
+
+def _apply_list_filters(
+    result: AbapGitListResult,
+    name: str | None = None,
+    package: str | None = None,
+    url: str | None = None,
+    key: str | None = None,
+    compact: bool = False,
+) -> AbapGitListResult:
+    """Filter a successful, complete list result (after the read and its completeness check) and shape it."""
+    if not result.success:
+        return result
+    # Safe: a result straight from _abapgit_list_repos only ever holds AbapGitRepoInfo (summaries are
+    # built below, after filtering), so the cast only narrows the declared union type.
+    all_repos = cast("list[AbapGitRepoInfo]", result.repos)
+    matched = _filter_repos(all_repos, name, package, url, key)
+    total = result.total_count if result.total_count is not None else len(all_repos)
+    shaped: list[AbapGitRepoInfo | AbapGitRepoSummary] = (
+        [AbapGitRepoSummary(name=r.name, package=r.package, key=r.key) for r in matched] if compact else list(matched)
+    )
+    filtered = any(value is not None for value in (name, package, url, key))
+    message = f"0 of {total} repositories match the filters" if filtered and not matched else None
+    return AbapGitListResult(success=True, repos=shaped, total_count=total, matched_count=len(matched), message=message)
+
+
 async def _abapgit_list_repos(backend: "WebGuiBackend | DesktopBackend") -> AbapGitListResult:
     """List all registered abapGit repositories via Z_ABAPGIT_PULL_MCP P_ACTION=LIST."""
     logger.info("Listing abapGit repositories")
@@ -785,7 +902,7 @@ async def _abapgit_list_repos(backend: "WebGuiBackend | DesktopBackend") -> Abap
         if incomplete:
             return AbapGitListResult(
                 success=False,
-                repos=repos,
+                repos=list(repos),
                 error="; ".join(incomplete) + ". The repositories that were read are returned, the list is incomplete.",
             )
         if not repos:
@@ -795,7 +912,9 @@ async def _abapgit_list_repos(backend: "WebGuiBackend | DesktopBackend") -> Abap
         if total is None:
             logger.info("The report writes no TOTAL header: the completeness of the list cannot be verified")
 
-        return AbapGitListResult(success=True, repos=repos)
+        return AbapGitListResult(
+            success=True, repos=list(repos), total_count=len(repos) + skipped, matched_count=len(repos)
+        )
 
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.exception("abapGit list repos failed")
@@ -1156,33 +1275,55 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             open_world_hint=False,
         ),
         description=(
-            "List all registered abapGit repositories with their metadata. "
-            "Returns repo names, Git URLs, packages, branches, and last pull timestamps. "
-            "Use this to discover the correct repo name before calling sap_abapgit_pull."
+            "List registered abapGit repositories with their metadata. "
+            "Returns repo names, Git URLs, packages, branches, last pull timestamps and (when the report "
+            "provides it) the repository key, plus total_count and matched_count. "
+            "Use name/package/url/key to filter instead of listing everything (a system can have hundreds of "
+            "repositories): name, package and url are case-insensitive substrings, or globs when they contain "
+            "* or ?; key is an exact match; all given filters must match. compact=True returns only name, "
+            "package and key. Use this to discover the correct repo name before calling sap_abapgit_pull."
         ),
     )
     async def sap_abapgit_list_repos(
+        name: str | None = None,
+        package: str | None = None,
+        url: str | None = None,
+        key: str | None = None,
+        compact: bool = False,
         session: str | None = None,
         agent_id: str | None = None,
     ) -> AbapGitListResult:
         """
-        List all registered abapGit repositories.
+        List registered abapGit repositories, optionally filtered.
+
+        The complete list is always read from SAP (the report has no filter); filtering happens afterwards, so
+        total_count is the number of all registered repositories and matched_count the number that match.
 
         Args:
+            name: Case-insensitive substring or glob (* and ?) for the repository name. Optional.
+            package: Same, for the ABAP package. Optional.
+            url: Same, for the Git URL (never matches offline repositories). Optional.
+            key: Exact abapGit repository key (1-12 letters/digits). Optional.
+            compact: Return only name, package and key per repository.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
         Returns:
-            AbapGitListResult with list of AbapGitRepoInfo objects
+            AbapGitListResult with the matching repositories (AbapGitRepoInfo objects, or AbapGitRepoSummary
+            objects when compact=True) plus total_count and matched_count
 
         Example:
-            sap_abapgit_list_repos()
+            sap_abapgit_list_repos(package="Z_MYAPP*", compact=True)
         """
+        error = _validate_list_filters(name, package, url, key)
+        if error:
+            return AbapGitListResult(success=False, error=error)
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_abapgit_list_repos")
         except ValueError as e:
             return AbapGitListResult(success=False, error=f"Session error: {e}")
-        return await _abapgit_list_repos(backend)
+        result = await _abapgit_list_repos(backend)
+        return _apply_list_filters(result, name, package, url, key, compact)
 
     @mcp.tool(
         annotations=ToolAnnotations(
