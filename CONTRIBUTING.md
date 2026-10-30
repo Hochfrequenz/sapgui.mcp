@@ -51,10 +51,10 @@ This project uses [uv](https://docs.astral.sh/uv/) to run all tests and checks. 
 uv run --group tests python -m pytest
 
 # Run only unit tests (fast, no SAP needed)
-uv run --group tests python -m pytest unittests/ -k "not integration and not exploration"
+uv run --group tests python -m pytest unittests/ -m "not integration"
 
 # Run only SAP integration tests (requires SAP access)
-uv run --group tests python -m pytest unittests/ -k integration
+uv run --group tests python -m pytest unittests/ -m integration
 ```
 
 Language and credentials are loaded from your `.env` file.
@@ -92,8 +92,8 @@ We use HTML snapshots captured from real SAP Web GUI sessions to test CSS select
 To capture new snapshots, set `SAP_LANGUAGE` in your `.env` file and run integration tests:
 
 ```bash
-uv run --group tests python -m pytest unittests/ -k integration   # Captures snapshots in configured language
-uv run --group tests python -m pytest unittests/ -k "not integration and not exploration"  # Run offline selector tests (no SAP needed)
+uv run --group tests python -m pytest unittests/ -m integration   # Captures snapshots in configured language
+uv run --group tests python -m pytest unittests/ -m "not integration"  # Run offline selector tests (no SAP needed)
 ```
 
 Snapshots are stored in `unittests/webgui/testdata/html_snapshots/`.
@@ -133,6 +133,7 @@ Desktop integration tests run against SAP GUI via COM. They:
 - Live in `unittests/desktop/`
 - Use the shared `backend` fixture from `conftest.py` (logs in once per module)
 - Auto-skip on non-Windows or when SAP credentials are missing
+- Are marked `integration` automatically (any test requesting `backend` or `sap_mcp_client`), so `-m "not integration"` excludes them and `-m integration` selects only them
 - Test object names are centralized in `conftest.py` (`TEST_REPORT`, `TEST_CLASS`, etc.)
 
 ```python
@@ -287,7 +288,7 @@ You don't need to put any effort in rebases, amends or similar.
 
 1. Create a feature branch: `feat/my-feature` or `fix/my-bug`
 2. Write tests for new functionality
-3. Ensure all tests pass: `uv run --group tests python -m pytest unittests/ -k "not integration and not exploration"`
+3. Ensure all tests pass: `uv run --group tests python -m pytest unittests/ -m "not integration"`
 4. Ensure linting passes: `uv run --group linting ruff check .`, `uv run --group type_check mypy --show-error-codes src/sapguimcp --strict`
 5. Create PR with clear description
 

@@ -26,6 +26,6 @@ jobs:
 
       - name: Run coverage
         run: |
-          uv run --locked --group coverage coverage run -m pytest
+          uv run --locked --group coverage coverage run -m pytest -m "not integration"
           uv run --locked --group coverage coverage html --omit '.venv/*,unittests/*'
           uv run --locked --group coverage coverage report --fail-under 20 --omit '.venv/*,unittests/*'
