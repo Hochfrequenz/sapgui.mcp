@@ -260,3 +260,38 @@ class TestRunPullAndCheckErrors:
         # Should press Enter via backend to confirm inactive objects popup
         enter_calls = [c for c in mock_backend.press_key.call_args_list if c == call("Enter")]
         assert len(enter_calls) == 1, f"Expected 1 Enter press for popup, got {enter_calls}"
+
+    @pytest.mark.anyio
+    @pytest.mark.parametrize(
+        ("title", "message", "expected_enters"),
+        [
+            ("Inaktive Objekte", "ZCL_FOO ZCL_BAR 2 objects", 1),
+            ("Inactive Objects", None, 1),
+            ("INACTIVE OBJECTS", None, 1),
+            (None, "Inaktive Objekte", 1),
+            ("Some other dialog", "Unrelated text", 0),
+            (None, None, 0),
+        ],
+    )
+    async def test_inactive_objects_popup_matched_by_title_or_message(
+        self, title: str | None, message: str | None, expected_enters: int
+    ) -> None:
+        """The dialog is recognised by its title or its message; other popups are not confirmed."""
+        from unittest.mock import call, patch
+
+        from sapguimcp.models.base import PopupInfo
+        from sapguimcp.tools.abapgit_tools import _run_pull_and_check_errors
+
+        mock_backend = AsyncMock()
+        mock_backend.press_key = AsyncMock()
+        mock_backend.check_popup = AsyncMock(return_value=PopupInfo(title=title, message=message))
+
+        with patch(
+            "sapguimcp.tools.abapgit_tools._handle_popup_error",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            await _run_pull_and_check_errors(mock_backend, "TEST_REPO")
+
+        enter_calls = [c for c in mock_backend.press_key.call_args_list if c == call("Enter")]
+        assert len(enter_calls) == expected_enters
