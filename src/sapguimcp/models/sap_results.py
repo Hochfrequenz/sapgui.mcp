@@ -107,6 +107,14 @@ class SessionInfo(BaseModel):
     system_name: str | None = Field(default=None, description="SAP system ID (e.g., 'DEV', 'PRD')")
     client: str | None = Field(default=None, description="SAP client number (e.g., '100')")
     user: str | None = Field(default=None, description="Logged-in SAP user")
+    origin: Literal["opened", "attached"] = Field(
+        default="opened",
+        description=(
+            "'opened' = this server created the session and may close it; "
+            "'attached' = a window the user already had open, which is never closed by the server "
+            "(use sap_session_detach to drop it from the registry)."
+        ),
+    )
     halted_at_breakpoint: str | None = Field(
         default=None,
         description=(
@@ -142,6 +150,14 @@ class SessionCloseResult(ToolResult):
 
     session_id: str | None = Field(default=None, description="ID of the session that was closed (e.g., 's2')")
     remaining_sessions: int = Field(default=0, ge=0, description="Sessions still active after closing")
+
+
+class SessionDetachResult(ToolResult):
+    """Result from sap_session_detach tool."""
+
+    session_id: str | None = Field(default=None, description="ID of the session that was detached")
+    released_agent: str | None = Field(default=None, description="Agent binding that was dropped, if any")
+    remaining_sessions: int = Field(default=0, ge=0, description="Sessions still registered after detaching")
 
 
 class SessionBindResult(ToolResult):
@@ -186,6 +202,13 @@ class SessionResetResult(ToolResult):
     errors: list[str] = Field(
         default_factory=list,
         description="Per-session error strings, one per failed close attempt",
+    )
+    skipped_attached: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Attached (user-owned) session IDs that were deliberately left open. "
+            "Drop them from the registry with sap_session_detach if no longer needed."
+        ),
     )
 
 

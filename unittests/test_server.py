@@ -481,6 +481,7 @@ class TestMcpServer:
         assert "sap_session_close" in tool_names
         assert "sap_session_bind" in tool_names
         assert "sap_session_release" in tool_names
+        assert "sap_session_detach" in tool_names
 
     def test_session_tools_in_capabilities(self) -> None:
         """Test that session tools appear in sap_get_capabilities response.
