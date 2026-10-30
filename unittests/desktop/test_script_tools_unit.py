@@ -1370,10 +1370,14 @@ class TestSandboxContract:
         press = tools["sap_press_key"].description or ""
         assert "VKey 12" in press
         assert "sap_close_popup" in press
+        assert "desktop backend" in press
+        assert "WebGUI" in press
         checkbox = tools["sap_set_checkbox"].description or ""
         assert "sap_run_script" in checkbox
         assert "sap_com_evaluate" in checkbox
         assert ".selected" in checkbox
+        assert "desktop-only" in checkbox
+        assert "browser_evaluate" in checkbox
 
     def test_sandbox_resource_registration_and_read(self):
         mcp = FastMCP("test")
