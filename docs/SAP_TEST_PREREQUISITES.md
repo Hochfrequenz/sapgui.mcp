@@ -102,6 +102,9 @@ python -m pytest unittests/desktop/test_bp_integration.py -v
 python -m pytest unittests/desktop/test_com_evaluate_unit.py unittests/desktop/test_dump_tree_unit.py unittests/desktop/test_element_finder.py -v
 ```
 
+The desktop integration fixture only closes the SAP GUI connections it (or the tools under test) opened itself.
+Connections that were already open before the run, such as your own SAP GUI windows, are left untouched.
+
 ### Troubleshooting (Desktop)
 
 | Problem                                            | Solution                                                                            |

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import faulthandler
 import os
-from typing import AsyncIterator
+import re
+from collections import Counter
+from typing import AsyncIterator, Collection, Sequence
 from unittest.mock import MagicMock
 
 import pytest
@@ -87,6 +89,68 @@ def pytest_collection_modifyitems(items) -> None:  # type: ignore[no-untyped-def
 
 
 # ---------------------------------------------------------------------------
+# Non-destructive teardown helpers (#1009)
+# ---------------------------------------------------------------------------
+
+
+def connections_to_close(
+    before_keys: Sequence[str], current_keys: Sequence[str], owned_indexes: Collection[int] = ()
+) -> list[int]:
+    """Decide which SAP GUI connections the fixture teardown may close.
+
+    ``before_keys`` are the identity keys of the connections that existed before the fixture logged in,
+    ``current_keys`` those present at teardown (position = ``/app/con[N]`` index). Returns indexes into
+    ``current_keys``, highest first so closing one cannot renumber the next.
+
+    Identity is a *key*, not the positional ``con[N]`` id: ids are renumbered when a lower connection is
+    closed (by the user, mid-run). Keys are matched as a multiset, so identical keys cannot make a
+    pre-existing connection look new. ``owned_indexes`` are connections known to hold a session the fixture
+    opened (registry); they are closed regardless of their key.
+    """
+    remaining = Counter(before_keys)
+    to_close: list[int] = []
+    for idx, key in enumerate(current_keys):
+        if idx in owned_indexes:
+            to_close.append(idx)
+        elif remaining[key] > 0:
+            remaining[key] -= 1  # pre-existing: leave it alone
+        else:
+            to_close.append(idx)
+    return sorted(to_close, reverse=True)
+
+
+def connection_index_from_session_id(session_id: str) -> int | None:
+    """Extract N from ``/app/con[N]/ses[M]`` (or ``/app/con[N]``); ``None`` if it does not match."""
+    match = re.match(r"^/app/con\[(\d+)\]", session_id)
+    return int(match.group(1)) if match else None
+
+
+def _connection_keys_sync(app) -> list[str]:  # type: ignore[no-untyped-def]
+    """Identity key per connection, in ``/app/con[N]`` order. Must run on the COM thread.
+
+    Key = SAP Logon description + SystemSessionId of the first session (a GUID unique per session, stable
+    for its lifetime and unaffected by renumbering). A connection without a readable session falls back to
+    the description alone.
+    """
+    conns = app.com.Children
+    keys: list[str] = []
+    for i in range(conns.Count):
+        conn = conns(i)
+        try:
+            desc = str(conn.Description)
+        except Exception:  # pylint: disable=broad-except
+            desc = ""
+        sess_key = ""
+        try:
+            if conn.Children.Count > 0:
+                sess_key = str(conn.Children(0).Info.SystemSessionId)
+        except Exception:  # pylint: disable=broad-except
+            pass
+        keys.append(f"{desc}|{sess_key}")
+    return keys
+
+
+# ---------------------------------------------------------------------------
 # Integration backend fixture (auto-discovered by pytest)
 # ---------------------------------------------------------------------------
 
@@ -94,6 +158,9 @@ def pytest_collection_modifyitems(items) -> None:  # type: ignore[no-untyped-def
 @pytest.fixture(scope="module")
 async def backend() -> AsyncIterator:  # type: ignore[type-arg]
     """Provide a logged-in DesktopBackend, shared across all tests in a module.
+
+    Teardown closes only the SAP GUI connections opened during the module; connections that existed
+    before login (the user's own windows) are left open (#1009).
 
     Module scope avoids repeated COM ``OpenConnection`` / ``CloseConnection``
     cycles that corrupt the process-wide COM subsystem after table scrolling
@@ -106,6 +173,12 @@ async def backend() -> AsyncIterator:  # type: ignore[type-arg]
     sap_cfg = get_sap_config()
     system = sap_cfg.get_default()
     com = ComThread()
+    # Record the connections that already exist (e.g. the user's own SAP GUI windows) so teardown leaves them alone.
+    try:
+        app_before = await com.run(lambda: SapGui.connect())
+        before_keys = await com.run(lambda: _connection_keys_sync(app_before))
+    except Exception:  # pylint: disable=broad-except
+        before_keys = None  # SAP GUI not running yet: nothing pre-existing
     b = DesktopBackend(com_thread=com)
     r = await b.login(
         "x",
@@ -117,17 +190,28 @@ async def backend() -> AsyncIterator:  # type: ignore[type-arg]
     )
     assert r.success, f"Login failed: {r.error}"
     yield b
-    # Teardown: close ALL connections -- tools may have opened additional ones
+    # Teardown: close only connections the fixture (or tools it ran) opened -- never the user's own.
+    # Identity is a key (see connections_to_close), not the positional con[N] id; additionally every
+    # connection hosting a registry session is treated as ours.
     try:
         app = await com.run(lambda: SapGui.connect())
+        current_keys = await com.run(lambda: _connection_keys_sync(app))
+        owned: set[int] = set()
+        for sid in list(b.registry.list_sessions()) if hasattr(b, "registry") else []:
+            try:
+                ses = b.registry.get_session(sid)
+                idx = connection_index_from_session_id(await com.run(lambda ses=ses: ses.id))
+                if idx is not None:
+                    owned.add(idx)
+            except Exception:  # pylint: disable=broad-except
+                pass
         raw_conns = await com.run(lambda: app.com.Children)
-        count = await com.run(lambda: raw_conns.Count)
-        for i in range(count - 1, -1, -1):
+        for i in connections_to_close(before_keys or [], current_keys, owned):
             try:
                 await com.run(lambda i=i: raw_conns(i).CloseConnection())
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 pass
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         pass
     # Clear registry to avoid stale session references
     if hasattr(b, "registry"):
