@@ -119,6 +119,47 @@ def pytest_collection_modifyitems(items) -> None:  # type: ignore[no-untyped-def
 
 
 # ---------------------------------------------------------------------------
+# Non-destructive teardown helper (#1009)
+# ---------------------------------------------------------------------------
+
+
+def close_owned_connections(sessions) -> int:  # type: ignore[no-untyped-def]
+    """Close the SAP GUI connection of every given session, once per connection. Must run on the COM thread.
+
+    STRICT FAIL-CLOSED: the fixture closes only connections that host a session from its own registry, never
+    anything it merely finds in SAP GUI -- connections the user opens while the tests run are
+    indistinguishable from the fixture's by any snapshot. Trade-off: a fixture connection whose session was
+    never registered or was already unregistered (e.g. after a failed login) can leak; that is accepted.
+    Connections are resolved to COM parent objects first and closed afterwards, so the positional
+    ``con[N]`` renumbering that closing causes cannot make us close the wrong one. Errors are swallowed
+    (best effort). Returns the number of connections a close was attempted on.
+
+    TODO(#1009 PR 1): once session origins exist, pass only sessions with origin "opened"; attached
+    sessions live in the user's own connections.
+    """
+    parents: list[object] = []
+    seen: set[str] = set()
+    for ses in sessions:
+        conn_id = None
+        try:
+            conn = ses.com.Parent
+            conn_id = str(conn.Id)
+        except Exception:  # pylint: disable=broad-except
+            pass
+        if conn_id is not None and conn_id not in seen:
+            seen.add(conn_id)
+            parents.append(conn)
+    attempted = 0
+    for conn in parents:
+        attempted += 1
+        try:
+            conn.CloseConnection()  # type: ignore[attr-defined]
+        except Exception:  # pylint: disable=broad-except
+            pass
+    return attempted
+
+
+# ---------------------------------------------------------------------------
 # Integration backend fixture (auto-discovered by pytest)
 # ---------------------------------------------------------------------------
 
@@ -126,6 +167,9 @@ def pytest_collection_modifyitems(items) -> None:  # type: ignore[no-untyped-def
 @pytest.fixture(scope="module")
 async def backend() -> AsyncIterator:  # type: ignore[type-arg]
     """Provide a logged-in DesktopBackend, shared across all tests in a module.
+
+    Teardown closes only the SAP GUI connections hosting a session of this fixture's registry; the user's
+    own windows are left open (#1009).
 
     Module scope avoids repeated COM ``OpenConnection`` / ``CloseConnection``
     cycles that corrupt the process-wide COM subsystem after table scrolling
@@ -149,17 +193,12 @@ async def backend() -> AsyncIterator:  # type: ignore[type-arg]
     )
     assert r.success, f"Login failed: {r.error}"
     yield b
-    # Teardown: close ALL connections -- tools may have opened additional ones
+    # Teardown: close only connections hosting a session this fixture's registry holds (see
+    # close_owned_connections); the user's own windows are never touched.
     try:
-        app = await com.run(lambda: SapGui.connect())
-        raw_conns = await com.run(lambda: app.com.Children)
-        count = await com.run(lambda: raw_conns.Count)
-        for i in range(count - 1, -1, -1):
-            try:
-                await com.run(lambda i=i: raw_conns(i).CloseConnection())
-            except Exception:
-                pass
-    except Exception:
+        owned_sessions = [b.registry.get_session(sid) for sid in list(b.registry.list_sessions())]
+        await com.run(lambda: close_owned_connections(owned_sessions))
+    except Exception:  # pylint: disable=broad-except
         pass
     # Clear registry to avoid stale session references
     if hasattr(b, "registry"):

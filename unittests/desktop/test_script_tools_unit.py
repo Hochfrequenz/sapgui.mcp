@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 from sapguimcp.backend.desktop.models.script_results import SapRunScriptResult
 from sapguimcp.resources.sandbox_resource import register_sandbox_resources
 from sapguimcp.tools.script_tools import (
+    _COMMON_IDIOMS,
     MAX_SCRIPT_BYTES,
     SAFE_BUILTINS,
     SANDBOX_CONTRACT_VERSION,
@@ -1193,8 +1194,8 @@ class TestSapRunScriptTool:
 
 class TestSandboxContract:
     def test_version(self):
-        assert SANDBOX_CONTRACT_VERSION == 2
-        assert get_sandbox_contract().version == 2
+        assert SANDBOX_CONTRACT_VERSION == 3
+        assert get_sandbox_contract().version == 3
         # Pin the exact sorted list of allowed builtins.
         # Changing the sandbox requires bumping SANDBOX_CONTRACT_VERSION and updating this list.
         expected_builtins = [
@@ -1217,6 +1218,7 @@ class TestSandboxContract:
             "filter",
             "float",
             "getattr",
+            "hasattr",
             "int",
             "isinstance",
             "len",
@@ -1320,12 +1322,62 @@ class TestSandboxContract:
         tools = {t.name: t for t in asyncio.run(mcp.list_tools())}
         desc = tools["sap_run_script"].description or ""
 
-        assert "Sandbox contract (v2):" in desc
+        assert f"Sandbox contract (v{SANDBOX_CONTRACT_VERSION}):" in desc
         contract = get_sandbox_contract()
         assert f"- Allowed builtins: {', '.join(contract.allowed_builtins)}\n" in desc
         injected = ", ".join(f"``{n}``" for n in contract.injected_names)
         assert f"- Injected names: {injected} " in desc
         assert "sandbox://sap_run_script" in desc
+        assert "hasattr" in desc
+        for idiom in contract.idioms:
+            assert idiom in desc
+
+    def test_sandbox_resource_contains_hasattr_and_idioms(self):
+        mcp = FastMCP("test")
+        register_sandbox_resources(mcp)
+        content = asyncio.run(mcp.read_resource("sandbox://sap_run_script"))
+        payload = json.loads(content.contents[0].content)
+        assert "hasattr" in payload["allowed_builtins"]
+        assert payload["idioms"] == _COMMON_IDIOMS
+        joined = "\n".join(payload["idioms"])
+        for needle in (".selected", ".text", ".select()", ".key"):
+            assert needle in joined
+
+    def test_hasattr_true_and_false_on_stub(self):
+        class _Stub:
+            Text = "x"
+
+        script = 'output(hasattr(session, "Text"))\noutput(hasattr(session, "Nope"))'
+        r = _run_in_sandbox(_c(script), _Stub(), deadline=_FAR)
+        assert r.success is True
+        assert r.output == [True, False]
+
+    def test_import_and_open_still_blocked(self):
+        for src in ("import os", "open('x')"):
+            r = _run_in_sandbox(_c(src), object(), deadline=_FAR)
+            assert r.success is False
+            assert r.error is not None
+            assert "NameError" in r.error
+        for name in ("setattr", "delattr", "type", "vars", "dir"):
+            assert name not in SAFE_BUILTINS
+
+    def test_press_key_and_set_checkbox_descriptions(self):
+        from sapguimcp.tools.sap_tools import register_sap_tools
+
+        mcp = FastMCP("test")
+        register_sap_tools(mcp)
+        tools = {t.name: t for t in asyncio.run(mcp.list_tools())}
+        press = tools["sap_press_key"].description or ""
+        assert "VKey 12" in press
+        assert "sap_close_popup" in press
+        assert "desktop backend" in press
+        assert "WebGUI" in press
+        checkbox = tools["sap_set_checkbox"].description or ""
+        assert "sap_run_script" in checkbox
+        assert "sap_com_evaluate" in checkbox
+        assert ".selected" in checkbox
+        assert "desktop-only" in checkbox
+        assert "browser_evaluate" in checkbox
 
     def test_sandbox_resource_registration_and_read(self):
         mcp = FastMCP("test")
