@@ -12,7 +12,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from sapguimcp.tools.abapgit_tools import _abapgit_list_repos, _abapgit_pull_via_api, _apply_list_filters
+from sapguimcp.tools.abapgit_tools import (
+    _abapgit_list_repos,
+    _abapgit_pull_via_api,
+    _apply_list_filters,
+    _validate_branch,
+)
 from unittests.desktop.conftest import go_home, require_repo_registered, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
@@ -170,6 +175,119 @@ async def test_abapgit_pull_without_trkorr_returns_transport_guidance(backend) -
     assert "se09" in error_lower, f"Expected guidance mentioning 'SE09' in error but got: {result.error}"
     assert "trkorr" in error_lower, f"Expected 'trkorr' in error but got: {result.error}"
     await go_home(backend)
+
+
+# ---------------------------------------------------------------------------
+# Pull with a branch (#996)
+#
+# The test repository must not be pinned to a commit: a successful pull with a branch clears the pin and the
+# client can neither read nor restore it (docs/SAP_TEST_PREREQUISITES.md).
+# ---------------------------------------------------------------------------
+
+BRANCH_TEST_REPO = "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY"
+BRANCH_TEST_BRANCH = "test/branch-switch"
+
+
+async def _repo_branch(backend) -> str:  # type: ignore[no-untyped-def]
+    """The branch the test repository is on, read from a fresh list (not the cached one)."""
+    listed = await _abapgit_list_repos(backend)
+    await go_home(backend)
+    assert listed.success, f"List failed: {listed.error}"
+    return next(r for r in listed.repos if r.name == BRANCH_TEST_REPO).branch
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_abapgit_pull_unknown_branch_leaves_branch_unchanged(backend) -> None:
+    """An unknown branch is refused by the report before anything changes (no transport needed)."""
+    await require_repo_registered(backend, BRANCH_TEST_REPO)
+    before = await _repo_branch(backend)
+
+    result = await _abapgit_pull_via_api(
+        backend,
+        repo=BRANCH_TEST_REPO,
+        trkorr=None,
+        username=None,
+        pat=None,
+        branch=f"zz-no-such-branch-{uuid.uuid4().hex[:8]}",
+    )
+    await go_home(backend)
+
+    assert not result.success
+    assert "Branch not found" in (result.error or ""), result.error
+    assert await _repo_branch(backend) == before
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_abapgit_pull_branch_failure_restores_previous_branch(backend) -> None:
+    """A pull that fails after the switch (transport required) restores the previous branch."""
+    await require_repo_registered(backend, BRANCH_TEST_REPO)
+    before = await _repo_branch(backend)
+
+    result = await _abapgit_pull_via_api(
+        backend, repo=BRANCH_TEST_REPO, trkorr=None, username=None, pat=None, branch=BRANCH_TEST_BRANCH
+    )
+    await go_home(backend)
+
+    try:
+        if result.success:
+            pytest.fail(
+                f"Expected failure (transport required) but the pull succeeded: {result.message}. "
+                "Does this SAP system not require transport requests?"
+            )
+        assert "transport" in (result.error or "").lower(), result.error
+        assert await _repo_branch(backend) == before
+    finally:
+        if await _repo_branch(backend) != before:  # only reachable when the pull unexpectedly succeeded
+            short = before.removeprefix("refs/heads/")
+            await _abapgit_pull_via_api(
+                backend, repo=BRANCH_TEST_REPO, trkorr=DEFAULT_TRANSPORT or None, username=None, pat=None, branch=short
+            )
+            await go_home(backend)
+
+
+@skip_no_sap
+@skip_no_transport
+@pytest.mark.anyio
+async def test_abapgit_pull_branch_switch_and_back(backend) -> None:
+    """Pull the test branch (the switch persists), then pull the original branch again."""
+    await require_repo_registered(backend, BRANCH_TEST_REPO)
+    before = await _repo_branch(backend)
+    validated = _validate_branch(before)
+    if isinstance(validated, str):
+        pytest.skip(f"The current branch {before!r} cannot be passed as `branch`, so it could not be restored")
+    original_short, _ = validated
+
+    try:
+        switched = await _abapgit_pull_via_api(
+            backend,
+            repo=BRANCH_TEST_REPO,
+            trkorr=DEFAULT_TRANSPORT,
+            username=None,
+            pat=None,
+            branch=BRANCH_TEST_BRANCH,
+        )
+        await go_home(backend)
+        assert switched.success, f"Pull with branch failed: {switched.error}"
+        assert switched.branch == f"refs/heads/{BRANCH_TEST_BRANCH}"
+        assert await _repo_branch(backend) == f"refs/heads/{BRANCH_TEST_BRANCH}"
+    finally:
+        restored = await _abapgit_pull_via_api(
+            backend,
+            repo=BRANCH_TEST_REPO,
+            trkorr=DEFAULT_TRANSPORT,
+            username=None,
+            pat=None,
+            branch=original_short,
+        )
+        await go_home(backend)
+        assert restored.success, (
+            f"Restoring branch {before} failed, the test repository may be left on {BRANCH_TEST_BRANCH}: "
+            f"{restored.error}"
+        )
+        assert restored.branch == before
+        assert await _repo_branch(backend) == before
 
 
 # ---------------------------------------------------------------------------

@@ -57,6 +57,14 @@ sap_abapgit_pull(repo="YOUR_REPO_NAME", trkorr="DEVK900123", username="github-us
 
 `repo` is the abapGit repository name (hyphens allowed, e.g. `MY-PROJECT-ABAP`) or its full `https://` URL. The report matches it exactly, not as a pattern.
 
+To pull a branch other than the one selected for the repository, pass `branch`:
+
+```
+sap_abapgit_pull(repo="YOUR_REPO_NAME", branch="feature/x", trkorr="DEVK900123")
+```
+
+`branch` accepts `main`, `feature/x` or `refs/heads/feature/x`. It is a side effect on the registered repository: the repository switches to that branch persistently (like a branch switch in the abapGit UI), a commit pin is cleared, and the switch is kept only if the pull succeeds (it is restored on failure). The result's `branch` field echoes the full branch the repository is on afterwards; `sap_abapgit_list_repos` shows it in the `branch` column. A pull that the report did not confirm with that branch is reported as a failure: update the report if it is outdated. An unknown branch fails with `Branch not found` and changes nothing.
+
 **Option B: Pull manually in SAP (slow, not recommended)**
 
 The abapGit UI is complex and hard to automate via browser. Only use this as a fallback if `Z_ABAPGIT_PULL_MCP_SHORTCUT` is not installed.
