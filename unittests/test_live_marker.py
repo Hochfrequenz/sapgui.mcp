@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+# Imported from conftest on purpose: the hook and predicate live there and must stay importable.
 from unittests.conftest import _DESKTOP_DIR, is_live_sap_item, pytest_collection_modifyitems
 
 _UNITTESTS = Path(__file__).parent

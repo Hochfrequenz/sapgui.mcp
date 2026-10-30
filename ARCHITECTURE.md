@@ -225,6 +225,8 @@ In `server.py`, add the import and call `register_se99_tools(mcp)` alongside the
 
 ### Categories
 
+Tests are marked `integration` automatically when they use a live SAP fixture (`backend` or `sap_mcp_client`), not by file name; file names below are only examples.
+
 | Category | Examples | Needs SAP? | How to run |
 |----------|----------|-----------|------------|
 | **Root unit tests** | `unittests/test_models.py`, `test_config.py`, `test_catalog.py`, ... | No | `uv run --group tests python -m pytest unittests/ -m "not integration"` |
@@ -245,12 +247,12 @@ Desktop test files include `pytestmark = pytest.mark.skipif(sys.platform != "win
 ### Running Tests
 
 ```bash
-uv run --group tests python -m pytest                                                       # Full suite (integration auto-skips without SAP)
-uv run --group tests python -m pytest unittests/ -m "not integration"   # All offline tests (no SAP needed)
-uv run --group tests python -m pytest unittests/ -m integration                             # SAP integration tests only
-uv run --group linting ruff check .                                                          # ruff lint
-uv run --group type_check mypy --show-error-codes src/sapguimcp --strict                     # mypy --strict
-uv run --group linting ruff format --check .                                                 # ruff format check
+uv run --group tests python -m pytest                                    # Full suite (integration auto-skips without SAP)
+uv run --group tests python -m pytest unittests/ -m "not integration"    # All offline tests (no SAP needed)
+uv run --group tests python -m pytest unittests/ -m integration          # SAP integration tests only
+uv run --group linting ruff check .                                      # ruff lint
+uv run --group type_check mypy --show-error-codes src/sapguimcp --strict # mypy --strict
+uv run --group linting ruff format --check .                             # ruff format check
 ```
 
 ## Configuration
