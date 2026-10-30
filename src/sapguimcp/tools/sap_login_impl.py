@@ -83,6 +83,7 @@ async def sap_login_impl(
     )
 
     if result.success:
+        # Never start keepalive for attached (user-owned) sessions unless the user asks (issue #1009).
         await backend.start_keepalive()
 
     return result

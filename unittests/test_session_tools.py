@@ -501,3 +501,95 @@ class TestWebGuiCloseSession:
         page2.close.assert_awaited_once()
         assert registry.has_session("s1")
         assert not registry.has_session(session_id)
+
+
+class TestSessionOwnership:
+    """Ownership-aware close / detach tools (issue #1009)."""
+
+    @pytest.mark.anyio
+    async def test_close_attached_points_to_detach(self) -> None:
+        from sapguimcp.tools.session_tools import sap_session_close_impl
+
+        backend = _make_backend(has_session=True)
+        backend.session_origin.return_value = "attached"
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_close_impl("s2")
+
+        assert result.success is False
+        assert result.error is not None
+        assert "sap_session_detach" in result.error
+        backend.close_session.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_close_opened_unchanged(self) -> None:
+        from sapguimcp.tools.session_tools import sap_session_close_impl
+
+        backend = _make_backend(has_session=True)
+        backend.session_origin.return_value = "opened"
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_close_impl("s2")
+
+        assert result.success is True
+        backend.close_session.assert_awaited_once_with("s2")
+
+    @pytest.mark.anyio
+    async def test_detach(self) -> None:
+        from sapguimcp.tools.session_tools import sap_session_detach_impl
+
+        backend = _make_backend(has_session=True)
+        backend.detach_session.return_value = "agent-1"
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_detach_impl("s2")
+
+        assert result.success is True
+        assert result.released_agent == "agent-1"
+        backend.close_session.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_detach_unknown_session(self) -> None:
+        from sapguimcp.tools.session_tools import sap_session_detach_impl
+
+        backend = _make_backend(has_session=False)
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_detach_impl("s9")
+
+        assert result.success is False
+        backend.detach_session.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_detach_not_supported_on_webgui(self) -> None:
+        from types import SimpleNamespace
+
+        from sapguimcp.tools.session_tools import sap_session_detach_impl
+
+        backend = SimpleNamespace()  # no detach_session, like WebGuiBackend
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_detach_impl("s1")
+
+        assert result.success is False
+        assert result.error is not None
+        assert "WebGUI" in result.error
+
+    @pytest.mark.anyio
+    async def test_list_shows_origin(self) -> None:
+        from sapguimcp.tools.session_tools import sap_session_list_impl
+
+        sessions = [SessionInfo(session_id="s1"), SessionInfo(session_id="s2", origin="attached")]
+        backend = _make_backend(list_sessions=sessions)
+        backend.com_engine_state = None
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_list_impl()
+
+        assert [s.origin for s in result.sessions] == ["opened", "attached"]
+
+    @pytest.mark.anyio
+    async def test_reset_reports_skipped_attached(self) -> None:
+        from sapguimcp.tools.session_tools import sap_session_reset_to_primary_impl
+
+        backend = _make_backend(
+            reset_to_primary={"closed": ["s2"], "remaining": ["s1", "s3"], "skipped_attached": ["s3"]}
+        )
+        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
+            result = await sap_session_reset_to_primary_impl()
+
+        assert result.skipped_attached == ["s3"]

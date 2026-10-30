@@ -6,6 +6,7 @@ from sapguimcp.backend.manager import get_backend
 from sapguimcp.models import (
     SessionBindResult,
     SessionCloseResult,
+    SessionDetachResult,
     SessionListResult,
     SessionReleaseResult,
     SessionResetResult,
@@ -15,6 +16,7 @@ from sapguimcp.models.base import SessionBindConflictError
 __all__ = [
     "sap_session_list_impl",
     "sap_session_close_impl",
+    "sap_session_detach_impl",
     "sap_session_bind_impl",
     "sap_session_release_impl",
     "sap_session_reset_to_primary_impl",
@@ -83,6 +85,13 @@ async def sap_session_close_impl(session_id: str) -> SessionCloseResult:
             available = ", ".join(s.session_id for s in sessions) or "(none)"
             return SessionCloseResult.failure(f"Session '{session_id}' not found. Active: {available}.")
 
+        if await backend.session_origin(session_id) == "attached":
+            return SessionCloseResult.failure(
+                f"Session '{session_id}' is attached (a window the user already had open) and is never closed "
+                f"by this server. Use sap_session_detach('{session_id}') to stop using it; the SAP window "
+                "stays open."
+            )
+
         closed = await backend.close_session(session_id)
         if not closed:
             return SessionCloseResult.failure(f"Failed to close session '{session_id}'.")
@@ -96,6 +105,49 @@ async def sap_session_close_impl(session_id: str) -> SessionCloseResult:
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.exception("Closing session", extra={"session_id": session_id})
         return SessionCloseResult.failure(f"Error closing session: {e}")
+
+
+async def sap_session_detach_impl(session_id: str) -> SessionDetachResult:
+    """Stop tracking a session WITHOUT closing it.
+
+    Removes the session from the registry, unbinds its agent and stops watching its connection.
+    No SAP GUI call is made: the window stays open. This is the only way to drop an attached
+    (user-owned) session; it also works on sessions this server opened.
+
+    Desktop only. The WebGUI backend has no detach: its sessions are browser tabs the server
+    owns, so use ``sap_session_close``.
+
+    Args:
+        session_id: Session to detach (e.g. "s2")
+
+    Returns:
+        SessionDetachResult
+    """
+    try:
+        backend = await get_backend()
+        detach = getattr(backend, "detach_session", None)
+        if not callable(detach):
+            return SessionDetachResult.failure(
+                "sap_session_detach is not supported on the WebGUI backend (sessions are browser tabs owned by "
+                "this server); use sap_session_close."
+            )
+
+        if not await backend.has_session(session_id):
+            sessions = await backend.list_sessions()
+            available = ", ".join(s.session_id for s in sessions) or "(none)"
+            return SessionDetachResult.failure(f"Session '{session_id}' not found. Active: {available}.")
+
+        released = await detach(session_id)
+        remaining = await backend.list_sessions()
+        return SessionDetachResult(
+            session_id=session_id,
+            released_agent=released,
+            remaining_sessions=len(remaining),
+        )
+
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.exception("Detaching session", extra={"session_id": session_id})
+        return SessionDetachResult.failure(f"Error detaching session: {e}")
 
 
 async def sap_session_bind_impl(
@@ -208,6 +260,7 @@ async def sap_session_reset_to_primary_impl() -> SessionResetResult:
             remaining_sessions=report.get("remaining", []),
             killed_agents=report.get("killed_agents", []),
             errors=report.get("errors", []),
+            skipped_attached=report.get("skipped_attached", []),
         )
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.exception("Resetting sessions to primary")

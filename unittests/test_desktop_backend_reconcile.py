@@ -369,17 +369,18 @@ class TestResetToPrimary:
         in ``errors`` so operators can correlate.
 
         Implementation note: ``_close_session_locked`` calls
-        ``primary.com.Parent.CloseSession(target.com.Id)`` — the connection
-        object is reached via the *primary* session's parent, not the target's.
+        ``target.com.Parent.CloseSession(target.com.Id)`` — the target's own
+        connection (issue #1009; it used to go through the primary's parent).
         So to simulate a CloseSession failure we set the side_effect on the
-        primary's parent.
+        target's parent.
         """
         backend = _make_backend()
         s1 = _make_mock_session("s1", alive=True)
-        # Make primary's CloseSession raise when called.
-        s1.com.Parent.CloseSession.side_effect = RuntimeError("CloseSession refused")
+        s2 = _make_mock_session("s2", alive=True)
+        # Make the target's CloseSession raise when called.
+        s2.com.Parent.CloseSession.side_effect = RuntimeError("CloseSession refused")
         backend.registry.register(s1)
-        backend.registry.register(_make_mock_session("s2", alive=True))
+        backend.registry.register(s2)
         backend.com.run = _passthrough_run
 
         report = await backend.reset_to_primary()
@@ -406,12 +407,13 @@ class TestResetToPrimary:
         """
         backend = _make_backend()
         s1 = _make_mock_session("s1", alive=True)
+        s2 = _make_busy_session("s2")
         # The busy condition is process-wide: any COM call through this
-        # process — including CloseSession issued via the primary's parent —
+        # process — including CloseSession issued via the target's parent —
         # gets rejected the same way while a modal dialog blocks it.
-        s1.com.Parent.CloseSession.side_effect = _com_error(_RPC_E_CALL_REJECTED, "busy")
+        s2.com.Parent.CloseSession.side_effect = _com_error(_RPC_E_CALL_REJECTED, "busy")
         backend.registry.register(s1)
-        backend.registry.register(_make_busy_session("s2"))
+        backend.registry.register(s2)
         backend.registry.bind("s2", "agent-debugging")
         backend.com.run = _passthrough_run
 

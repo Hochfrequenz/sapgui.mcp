@@ -51,6 +51,7 @@ from sapguimcp.models import (
     SelectTabResult,
     SessionBindResult,
     SessionCloseResult,
+    SessionDetachResult,
     SessionListResult,
     SessionReleaseResult,
     SessionResetResult,
@@ -70,6 +71,7 @@ from sapguimcp.tools.sap_login_impl import sap_login_impl
 from sapguimcp.tools.session_tools import (
     sap_session_bind_impl,
     sap_session_close_impl,
+    sap_session_detach_impl,
     sap_session_list_impl,
     sap_session_release_impl,
     sap_session_reset_to_primary_impl,
@@ -1664,6 +1666,9 @@ legitimately want to close any of them — including the lowest-numbered one.
 If you close the only remaining session, the next tool call will fail with
 a clear "no session" error and you should call sap_login() again.
 
+Sessions with origin "attached" (a window the user already had open) are never
+closed by this server: the call is refused and points at sap_session_detach.
+
 Args:
     session_id: Session to close (e.g. "s1", "s2", ...)
 """
@@ -1671,6 +1676,23 @@ Args:
     async def sap_session_close(session_id: str) -> SessionCloseResult:
         """Close a specific session."""
         return await sap_session_close_impl(session_id)
+
+    @mcp.tool(
+        description="""Stop using a session WITHOUT closing it (desktop backend only).
+
+Removes the session from the registry, drops its agent binding and stops watching
+its connection. No SAP GUI call is made: the SAP window stays open. This is the
+only way to drop an "attached" session (a window the user already had open, which
+sap_session_close refuses to close); it also works on sessions this server opened.
+The WebGUI backend has no detach; use sap_session_close there.
+
+Args:
+    session_id: Session to detach (e.g. "s2")
+"""
+    )
+    async def sap_session_detach(session_id: str) -> SessionDetachResult:
+        """Detach a session from the registry, leaving the SAP window open."""
+        return await sap_session_detach_impl(session_id)
 
     @mcp.tool(
         description=(

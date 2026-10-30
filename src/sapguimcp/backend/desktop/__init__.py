@@ -1118,6 +1118,7 @@ class DesktopBackend:
                 session_id=sid,
                 is_primary=(sid == primary),
                 agent_id=self.registry.get_bound_agent(sid),
+                origin=self.registry.origin_of(sid) or "opened",
             )
             for sid in self.registry.list_sessions()
         ]
@@ -1181,6 +1182,7 @@ class DesktopBackend:
                         session_id=sid,
                         is_primary=(sid == self.registry.primary_session),
                         agent_id=self.registry.get_bound_agent(sid),
+                        origin=self.registry.origin_of(sid) or "opened",
                         **info,
                     )
                 )
@@ -1191,6 +1193,7 @@ class DesktopBackend:
                         session_id=sid,
                         is_primary=(sid == self.registry.primary_session),
                         agent_id=self.registry.get_bound_agent(sid),
+                        origin=self.registry.origin_of(sid) or "opened",
                         halted_at_breakpoint=str(exc),
                     )
                 )
@@ -1227,15 +1230,21 @@ class DesktopBackend:
         """
         if not self.registry.has_session(session_id):
             return False
+        if self.registry.is_attached(session_id):
+            # Ownership guard (issue #1009): a window the user opened is never closed by us.
+            logger.warning("close_session_refused_attached", extra={"session_id": session_id})
+            return False
         try:
             target = self.registry.get_session(session_id)
-            primary = self.registry.get_session(None)  # primary session
 
-            def _close(t: Any = target, p: Any = primary) -> bool:
-                # Get COM ID on the COM thread (Id property requires COM context)
+            def _close(t: Any = target) -> bool:
+                # Get COM ID on the COM thread (Id property requires COM context).
+                # CloseSession must run on the TARGET's own connection: the id is a
+                # full path (/app/con[N]/ses[M]) and the primary may live on another
+                # connection (two sap_login calls), or be dead.
                 com_id = str(t.com.Id)
-                conn = p.com.Parent
-                conn.CloseSession(com_id)
+                conn = t.com.Parent
+                conn.CloseSession(com_id)  # ownership-checked above (is_attached)
                 return True
 
             with self._com_target(target):
@@ -1476,6 +1485,8 @@ class DesktopBackend:
                                 they should re-bind to a new session
           - ``errors``        — human-readable error strings, one per
                                 failed close attempt
+          - ``skipped_attached`` — attached (user-owned) sessions that were
+                                left open on purpose (issue #1009)
         """
         async with self._mutation_lock:
             await self._reconcile_locked()
@@ -1486,7 +1497,10 @@ class DesktopBackend:
             # contract. `canonical_primary_session` always keeps 's1' (or the
             # lowest id) regardless of busy state.
             primary = self.registry.canonical_primary_session()
-            victims = [sid for sid in self.registry.list_sessions() if sid != primary]
+            all_others = [sid for sid in self.registry.list_sessions() if sid != primary]
+            # Attached sessions belong to the user: report them, never close them (issue #1009).
+            skipped_attached = [sid for sid in all_others if self.registry.is_attached(sid)]
+            victims = [sid for sid in all_others if not self.registry.is_attached(sid)]
             closed: list[str] = []
             errors: list[str] = []
             killed_agents: list[str] = []
@@ -1537,6 +1551,7 @@ class DesktopBackend:
                     "remaining": remaining,
                     "killed_agents": killed_agents,
                     "errors": errors,
+                    "skipped_attached": skipped_attached,
                 },
             )
             return {
@@ -1544,6 +1559,7 @@ class DesktopBackend:
                 "remaining": remaining,
                 "killed_agents": killed_agents,
                 "errors": errors,
+                "skipped_attached": [sid for sid in skipped_attached if sid in remaining],
             }
 
     async def bind_session(self, session_id: str, agent_id: str, *, force: bool = False) -> str | None:
@@ -1556,6 +1572,26 @@ class DesktopBackend:
         prev = self.registry.get_bound_agent(session_id)
         self.registry.bind(session_id, agent_id, force=force)
         return prev
+
+    async def session_origin(self, session_id: str) -> str | None:
+        """``"opened"`` / ``"attached"`` for a registered session, else None."""
+        return self.registry.origin_of(session_id)
+
+    async def detach_session(self, session_id: str) -> str | None:
+        """Forget a session without touching SAP GUI (issue #1009).
+
+        Unregisters it, stops watching its connection and drops the agent binding.
+        Zero COM calls: the SAP window stays open. Returns the agent that was bound, if any.
+        Works for any origin; it is the only way to drop an attached session.
+        """
+        async with self._mutation_lock:
+            if not self.registry.has_session(session_id):
+                raise ValueError(f"Session '{session_id}' not found.")
+            prev = self.registry.get_bound_agent(session_id)
+            self.registry.unregister(session_id)  # also drops the binding
+            self._unwatch_orphaned_connections()
+            logger.info("detach_session", extra={"session_id": session_id})
+            return prev
 
     async def release_session(self, session_id: str) -> str | None:
         """Release agent binding from a session."""
