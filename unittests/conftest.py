@@ -1,7 +1,8 @@
 """Pytest configuration and shared fixtures for all tests."""
 
 import os
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
+from pathlib import Path
 
 import pytest
 from dotenv import load_dotenv
@@ -83,3 +84,37 @@ def clean_environment() -> Generator[None, None, None]:
             os.environ[var] = value
         elif var in os.environ:
             del os.environ[var]
+
+
+# =============================================================================
+# AUTOMATIC "integration" MARKER
+# =============================================================================
+
+_LIVE_SAP_FIXTURES_ANYWHERE = frozenset({"sap_mcp_client"})
+_LIVE_SAP_FIXTURES_DESKTOP = frozenset({"backend"})  # defined in unittests/desktop/conftest.py
+_DESKTOP_DIR = Path(__file__).parent / "desktop"
+
+
+def is_live_sap_item(fixturenames: Iterable[str], path: Path | str) -> bool:
+    """Return True if a test requests a fixture that drives a live SAP system.
+
+    ``sap_mcp_client`` (WebGUI) counts anywhere; ``backend`` (desktop COM) only under ``unittests/desktop``,
+    where it is defined.
+    """
+    names = set(fixturenames)
+    if names & _LIVE_SAP_FIXTURES_ANYWHERE:
+        return True
+    if names & _LIVE_SAP_FIXTURES_DESKTOP:
+        return Path(path).resolve().is_relative_to(_DESKTOP_DIR.resolve())
+    return False
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Mark every test that uses a live SAP fixture with ``integration``.
+
+    This makes ``-m "not integration"`` a reliable offline-only filter and ``-m integration`` a live-only one,
+    independent of file or test names.
+    """
+    for item in items:
+        if is_live_sap_item(item.fixturenames, item.path):
+            item.add_marker(pytest.mark.integration)

@@ -347,6 +347,10 @@ sources = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["unittests"]
+strict_markers = true
+markers = [
+    "integration: test talks to a live SAP system (SAP GUI desktop via COM or SAP WebGUI). Deselect with -m 'not integration'.",
+]
 log_cli = true
 log_cli_level = "INFO"
 log_format = "%(asctime)s %(levelname)-5s %(name)s  %(message)s"
