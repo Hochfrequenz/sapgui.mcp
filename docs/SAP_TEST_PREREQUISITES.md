@@ -104,6 +104,8 @@ The connection name, user, password, and mandant are read from `systems.json`.
 
 ### Running Desktop Tests
 
+Every test that requests the `backend` (desktop) or `sap_mcp_client` (WebGUI) fixture is marked `integration` automatically (see `unittests/conftest.py`). Use `-m integration` to run only live tests and `-m "not integration"` to exclude them. Marked tests still skip when SAP is not configured.
+
 ```bash
 # All desktop integration tests
 python -m pytest unittests/desktop/ -v

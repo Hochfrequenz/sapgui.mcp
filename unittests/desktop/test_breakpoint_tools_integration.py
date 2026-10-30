@@ -15,9 +15,9 @@ pytestmark = [skip_no_sap, pytest.mark.integration]
 async def test_breakpoint_set_prog_by_line(backend):
     """sap_breakpoint_set on a PROG sets breakpoint at the specified line."""
     from sapguimcp.tools.breakpoint_tools import (
-        _SHELL_PATHS,
         _classify_toggle_status,
         _navigate_prog,
+        _resolve_shell_path_com,
         _toggle_breakpoint_com,
     )
 
@@ -25,14 +25,16 @@ async def test_breakpoint_set_prog_by_line(backend):
     assert nav_error is None, f"Navigation failed: {nav_error}"
 
     session = backend.require_session()
-    shell_found, status_msg = await backend.com.run(lambda: _toggle_breakpoint_com(session, _SHELL_PATHS["PROG"], 1))
+    shell_path = await backend.com.run(lambda: _resolve_shell_path_com(session, "PROG"))
+    assert shell_path is not None, "Editor shell not found"
+    shell_found, status_msg = await backend.com.run(lambda: _toggle_breakpoint_com(session, shell_path, 1))
     assert shell_found, f"Shell not found: {status_msg}"
     outcome = _classify_toggle_status(status_msg)
     assert outcome in ("set", "deleted"), f"Unrecognized status: '{status_msg}'"
 
     # Cleanup: ensure breakpoint ends up deleted
     if outcome == "set":
-        await backend.com.run(lambda: _toggle_breakpoint_com(session, _SHELL_PATHS["PROG"], 1))
+        await backend.com.run(lambda: _toggle_breakpoint_com(session, shell_path, 1))
 
     await go_home(backend)
 
@@ -41,9 +43,9 @@ async def test_breakpoint_set_prog_by_line(backend):
 async def test_breakpoint_set_and_delete_roundtrip_prog(backend):
     """Setting then deleting a breakpoint on PROG returns to no-breakpoint state."""
     from sapguimcp.tools.breakpoint_tools import (
-        _SHELL_PATHS,
         _classify_toggle_status,
         _navigate_prog,
+        _resolve_shell_path_com,
         _toggle_breakpoint_com,
     )
 
@@ -51,16 +53,18 @@ async def test_breakpoint_set_and_delete_roundtrip_prog(backend):
     assert nav_error is None
 
     session = backend.require_session()
+    shell_path = await backend.com.run(lambda: _resolve_shell_path_com(session, "PROG"))
+    assert shell_path is not None, "Editor shell not found"
     test_line = 5
 
     # Ensure clean state: toggle until "set"
     for _ in range(2):
-        _, msg = await backend.com.run(lambda: _toggle_breakpoint_com(session, _SHELL_PATHS["PROG"], test_line))
+        _, msg = await backend.com.run(lambda: _toggle_breakpoint_com(session, shell_path, test_line))
         if _classify_toggle_status(msg) == "set":
             break
 
     # Now delete it
-    _, msg2 = await backend.com.run(lambda: _toggle_breakpoint_com(session, _SHELL_PATHS["PROG"], test_line))
+    _, msg2 = await backend.com.run(lambda: _toggle_breakpoint_com(session, shell_path, test_line))
     assert _classify_toggle_status(msg2) == "deleted", f"Expected 'deleted', got: '{msg2}'"
     await go_home(backend)
 

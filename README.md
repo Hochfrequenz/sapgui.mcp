@@ -744,7 +744,7 @@ Run tools through `uv run ...` (not a bare `pytest` from an older venv).
 ### Run tests
 
 ```bash
-uv run --group tests python -m pytest unittests/ -k "not integration and not exploration"  # unit tests only
+uv run --group tests python -m pytest unittests/ -m "not integration"  # unit tests only
 uv run --group linting ruff check .                                                         # code quality
 uv run --group linting ruff format --check .                                                # check formatting
 ```
