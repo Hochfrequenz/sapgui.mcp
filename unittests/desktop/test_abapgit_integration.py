@@ -221,7 +221,9 @@ async def test_abapgit_list_repos_filters_and_counts(backend) -> None:
     package = raw.repos[0].package
     by_package = _apply_list_filters(raw, package=package)
     assert by_package.matched_count >= 1
-    assert all(r.package == package for r in by_package.repos), "only repositories of that package"
+    # A plain value is a substring, so packages that merely contain it match as well.
+    assert all(package.casefold() in r.package.casefold() for r in by_package.repos), "only matching packages"
+    assert any(r.name == raw.repos[0].name for r in by_package.repos)
     assert by_package.matched_count <= by_package.total_count == raw.total_count
 
     compact = _apply_list_filters(raw, package=package, compact=True)
