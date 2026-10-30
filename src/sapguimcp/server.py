@@ -240,7 +240,12 @@ LoginResult.session_id field carries the registry ID ('s1', 's2', ...)
 of the new session; pass that as the `session` / `session_id` parameter
 on subsequent tool calls to address THIS specific login. Use
 sap_session_list to see all currently active sessions, and
-sap_session_close to close any of them (including 's1' if you want).
+sap_session_close to close any session the server opened (including 's1' if you want).
+Sessions have an origin: "opened" (created by this server) or "attached" (a
+window the user already had open). The server never closes an attached
+session: sap_session_close and sap_session_reset_to_primary leave it open
+(reset reports it in skipped_attached). Use sap_session_detach to drop any
+session from the registry without closing its SAP window (desktop only).
 Concurrency rule: ONE SAP GUI connection = ONE COM engine. All SAP work on
 the same connection — every tool call, of every session and every agent —
 runs sequentially through it. A long sap_run_script blocks all other calls

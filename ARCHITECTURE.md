@@ -102,7 +102,7 @@ src/sapguimcp/
     desktop/
       __init__.py              # DesktopBackend implementation
       _com_thread.py           # Dedicated COM thread (apartment-threading)
-      _session_registry.py     # Multi-session tracking
+      _session_registry.py     # Multi-session tracking + per-session origin (opened/attached)
       _element_finder.py       # COM tree traversal helpers
       _tree_helpers.py         # GuiTree locator and node reader (sap_tree_read)
       _key_mapping.py          # Key name → SAP VKey mapping
@@ -120,9 +120,28 @@ src/sapguimcp/
     _backend_utils.py          # _is_desktop_backend() helper
     field_helpers.py           # Shared field-filling logic
     table_helpers.py           # Shared table-reading logic
-    session_tools.py           # Multi-session management
+    session_tools.py           # Multi-session management (list/close/detach/bind/release/reset)
     feedback_tools.py          # LLM feedback logging → GitHub issues
 ```
+
+## Session Ownership (desktop)
+
+`DesktopSessionRegistry` records an origin per session: `opened` (created by `sap_login` or
+`open_new_session`) or `attached` (a window the user already had open; nothing creates these yet,
+see issue #1009). Every destructive path asks `registry.is_attached(sid)` first:
+
+- `DesktopBackend._close_session_locked` refuses attached ids (returns `False`, no COM call), and
+  closes an opened session through the session's **own** connection (`session.Parent`), not the
+  primary's.
+- `reset_to_primary` skips attached sessions and reports them in `skipped_attached`.
+- `detach_session` (tool `sap_session_detach`) unregisters, unwatches and unbinds with zero COM calls;
+  the SAP window stays open. The WebGUI backend has no detach (its sessions are tabs the server owns),
+  the tool returns a clear "not supported" failure there.
+- `ComThread.shutdown()` / `BackendManager.close()` never close SAP sessions.
+
+`unittests/test_close_call_sites.py` greps `src/` for `CloseSession` / `CloseConnection` and allows
+only the single ownership-checked site. A new close path must be checked against the registry and
+added to that allow-list deliberately.
 
 ## How to Add a New Transaction Tool
 

@@ -8,7 +8,7 @@ a COM probe (no close-event mechanism exists for SAP GUI COM).
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, Iterable, Literal
 
 # Reuse the conflict error from the webgui registry so callers can catch
 # a single class regardless of which backend produced it.
@@ -18,6 +18,10 @@ if TYPE_CHECKING:
     from sapsucker.components.session import GuiSession
 
 logger = logging.getLogger(__name__)
+
+#: Who created a session: ``"opened"`` = this server (``sap_login`` / ``open_new_session``) and may
+#: close it; ``"attached"`` = a window the user already had open, which the server must never close.
+SessionOrigin = Literal["opened", "attached"]
 
 
 class DesktopSessionRegistry:
@@ -37,6 +41,9 @@ class DesktopSessionRegistry:
         # is NOT dead, but default-session resolution should still prefer a
         # responsive session over one that's currently blocked.
         self._busy_since: dict[str, float] = {}
+        # session_id -> who created the session (issue #1009). Every destructive path
+        # (close, reset_to_primary) asks ``is_attached`` before touching SAP GUI.
+        self._origins: dict[str, SessionOrigin] = {}
 
     @property
     def primary_session(self) -> str:
@@ -89,13 +96,26 @@ class DesktopSessionRegistry:
         """Monotonic timestamp *session_id* was first observed busy, or None."""
         return self._busy_since.get(session_id)
 
-    def register(self, session: GuiSession) -> str:
-        """Register a session and return its ID (s1, s2, ...)."""
+    def register(self, session: GuiSession, *, origin: SessionOrigin = "opened") -> str:
+        """Register a session and return its ID (s1, s2, ...).
+
+        *origin* records who created the session; only ``"attached"`` sessions are
+        protected from every close path (issue #1009).
+        """
         self._counter += 1
         session_id = f"s{self._counter}"
         self._sessions[session_id] = session
+        self._origins[session_id] = origin
         logger.info("Registered desktop session", extra={"session": session_id})
         return session_id
+
+    def origin_of(self, session_id: str) -> SessionOrigin | None:
+        """Origin of *session_id* (``"opened"`` / ``"attached"``), or None if unknown."""
+        return self._origins.get(session_id)
+
+    def is_attached(self, session_id: str) -> bool:
+        """Whether *session_id* is a user-owned window this server must never close."""
+        return self._origins.get(session_id) == "attached"
 
     def get_session(self, session_id: str | None) -> GuiSession:
         """Get the GuiSession for a session ID.
@@ -140,6 +160,7 @@ class DesktopSessionRegistry:
         self._sessions.pop(session_id, None)
         self._bindings.pop(session_id, None)
         self._busy_since.pop(session_id, None)
+        self._origins.pop(session_id, None)
         logger.info("Unregistered desktop session", extra={"session": session_id})
 
     def prune(self, dead_ids: Iterable[str]) -> list[str]:
@@ -168,6 +189,7 @@ class DesktopSessionRegistry:
                 removed.append(sid)
                 self._bindings.pop(sid, None)
                 self._busy_since.pop(sid, None)
+                self._origins.pop(sid, None)
                 logger.info(
                     "Pruned dead desktop session",
                     extra={"session": sid, "bound_to": agent},
@@ -193,6 +215,7 @@ class DesktopSessionRegistry:
         self._sessions.clear()
         self._bindings.clear()
         self._busy_since.clear()
+        self._origins.clear()
         self._counter = 0
         if had_sessions:
             logger.info("Cleared desktop session registry")

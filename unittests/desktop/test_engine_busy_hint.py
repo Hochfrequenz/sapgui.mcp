@@ -58,6 +58,7 @@ class TestSessionListCarriesEngineHint:
         backend.registry.list_sessions.return_value = ["s1"]
         backend.registry.primary_session = "s1"
         backend.registry.get_bound_agent.return_value = None
+        backend.registry.origin_of.return_value = "opened"
         monkeypatch.setattr("sapguimcp.tools.session_tools.get_backend", AsyncMock(return_value=backend))
         monkeypatch.setattr(type(backend), "list_sessions", AsyncMock(return_value=[SessionInfo(session_id="s1")]))
         result = await sap_session_list_impl()
@@ -87,6 +88,7 @@ class TestSessionListWhileEngineBlocked:
         backend.registry.list_sessions.return_value = ["s1"]
         backend.registry.primary_session = "s1"
         backend.registry.get_bound_agent.return_value = None
+        backend.registry.origin_of.return_value = "opened"
 
         release = threading.Event()
         com_calls: list[str] = []
