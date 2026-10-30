@@ -38,3 +38,7 @@ class SandboxContract(BaseModel):
     injected_names: list[str] = Field(
         description="Global names injected into the script execution environment.",
     )
+    idioms: list[str] = Field(
+        default_factory=list,
+        description="Common property idioms for sapsucker elements (radio/checkbox, text, tab, combo box).",
+    )
