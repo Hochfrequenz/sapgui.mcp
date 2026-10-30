@@ -836,7 +836,7 @@ Your AI client automatically discovers all individual tools and their schemas dy
 - **Visual Validation & Screenshots** — Capture screenshots of any SAP screen for documentation, E2E test verification, or human-in-the-loop inspection.
 - **Offline Catalogs** — Search transaction codes, tables, classes, and function modules instantly without an active SAP connection.
 - **abapGit & Source Code** — Pull abapGit repositories and inspect ABAP report source code. Pulls use the [`Z_ABAPGIT_PULL_MCP_SHORTCUT`](https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT) report on the SAP system. For private repositories, set `GITHUB_PAT` or `ABAPGIT_PAT`.
-- **Multi-Session Management** — List, bind, release, and switch between parallel SAP GUI sessions across concurrent agent tasks.
+- **Multi-Session Management** — List, bind, release, close, and detach parallel SAP GUI sessions across concurrent agent tasks (`sap_session_list`, `sap_session_bind`, `sap_session_release`, `sap_session_close`, `sap_session_detach`, `sap_session_reset_to_primary`). Every session has an origin: `opened` (created by the server) or `attached` (a window you already had open). The server never closes an attached session; `sap_session_detach` drops a session from the registry and leaves its window open (desktop backend only).
 - **Browser Automation (WebGUI)** — When using the WebGUI backend, low-level browser actions (click, fill, keyboard, screenshot, DOM snapshot) are available as escape hatches for pixel-level control.
 
 ## Configuration Reference

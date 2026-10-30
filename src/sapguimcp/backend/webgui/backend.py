@@ -1529,6 +1529,10 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         registry.release(session_id)
         return old
 
+    async def session_origin(self, session_id: str) -> str | None:  # pylint: disable=unused-argument
+        """WebGUI sessions are browser tabs this server opened; nothing is ever attached."""
+        return "opened"
+
     async def has_session(self, session_id: str) -> bool:
         """Check whether a session exists."""
         registry = await self._get_registry()

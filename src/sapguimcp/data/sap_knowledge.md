@@ -299,6 +299,7 @@ Parallel sub-agents help only across genuinely separate connections (different s
 | `sap_transaction(tcode, new_window=True)` | Open a new SAP session with a transaction, returns `session_id` |
 | `sap_session_list()`                      | List all active sessions with IDs and titles                    |
 | `sap_session_close(session_id)`           | Close a specific session by ID                                  |
+| `sap_session_detach(session_id)`          | Drop a session from the registry, leaving its window open (desktop only) |
 | `sap_session_bind(session_id, agent_id)`  | Bind a session to an agent for parallel workflows               |
 | `sap_session_release(session_id)`         | Unbind a session from an agent without closing it               |
 
