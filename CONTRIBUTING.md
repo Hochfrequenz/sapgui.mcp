@@ -26,6 +26,8 @@ source .venv/bin/activate  # Linux/macOS
 uv run playwright install chromium
 ```
 
+`uv sync --group dev` installs everything needed to run the unit tests (`dev` includes the `tests` group and the runtime dependencies such as `fastmcp`). If a bare `pytest` or `import mcp` fails with a missing module, you are most likely in a stale or different virtual environment: run commands through `uv run ...` (e.g. `uv run pytest --version`) instead of relying on an activated older venv.
+
 ### SAP Test System Setup
 
 To run integration tests, you need a configured SAP system. See **[docs/SAP_TEST_PREREQUISITES.md](docs/SAP_TEST_PREREQUISITES.md)** for:

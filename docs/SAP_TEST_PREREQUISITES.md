@@ -48,6 +48,19 @@ Creating these objects generates **transport requests** owned by the test user (
 
 > **Note**: Test object names are centralized in `unittests/desktop/conftest.py` (`TEST_REPORT`, `TEST_CLASS`, `TEST_METHOD`). If you use different names, update them there.
 
+### abapGit test repositories
+
+Two public GitHub repositories (`Hochfrequenz/...`) back the abapGit and edit tests. They must be registered in abapGit on the SAP system as follows:
+
+| Repository                         | Must be registered in abapGit on                                                                        | Used by                                     | Branches                     |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------- | ---------------------------- |
+| `Z_PUBLIC_ABAPGIT_TEST_REPOSITORY` | S/4HANA systems (required). ERP 6.0 systems: optional, the dependent desktop tests skip if it is absent | abapGit integration tests (desktop, WebGUI) | `main`, `test/branch-switch` |
+| `Z_MCP_TEST_EDITABLE_WB_OBJECTS`   | all system types (provides `ZTEST_MCP_EDIT`, `ZCL_TEST_MCP_EDIT`)                                       | edit / SE09 tests                           | `main`, `test/branch-switch` |
+
+- Desktop tests that need `Z_PUBLIC_ABAPGIT_TEST_REPOSITORY` (`test_abapgit_pull_public_repo`, `test_abapgit_pull_returns_status_message`, `test_abapgit_pull_without_trkorr_returns_transport_guidance`, `test_abapgit_list_repos`) first list the registered repositories and skip with a reason naming the repository if it is missing. They skip only when the listing succeeded and returned at least one repository; a failed or empty listing never causes a skip, so a broken listing still fails visibly. The repository name is matched exactly.
+- `test/branch-switch` is a copy of `main` with a changed `WRITE` text. It is reserved for the upcoming live tests of an abapGit branch parameter: do not delete it and do not merge it into `main`.
+- Those branch-switch tests will also need the optional `P_BRANCH` parameter of the report `Z_ABAPGIT_PULL_MCP_SHORTCUT` (open PR #12 in that repository).
+
 ### Optional Environment Variables
 
 Some live tests need values that are specific to your SAP system. They have no defaults; tests that need an unset variable are skipped.

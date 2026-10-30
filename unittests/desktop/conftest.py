@@ -5,8 +5,7 @@ from __future__ import annotations
 import faulthandler
 import os
 import re
-from collections import Counter
-from typing import AsyncIterator, Collection, Sequence
+from typing import TYPE_CHECKING, AsyncIterator, Collection, Sequence
 from unittest.mock import MagicMock
 
 import pytest
@@ -16,7 +15,11 @@ from sapsucker import SapGui
 from sapguimcp.backend.desktop import DesktopBackend
 from sapguimcp.backend.desktop._com_thread import ComThread
 from sapguimcp.models.config import get_settings
+from sapguimcp.tools.abapgit_tools import _abapgit_list_repos
 from unittests.conftest import has_sap_desktop_creds
+
+if TYPE_CHECKING:
+    from sapguimcp.models.abapgit_models import AbapGitRepoInfo
 
 # ---------------------------------------------------------------------------
 # Test object names — centralized so they can be changed in one place.
@@ -47,6 +50,34 @@ async def go_home(backend) -> None:  # type: ignore[no-untyped-def]
     """Press F3 multiple times to return to Easy Access screen."""
     for _ in range(5):
         await backend.press_key("F3")
+
+
+# Successful, non-empty abapGit repo lists, cached to spare repeated SAP round trips.
+# Assumes one SAP system per pytest process.
+_REPO_LIST_CACHE: list[AbapGitRepoInfo] = []
+
+
+def repo_registered(repos: list[AbapGitRepoInfo], name: str) -> bool:
+    """Return whether ``name`` is among ``repos``. Exact match (abapGit names are upper-case)."""
+    return any(r.name == name for r in repos)
+
+
+async def require_repo_registered(backend, name: str) -> None:  # type: ignore[no-untyped-def]
+    """Skip the calling test if abapGit repo ``name`` is not registered on the SAP system.
+
+    Skips only if listing succeeded, returned at least one repo, and ``name`` is not among them.
+    A failed or empty listing (possibly a parser regression) never skips, so the test fails visibly.
+    """
+    repos = _REPO_LIST_CACHE
+    if not repos:
+        result = await _abapgit_list_repos(backend)
+        await go_home(backend)
+        if not result.success or not result.repos:
+            return
+        _REPO_LIST_CACHE[:] = result.repos
+        repos = _REPO_LIST_CACHE
+    if not repo_registered(repos, name):
+        pytest.skip(f"abapGit repo {name} is not registered on this SAP system (see docs/SAP_TEST_PREREQUISITES.md)")
 
 
 async def bp_teardown(backend) -> None:  # type: ignore[no-untyped-def]
@@ -94,28 +125,31 @@ def pytest_collection_modifyitems(items) -> None:  # type: ignore[no-untyped-def
 
 
 def connections_to_close(
-    before_keys: Sequence[str], current_keys: Sequence[str], owned_indexes: Collection[int] = ()
+    before_guids: Collection[str] | None,
+    current: Sequence[frozenset[str] | None],
+    owned_indexes: Collection[int] = (),
 ) -> list[int]:
-    """Decide which SAP GUI connections the fixture teardown may close.
+    """Decide which SAP GUI connections the fixture teardown may close. FAILS CLOSED.
 
-    ``before_keys`` are the identity keys of the connections that existed before the fixture logged in,
-    ``current_keys`` those present at teardown (position = ``/app/con[N]`` index). Returns indexes into
-    ``current_keys``, highest first so closing one cannot renumber the next.
+    ``current`` holds, per connection in ``/app/con[N]`` order, the set of ``SystemSessionId`` GUIDs of all
+    its sessions, or ``None`` if that set could not be read completely (see ``read_connection_guids``).
+    ``before_guids`` is every GUID seen before the fixture logged in, or ``None`` if that snapshot is not
+    trustworthy. Returns indexes into ``current``, highest first so closing one cannot renumber the next.
 
-    Identity is a *key*, not the positional ``con[N]`` id: ids are renumbered when a lower connection is
-    closed (by the user, mid-run). Keys are matched as a multiset, so identical keys cannot make a
-    pre-existing connection look new. ``owned_indexes`` are connections known to hold a session the fixture
-    opened (registry); they are closed regardless of their key.
+    A connection is closable only if (a) it is in ``owned_indexes`` (it hosts a registry session), or (b)
+    its GUID set is non-empty, fully readable and disjoint from ``before_guids``. Anything uncertain is
+    left open. Identity is the GUID set, not the positional ``con[N]`` id, which is renumbered when a lower
+    connection closes.
+
+    TODO(#1009 PR 1): once session origins exist, restrict ``owned`` to registry sessions with origin
+    "opened"; attached sessions live in the user's own connections and must never make them closable.
     """
-    remaining = Counter(before_keys)
-    to_close: list[int] = []
-    for idx, key in enumerate(current_keys):
-        if idx in owned_indexes:
-            to_close.append(idx)
-        elif remaining[key] > 0:
-            remaining[key] -= 1  # pre-existing: leave it alone
-        else:
-            to_close.append(idx)
+    to_close: set[int] = {i for i in owned_indexes if 0 <= i < len(current)}
+    if before_guids is not None:
+        before = set(before_guids)
+        for idx, guids in enumerate(current):
+            if guids and guids.isdisjoint(before):
+                to_close.add(idx)
     return sorted(to_close, reverse=True)
 
 
@@ -125,29 +159,46 @@ def connection_index_from_session_id(session_id: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
-def _connection_keys_sync(app) -> list[str]:  # type: ignore[no-untyped-def]
-    """Identity key per connection, in ``/app/con[N]`` order. Must run on the COM thread.
+def read_connection_guids(conn) -> frozenset[str] | None:  # type: ignore[no-untyped-def]
+    """All ``SystemSessionId`` GUIDs of a connection's sessions, or ``None`` if not fully readable.
 
-    Key = SAP Logon description + SystemSessionId of the first session (a GUID unique per session, stable
-    for its lifetime and unaffected by renumbering). A connection without a readable session falls back to
-    the description alone.
+    ``None`` on zero sessions, any COM error (busy, popup, disconnected) or an empty GUID: the caller must
+    then treat the connection as not closable.
     """
+    try:
+        count = conn.Children.Count
+        if count <= 0:
+            return None
+        guids: set[str] = set()
+        for j in range(count):
+            guid = str(conn.Children(j).Info.SystemSessionId or "")
+            if not guid:
+                return None
+            guids.add(guid)
+        return frozenset(guids)
+    except Exception:  # pylint: disable=broad-except
+        return None
+
+
+def snapshot_connection_guids(app) -> list[frozenset[str] | None]:  # type: ignore[no-untyped-def]
+    """GUID set per connection, in ``/app/con[N]`` order. Must run on the COM thread."""
     conns = app.com.Children
-    keys: list[str] = []
-    for i in range(conns.Count):
-        conn = conns(i)
-        try:
-            desc = str(conn.Description)
-        except Exception:  # pylint: disable=broad-except
-            desc = ""
-        sess_key = ""
-        try:
-            if conn.Children.Count > 0:
-                sess_key = str(conn.Children(0).Info.SystemSessionId)
-        except Exception:  # pylint: disable=broad-except
-            pass
-        keys.append(f"{desc}|{sess_key}")
-    return keys
+    return [read_connection_guids(conns(i)) for i in range(conns.Count)]
+
+
+def snapshot_before_guids(app) -> frozenset[str] | None:  # type: ignore[no-untyped-def]
+    """Union of all GUIDs present before setup, or ``None`` if any connection or the read itself failed.
+
+    A pre-existing connection we cannot read now might become readable at teardown and then look new, so
+    one unreadable connection makes the whole snapshot untrustworthy (teardown then closes owned only).
+    """
+    try:
+        snap = snapshot_connection_guids(app)
+    except Exception:  # pylint: disable=broad-except
+        return None
+    if any(g is None for g in snap):
+        return None
+    return frozenset(guid for g in snap if g for guid in g)
 
 
 # ---------------------------------------------------------------------------
@@ -173,12 +224,15 @@ async def backend() -> AsyncIterator:  # type: ignore[type-arg]
     sap_cfg = get_sap_config()
     system = sap_cfg.get_default()
     com = ComThread()
-    # Record the connections that already exist (e.g. the user's own SAP GUI windows) so teardown leaves them alone.
+    # Record the GUIDs of connections that already exist (e.g. the user's own SAP GUI windows) so teardown
+    # leaves them alone. SAP GUI not running means nothing pre-existing; any other failure means "unknown"
+    # (None), which makes teardown close owned connections only.
     try:
         app_before = await com.run(lambda: SapGui.connect())
-        before_keys = await com.run(lambda: _connection_keys_sync(app_before))
     except Exception:  # pylint: disable=broad-except
-        before_keys = None  # SAP GUI not running yet: nothing pre-existing
+        before_guids: frozenset[str] | None = frozenset()
+    else:
+        before_guids = await com.run(lambda: snapshot_before_guids(app_before))
     b = DesktopBackend(com_thread=com)
     r = await b.login(
         "x",
@@ -191,11 +245,11 @@ async def backend() -> AsyncIterator:  # type: ignore[type-arg]
     assert r.success, f"Login failed: {r.error}"
     yield b
     # Teardown: close only connections the fixture (or tools it ran) opened -- never the user's own.
-    # Identity is a key (see connections_to_close), not the positional con[N] id; additionally every
+    # Identity is the GUID set (see connections_to_close), not the positional con[N] id; additionally every
     # connection hosting a registry session is treated as ours.
     try:
         app = await com.run(lambda: SapGui.connect())
-        current_keys = await com.run(lambda: _connection_keys_sync(app))
+        current = await com.run(lambda: snapshot_connection_guids(app))
         owned: set[int] = set()
         for sid in list(b.registry.list_sessions()) if hasattr(b, "registry") else []:
             try:
@@ -206,7 +260,7 @@ async def backend() -> AsyncIterator:  # type: ignore[type-arg]
             except Exception:  # pylint: disable=broad-except
                 pass
         raw_conns = await com.run(lambda: app.com.Children)
-        for i in connections_to_close(before_keys or [], current_keys, owned):
+        for i in connections_to_close(before_guids, current, owned):
             try:
                 await com.run(lambda i=i: raw_conns(i).CloseConnection())
             except Exception:  # pylint: disable=broad-except
