@@ -7,6 +7,8 @@ every mutating call so tests can assert that reading never expands, collapses or
 from __future__ import annotations
 
 import json
+import logging
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -14,7 +16,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastmcp import Client, FastMCP
 
-from sapguimcp.backend.desktop import DesktopBackend
+from sapguimcp.backend.desktop import DesktopBackend, _tree_helpers
 from sapguimcp.backend.desktop.models.com_results import TreeColumn, TreeNode, TreeReadResult
 from sapguimcp.tools.tree_tools import _read_tree, register_tree_tools
 
@@ -58,6 +60,7 @@ class FakeTree:
         tree_type: int = 0,
         columns: dict[str, str] | None = None,
         broken_keys: tuple[str, ...] = (),
+        broken_methods: tuple[str, ...] = (),
     ) -> None:
         self.Id = tree_id
         self._nodes = {n.key: n for n in nodes}
@@ -65,6 +68,8 @@ class FakeTree:
         self._tree_type = tree_type
         self._columns = columns or {}
         self._broken = set(broken_keys)
+        self._broken_methods = set(broken_methods)
+        self.counts: Counter[str] = Counter()
         self.calls: list[str] = []
         for name in _MUTATING:
             setattr(self, name, self._recorder(name))
@@ -80,6 +85,11 @@ class FakeTree:
             raise RuntimeError("COM error for node")
         return self._nodes[key]
 
+    def _count(self, method: str) -> None:
+        self.counts[method] += 1
+        if method in self._broken_methods:
+            raise RuntimeError(f"{method} not supported")
+
     def GetTreeType(self) -> int:  # noqa: N802
         return self._tree_type
 
@@ -93,9 +103,11 @@ class FakeTree:
         return self._node(key).items.get(column, "")
 
     def GetParent(self, key: str) -> str:  # noqa: N802
+        self._count("GetParent")
         return self._nodes[key].parent
 
     def GetHierarchyLevel(self, key: str) -> int:  # noqa: N802
+        self._count("GetHierarchyLevel")
         level, current = 0, self._nodes[key].parent
         while current:
             level += 1
@@ -103,12 +115,15 @@ class FakeTree:
         return level
 
     def IsFolderExpandable(self, key: str) -> bool:  # noqa: N802
+        self._count("IsFolderExpandable")
         return self._nodes[key].expandable
 
     def IsFolderExpanded(self, key: str) -> bool:  # noqa: N802
+        self._count("IsFolderExpanded")
         return self._nodes[key].expanded
 
     def GetNodeChildrenCount(self, key: str) -> int:  # noqa: N802
+        self._count("GetNodeChildrenCount")
         return sum(1 for n in self._nodes.values() if n.parent == key)
 
     def GetColumnNames(self) -> FakeCollection:  # noqa: N802
@@ -222,6 +237,80 @@ def test_empty_node_label_falls_back_to_text_item():
     assert [n["text"] for n in result["nodes"]] == ["Enterprise Structure", "Definition"]
     assert result["nodes"][1]["path"] == ["Enterprise Structure"]
     assert [n["key"] for n in _read(FakeSession({"wnd[0]": [tree]}), search="definition")["nodes"]] == ["C"]
+
+
+def test_label_fallback_uses_only_text_item_never_other_columns():
+    nodes = [N("R", "", items={"1": "Other column text", "TEXT": ""})]
+    tree = FakeTree("wnd[0]/usr/tree", nodes, tree_type=2, columns={"1": "Structure", "TEXT": ""})
+    node = _read(FakeSession({"wnd[0]": [tree]}))["nodes"][0]
+    assert node["text"] == ""
+    assert node["items"]["1"] == "Other column text"
+
+
+def test_search_computes_path_level_flags_only_for_matches():
+    nodes = [N(f"k{i}", f"other {i}") for i in range(20)] + [N("hit", "needle node", parent="k0")]
+    tree = FakeTree("wnd[0]/shellcont/shell", nodes)
+    result = _read(_dock(tree), search="needle")
+    assert [n["key"] for n in result["nodes"]] == ["hit"]
+    assert result["nodes"][0]["path"] == ["other 0"]
+    # GetParent is only needed for the single match (hit -> k0 -> end), never for the 20 non-matching nodes.
+    assert tree.counts["GetParent"] == 2
+    assert tree.counts["GetHierarchyLevel"] == 1
+    assert tree.counts["IsFolderExpandable"] == 1
+    assert tree.counts["IsFolderExpanded"] == 1
+
+
+def test_scan_limit_hit_and_ceiling(monkeypatch: pytest.MonkeyPatch):
+    assert _tree_helpers.MAX_SCAN_NODES == 20000
+    monkeypatch.setattr(_tree_helpers, "MAX_SCAN_NODES", 3)
+    tree = FakeTree("wnd[0]/shellcont/shell", _simple_nodes())
+    result = _read(_dock(tree))
+    assert result["scan_limit_hit"] is True
+    assert result["returned_nodes"] == 3
+    assert result["total_nodes"] == 5
+
+
+def test_missing_get_parent_degrades_to_empty_path_and_level_from_control():
+    tree = FakeTree("wnd[0]/shellcont/shell", _simple_nodes(), broken_methods=("GetParent",))
+    result = _read(_dock(tree))
+    assert result["skipped_nodes"] == 0
+    assert all(n["path"] == [] for n in result["nodes"])
+    assert {n["key"]: n["level"] for n in result["nodes"]}["          4"] == 2
+
+
+def test_missing_flag_methods_degrade():
+    tree = FakeTree(
+        "wnd[0]/shellcont/shell",
+        _simple_nodes(),
+        broken_methods=("IsFolderExpandable", "IsFolderExpanded", "GetHierarchyLevel"),
+    )
+    by_key = {n["key"]: n for n in _read(_dock(tree))["nodes"]}
+    assert by_key["          1"]["is_folder"] is True  # from GetNodeChildrenCount
+    assert by_key["          2"]["is_folder"] is False
+    assert by_key["          1"]["expanded"] is None
+    assert by_key["          4"]["level"] == 2  # len(path)
+
+
+def test_explicit_tree_id_that_is_not_a_tree_gives_clear_error():
+    button = FakeContainer("wnd[0]/usr/btn", [])
+    button.Type = "GuiButton"
+    with pytest.raises(ValueError, match="not a tree control"):
+        _read(FakeSession({"wnd[0]": [button]}), "wnd[0]/usr/btn")
+
+
+def test_popup_without_tree_falls_through_to_main_window():
+    main = FakeTree("wnd[0]/shellcont/shell", _simple_nodes())
+    session = FakeSession({"wnd[0]": [main], "wnd[1]": [FakeContainer("wnd[1]/usr", [])]})
+    assert _read(session)["tree_id"] == "wnd[0]/shellcont/shell"
+
+
+def test_walk_depth_limit_is_logged(caplog: pytest.LogCaptureFixture):
+    inner: Any = FakeTree("wnd[0]/deep/shell", _simple_nodes())
+    for i in range(20):
+        inner = FakeContainer(f"wnd[0]/c{i}", [inner])
+    with caplog.at_level(logging.DEBUG, logger=_tree_helpers.logger.name):
+        assert _tree_helpers.find_tree_shells(FakeSession({"wnd[0]": [inner]})) == []
+    assert "depth limit" in caplog.text
 
 
 def test_node_cap_truncates_and_reports_total():
@@ -387,7 +476,8 @@ def _tree_mcp() -> FastMCP:
 
 
 class _InlineCom:
-    async def run(self, fn):
+    async def run(self, fn, **kwargs):
+        assert kwargs == {"retry_server_fault": True}
         return fn()
 
 

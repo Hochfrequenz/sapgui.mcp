@@ -216,7 +216,8 @@ def register_tree_tools(mcp: FastMCP) -> None:
             )
 
         try:
-            raw = await backend.com.run(_run)
+            # Read-only and re-fetches everything inside _run, so a server fault may be retried.
+            raw = await backend.com.run(_run, retry_server_fault=True)
         except (ValueError, RuntimeError) as exc:
             return TreeReadResult.failure(str(exc))
         except Exception as exc:  # pylint: disable=broad-exception-caught

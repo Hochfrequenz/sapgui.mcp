@@ -59,6 +59,7 @@ def _try(call: Callable[..., Any], *args: Any) -> Any | None:
 def _walk(element: Any, found: list[dict[str, Any]], depth: int = 0) -> None:
     """Collect ``GuiShell`` elements with ``SubType == "Tree"`` below ``element``."""
     if depth > _MAX_WALK_DEPTH:
+        logger.debug("tree discovery: depth limit %d exceeded below %r, subtree skipped", _MAX_WALK_DEPTH, element)
         return
     children = _try(lambda: _collection(element.Children))
     for child in children or []:
@@ -73,6 +74,8 @@ def _walk(element: Any, found: list[dict[str, Any]], depth: int = 0) -> None:
 
 def find_tree_shells(raw_session: Any) -> list[dict[str, Any]]:
     """Find tree shells in the topmost window that contains any (popup ``wnd[1]`` before ``wnd[0]``).
+
+    A popup without a tree falls through to ``wnd[0]``.
 
     Trees often live in docking containers (``wnd[0]/shellcont/...``), outside ``wnd[0]/usr``,
     so the whole window is walked, not just ``usr``.
@@ -89,12 +92,20 @@ def find_tree_shells(raw_session: Any) -> list[dict[str, Any]]:
 
 
 def resolve_tree(raw_session: Any, tree_id: str | None) -> tuple[Any, str]:
-    """Return ``(tree_shell, tree_id)``; auto-discover the single tree when ``tree_id`` is None."""
+    """Return ``(tree_shell, tree_id)``; auto-discover the single tree when ``tree_id`` is None.
+
+    An explicit ``tree_id`` must name a ``GuiShell`` with ``SubType == "Tree"``; anything else raises
+    ``ValueError`` naming the actual type. A missing element raises ``RuntimeError``.
+    """
     if tree_id is not None:
         try:
-            return raw_session.FindById(tree_id), tree_id
+            shell = raw_session.FindById(tree_id)
         except Exception as exc:
             raise RuntimeError(f"tree {tree_id!r} not found (FindById failed: {exc})") from exc
+        kind, subtype = _try(getattr, shell, "Type"), _try(getattr, shell, "SubType")
+        if kind != "GuiShell" or subtype != "Tree":
+            raise ValueError(f"{tree_id!r} is not a tree control (Type={kind!r}, SubType={subtype!r})")
+        return shell, tree_id
     candidates = find_tree_shells(raw_session)
     if not candidates:
         raise ValueError("no tree control found in the active window; pass tree_id explicitly")
@@ -108,10 +119,9 @@ def resolve_tree(raw_session: Any, tree_id: str | None) -> tuple[Any, str]:
 class _TreeReader:
     """Caches per-call COM lookups (node text, parent) to avoid quadratic round trips."""
 
-    def __init__(self, tree: Any, tree_id: str, columns: list[dict[str, str]]) -> None:
+    def __init__(self, tree: Any, tree_id: str) -> None:
         self.tree = tree
         self.tree_id = tree_id
-        self._column_names = [c["name"] for c in columns]
         self._text: dict[str, str] = {}
         self._parent: dict[str, str] = {}
 
@@ -119,12 +129,11 @@ class _TreeReader:
         if key not in self._text:
             label = str(self.tree.GetNodeTextByKey(key))
             if not label:
-                # Some column trees (the SPRO IMG) keep the node label empty and put the text in an item.
-                for name in ["TEXT", *self._column_names]:
-                    value = _try(self.tree.GetItemText, key, name)
-                    if value:
-                        label = str(value)
-                        break
+                # The SPRO IMG column tree keeps the node label empty and puts it in the TEXT item.
+                # Only that item is used; other columns are never guessed (empty stays empty).
+                value = _try(self.tree.GetItemText, key, "TEXT")
+                if value:
+                    label = str(value)
             self._text[key] = label
         return self._text[key]
 
@@ -164,14 +173,20 @@ def _read_columns(tree: Any, tree_type: str) -> list[dict[str, str]]:
     return columns
 
 
-def _build_node(reader: _TreeReader, key: str, columns: list[dict[str, str]]) -> dict[str, Any]:
-    tree = reader.tree
+def _read_fields(reader: _TreeReader, key: str, columns: list[dict[str, str]]) -> tuple[str, dict[str, str]]:
+    """Cheap, searchable fields of a node: label and column items."""
     text = reader.text(key)
     items: dict[str, str] = {}
     for col in columns:
-        value = _try(tree.GetItemText, key, col["name"])
+        value = _try(reader.tree.GetItemText, key, col["name"])
         if value is not None:
             items[col["name"]] = str(value)
+    return text, items
+
+
+def _build_node(reader: _TreeReader, key: str, text: str, items: dict[str, str]) -> dict[str, Any]:
+    """Complete a node with path, level and folder flags (extra COM calls; only for returned nodes)."""
+    tree = reader.tree
     path = reader.path(key)
     level = _try(tree.GetHierarchyLevel, key)
     expandable = _try(tree.IsFolderExpandable, key)
@@ -190,12 +205,12 @@ def _build_node(reader: _TreeReader, key: str, columns: list[dict[str, str]]) ->
     }
 
 
-def _matches(node: dict[str, Any], needle: str, column: str | None) -> bool:
+def _matches(text: str, items: dict[str, str], needle: str, column: str | None) -> bool:
     if column is not None:
-        return needle in node["items"].get(column, "").casefold()
-    if needle in node["text"].casefold():
+        return needle in items.get(column, "").casefold()
+    if needle in text.casefold():
         return True
-    return any(needle in v.casefold() for v in node["items"].values())
+    return any(needle in v.casefold() for v in items.values())
 
 
 def read_tree(  # pylint: disable=too-many-locals
@@ -238,7 +253,7 @@ def read_tree(  # pylint: disable=too-many-locals
 
     scan_limit_hit = len(all_keys) > MAX_SCAN_NODES
     keys = all_keys[:MAX_SCAN_NODES]
-    reader = _TreeReader(tree, resolved_id, columns)
+    reader = _TreeReader(tree, resolved_id)
     needle = search.casefold() if search is not None else None
 
     nodes: list[dict[str, Any]] = []
@@ -250,18 +265,20 @@ def read_tree(  # pylint: disable=too-many-locals
         try:
             if root_key is not None and root_key not in reader.ancestors(key):
                 continue
-            node = _build_node(reader, key, columns)
+            text, items = _read_fields(reader, key, columns)
+            # Match on the cheap fields first; path/level/flags cost extra COM calls and are only
+            # computed for nodes that are returned (or that prove truncation).
+            if needle is not None and not _matches(text, items, needle, column):
+                continue
+            if len(nodes) == max_nodes:
+                truncated = True
+                scanned -= 1  # the node that proved truncation was looked at, not consumed
+                break
+            nodes.append(_build_node(reader, key, text, items))
         except Exception as exc:  # pylint: disable=broad-exception-caught
             skipped += 1
             logger.debug("tree %s: skipping node %r: %s", resolved_id, key, exc)
             continue
-        if needle is not None and not _matches(node, needle, column):
-            continue
-        if len(nodes) == max_nodes:
-            truncated = True
-            scanned -= 1  # the node that proved truncation was looked at, not consumed
-            break
-        nodes.append(node)
 
     return {
         "tree_id": resolved_id,
