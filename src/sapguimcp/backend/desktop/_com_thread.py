@@ -51,7 +51,7 @@ import queue
 import threading
 import time
 from contextvars import ContextVar
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, NamedTuple, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -195,10 +195,30 @@ _LOGIN_ENGINE_LOST_HINT = (
 _MAX_CAUSE_HOPS = 5
 
 
-def find_login_failure_cause(exc: BaseException) -> tuple[int, BaseException] | None:
-    """Walk the ``__cause__`` chain of *exc* (itself included) for the first COM HRESULT.
+def format_hresult(code: int) -> str:
+    """Format an HRESULT as unsigned hex, e.g. ``0x800706BA``."""
+    return f"0x{code & 0xFFFFFFFF:08X}"
 
-    Looks at most ``_MAX_CAUSE_HOPS`` links deep and stops on a cycle.
+
+class LoginFailure(NamedTuple):
+    """Result of :func:`classify_login_failure`.
+
+    ``hresult`` / ``cause_type`` are ``None`` when no COM error is in the cause chain.
+    """
+
+    message: str
+    engine_lost: bool
+    hresult: str | None
+    cause_type: str | None
+
+
+def _find_com_cause(exc: BaseException) -> tuple[int, BaseException] | None:
+    """Walk the ``__cause__`` chain of *exc* (itself included) for the first COM error.
+
+    Only an exception with an integer ``hresult`` attribute counts (``pywintypes.com_error``
+    has one); the ``args[0]`` fallback of ``_get_com_error_code`` would mistake e.g.
+    ``FileNotFoundError(2, ...)`` for an HRESULT. Looks at most ``_MAX_CAUSE_HOPS`` links
+    deep and stops on a cycle.
     """
     seen: set[int] = set()
     current: BaseException | None = exc
@@ -206,33 +226,35 @@ def find_login_failure_cause(exc: BaseException) -> tuple[int, BaseException] | 
         if current is None or id(current) in seen:
             return None
         seen.add(id(current))
-        code = _get_com_error_code(current)  # type: ignore[arg-type]
-        if isinstance(code, int):
+        code = getattr(current, "hresult", None)
+        if isinstance(code, int) and not isinstance(current, OSError):
             return code, current
         current = current.__cause__
     return None
 
 
-def classify_login_failure(exc: BaseException) -> tuple[str, bool]:
+def classify_login_failure(exc: BaseException) -> LoginFailure:
     """Describe a failed login and say whether the SAP GUI engine is lost (issue #789).
 
     sapsucker reports any ``OpenConnection`` failure as "Verify the name matches an entry in
-    SAP Logon", dropping the COM error it came from. This walks the cause chain for the
-    HRESULT and returns ``(message, engine_lost)``: the original text, with
-    ``(HRESULT 0x........, <cause type>)`` appended when an HRESULT is found and, for the
-    engine-lost codes only, a hint to restart SAP Logon. Without an HRESULT the text is
-    unchanged. No string matching on the sapsucker message.
+    SAP Logon", dropping the COM error it came from. This walks the cause chain once for the
+    HRESULT: the message is the original text with ``(HRESULT 0x........, <cause type>)``
+    appended when one is found and, for the engine-lost codes only, a hint to restart SAP
+    Logon. Without an HRESULT the text is unchanged. No string matching on the sapsucker
+    message.
     """
     message = str(exc)
-    found = find_login_failure_cause(exc)
+    found = _find_com_cause(exc)
     if found is None:
-        return message, False
+        return LoginFailure(message, False, None, None)
     code, cause = found
-    message = f"{message} (HRESULT 0x{code & 0xFFFFFFFF:08X}, {type(cause).__name__})"
+    cause_type = type(cause).__name__
+    hresult = format_hresult(code)
+    message = f"{message} (HRESULT {hresult}, {cause_type})"
     engine_lost = code in LOGIN_ENGINE_LOST_CODES
     if engine_lost:
         message = f"{message} {_LOGIN_ENGINE_LOST_HINT}"
-    return message, engine_lost
+    return LoginFailure(message, engine_lost, hresult, cause_type)
 
 
 def is_transient_busy_error(exc: Exception) -> bool:

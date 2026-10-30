@@ -325,8 +325,9 @@ async def test_failed_login_does_not_touch_registry() -> None:
 
 @pytest.mark.anyio
 async def test_failed_login_does_not_prune_dead_sessions_either() -> None:
-    """The failure path is pure no-op on the registry, even when a dead
-    session is sitting there. The next *successful* login (or any other
+    """The failure path is a pure no-op on the registry for non-engine-lost
+    failures, even when a dead session is sitting there (an engine-lost cause
+    prunes, see the #789 tests below). The next *successful* login (or any other
     reconcile-bearing operation) will clean it up. Surfacing transient
     failures without touching the registry keeps the failure mode local
     and predictable.
@@ -360,7 +361,11 @@ async def test_failed_login_does_not_prune_dead_sessions_either() -> None:
 
 
 class _FakeComError(Exception):
-    """Stand-in for pywintypes.com_error: the HRESULT is ``args[0]``."""
+    """Stand-in for pywintypes.com_error: the HRESULT is ``args[0]`` and ``.hresult``."""
+
+    def __init__(self, *args: Any) -> None:
+        super().__init__(*args)
+        self.hresult = args[0]
 
 
 def _com_failure(hresult: int) -> Exception:

@@ -38,7 +38,11 @@ async def test_live_session_reports_active(backend):
 
 
 class _FakeComError(Exception):
-    """Stand-in for pywintypes.com_error: the HRESULT is ``args[0]``."""
+    """Stand-in for pywintypes.com_error: the HRESULT is ``args[0]`` and ``.hresult``."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.hresult = args[0]
 
 
 async def _login_with_injected_open_connection_failure(backend, monkeypatch, error):
