@@ -58,8 +58,9 @@ Two public GitHub repositories (`Hochfrequenz/...`) back the abapGit and edit te
 | `Z_MCP_TEST_EDITABLE_WB_OBJECTS`   | all system types (provides `ZTEST_MCP_EDIT`, `ZCL_TEST_MCP_EDIT`)                                       | edit / SE09 tests                           | `main`, `test/branch-switch` |
 
 - Desktop tests that need `Z_PUBLIC_ABAPGIT_TEST_REPOSITORY` (`test_abapgit_pull_public_repo`, `test_abapgit_pull_returns_status_message`, `test_abapgit_pull_without_trkorr_returns_transport_guidance`, `test_abapgit_list_repos`) first list the registered repositories and skip with a reason naming the repository if it is missing. They skip only when the listing succeeded and returned at least one repository; a failed or empty listing never causes a skip, so a broken listing still fails visibly. The repository name is matched exactly.
-- `test/branch-switch` is a copy of `main` with a changed `WRITE` text. It is reserved for the upcoming live tests of an abapGit branch parameter: do not delete it and do not merge it into `main`.
-- Those branch-switch tests will also need the optional `P_BRANCH` parameter of the report `Z_ABAPGIT_PULL_MCP_SHORTCUT` (open PR #12 in that repository).
+- `test/branch-switch` is a copy of `main` with a changed `WRITE` text. It is used by the live tests of the `branch` parameter of `sap_abapgit_pull` (`test_abapgit_pull_unknown_branch_leaves_branch_unchanged`, `test_abapgit_pull_branch_failure_restores_previous_branch`, `test_abapgit_pull_branch_switch_and_back`): do not delete it and do not merge it into `main`.
+- Those tests need the optional `P_BRANCH` parameter of the report `Z_ABAPGIT_PULL_MCP_SHORTCUT` (merged; the report must be installed in a version that has it). Without it the branch pull is reported as not confirmed.
+- `Z_PUBLIC_ABAPGIT_TEST_REPOSITORY` must not be pinned to a commit: a successful pull with a branch clears the pin, and the client can neither read nor restore it. The branch tests always leave the repository on its original branch.
 
 ### Optional Environment Variables
 

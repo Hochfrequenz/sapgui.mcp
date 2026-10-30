@@ -165,3 +165,90 @@ class TestPrepareParams:
         assert not isinstance(result, PullParams)
         assert result.success is False
         assert "too long" in (result.error or "").lower()
+
+
+# --- branch ---------------------------------------------------------------------------------------------------------
+
+BRANCH_ACCEPTED = ["main", "feature/x", "release/1.2", "a.b-c_d", "x" * 200]
+BRANCH_REJECTED = [
+    "",
+    "   ",
+    "a;b",
+    "a=b",
+    "a b",
+    "a\tb",
+    "main\n",
+    "a\r\nb",
+    "-x",
+    "/x",
+    "x/",
+    "a//b",
+    "a..b",
+    "x.",
+    "x.lock",
+    "a/.hidden",
+    "HEAD",
+    "refs/tags/x",
+    "refs/heads/",
+    "refs/heads//x",
+    "a@{1}",
+    "a~1",
+    "a^",
+    "a:b",
+    "a*b",
+    "x" * 201,
+    "refs/heads/refs/heads/x",
+    "refs/x",
+    "refs/heads/HEAD",
+]
+
+
+class TestValidateBranch:
+    @pytest.mark.parametrize("branch", BRANCH_ACCEPTED)
+    def test_accepted(self, branch: str) -> None:
+        assert abapgit_tools._validate_branch(branch) == (branch, "refs/heads/" + branch)
+
+    @pytest.mark.parametrize("branch", [b for b in BRANCH_ACCEPTED if len(b) < 100])
+    def test_full_ref_is_stripped_once(self, branch: str) -> None:
+        assert abapgit_tools._validate_branch("refs/heads/" + branch) == (branch, "refs/heads/" + branch)
+
+    @pytest.mark.parametrize("branch", BRANCH_REJECTED)
+    def test_rejected(self, branch: str) -> None:
+        result = abapgit_tools._validate_branch(branch)
+        assert isinstance(result, str)
+        assert result.startswith("Invalid branch:")
+
+    @pytest.mark.parametrize("branch", BRANCH_REJECTED)
+    def test_rejected_before_any_sap_call(self, branch: str) -> None:
+        result = _validate_and_prepare_params("REPO", None, None, None, branch)
+        assert not isinstance(result, PullParams)
+        assert result.success is False
+        assert (result.error or "").startswith("Invalid branch:")
+
+
+class TestBranchOkCode:
+    def test_without_branch_is_unchanged(self) -> None:
+        result = _validate_and_prepare_params("REPO", "TRK1", None, None)
+        assert isinstance(result, PullParams)
+        assert result.tcode_with_params == "/nZ_ABAPGIT_PULL_MCP P_REPO=REPO; P_TRKORR=TRK1;"
+        assert result.branch is None
+        assert result.expected_ref is None
+
+    @pytest.mark.parametrize("given", ["feature/x", "refs/heads/feature/x"])
+    def test_short_form_is_sent_exactly_once(self, given: str) -> None:
+        result = _validate_and_prepare_params("REPO", "TRK1", "user", "tok", given)
+        assert isinstance(result, PullParams)
+        parts = result.tcode_with_params.removeprefix("/nZ_ABAPGIT_PULL_MCP ").removesuffix(";").split("; ")
+        assert parts == ["P_REPO=REPO", "P_BRANCH=feature/x", "P_TRKORR=TRK1", "P_USER=user", "P_TOKEN=tok"]
+        assert result.branch == "feature/x"
+        assert result.expected_ref == "refs/heads/feature/x"
+
+    def test_too_long_with_branch_mentions_the_branch(self) -> None:
+        prefix = "/nZ_ABAPGIT_PULL_MCP P_REPO=; P_BRANCH=b;"
+        repo = "r" * (255 - len(prefix))
+        ok = _validate_and_prepare_params(repo, None, None, None, "b")
+        assert isinstance(ok, PullParams)
+        assert len(ok.tcode_with_params) == 255
+        too_long = _validate_and_prepare_params(repo + "r", None, None, None, "b")
+        assert not isinstance(too_long, PullParams)
+        assert "shorter branch name" in (too_long.error or "")

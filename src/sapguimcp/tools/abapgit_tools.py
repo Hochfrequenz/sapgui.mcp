@@ -90,6 +90,8 @@ class PullParams:
     username: str | None
     pat: str | None
     tcode_with_params: str
+    branch: str | None = None  # short name as sent in the OK-code
+    expected_ref: str | None = None  # refs/heads/<branch>: what the report must echo
 
 
 # Error Detection Helpers
@@ -323,11 +325,47 @@ def _validate_param(value: str, param_name: str, pattern: str, description: str)
     return None
 
 
-def _validate_and_prepare_params(
+_BRANCH_PATTERN = re.compile(r"[A-Za-z0-9._/-]{1,200}")
+_BRANCH_PREFIX = "refs/heads/"
+
+
+def _validate_branch(branch: str) -> tuple[str, str] | str:
+    """Validate a branch. Returns ``(short_name, full_ref)``, or an error message starting with ``Invalid branch:``."""
+    shown = repr(branch if len(branch) <= 80 else branch[:80] + "...")
+    hint = (
+        "Use a branch name such as `main`, `feature/x` or `refs/heads/x` "
+        "(letters, digits, `_` `-` `.` `/`, at most 200 characters; `;`, `=`, spaces and line breaks are not allowed)."
+    )
+
+    def invalid(reason: str) -> str:
+        return f"Invalid branch: {shown}: {reason}. {hint}"
+
+    if not branch.strip():
+        return invalid("a branch must not be blank")
+    short = branch.removeprefix(_BRANCH_PREFIX)
+    if short.startswith("refs/"):
+        return invalid("only branches (refs/heads/) are supported")
+    if _BRANCH_PATTERN.fullmatch(short) is None:
+        return invalid("contains characters that are not allowed or is too long")
+    parts = short.split("/")
+    if (
+        short.startswith(("-", "/"))
+        or short.endswith(("/", "."))
+        or ".." in short
+        or "" in parts
+        or any(part.startswith(".") or part.endswith(".lock") for part in parts)
+        or short == "HEAD"
+    ):
+        return invalid("not a valid git branch name")
+    return short, _BRANCH_PREFIX + short
+
+
+def _validate_and_prepare_params(  # pylint: disable=too-many-return-statements
     repo: str,
     trkorr: str | None,
     username: str | None,
     pat: str | None,
+    branch: str | None = None,
 ) -> PullParams | AbapGitActionResult:
     """Validate inputs and prepare pull parameters. Returns error result if validation fails."""
     # Validate repo name or URL to prevent injection
@@ -336,6 +374,14 @@ def _validate_and_prepare_params(
         return AbapGitActionResult.failure_result(
             action="pull", repo_name="<redacted>" if "@" in repo else repo[:80], error=repo_error
         )
+
+    short_branch: str | None = None
+    expected_ref: str | None = None
+    if branch is not None:
+        branch_result = _validate_branch(branch)
+        if isinstance(branch_result, str):
+            return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=branch_result)
+        short_branch, expected_ref = branch_result
 
     # Validate other parameters to prevent command injection via semicolons/special chars
     if trkorr:
@@ -365,6 +411,8 @@ def _validate_and_prepare_params(
     # Note: All params are validated above to contain only safe characters (no semicolons/spaces)
     # so they won't break the semicolon-separated OK-Code command syntax
     params = [f"P_REPO={repo}"]
+    if short_branch:
+        params.append(f"P_BRANCH={short_branch}")
     if trkorr:
         params.append(f"P_TRKORR={trkorr}")
     if effective_username:
@@ -379,7 +427,7 @@ def _validate_and_prepare_params(
             repo_name=repo,
             error=(
                 f"The pull command is too long ({len(tcode_with_params)} characters, maximum {_MAX_OKCODE_LENGTH}). "
-                "Use the abapGit repository name instead of the URL."
+                "Use the abapGit repository name instead of the URL, or a shorter branch name."
             ),
         )
 
@@ -389,6 +437,8 @@ def _validate_and_prepare_params(
         username=effective_username,
         pat=effective_pat,
         tcode_with_params=tcode_with_params,
+        branch=short_branch,
+        expected_ref=expected_ref,
     )
 
 
@@ -836,6 +886,27 @@ def _apply_list_filters(
     return AbapGitListResult(success=True, repos=shaped, total_count=total, matched_count=len(matched), message=message)
 
 
+async def _read_report_screen(backend: "WebGuiBackend | DesktopBackend", read_problems: list[str]) -> str:
+    """Read the report's WRITE output from the screen (after F8)."""
+    if backend.backend_type == "desktop":
+        # On the desktop backend, WRITE output appears as labels (GuiLabel) in a classic list that is only as
+        # big as the window: read all of it, not just what is visible.
+        desktop = cast("DesktopBackend", backend)
+        await desktop.wait_for_ready()
+        if not await desktop.wait_for_condition(_abapgit_list_displayed, timeout_ms=5000):
+            logger.warning("The abapGit list did not show within 5 s, reading the screen as it is")
+        session = desktop.require_session()
+        return "\n".join(await desktop.com.run(lambda: _read_list_lines(session, read_problems)))
+    await backend.wait(3000)
+    text = await cast("WebGuiBackend", backend).evaluate_javascript("""
+        () => {
+            const body = document.querySelector('#sapwd_main_window_root_contents') || document.body;
+            return body.innerText || body.textContent || '';
+        }
+    """)
+    return str(text or "")
+
+
 async def _abapgit_list_repos(backend: "WebGuiBackend | DesktopBackend") -> AbapGitListResult:
     """List all registered abapGit repositories via Z_ABAPGIT_PULL_MCP P_ACTION=LIST."""
     logger.info("Listing abapGit repositories")
@@ -864,23 +935,7 @@ async def _abapgit_list_repos(backend: "WebGuiBackend | DesktopBackend") -> Abap
 
         # Read the WRITE output from the screen
         read_problems: list[str] = []
-        if backend.backend_type == "desktop":
-            # On the desktop backend, WRITE output appears as labels (GuiLabel) in a classic list that is only as
-            # big as the window: read all of it, not just what is visible.
-            desktop = cast("DesktopBackend", backend)
-            await desktop.wait_for_ready()
-            if not await desktop.wait_for_condition(_abapgit_list_displayed, timeout_ms=5000):
-                logger.warning("The abapGit list did not show within 5 s, reading the screen as it is")
-            session = desktop.require_session()
-            raw_output = "\n".join(await desktop.com.run(lambda: _read_list_lines(session, read_problems)))
-        else:
-            await backend.wait(3000)
-            raw_output = await cast("WebGuiBackend", backend).evaluate_javascript("""
-                () => {
-                    const body = document.querySelector('#sapwd_main_window_root_contents') || document.body;
-                    return body.innerText || body.textContent || '';
-                }
-            """)
+        raw_output = await _read_report_screen(backend, read_problems)
 
         repos, skipped = _parse_repo_lines(raw_output or "")
         total = parse_repo_list_total(raw_output or "")
@@ -921,19 +976,80 @@ async def _abapgit_list_repos(backend: "WebGuiBackend | DesktopBackend") -> Abap
         return AbapGitListResult(success=False, error=str(e))
 
 
+_BRANCH_ECHO = re.compile(r"BRANCH~(refs/heads/\S+)")
+
+
+async def _read_branch_echo(backend: "WebGuiBackend | DesktopBackend") -> str | None:
+    """Read the ``BRANCH~<full ref>`` line the report writes after a pull with a branch; None if not exactly one."""
+    try:
+        raw_output = await _read_report_screen(backend, [])
+    except Exception:  # pylint: disable=broad-exception-caught
+        # An outdated report writes no list: the screen is not a list and reading it may raise.
+        logger.warning("Could not read the branch echo of the report", exc_info=True)
+        return None
+    matches = [m for line in (raw_output or "").splitlines() if (m := _BRANCH_ECHO.fullmatch(line.strip()))]
+    return matches[0].group(1) if len(matches) == 1 else None
+
+
+async def _confirm_branch(
+    backend: "WebGuiBackend | DesktopBackend", result: AbapGitActionResult, params: PullParams
+) -> AbapGitActionResult:
+    """Turn a successful pull with a branch into a success only if the report echoed that branch."""
+    echo = await _read_branch_echo(backend)
+    if echo is not None and echo == params.expected_ref:
+        result.branch = echo
+        return result
+    found = f"the report echoed {echo!r} instead of {params.expected_ref!r}" if echo else "no readable `BRANCH~` line"
+    return AbapGitActionResult.failure_result(
+        action="pull",
+        repo_name=result.repo_name,
+        error=(
+            f"The pull ran, but the report did not confirm branch {params.branch!r} ({found}). "
+            "The report is probably outdated and ignores P_BRANCH, so the pull may have run on the previously "
+            "selected branch (or the echo could not be read from the screen). "
+            "Update Z_ABAPGIT_PULL_MCP_SHORTCUT and check the branch with sap_abapgit_list_repos."
+        ),
+    )
+
+
+def _annotate_branch_failure(result: AbapGitActionResult, params: PullParams) -> AbapGitActionResult:
+    """Add guidance to the failures that are specific to a pull with a branch."""
+    error = result.error or ""
+    if error.startswith(("Branch restore failed:", "Pin restore failed:")):
+        result.error = (
+            f"WARNING: the repository may have been left on branch {params.branch}: "
+            f"restoring the previous branch failed. {error}"
+        )
+    elif error.startswith("Branch not found:"):
+        result.error = f"{error} The selected branch is unchanged; check the branch name on the remote."
+    return result
+
+
+async def _check_branch_outcome(
+    backend: "WebGuiBackend | DesktopBackend", result: AbapGitActionResult, params: PullParams
+) -> AbapGitActionResult:
+    """Apply the branch-specific checks to a pull result; a pull without a branch is returned as it is."""
+    if params.branch is None:
+        return result
+    if result.success:
+        return await _confirm_branch(backend, result, params)
+    return _annotate_branch_failure(result, params)
+
+
 async def _abapgit_pull_via_api(
     backend: "WebGuiBackend | DesktopBackend",
     repo: str,
     trkorr: str | None,
     username: str | None,
     pat: str | None,
+    branch: str | None = None,
 ) -> AbapGitActionResult:
     """Pull changes using the Z_ABAPGIT_PULL_MCP transaction (abapGit ABAP API)."""
     logger.info("Starting abapGit Pull via API", extra={"repo": repo})
 
     try:
         # Validate and prepare parameters
-        params_result = _validate_and_prepare_params(repo, trkorr, username, pat)
+        params_result = _validate_and_prepare_params(repo, trkorr, username, pat, branch)
         if isinstance(params_result, AbapGitActionResult):
             return params_result
         params = params_result
@@ -953,7 +1069,7 @@ async def _abapgit_pull_via_api(
         if popup_error:
             return popup_error
 
-        return await _analyze_pull_result(backend, repo)
+        return await _check_branch_outcome(backend, await _analyze_pull_result(backend, repo), params)
 
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.exception("abapGit pull via API", extra={"repo": repo})
@@ -1339,7 +1455,11 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             "If SAP requires a transport request, the tool returns an error with guidance. "
             "Look up an open transport (e.g. via SE09/SE10), then retry with trkorr=... "
             "If the tool reports 'status unknown', the pull may already have run: "
-            "check the last pull time in abapGit or the transport task before retrying."
+            "check the last pull time in abapGit or the transport task before retrying. "
+            "Optional branch (e.g. main, feature/x, refs/heads/x) switches the registered repository to that "
+            "branch persistently (side effect: kept only if the pull succeeds, restored on failure) and clears a "
+            "commit pin; the result's branch echoes where the repository is. "
+            "sap_abapgit_list_repos shows the branch column."
         ),
     )
     async def sap_abapgit_pull(  # pylint: disable=too-many-arguments,too-many-positional-arguments
@@ -1347,6 +1467,7 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
         trkorr: str | None = None,
         username: str | None = None,
         pat: str | None = None,
+        branch: str | None = None,
         session: str | None = None,
         agent_id: str | None = None,
     ) -> AbapGitActionResult:
@@ -1366,6 +1487,11 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             username: GitHub username (optional for public repos)
             pat: GitHub Personal Access Token (optional for public repos).
                  Falls back to ABAPGIT_PAT env var, then GITHUB_PAT.
+            branch: Branch to pull (optional): `main`, `feature/x` or `refs/heads/x`. Without it the repository
+                    is pulled on its selected branch. SIDE EFFECT: switches the registered repository to this
+                    branch persistently (like a branch switch in the abapGit UI) and clears a commit pin; the
+                    switch is kept only if the pull succeeds and is restored on failure. The result's `branch`
+                    echoes the full branch the repository is on; `sap_abapgit_list_repos` shows it too.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
@@ -1377,12 +1503,13 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             sap_abapgit_pull(repo="MY-PROJECT-ABAP")
             sap_abapgit_pull(repo="https://github.com/org/MY-PROJECT-ABAP")
             sap_abapgit_pull(repo="Z_PUBLIC_REPO", trkorr="XYZK900010")
+            sap_abapgit_pull(repo="Z_PUBLIC_REPO", branch="feature/x", trkorr="XYZK900010")
         """
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_abapgit_pull")
         except ValueError as e:
             return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=f"Session error: {e}")
-        return await _abapgit_pull_via_api(backend, repo, trkorr, username, pat)
+        return await _abapgit_pull_via_api(backend, repo, trkorr, username, pat, branch)
 
     @mcp.tool(
         annotations=ToolAnnotations(

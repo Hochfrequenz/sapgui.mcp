@@ -70,6 +70,13 @@ class AbapGitActionResult(BaseModel):
         default=None,
         description="The action button text that was clicked (e.g., 'Pull', 'Stage')",
     )
+    branch: str | None = Field(
+        default=None,
+        description=(
+            "Full branch (e.g. refs/heads/main) the repository is on after a pull with a `branch` argument, "
+            "as echoed by the report; None without a `branch` argument or when the pull failed"
+        ),
+    )
 
     @classmethod
     def success_result(
