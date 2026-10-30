@@ -51,7 +51,7 @@ import queue
 import threading
 import time
 from contextvars import ContextVar
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, NamedTuple, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,8 @@ _RPC_E_SERVERFAULT = -2147417851  # 0x80010105 — "The server threw an exceptio
 _RPC_E_SERVERCALL_RETRYLATER = -2147417846  # 0x8001010A
 _RPC_E_CALL_REJECTED = -2147418111  # 0x80010001
 _RPC_S_UNKNOWN_IF = -2147023179  # 0x800706B5 — "The interface is unknown"
+_RPC_S_SERVER_UNAVAILABLE = -2147023174  # 0x800706BA — "The RPC server is unavailable"
+_RPC_S_CALL_FAILED = -2147023170  # 0x800706BE — "The remote procedure call failed"
 
 _RETRYABLE_COM_ERRORS = {_RPC_E_SERVERCALL_RETRYLATER, _RPC_E_CALL_REJECTED, _RPC_S_UNKNOWN_IF}
 
@@ -178,6 +180,81 @@ def describe_com_error(exc: Exception) -> str | None:
     if code is None:
         return None
     return _FATAL_COM_ERROR_HINTS.get(code)
+
+
+#: HRESULTs that mean the SAP GUI scripting engine behind a login is gone (SAP Logon closed,
+#: killed or restarted). "Busy" codes (retry-later, call-rejected) and server faults are not
+#: included: the engine is alive there.
+LOGIN_ENGINE_LOST_CODES = frozenset(
+    {_RPC_S_UNKNOWN_IF, _RPC_E_DISCONNECTED, _RPC_S_SERVER_UNAVAILABLE, _RPC_S_CALL_FAILED}
+)
+
+_LOGIN_ENGINE_LOST_HINT = (
+    "SAP Logon not reachable or connection lost. Start or restart SAP Logon and call sap_login again."
+)
+_MAX_CAUSE_HOPS = 5
+
+
+def format_hresult(code: int) -> str:
+    """Format an HRESULT as unsigned hex, e.g. ``0x800706BA``."""
+    return f"0x{code & 0xFFFFFFFF:08X}"
+
+
+class LoginFailure(NamedTuple):
+    """Result of :func:`classify_login_failure`.
+
+    ``hresult`` / ``cause_type`` are ``None`` when no COM error is in the cause chain.
+    """
+
+    message: str
+    engine_lost: bool
+    hresult: str | None
+    cause_type: str | None
+
+
+def _find_com_cause(exc: BaseException) -> tuple[int, BaseException] | None:
+    """Walk the ``__cause__`` chain of *exc* (itself included) for the first COM error.
+
+    Only an exception with an integer ``hresult`` attribute counts (``pywintypes.com_error``
+    has one); the ``args[0]`` fallback of ``_get_com_error_code`` would mistake e.g.
+    ``FileNotFoundError(2, ...)`` for an HRESULT. Looks at most ``_MAX_CAUSE_HOPS`` links
+    deep and stops on a cycle.
+    """
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    for _ in range(_MAX_CAUSE_HOPS + 1):
+        if current is None or id(current) in seen:
+            return None
+        seen.add(id(current))
+        code = getattr(current, "hresult", None)
+        if isinstance(code, int) and not isinstance(current, OSError):
+            return code, current
+        current = current.__cause__
+    return None
+
+
+def classify_login_failure(exc: BaseException) -> LoginFailure:
+    """Describe a failed login and say whether the SAP GUI engine is lost (issue #789).
+
+    sapsucker reports any ``OpenConnection`` failure as "Verify the name matches an entry in
+    SAP Logon", dropping the COM error it came from. This walks the cause chain once for the
+    HRESULT: the message is the original text with ``(HRESULT 0x........, <cause type>)``
+    appended when one is found and, for the engine-lost codes only, a hint to restart SAP
+    Logon. Without an HRESULT the text is unchanged. No string matching on the sapsucker
+    message.
+    """
+    message = str(exc)
+    found = _find_com_cause(exc)
+    if found is None:
+        return LoginFailure(message, False, None, None)
+    code, cause = found
+    cause_type = type(cause).__name__
+    hresult = format_hresult(code)
+    message = f"{message} (HRESULT {hresult}, {cause_type})"
+    engine_lost = code in LOGIN_ENGINE_LOST_CODES
+    if engine_lost:
+        message = f"{message} {_LOGIN_ENGINE_LOST_HINT}"
+    return LoginFailure(message, engine_lost, hresult, cause_type)
 
 
 def is_transient_busy_error(exc: Exception) -> bool:

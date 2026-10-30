@@ -325,8 +325,9 @@ async def test_failed_login_does_not_touch_registry() -> None:
 
 @pytest.mark.anyio
 async def test_failed_login_does_not_prune_dead_sessions_either() -> None:
-    """The failure path is pure no-op on the registry, even when a dead
-    session is sitting there. The next *successful* login (or any other
+    """The failure path is a pure no-op on the registry for non-engine-lost
+    failures, even when a dead session is sitting there (an engine-lost cause
+    prunes, see the #789 tests below). The next *successful* login (or any other
     reconcile-bearing operation) will clean it up. Surfacing transient
     failures without touching the registry keeps the failure mode local
     and predictable.
@@ -352,3 +353,112 @@ async def test_failed_login_does_not_prune_dead_sessions_either() -> None:
     assert result.success is False
     # Dead session still there — failed login does not run reconcile.
     assert backend.registry.list_sessions() == ["s1"]
+
+
+# ---------------------------------------------------------------------------
+# #789 — real cause on login failure, no retry
+# ---------------------------------------------------------------------------
+
+
+class _FakeComError(Exception):
+    """Stand-in for pywintypes.com_error: the HRESULT is ``args[0]`` and ``.hresult``."""
+
+    def __init__(self, *args: Any) -> None:
+        super().__init__(*args)
+        self.hresult = args[0]
+
+
+def _com_failure(hresult: int) -> Exception:
+    err = RuntimeError("Could not open connection '<name>'. Verify the name matches an entry in SAP Logon.")
+    err.__cause__ = _FakeComError(hresult, "localized", None, None)
+    return err
+
+
+async def _login(backend: DesktopBackend) -> Any:
+    return await backend.login(
+        url="ignored", username="user", password="pass", client="100", language="EN", connection_name="TEST_CONN"
+    )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("hresult", [-2147023179, -2147417848, -2147023174, -2147023170])
+async def test_engine_lost_login_failure_is_annotated_and_not_retried(hresult: int) -> None:
+    backend = _make_backend()
+    with patch("sapguimcp.backend.desktop._sapsucker_login", side_effect=_com_failure(hresult)) as mocked:
+        result = await _login(backend)
+
+    assert mocked.call_count == 1
+    assert result.success is False
+    assert result.error is not None
+    assert "SAP Logon not reachable or connection lost" in result.error
+    assert f"HRESULT 0x{hresult & 0xFFFFFFFF:08X}" in result.error
+
+
+@pytest.mark.anyio
+async def test_engine_lost_login_failure_prunes_dead_sessions() -> None:
+    backend = _make_backend()
+    dead = make_mock_session()
+    backend.registry.register(dead)
+    _kill_session(dead)
+    alive = make_mock_session()
+    backend.registry.register(alive)
+
+    with patch("sapguimcp.backend.desktop._sapsucker_login", side_effect=_com_failure(-2147023174)):
+        result = await _login(backend)
+
+    assert result.success is False
+    assert dead not in backend.registry._sessions.values()
+    assert alive in backend.registry._sessions.values()
+
+
+@pytest.mark.anyio
+async def test_raising_reconcile_does_not_alter_login_error() -> None:
+    backend = _make_backend()
+
+    async def broken() -> None:
+        raise RuntimeError("reconcile exploded")
+
+    backend._reconcile_locked = broken  # type: ignore[method-assign]
+    with patch("sapguimcp.backend.desktop._sapsucker_login", side_effect=_com_failure(-2147417848)):
+        result = await _login(backend)
+
+    assert result.success is False
+    assert result.error is not None
+    assert "SAP Logon not reachable or connection lost" in result.error
+    assert "reconcile exploded" not in result.error
+
+
+@pytest.mark.anyio
+async def test_non_com_failure_keeps_name_hint_and_does_not_reconcile() -> None:
+    backend = _make_backend()
+    reconcile_calls: list[int] = []
+
+    async def spy() -> None:
+        reconcile_calls.append(1)
+
+    backend._reconcile_locked = spy  # type: ignore[method-assign]
+    text = "Could not open connection '<name>'. Verify the name matches an entry in SAP Logon."
+    with patch("sapguimcp.backend.desktop._sapsucker_login", side_effect=RuntimeError(text)) as mocked:
+        result = await _login(backend)
+
+    assert mocked.call_count == 1
+    assert result.error == text
+    assert not reconcile_calls
+
+
+@pytest.mark.anyio
+async def test_non_lost_com_failure_does_not_reconcile() -> None:
+    backend = _make_backend()
+    reconcile_calls: list[int] = []
+
+    async def spy() -> None:
+        reconcile_calls.append(1)
+
+    backend._reconcile_locked = spy  # type: ignore[method-assign]
+    with patch("sapguimcp.backend.desktop._sapsucker_login", side_effect=_com_failure(-2147417851)):
+        result = await _login(backend)
+
+    assert result.error is not None
+    assert "HRESULT 0x80010105" in result.error
+    assert "SAP Logon not reachable" not in result.error
+    assert not reconcile_calls

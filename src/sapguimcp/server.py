@@ -221,7 +221,9 @@ Ask the user to verify:
 3. "Does the sap_logon_entry in systems.json match the SAP Logon pad description exactly?"
 
 COMMON ERROR CAUSES:
-- RPC_E_DISCONNECTED: SAP GUI closed or session timed out — call sap_login() again
+- RPC_E_DISCONNECTED: SAP GUI closed or session timed out — call sap_login() again.
+  If sap_login itself fails with an HRESULT and "SAP Logon not reachable or connection lost",
+  start or restart SAP Logon and call sap_login again
 - "Scripting disabled": Enable in SAP GUI Options > Accessibility & Scripting
 - Login fails: Check user/password/client in ~/.config/sap-mcp/systems.json
 
