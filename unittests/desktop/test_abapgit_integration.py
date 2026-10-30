@@ -395,6 +395,7 @@ async def test_abapgit_pull_by_key_updates_last_pull(backend) -> None:
     assert after.key == before.key
     assert after.package == before.package
     assert after.last_pull_at is not None
+    # TIMESTAMPL strings (YYYYMMDDhhmmss.fraction, same length): lexicographic order is chronological order
     assert before.last_pull_at is None or after.last_pull_at > before.last_pull_at
 
 

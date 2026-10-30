@@ -391,7 +391,8 @@ def _validate_selector(repo: str | None, key: str | None) -> str | None:
         return "Give only one of repo or key, not both (omit the unused one, do not pass an empty string)."
     if repo is not None:
         return _validate_repo_selector(repo)
-    assert key is not None
+    if key is None:  # unreachable: exactly one selector is given
+        return "Give exactly one of repo or key (from sap_abapgit_list_repos)."
     return _validate_key(key)
 
 
@@ -1186,12 +1187,12 @@ async def _abapgit_pull_via_api(  # pylint: disable=too-many-arguments,too-many-
         # Execute transaction
         tx_error = await _execute_pull_transaction(backend, params, params.label)
         if tx_error:
-            return tx_error
+            return _check_key_outcome(tx_error, params)
 
         # Run pull and check for popup errors
         popup_error = await _run_pull_and_check_errors(backend, params.label)
         if popup_error:
-            return popup_error
+            return _check_key_outcome(popup_error, params)
 
         outcome = await _check_branch_outcome(backend, await _analyze_pull_result(backend, params.label), params)
         return _check_key_outcome(outcome, params)

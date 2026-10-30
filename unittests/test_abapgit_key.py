@@ -238,6 +238,20 @@ async def test_old_report_is_reported_as_too_old_for_a_key_pull_only() -> None:
 
 
 @pytest.mark.anyio
+async def test_transport_popup_guidance_names_key_for_a_key_pull() -> None:
+    popup = SimpleNamespace(message="Transport required: provide P_TRKORR", title="Error")
+    for key, repo, expected in (
+        (KEY, None, "sap_abapgit_pull(key=..., trkorr="),
+        (None, "R", "sap_abapgit_pull(repo=..."),
+    ):
+        backend = _backend(StatusBarInfo(type="S", message="x"))
+        backend.check_popup = AsyncMock(return_value=popup)
+        result = await _abapgit_pull_via_api(backend, repo, None, None, None, key=key)
+        assert not result.success
+        assert expected in (result.error or "")
+
+
+@pytest.mark.anyio
 async def test_new_report_message_is_not_taken_for_an_old_report() -> None:
     status = StatusBarInfo(type="E", message="P_REPO or P_KEY is required for PULL action")
     result, _ = await _pull(status)
