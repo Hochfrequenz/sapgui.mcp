@@ -117,6 +117,7 @@ SAFE_BUILTINS: dict[str, Any] = {
     "all": all,
     "isinstance": isinstance,
     "getattr": getattr,
+    "hasattr": hasattr,
     # Exceptions — scripts may raise or catch these
     "Exception": Exception,
     "ValueError": ValueError,
@@ -132,11 +133,24 @@ SAFE_BUILTINS: dict[str, Any] = {
     # resolve without going through __builtins__.
 }
 
-SANDBOX_CONTRACT_VERSION: int = 2
+SANDBOX_CONTRACT_VERSION: int = 3
 """Current version of the sap_run_script sandbox contract.
 
 Bump this whenever a builtin (``SAFE_BUILTINS``) or an injected global name is added or removed.
+It tracks builtins and injected names only; the additive ``idioms`` field needs no bump.
 """
+
+_COMMON_IDIOMS: list[str] = [
+    "Radio button / checkbox: ``el.selected = True`` (or ``False``)",
+    "Text field: ``el.text = '...'``",
+    "Tab: ``el.select()``",
+    "Combo box: ``el.key = '<key>'``",
+    (
+        "Optional attributes: ``hasattr(el, 'x')`` or ``getattr(el, 'x', None)`` (on COM objects an "
+        "unsupported property may raise a non-AttributeError; wrap in try/except if needed)"
+    ),
+]
+"""Verified sapsucker idioms; single source for the tool description and the contract resource."""
 
 
 def _build_sandbox_globals(session: Any, output: Callable[[Any], None], deadline: float) -> dict[str, Any]:
@@ -170,12 +184,14 @@ def get_sandbox_contract() -> SandboxContract:
         version=SANDBOX_CONTRACT_VERSION,
         allowed_builtins=sorted(k for k in SAFE_BUILTINS if not k.startswith("_")),
         injected_names=injected,
+        idioms=list(_COMMON_IDIOMS),
     )
 
 
 _CONTRACT = get_sandbox_contract()
 _ALLOWED_BUILTINS_SUMMARY = ", ".join(_CONTRACT.allowed_builtins)
 _INJECTED_NAMES_SUMMARY = ", ".join(f"``{name}``" for name in _CONTRACT.injected_names)
+_IDIOMS_SUMMARY = "\n".join(f"- {idiom}" for idiom in _COMMON_IDIOMS)
 
 
 def get_configured_script_roots() -> list[Path]:
@@ -519,6 +535,7 @@ def register_script_tools(mcp: FastMCP) -> None:
             "- All other builtins (e.g. ``print``, ``ord``, ``divmod``, ``open``, ``eval``) "
             "and ``import`` are blocked.\n"
             "- Full contract discoverable via resource ``sandbox://sap_run_script``.\n\n"
+            f"**Common idioms:**\n{_IDIOMS_SUMMARY}\n\n"
             "Full Python control flow works: ``for``, ``if``/``else``, ``while``, ``try``/``except``, "
             "list comprehensions, function definitions.\n\n"
             "**When to use this tool vs ``sap_com_evaluate``:** prefer ``sap_com_evaluate`` for "
