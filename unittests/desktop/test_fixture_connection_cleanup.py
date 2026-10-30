@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from unittests.desktop.conftest import close_owned_connections
+from sapguimcp.backend.desktop._session_registry import DesktopSessionRegistry
+from unittests.desktop.conftest import close_owned_connections, opened_sessions
 
 
 def make_session(conn_id: str, conn: MagicMock | None = None) -> MagicMock:
@@ -46,3 +47,11 @@ def test_close_error_does_not_stop_the_others() -> None:
     a.CloseConnection.side_effect = RuntimeError("busy")
     assert close_owned_connections([make_session("/app/con[0]", a), make_session("/app/con[1]", b)]) == 2
     b.CloseConnection.assert_called_once()
+
+
+def test_opened_sessions_excludes_attached() -> None:
+    reg = DesktopSessionRegistry()
+    mine, theirs = MagicMock(), MagicMock()
+    reg.register(mine)
+    reg.register(theirs, origin="attached")
+    assert opened_sessions(reg) == [mine]

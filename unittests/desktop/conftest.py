@@ -123,6 +123,11 @@ def pytest_collection_modifyitems(items) -> None:  # type: ignore[no-untyped-def
 # ---------------------------------------------------------------------------
 
 
+def opened_sessions(registry) -> list:  # type: ignore[no-untyped-def,type-arg]
+    """Sessions of *registry* with origin "opened" -- never attached (user-owned) ones (#1009)."""
+    return [registry.get_session(sid) for sid in list(registry.list_sessions()) if registry.origin_of(sid) == "opened"]
+
+
 def close_owned_connections(sessions) -> int:  # type: ignore[no-untyped-def]
     """Close the SAP GUI connection of every given session, once per connection. Must run on the COM thread.
 
@@ -134,8 +139,8 @@ def close_owned_connections(sessions) -> int:  # type: ignore[no-untyped-def]
     ``con[N]`` renumbering that closing causes cannot make us close the wrong one. Errors are swallowed
     (best effort). Returns the number of connections a close was attempted on.
 
-    TODO(#1009 PR 1): once session origins exist, pass only sessions with origin "opened"; attached
-    sessions live in the user's own connections.
+    Callers pass only sessions the server opened (see ``opened_sessions``): attached sessions live in the
+    user's own connections.
     """
     parents: list[object] = []
     seen: set[str] = set()
@@ -196,7 +201,7 @@ async def backend() -> AsyncIterator:  # type: ignore[type-arg]
     # Teardown: close only connections hosting a session this fixture's registry holds (see
     # close_owned_connections); the user's own windows are never touched.
     try:
-        owned_sessions = [b.registry.get_session(sid) for sid in list(b.registry.list_sessions())]
+        owned_sessions = opened_sessions(b.registry)
         await com.run(lambda: close_owned_connections(owned_sessions))
     except Exception:  # pylint: disable=broad-except
         pass
