@@ -115,9 +115,10 @@ def test_repeated_stars_do_not_backtrack_catastrophically() -> None:
         {"url": ""},
         {"key": ""},
         {"name": "x" * 201},
-        {"key": "ABCDEFGHIJKLM"},  # 13 characters
-        {"key": "AB-1"},
-        {"key": "AB CD"},
+        {"key": "1234567890123"},  # 13 digits
+        {"key": "AB1"},  # letters are not part of a key
+        {"key": "12-1"},
+        {"key": "12 34"},
     ],
 )
 def test_invalid_filters_are_rejected(kwargs: dict[str, str]) -> None:
@@ -152,7 +153,7 @@ def test_glob_match_edge_cases(pattern: str, text: str, expected: bool) -> None:
 
 
 def test_valid_filters_are_accepted() -> None:
-    assert _validate_list_filters("a*", "Z_X?", "github", "0123456789AB") is None
+    assert _validate_list_filters("a*", "Z_X?", "github", "012345678901") is None
     assert _validate_list_filters(None, None, None, None) is None
 
 
@@ -269,3 +270,11 @@ async def test_the_registered_tool_validates_filters_and_applies_them() -> None:
         result = await tool.fn(package="Z_OTHER", compact=True)
     assert result.success
     assert [r.name for r in result.repos] == ["My_Other"]
+
+
+def test_key_filter_pads_to_twelve_digits() -> None:
+    lines = ["a~https://x/y~P~refs/heads/main~~~~000000000012", "b~https://x/z~P~refs/heads/main~~~~000000000120"]
+    repos = _parse_repo_lines("\n".join(lines))[0]
+    assert _names(_filter_repos(repos, key="12")) == ["a"]
+    assert _names(_filter_repos(repos, key="000000000120")) == ["b"]
+    assert _filter_repos(repos, key="0") == []

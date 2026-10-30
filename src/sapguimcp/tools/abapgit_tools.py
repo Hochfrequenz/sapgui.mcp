@@ -86,13 +86,15 @@ async def validate_github_pat(pat: str) -> tuple[bool, str]:
 class PullParams:
     """Parameters for pull operation after validation."""
 
-    repo: str
+    repo: str | None
     trkorr: str | None
     username: str | None
     pat: str | None
     tcode_with_params: str
     branch: str | None = None  # short name as sent in the OK-code
     expected_ref: str | None = None  # refs/heads/<branch>: what the report must echo
+    key: str | None = None  # the 12-digit key as sent (pull by key); then repo is None
+    label: str = ""  # the repo_name to report: the repo, or ``key <12 digits>``
 
 
 # Error Detection Helpers
@@ -361,27 +363,58 @@ def _validate_branch(branch: str) -> tuple[str, str] | str:
     return short, _BRANCH_PREFIX + short
 
 
-def _validate_and_prepare_params(  # pylint: disable=too-many-return-statements
-    repo: str,
+_KEY_PATTERN = re.compile(r"[0-9]{1,12}")
+
+
+def _validate_key(key: str) -> str | None:
+    """Validate a repository key (1 to 12 digits, nothing else, not stripped). Returns an error message or None."""
+    if _KEY_PATTERN.fullmatch(key) is not None:
+        return None
+    return f"Invalid key: {key[:40]!r}: must be 1 to 12 digits (the key from sap_abapgit_list_repos)."
+
+
+def _failure_label(repo: str | None, key: str | None) -> str:
+    """The ``repo_name`` of a result when the parameters could not be validated (or before the report answered)."""
+    if repo is not None:
+        return "<redacted>" if "@" in repo else repo[:80]
+    if key is None:
+        return "(none)"
+    return f"key {key.zfill(12)}" if _KEY_PATTERN.fullmatch(key) else "key"
+
+
+def _validate_selector(repo: str | None, key: str | None) -> str | None:
+    """Exactly one of repo and key must be given and valid; returns an error message otherwise."""
+    given = [value for value in (repo, key) if value is not None]
+    if not given:
+        return "Give exactly one of repo or key (from sap_abapgit_list_repos)."
+    if len(given) > 1:
+        return "Give only one of repo or key, not both (omit the unused one, do not pass an empty string)."
+    if repo is not None:
+        return _validate_repo_selector(repo)
+    assert key is not None
+    return _validate_key(key)
+
+
+def _validate_and_prepare_params(  # pylint: disable=too-many-return-statements,too-many-locals
+    repo: str | None,
     trkorr: str | None,
     username: str | None,
     pat: str | None,
     branch: str | None = None,
+    key: str | None = None,
 ) -> PullParams | AbapGitActionResult:
     """Validate inputs and prepare pull parameters. Returns error result if validation fails."""
-    # Validate repo name or URL to prevent injection
-    repo_error = _validate_repo_selector(repo)
-    if repo_error:
-        return AbapGitActionResult.failure_result(
-            action="pull", repo_name="<redacted>" if "@" in repo else repo[:80], error=repo_error
-        )
+    label = _failure_label(repo, key)
+    selector_error = _validate_selector(repo, key)
+    if selector_error:
+        return AbapGitActionResult.failure_result(action="pull", repo_name=label, error=selector_error)
 
     short_branch: str | None = None
     expected_ref: str | None = None
     if branch is not None:
         branch_result = _validate_branch(branch)
         if isinstance(branch_result, str):
-            return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=branch_result)
+            return AbapGitActionResult.failure_result(action="pull", repo_name=label, error=branch_result)
         short_branch, expected_ref = branch_result
 
     # Validate other parameters to prevent command injection via semicolons/special chars
@@ -389,7 +422,7 @@ def _validate_and_prepare_params(  # pylint: disable=too-many-return-statements
         # SAP transport requests: alphanumeric only (e.g., "XYZK900010")
         error = _validate_param(trkorr, "trkorr", r"[A-Za-z0-9]+", "Only alphanumeric allowed.")
         if error:
-            return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=error)
+            return AbapGitActionResult.failure_result(action="pull", repo_name=label, error=error)
 
     # Get credentials from settings if not provided
     settings = get_settings()
@@ -406,12 +439,14 @@ def _validate_and_prepare_params(  # pylint: disable=too-many-return-statements
         if value:
             error = _validate_param(value, name, pattern, description)
             if error:
-                return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=error)
+                return AbapGitActionResult.failure_result(action="pull", repo_name=label, error=error)
 
     # Build transaction command
     # Note: All params are validated above to contain only safe characters (no semicolons/spaces)
-    # so they won't break the semicolon-separated OK-Code command syntax
-    params = [f"P_REPO={repo}"]
+    # so they won't break the semicolon-separated OK-Code command syntax.
+    # A pull by key sends only P_KEY, never P_REPO: an old report without P_KEY then stops at "P_REPO is required".
+    padded_key = key.zfill(12) if key is not None else None
+    params = [f"P_KEY={padded_key}"] if padded_key is not None else [f"P_REPO={repo}"]
     if short_branch:
         params.append(f"P_BRANCH={short_branch}")
     if trkorr:
@@ -425,7 +460,7 @@ def _validate_and_prepare_params(  # pylint: disable=too-many-return-statements
     if len(tcode_with_params) > _MAX_OKCODE_LENGTH:
         return AbapGitActionResult.failure_result(
             action="pull",
-            repo_name=repo,
+            repo_name=label,
             error=(
                 f"The pull command is too long ({len(tcode_with_params)} characters, maximum {_MAX_OKCODE_LENGTH}). "
                 "Use the abapGit repository name instead of the URL, or a shorter branch name."
@@ -440,6 +475,8 @@ def _validate_and_prepare_params(  # pylint: disable=too-many-return-statements
         tcode_with_params=tcode_with_params,
         branch=short_branch,
         expected_ref=expected_ref,
+        key=padded_key,
+        label=label,
     )
 
 
@@ -614,11 +651,20 @@ def _clean_timestamp(value: str) -> str | None:
 _LIST_TOTAL_LINE = re.compile(r"^TOTAL~(\d+)(?:~|$)")
 
 
+_LIST_KEY_PATTERN = re.compile(r"[0-9]{12}")
+
+
+def _list_key(field: str) -> str | None:
+    """The key of a LIST row: exactly 12 digits, else None (a row clipped at the window width cuts the key first)."""
+    key = field.strip()
+    return key if _LIST_KEY_PATTERN.fullmatch(key) else None
+
+
 def _parse_repo_lines(raw_output: str) -> tuple[list[AbapGitRepoInfo], int]:
     """Parse tilde-delimited WRITE output from Z_ABAPGIT_PULL_MCP_SHORTCUT LIST mode.
 
     Expected format per line: name~url~package~branch~deserialized_at~deserialized_by~offline[~key]
-    The trailing repository key is optional (reports that do not write it give ``key=None``).
+    The trailing repository key must be exactly 12 digits, else ``key=None`` (older reports do not write it).
     Uses ~ as delimiter because SAP WebGUI strips | (pipe) characters from WRITE output.
     Lines that don't match (headers, empty, UI noise) are skipped. Returns the repositories and the number of skipped
     lines that look like repository lines (at least four fields, not the TOTAL header), which are registered but cannot
@@ -655,7 +701,7 @@ def _parse_repo_lines(raw_output: str) -> tuple[list[AbapGitRepoInfo], int]:
                 last_pull_at=(_clean_timestamp(parts[4].strip())) if len(parts) > 4 else None,
                 last_pull_by=(parts[5].strip() or None) if len(parts) > 5 else None,
                 is_offline=is_offline,
-                key=(parts[7].strip() or None) if len(parts) > 7 else None,
+                key=_list_key(parts[7]) if len(parts) > 7 else None,
             )
         )
     return repos, skipped
@@ -791,7 +837,7 @@ def _abapgit_list_displayed(session: Any) -> bool:
 
 
 _FILTER_MAX_LENGTH = 200
-_KEY_FILTER = re.compile(r"[A-Za-z0-9]{1,12}")
+_KEY_FILTER = re.compile(r"[0-9]{1,12}")
 
 
 def _validate_list_filters(name: str | None, package: str | None, url: str | None, key: str | None) -> str | None:
@@ -804,7 +850,7 @@ def _validate_list_filters(name: str | None, package: str | None, url: str | Non
         if len(value) > _FILTER_MAX_LENGTH:
             return f"Invalid filter: {label} is longer than {_FILTER_MAX_LENGTH} characters"
     if key is not None and not _KEY_FILTER.fullmatch(key.strip()):
-        return "Invalid filter: key must be 1 to 12 letters or digits"
+        return "Invalid filter: key must be 1 to 12 digits"
     return None
 
 
@@ -854,7 +900,8 @@ def _filter_repos(
 ) -> list[AbapGitRepoInfo]:
     """Keep the repositories that match all given filters (AND).
 
-    ``name``, ``package`` and ``url`` are case-insensitive substrings or globs, ``key`` is an exact match. An offline
+    ``name``, ``package`` and ``url`` are case-insensitive substrings or globs, ``key`` is an exact match on the key
+    zero-padded to 12 digits (so ``12`` finds ``000000000012``). An offline
     repository has an empty URL, so a ``url`` filter never matches it, and a repository without a key never matches
     a ``key`` filter.
     """
@@ -869,8 +916,8 @@ def _filter_repos(
         matches_url = _text_matcher(url)
         checks.append(lambda repo: bool(repo.url) and matches_url(repo.url))
     if key is not None:
-        wanted = key.strip().casefold()
-        checks.append(lambda repo: repo.key is not None and repo.key.casefold() == wanted)
+        wanted = key.strip().zfill(12)
+        checks.append(lambda repo: repo.key == wanted)
     return [repo for repo in repos if all(check(repo) for check in checks)]
 
 
@@ -1058,44 +1105,100 @@ async def _check_branch_outcome(
     return _annotate_branch_failure(result, params)
 
 
-async def _abapgit_pull_via_api(
+_OLD_REPORT_MARKER = "p_repo is required for pull action"
+_KEY_NOT_FOUND_HINT = (
+    " The key may belong to an offline repository or not exist on this system; list the repositories to check."
+)
+_NAME_FROM_STATUS = re.compile(r"Pull successful: (?:branch=\S+ repo=(?P<b>\S+)|(?!branch=)(?P<n>\S+))")
+_MAX_TRUSTED_MESSAGE = 70  # the status bar holds about 73 characters: a longer text may be cut
+_MAX_TRUSTED_NAME = 45  # the report cuts every message field at 50 characters
+
+
+def _annotate_key_failure(result: AbapGitActionResult) -> AbapGitActionResult:
+    """Add guidance to the failures that are specific to a pull by key (old report, unknown key, transport hint)."""
+    error = result.error or ""
+    lower = error.lower()
+    if _OLD_REPORT_MARKER in lower:
+        result.error = (
+            'The report does not support pulling by key (it answered "P_REPO is required for PULL action"). '
+            "Update Z_ABAPGIT_PULL_MCP_SHORTCUT to a version with P_KEY, or pass repo instead. Nothing was pulled."
+        )
+    elif "repository not found: key" in lower:
+        result.error = error.rstrip() + _KEY_NOT_FOUND_HINT
+    elif "sap_abapgit_pull(repo=..." in error:
+        result.error = error.replace("sap_abapgit_pull(repo=...", "sap_abapgit_pull(key=...")
+    return result
+
+
+def _name_from_success(result: AbapGitActionResult) -> AbapGitActionResult:
+    """After a successful pull by key, report the repository name from the status text, if it can be trusted."""
+    message = (result.message or "").strip()
+    if len(message) >= _MAX_TRUSTED_MESSAGE:
+        return result
+    match = _NAME_FROM_STATUS.fullmatch(message)
+    if match is None:
+        return result
+    name = match.group("b") or match.group("n")
+    if len(name) < _MAX_TRUSTED_NAME:
+        result.repo_name = name
+    return result
+
+
+def _check_key_outcome(result: AbapGitActionResult, params: PullParams) -> AbapGitActionResult:
+    """Apply the key-specific result handling; a pull by name is returned as it is."""
+    if params.key is None:
+        return result
+    if result.success:
+        return _name_from_success(result)
+    return _annotate_key_failure(result)
+
+
+async def _abapgit_pull_via_api(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     backend: "WebGuiBackend | DesktopBackend",
-    repo: str,
+    repo: str | None,
     trkorr: str | None,
     username: str | None,
     pat: str | None,
     branch: str | None = None,
+    key: str | None = None,
 ) -> AbapGitActionResult:
     """Pull changes using the Z_ABAPGIT_PULL_MCP transaction (abapGit ABAP API)."""
-    logger.info("Starting abapGit Pull via API", extra={"repo": repo})
+    label = _failure_label(repo, key)
+    logger.info("Starting abapGit Pull via API", extra={"repo": label})
 
     try:
         # Validate and prepare parameters
-        params_result = _validate_and_prepare_params(repo, trkorr, username, pat, branch)
+        params_result = _validate_and_prepare_params(repo, trkorr, username, pat, branch, key)
         if isinstance(params_result, AbapGitActionResult):
             return params_result
         params = params_result
 
         logger.info(
             "Calling transaction with params",
-            extra={"repo": params.repo, "trkorr": params.trkorr, "user": params.username, "has_pat": bool(params.pat)},
+            extra={
+                "repo": params.label,
+                "trkorr": params.trkorr,
+                "user": params.username,
+                "has_pat": bool(params.pat),
+            },
         )
 
         # Execute transaction
-        tx_error = await _execute_pull_transaction(backend, params, repo)
+        tx_error = await _execute_pull_transaction(backend, params, params.label)
         if tx_error:
             return tx_error
 
         # Run pull and check for popup errors
-        popup_error = await _run_pull_and_check_errors(backend, repo)
+        popup_error = await _run_pull_and_check_errors(backend, params.label)
         if popup_error:
             return popup_error
 
-        return await _check_branch_outcome(backend, await _analyze_pull_result(backend, repo), params)
+        outcome = await _check_branch_outcome(backend, await _analyze_pull_result(backend, params.label), params)
+        return _check_key_outcome(outcome, params)
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("abapGit pull via API", extra={"repo": repo})
-        return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=str(e))
+        logger.exception("abapGit pull via API", extra={"repo": label})
+        return AbapGitActionResult.failure_result(action="pull", repo_name=label, error=str(e))
 
 
 # =============================================================================
@@ -1418,8 +1521,9 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             "provides it) the repository key, plus total_count and matched_count. "
             "Use name/package/url/key to filter instead of listing everything (a system can have hundreds of "
             "repositories): name, package and url are case-insensitive substrings, or globs when they contain "
-            "* or ?; key is an exact match; all given filters must match. compact=True returns only name, "
-            "package and key. Use this to discover the correct repo name before calling sap_abapgit_pull."
+            "* or ?; key is an exact match, digits, zero-padded to 12; all given filters must match. "
+            "compact=True returns only name, package and key. "
+            "Use this to discover the correct repo name before calling sap_abapgit_pull."
         ),
     )
     async def sap_abapgit_list_repos(
@@ -1441,7 +1545,8 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             name: Case-insensitive substring or glob (* and ?) for the repository name. Optional.
             package: Same, for the ABAP package. Optional.
             url: Same, for the Git URL (never matches offline repositories). Optional.
-            key: Exact abapGit repository key (1-12 letters/digits). Optional.
+            key: Exact abapGit repository key (1-12 digits, zero-padded to 12; surrounding blanks are stripped).
+                 Optional.
             compact: Return only name, package and key per repository.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
@@ -1474,6 +1579,7 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
         description=(
             "Pull changes from a remote git repository using abapGit API. "
             "WARNING: overwrites local ABAP objects. "
+            "Select the repository by repo (name/URL) or by key (from sap_abapgit_list_repos), not both. "
             "If a transport is required the error says so: retry with trkorr=... "
             "If 'status unknown', the pull may have run: check the last pull time before retrying. "
             "Optional branch switches the repository to that branch persistently (kept only if the pull "
@@ -1481,11 +1587,12 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
         ),
     )
     async def sap_abapgit_pull(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-        repo: str,
+        repo: str | None = None,
         trkorr: str | None = None,
         username: str | None = None,
         pat: str | None = None,
         branch: str | None = None,
+        key: str | None = None,
         session: str | None = None,
         agent_id: str | None = None,
     ) -> AbapGitActionResult:
@@ -1499,7 +1606,8 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
 
         Args:
             repo: abapGit repository name (hyphens allowed, e.g. MY-PROJECT-ABAP) or its full https URL.
-                  Matched exactly by the report, not a pattern.
+                  Matched exactly by the report, not a pattern. Exactly one of `repo` and `key`; omit the
+                  unused one, do not pass an empty string.
             trkorr: Transport request (optional, but error if SAP requires it).
                     If pull fails with "Transport required", retry with trkorr.
             username: GitHub username (optional for public repos)
@@ -1510,11 +1618,17 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
                     branch persistently (like a branch switch in the abapGit UI) and clears a commit pin; the
                     switch is kept only if the pull succeeds and is restored on failure. The result's `branch`
                     echoes the full branch the repository is on; `sap_abapgit_list_repos` shows it too.
+            key: abapGit repository key, 1 to 12 digits (zero-padded to 12), as shown by `sap_abapgit_list_repos`
+                 (online repositories only). Use it instead of `repo` when name or URL is not unique: abapGit
+                 allows two repositories with the same name or URL, the key is the only unique identifier.
+                 Exactly one of `repo` and `key`. Unlike the `key` filter of `sap_abapgit_list_repos`, it is not
+                 stripped: surrounding blanks are rejected. Needs a report version with P_KEY.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
         Returns:
-            AbapGitActionResult with success status and details
+            AbapGitActionResult with success status and details; for a pull by key `repo_name` is the
+            repository name when the status text names it reliably, else `key <12 digits>`.
 
         Example:
             sap_abapgit_pull(repo="Z_PUBLIC_REPO")
@@ -1522,12 +1636,16 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             sap_abapgit_pull(repo="https://github.com/org/MY-PROJECT-ABAP")
             sap_abapgit_pull(repo="Z_PUBLIC_REPO", trkorr="XYZK900010")
             sap_abapgit_pull(repo="Z_PUBLIC_REPO", branch="feature/x", trkorr="XYZK900010")
+            sap_abapgit_pull(key="000000000012")
+            sap_abapgit_pull(key="000000000012", branch="feature/x", trkorr="XYZK900010")
         """
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_abapgit_pull")
         except ValueError as e:
-            return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=f"Session error: {e}")
-        return await _abapgit_pull_via_api(backend, repo, trkorr, username, pat, branch)
+            return AbapGitActionResult.failure_result(
+                action="pull", repo_name=_failure_label(repo, key), error=f"Session error: {e}"
+            )
+        return await _abapgit_pull_via_api(backend, repo, trkorr, username, pat, branch, key)
 
     @mcp.tool(
         annotations=ToolAnnotations(

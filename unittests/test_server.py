@@ -634,6 +634,16 @@ class TestToolDescriptionsIssue613:
         desc = self._get_tools()["sap_abapgit_pull"].description or ""
         assert len(desc) < 480, f"sap_abapgit_pull description too long: {len(desc)} chars"
 
+    def test_sap_abapgit_pull_description_mentions_key(self) -> None:
+        desc = self._get_tools()["sap_abapgit_pull"].description or ""
+        assert "key" in desc
+
+    def test_sap_abapgit_pull_schema_has_optional_repo_and_key(self) -> None:
+        schema = self._get_tools()["sap_abapgit_pull"].parameters
+        assert "repo" not in schema.get("required", [])
+        assert "key" in schema["properties"]
+        assert "key" not in schema.get("required", [])
+
 
 class TestConcurrencyNotesInSapToolDescriptions:
     """Regression tests for serialization guidance in SAP scripting tool descriptions."""

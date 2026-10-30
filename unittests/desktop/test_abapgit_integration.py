@@ -6,6 +6,7 @@ Mirrors the WebGUI tests in unittests/webgui/test_abapgit_tools.py.
 """
 
 import os
+import re
 import sys
 import uuid
 from unittest.mock import MagicMock
@@ -288,6 +289,113 @@ async def test_abapgit_pull_branch_switch_and_back(backend) -> None:
         )
         assert restored.branch == before
         assert await _repo_branch(backend) == before
+
+
+# ---------------------------------------------------------------------------
+# Pull by key
+# ---------------------------------------------------------------------------
+
+
+async def _test_repo(backend):  # type: ignore[no-untyped-def]
+    """The test repository as listed now (fresh list); its key must be a 12-digit string."""
+    listed = await _abapgit_list_repos(backend)
+    await go_home(backend)
+    assert listed.success, f"List failed: {listed.error}"
+    repo = next(r for r in listed.repos if r.name == BRANCH_TEST_REPO)
+    assert repo.key is not None
+    assert re.fullmatch(r"[0-9]{12}", repo.key), "the listed key is not 12 digits"
+    return repo
+
+
+@skip_no_sap
+@skip_no_transport
+@pytest.mark.anyio
+async def test_abapgit_pull_by_key(backend) -> None:
+    """Pull the public test repository by the key from the list."""
+    await require_repo_registered(backend, BRANCH_TEST_REPO)
+    repo = await _test_repo(backend)
+    result = await _abapgit_pull_via_api(
+        backend, repo=None, trkorr=DEFAULT_TRANSPORT, username=None, pat=None, key=repo.key
+    )
+    await go_home(backend)
+    assert result.success, f"Pull by key failed: {result.error}"
+    assert result.repo_name == BRANCH_TEST_REPO
+
+
+@skip_no_sap
+@skip_no_transport
+@pytest.mark.anyio
+async def test_abapgit_pull_by_key_with_branch(backend) -> None:
+    """Pull by key on the test branch, then by key on the original branch to restore it."""
+    await require_repo_registered(backend, BRANCH_TEST_REPO)
+    repo = await _test_repo(backend)
+    before = repo.branch
+    validated = _validate_branch(before)
+    if isinstance(validated, str):
+        pytest.skip(f"The current branch {before!r} cannot be passed as `branch`, so it could not be restored")
+    original_short, _ = validated
+
+    try:
+        switched = await _abapgit_pull_via_api(
+            backend,
+            repo=None,
+            trkorr=DEFAULT_TRANSPORT,
+            username=None,
+            pat=None,
+            branch=BRANCH_TEST_BRANCH,
+            key=repo.key,
+        )
+        await go_home(backend)
+        assert switched.success, f"Pull by key with branch failed: {switched.error}"
+        assert switched.branch == f"refs/heads/{BRANCH_TEST_BRANCH}"
+        assert await _repo_branch(backend) == f"refs/heads/{BRANCH_TEST_BRANCH}"
+    finally:
+        restored = await _abapgit_pull_via_api(
+            backend,
+            repo=None,
+            trkorr=DEFAULT_TRANSPORT,
+            username=None,
+            pat=None,
+            branch=original_short,
+            key=repo.key,
+        )
+        await go_home(backend)
+        assert restored.success, (
+            f"Restoring branch {before} failed, the test repository may be left on {BRANCH_TEST_BRANCH}: "
+            f"{restored.error}"
+        )
+        assert restored.branch == before
+        assert await _repo_branch(backend) == before
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_abapgit_pull_by_unknown_key(backend) -> None:
+    """An unknown key is reported by the report, needs no transport and changes nothing."""
+    result = await _abapgit_pull_via_api(backend, repo=None, trkorr=None, username=None, pat=None, key="999999999999")
+    await go_home(backend)
+    assert not result.success
+    assert "Repository not found: key 999999999999 (online only)" in (result.error or "")
+    assert result.repo_name == "key 999999999999"
+
+
+@skip_no_sap
+@skip_no_transport
+@pytest.mark.anyio
+async def test_abapgit_pull_by_key_updates_last_pull(backend) -> None:
+    """The key binds the repository it belongs to: its last pull time moves, its package stays."""
+    await require_repo_registered(backend, BRANCH_TEST_REPO)
+    before = await _test_repo(backend)
+    result = await _abapgit_pull_via_api(
+        backend, repo=None, trkorr=DEFAULT_TRANSPORT, username=None, pat=None, key=before.key
+    )
+    await go_home(backend)
+    assert result.success, f"Pull by key failed: {result.error}"
+    after = await _test_repo(backend)
+    assert after.key == before.key
+    assert after.package == before.package
+    assert after.last_pull_at is not None
+    assert before.last_pull_at is None or after.last_pull_at > before.last_pull_at
 
 
 # ---------------------------------------------------------------------------

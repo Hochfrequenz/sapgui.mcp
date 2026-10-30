@@ -444,3 +444,27 @@ async def test_an_unreadable_scrollbar_makes_the_list_a_failure() -> None:
     assert not result.success
     assert result.error is not None
     assert "COM error" in result.error
+
+
+@pytest.mark.parametrize(
+    ("field", "expected"),
+    [
+        ("100000000001", "100000000001"),
+        (" 100000000001 ", "100000000001"),
+        ("10000000001", None),  # 11 digits
+        ("1000000000012", None),  # 13 digits
+        ("ABCDEFGHIJKL", None),
+        ("0000000000x1", None),
+        ("1000 0000001", None),
+        ("1000000000", None),  # a row clipped at the window width cuts the key first
+        ("", None),
+    ],
+)
+def test_only_a_twelve_digit_key_is_accepted(field: str, expected: str | None) -> None:
+    repos = parse_repo_list_output(f"a~https://x/y~P~refs/heads/main~~~~{field}")
+    assert [(r.name, r.key) for r in repos] == [("a", expected)]
+
+
+def test_a_missing_eighth_field_gives_no_key_and_the_repository_is_still_listed() -> None:
+    repos = parse_repo_list_output("a~https://x/y~P~refs/heads/main~~~")
+    assert [(r.name, r.key) for r in repos] == [("a", None)]

@@ -24,7 +24,10 @@ class AbapGitRepoInfo(BaseModel):
     is_offline: bool = Field(default=False, description="Whether this is an offline repo")
     key: str | None = Field(
         default=None,
-        description="abapGit repository key (stable identifier); None when the report does not list it yet",
+        description=(
+            "abapGit repository key (12 digits, stable identifier, usable as `key` of sap_abapgit_pull); "
+            "None when the report does not list it or the value is not 12 digits"
+        ),
     )
 
 
@@ -33,7 +36,13 @@ class AbapGitRepoSummary(BaseModel):
 
     name: str = Field(description="Repository name in SAP; for an offline repository without a name: its package")
     package: str = Field(description="ABAP development package (devclass)")
-    key: str | None = Field(default=None, description="abapGit repository key; None when the report does not list it")
+    key: str | None = Field(
+        default=None,
+        description=(
+            "abapGit repository key (12 digits, usable as `key` of sap_abapgit_pull); "
+            "None when the report does not list it"
+        ),
+    )
 
 
 class AbapGitListResult(ToolResult):
@@ -62,7 +71,11 @@ class AbapGitActionResult(BaseModel):
 
     success: bool = Field(description="Whether the action succeeded")
     action: Literal["pull", "stage", "diff", "check"] = Field(description="Action type")
-    repo_name: str = Field(description="Repository name")
+    repo_name: str = Field(
+        description=(
+            "Repository name; for a pull by key the name from the status text when reliable, else `key <12 digits>`"
+        )
+    )
     message: str | None = Field(default=None, description="Status message")
     error: str | None = Field(default=None, description="Error message if failed")
     executed_at: datetime = Field(description="When the action was executed")
