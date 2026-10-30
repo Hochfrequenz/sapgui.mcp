@@ -69,6 +69,8 @@ async def test_script_loop_collects_multiple_outputs(backend):
 @pytest.mark.anyio
 async def test_script_conditional_branching(backend):
     """Script branches on a known condition — verifies both the decision and the value."""
+    # wait(300): a radio/checkbox change may trigger a server round trip; a fixed pause is used because
+    # there is no element to poll for (the same element ids stay present).
     script = (
         'title = session.find_by_id("wnd[0]").text\n'
         'if "SAP" in title:\n'
@@ -148,6 +150,8 @@ async def test_script_wait_helpers(backend):
     register_script_tools(mcp)
     tool_fn = _make_tool_fn(mcp)
 
+    # wait(300): a radio/checkbox change may trigger a server round trip; a fixed pause is used because
+    # there is no element to poll for (the same element ids stay present).
     script = (
         "elem = wait_until('wnd[0]', 1000)\n"
         "output(elem.id if elem is not None else None)\n"
@@ -185,12 +189,14 @@ async def test_script_hasattr_and_radio_checkbox_selected(backend):
     register_script_tools(mcp)
     tool_fn = _make_tool_fn(mcp)
 
+    # wait(300): a radio/checkbox change may trigger a server round trip; a fixed pause is used because
+    # there is no element to poll for (the same element ids stay present).
     script = (
         "session.find_by_id('wnd[0]/tbar[0]/okcd').text = '/nSA38'\n"
         "session.find_by_id('wnd[0]').send_v_key(0)\n"
         "session.find_by_id('wnd[0]/usr/ctxtRS38M-PROGRAMM').text = 'RSUSR200'\n"
         "session.find_by_id('wnd[0]').send_v_key(8)\n"
-        "radio = wait_until('wnd[0]/usr/radTODAY', 3000)\n"
+        "radio = wait_until('wnd[0]/usr/radTODAY', 10000)\n"
         "output(hasattr(radio, 'text'))\n"
         "output(hasattr(radio, 'NoSuchProperty'))\n"
         "radio.selected = True\n"

@@ -21,7 +21,7 @@ def register_sandbox_resources(mcp: FastMCP) -> None:
         """
         Get the sap_run_script sandbox contract.
 
-        Returns allowed builtins, injected names, and the contract version.
+        Returns allowed builtins, injected names, common idioms, and the contract version.
 
         Returns:
             JSON string describing the sandbox contract.

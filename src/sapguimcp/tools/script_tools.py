@@ -145,6 +145,7 @@ _COMMON_IDIOMS: list[str] = [
     "Text field: ``el.text = '...'``",
     "Tab: ``el.select()``",
     "Combo box: ``el.key = '<key>'``",
+    "Setting a radio/checkbox may trigger a server round trip: wait_until / re-find the element before reading it back",
     (
         "Optional attributes: ``hasattr(el, 'x')`` or ``getattr(el, 'x', None)`` (on COM objects an "
         "unsupported property may raise a non-AttributeError; wrap in try/except if needed)"
