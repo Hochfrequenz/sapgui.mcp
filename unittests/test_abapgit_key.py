@@ -147,6 +147,20 @@ def test_valid_key_with_invalid_branch_or_trkorr_keeps_the_key_label() -> None:
         assert result.repo_name == LABEL
 
 
+def test_valid_long_repo_keeps_its_full_name_and_rejected_input_is_cut() -> None:
+    url = "https://github.com/org/" + "a" * 77
+    assert len(url) == 100
+    ok = _validate_and_prepare_params(url, None, None, None, "a b")  # valid repo, invalid branch
+    assert isinstance(ok, AbapGitActionResult)
+    assert ok.repo_name == url
+    prepared = _validate_and_prepare_params(url, None, None, None)
+    assert isinstance(prepared, PullParams)
+    assert prepared.label == url
+    bad = _validate_and_prepare_params("A;" + "b" * 98, None, None, None)
+    assert isinstance(bad, AbapGitActionResult)
+    assert len(bad.repo_name) == 80
+
+
 @pytest.mark.anyio
 async def test_neither_selector_does_not_touch_sap_or_raise() -> None:
     backend = _backend(StatusBarInfo(type="S", message="x"))

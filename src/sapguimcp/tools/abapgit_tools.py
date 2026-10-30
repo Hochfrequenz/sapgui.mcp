@@ -409,6 +409,9 @@ def _validate_and_prepare_params(  # pylint: disable=too-many-return-statements,
     selector_error = _validate_selector(repo, key)
     if selector_error:
         return AbapGitActionResult.failure_result(action="pull", repo_name=label, error=selector_error)
+    # The selector is valid from here on: report a valid repo in full, only rejected input is cut or redacted.
+    if repo is not None:
+        label = repo
 
     short_branch: str | None = None
     expected_ref: str | None = None
@@ -1173,6 +1176,7 @@ async def _abapgit_pull_via_api(  # pylint: disable=too-many-arguments,too-many-
         if isinstance(params_result, AbapGitActionResult):
             return params_result
         params = params_result
+        label = params.label
 
         logger.info(
             "Calling transaction with params",
