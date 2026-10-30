@@ -54,22 +54,29 @@ async def _force_close_connection(backend: Any, ses: Any) -> None:
         await backend.com.run(_close)
 
 
+async def _assert_distinct_connections(backend: Any, sid: str) -> None:
+    _, con1 = await _ids(backend, "s1")
+    _, con2 = await _ids(backend, sid)
+    assert con1 != con2, "the two sessions must live on different connections"
+
+
 @pytest.mark.anyio
 async def test_close_second_connection_session_closes_the_right_window(backend: Any) -> None:
     """Regression: CloseSession used the PRIMARY's connection, not the target's own."""
     s2 = await _login_second(backend)
     s1_ses = backend.registry.get_session("s1")
     s2_ses = backend.registry.get_session(s2)
-    _, con1 = await _ids(backend, "s1")
-    _, con2 = await _ids(backend, s2)
-    assert con1 != con2, "the two sessions must live on different connections"
+    try:
+        await _assert_distinct_connections(backend, s2)
 
-    closed = await backend.close_session(s2)
+        closed = await backend.close_session(s2)
 
-    assert closed is True
-    assert not backend.registry.has_session(s2)
-    assert await _alive(backend, s1_ses), "s1 must stay open"
-    assert not await _alive(backend, s2_ses), "s2's window must be gone"
+        assert closed is True
+        assert not backend.registry.has_session(s2)
+        assert await _alive(backend, s1_ses), "s1 must stay open"
+        assert not await _alive(backend, s2_ses), "s2's window must be gone"
+    finally:
+        await _force_close_connection(backend, s2_ses)
     await go_home(backend)
 
 
@@ -78,6 +85,8 @@ async def test_detach_leaves_the_window_open(backend: Any) -> None:
     s2 = await _login_second(backend)
     s2_ses = backend.registry.get_session(s2)
     try:
+        await _assert_distinct_connections(backend, s2)
+
         await backend.detach_session(s2)
 
         assert not backend.registry.has_session(s2)
@@ -94,6 +103,7 @@ async def test_attached_session_is_never_closed(backend: Any) -> None:
     backend.registry.unregister(s2)
     attached = backend.registry.register(s2_ses, origin="attached")
     try:
+        await _assert_distinct_connections(backend, attached)
         assert await backend.close_session(attached) is False
         report = await backend.reset_to_primary()
 
@@ -104,6 +114,7 @@ async def test_attached_session_is_never_closed(backend: Any) -> None:
         infos = {i.session_id: i.origin for i in await backend.list_sessions()}
         assert infos[attached] == "attached"
     finally:
-        await backend.detach_session(attached)
+        with contextlib.suppress(Exception):
+            await backend.detach_session(attached)
         await _force_close_connection(backend, s2_ses)
     await go_home(backend)

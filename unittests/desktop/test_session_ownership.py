@@ -1,5 +1,6 @@
 """Unit tests for session ownership tracking (issue #1009, PR 1)."""
 
+import ast
 import re
 from collections.abc import Callable
 from pathlib import Path
@@ -205,9 +206,22 @@ def test_only_the_ownership_checked_site_closes_sap_sessions() -> None:
         for line in path.read_text(encoding="utf-8").splitlines():
             if pattern.search(line) and not line.lstrip().startswith("#"):
                 hits.append((path.relative_to(src).as_posix(), line.strip()))
-    assert hits == [
-        ("sapguimcp/backend/desktop/__init__.py", "conn.CloseSession(com_id)  # ownership-checked above (is_attached)")
-    ], f"New SAP close call site(s): {hits}. Add an ownership check (registry.is_attached) and allow-list it here."
-    backend_src = (src / "sapguimcp/backend/desktop/__init__.py").read_text(encoding="utf-8")
-    body = backend_src.split("async def _close_session_locked", 1)[1].split("async def _session_answers", 1)[0]
-    assert body.index("is_attached") < body.index("CloseSession(")
+    assert [h[0] for h in hits] == ["sapguimcp/backend/desktop/__init__.py"], (
+        f"New SAP close call site(s): {hits}. Add an ownership check (registry.is_attached) and allow-list it here."
+    )
+    tree = ast.parse((src / "sapguimcp/backend/desktop/__init__.py").read_text(encoding="utf-8"))
+    func = next(n for n in ast.walk(tree) if isinstance(n, ast.AsyncFunctionDef) and n.name == "_close_session_locked")
+    close_line = min(
+        n.lineno
+        for n in ast.walk(func)
+        if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "CloseSession"
+    )
+    guards = [
+        n.lineno
+        for n in ast.walk(func)
+        if isinstance(n, ast.If)
+        and any(isinstance(c, ast.Call) and getattr(c.func, "attr", "") == "is_attached" for c in ast.walk(n.test))
+        and any(isinstance(b, ast.Return) for b in n.body)
+    ]
+    assert guards, "_close_session_locked needs an early-return is_attached guard"
+    assert min(guards) < close_line, "the is_attached guard must precede the CloseSession call"
