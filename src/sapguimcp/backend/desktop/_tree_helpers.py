@@ -175,8 +175,8 @@ class _TreeReader:
 
     def path(self, key: str) -> list[str]:
         texts: list[str] = []
-        for anc in self.ancestors(key):
-            texts.append(_try(self.text, anc) or "")
+        for ancestor in self.ancestors(key):
+            texts.append(_try(self.text, ancestor) or "")
         return texts
 
 
