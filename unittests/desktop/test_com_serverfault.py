@@ -222,3 +222,58 @@ async def test_the_hint_reaches_the_client_facing_error_text(com_thread: ComThre
     assert result.error is not None
     assert "re-fetch the element by id" in result.error
     assert "0x80010105" in result.error
+
+
+def _se93_backend(com_thread: ComThread, find_by_name: Any) -> Any:
+    from unittest.mock import MagicMock  # noqa: PLC0415
+
+    from sapsucker.components.base import GuiVContainer  # noqa: PLC0415
+
+    from sapguimcp.backend.desktop import DesktopBackend  # noqa: PLC0415
+
+    usr = MagicMock(spec=GuiVContainer)
+    usr.find_by_name.side_effect = find_by_name
+    session = MagicMock()
+    session.find_by_id.return_value = usr
+    backend = DesktopBackend.__new__(DesktopBackend)
+    backend._session = session
+    backend.com = com_thread
+    return backend
+
+
+@pytest.mark.anyio
+async def test_se93_checkbox_read_retries_a_server_fault(com_thread: ComThread) -> None:
+    from unittest.mock import MagicMock  # noqa: PLC0415
+
+    from sapguimcp.tools.se93_tools import _read_checkbox  # noqa: PLC0415
+
+    answers: list[Any] = [FakeComError(SERVERFAULT), MagicMock(selected=True)]
+
+    def find_by_name(*_: Any) -> Any:
+        item = answers.pop(0)
+        if isinstance(item, Exception):
+            raise item
+        return item
+
+    assert await _read_checkbox(_se93_backend(com_thread, find_by_name), "CHK") is True
+
+
+@pytest.mark.anyio
+async def test_se93_checkbox_read_surfaces_a_persistent_server_fault(com_thread: ComThread) -> None:
+    from sapguimcp.tools.se93_tools import _read_checkbox  # noqa: PLC0415
+
+    def find_by_name(*_: Any) -> Any:
+        raise FakeComError(SERVERFAULT)
+
+    with pytest.raises(ComServerFaultError):
+        await _read_checkbox(_se93_backend(com_thread, find_by_name), "CHK")
+
+
+@pytest.mark.anyio
+async def test_se93_checkbox_read_still_returns_false_for_other_errors(com_thread: ComThread) -> None:
+    from sapguimcp.tools.se93_tools import _read_checkbox  # noqa: PLC0415
+
+    def find_by_name(*_: Any) -> Any:
+        raise FakeComError(-2147352567)
+
+    assert await _read_checkbox(_se93_backend(com_thread, find_by_name), "CHK") is False

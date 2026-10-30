@@ -192,10 +192,9 @@ def is_transient_busy_error(exc: Exception) -> bool:
     Deliberately narrower than ``RETRYABLE_COM_ERRORS``: ``RPC_S_UNKNOWN_IF``
     (stale interface, the session's window is actually gone) is not "busy", and
     neither is ``RPC_E_SERVERFAULT`` (see ``is_server_fault_error``). Liveness
-    probes use this to tell "busy" from "dead" (issue #791). Callers that need to tell "busy" apart from "dead" — e.g.
-    a liveness probe deciding whether to prune a session — must use this
-    instead of checking membership in ``_RETRYABLE_COM_ERRORS`` (issue #791:
-    a modal debugger's busy signal was being treated as a dead session).
+    probes that must tell "busy" apart from "dead", e.g. when deciding whether to
+    prune a session, use this instead of membership in ``RETRYABLE_COM_ERRORS``
+    (issue #791: a modal debugger's busy signal was treated as a dead session).
     """
     return _get_com_error_code(exc) in (_RPC_E_SERVERCALL_RETRYLATER, _RPC_E_CALL_REJECTED)
 
