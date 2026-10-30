@@ -14,7 +14,7 @@ import pytest
 from fastmcp import FastMCP
 
 from sapguimcp.tools.script_tools import register_script_tools
-from unittests.desktop.conftest import skip_no_sap
+from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
@@ -69,6 +69,8 @@ async def test_script_loop_collects_multiple_outputs(backend):
 @pytest.mark.anyio
 async def test_script_conditional_branching(backend):
     """Script branches on a known condition — verifies both the decision and the value."""
+    # wait(300): a radio/checkbox change may trigger a server round trip; a fixed pause is used because
+    # there is no element to poll for (the same element ids stay present).
     script = (
         'title = session.find_by_id("wnd[0]").text\n'
         'if "SAP" in title:\n'
@@ -148,6 +150,8 @@ async def test_script_wait_helpers(backend):
     register_script_tools(mcp)
     tool_fn = _make_tool_fn(mcp)
 
+    # wait(300): a radio/checkbox change may trigger a server round trip; a fixed pause is used because
+    # there is no element to poll for (the same element ids stay present).
     script = (
         "elem = wait_until('wnd[0]', 1000)\n"
         "output(elem.id if elem is not None else None)\n"
@@ -171,3 +175,47 @@ async def test_script_wait_helpers(backend):
     assert result.error is not None
     assert "TimeoutError" in result.error
     assert elapsed < 5, f"wait should fail fast, took {elapsed:.1f}s"
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_script_hasattr_and_radio_checkbox_selected(backend):
+    """hasattr works in the sandbox; radio/checkbox are set via ``.selected`` (#998).
+
+    Uses the selection screen of the standard report RSUSR200 (radio buttons ``radTODAY`` /
+    ``radINTERVAL`` and checkbox ``chkADDR``), which exists on S/4HANA and ECC.
+    """
+    mcp = FastMCP("test")
+    register_script_tools(mcp)
+    tool_fn = _make_tool_fn(mcp)
+
+    # wait(300): a radio/checkbox change may trigger a server round trip; a fixed pause is used because
+    # there is no element to poll for (the same element ids stay present).
+    script = (
+        "session.find_by_id('wnd[0]/tbar[0]/okcd').text = '/nSA38'\n"
+        "session.find_by_id('wnd[0]').send_v_key(0)\n"
+        "session.find_by_id('wnd[0]/usr/ctxtRS38M-PROGRAMM').text = 'RSUSR200'\n"
+        "session.find_by_id('wnd[0]').send_v_key(8)\n"
+        "radio = wait_until('wnd[0]/usr/radTODAY', 10000)\n"
+        "output(hasattr(radio, 'text'))\n"
+        "output(hasattr(radio, 'NoSuchProperty'))\n"
+        "radio.selected = True\n"
+        "wait(300)\n"
+        "output(session.find_by_id('wnd[0]/usr/radTODAY').selected)\n"
+        "output(session.find_by_id('wnd[0]/usr/radINTERVAL').selected)\n"
+        "check = session.find_by_id('wnd[0]/usr/chkADDR')\n"
+        "check.selected = True\n"
+        "wait(300)\n"
+        "output(session.find_by_id('wnd[0]/usr/chkADDR').selected)\n"
+        "session.find_by_id('wnd[0]/usr/chkADDR').selected = False\n"
+        "wait(300)\n"
+        "output(session.find_by_id('wnd[0]/usr/chkADDR').selected)\n"
+    )
+    try:
+        with patch("sapguimcp.tools.script_tools.get_backend", AsyncMock(return_value=backend)):
+            result = await tool_fn(script=script, session=None, agent_id=None)
+    finally:
+        await go_home(backend)
+
+    assert result.success, f"Failed: {result.error}\n{result.error_traceback}"
+    assert result.output == [True, False, True, False, True, False]

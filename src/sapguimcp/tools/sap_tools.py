@@ -547,6 +547,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Send a keyboard shortcut to SAP\n\n"
+            "Note on 'Escape': on the desktop backend it sends SAP VKey 12 (F12 / Cancel), not the Windows "
+            "Esc key; its meaning is screen dependent (some editor screens open an 'Exit editor' dialog). "
+            "On the WebGUI backend the key is passed to the browser as a normal key press (no VKey mapping). "
+            "To dismiss a popup use sap_close_popup.\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
             '- session="s2": Targets specific session (for parallel agents)'
@@ -570,7 +574,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         - "Ctrl+Y" - Select text mode (Markieren)
         - "Shift+F3" - Exit (Beenden)
         - "Enter" - Confirm
-        - "Escape" - Cancel dialog
+        - "Escape" - Desktop: SAP VKey 12 (F12/Cancel), not the Windows Esc key; screen dependent.
+          WebGUI: sent to the browser as a normal key press, no VKey mapping.
+          To dismiss a popup use sap_close_popup.
 
         Args:
             key: Keyboard shortcut. Use "Ctrl+", "Shift+", "Alt+" prefixes for modifiers.
@@ -1373,6 +1379,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "Args:\n"
             "- label: Checkbox label text (e.g., 'Workbench-Aufträge', 'Freigegeben')\n"
             "- checked: True to check, False to uncheck\n\n"
+            "Only label lookup is supported. If the label is ambiguous or not found: on the desktop backend "
+            "use sap_com_evaluate or sap_run_script and set ``.selected = True/False`` on the element by id "
+            "(both are desktop-only); on the WebGUI backend use browser_evaluate.\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
             '- session="s2": Targets specific session'
