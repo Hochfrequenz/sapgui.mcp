@@ -1020,10 +1020,15 @@ async def _confirm_branch(
 def _annotate_branch_failure(result: AbapGitActionResult, params: PullParams) -> AbapGitActionResult:
     """Add guidance to the failures that are specific to a pull with a branch."""
     error = result.error or ""
-    if error.startswith(("Branch restore failed:", "Pin restore failed:")):
+    if error.startswith("Branch restore failed:"):
         result.error = (
             f"WARNING: the repository may have been left on branch {params.branch}: "
             f"restoring the previous branch failed. {error}"
+        )
+    elif error.startswith("Pin restore failed:"):
+        result.error = (
+            "WARNING: the previous branch was restored, but re-applying its commit pin failed, so the repository "
+            f"may no longer be pinned. Check the original pin before retrying. {error}"
         )
     elif error.startswith("Branch not found:"):
         result.error = f"{error} The selected branch is unchanged; check the branch name on the remote."
@@ -1456,15 +1461,11 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
         ),
         description=(
             "Pull changes from a remote git repository using abapGit API. "
-            "WARNING: This overwrites local ABAP objects with remote versions. "
-            "If SAP requires a transport request, the tool returns an error with guidance. "
-            "Look up an open transport (e.g. via SE09/SE10), then retry with trkorr=... "
-            "If the tool reports 'status unknown', the pull may already have run: "
-            "check the last pull time in abapGit or the transport task before retrying. "
-            "Optional branch (e.g. main, feature/x, refs/heads/x) switches the registered repository to that "
-            "branch persistently (side effect: kept only if the pull succeeds, restored on failure) and clears a "
-            "commit pin; the result's branch echoes where the repository is. "
-            "sap_abapgit_list_repos shows the branch column."
+            "WARNING: overwrites local ABAP objects. "
+            "If a transport is required the error says so: retry with trkorr=... "
+            "If 'status unknown', the pull may have run: check the last pull time before retrying. "
+            "Optional branch switches the repository to that branch persistently (kept only if the pull "
+            "succeeds) and clears a commit pin."
         ),
     )
     async def sap_abapgit_pull(  # pylint: disable=too-many-arguments,too-many-positional-arguments

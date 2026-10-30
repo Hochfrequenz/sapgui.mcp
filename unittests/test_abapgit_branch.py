@@ -112,13 +112,24 @@ async def test_a_failing_screen_read_is_reported_as_unconfirmed_not_as_an_unrela
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("prefix", ["Branch restore failed", "Pin restore failed"])
-async def test_failed_restore_warns_that_the_repo_may_be_on_the_new_branch(prefix: str) -> None:
-    status = StatusBarInfo(type="E", message=f"{prefix}: was refs/heads/main; Transport required")
+async def test_failed_branch_restore_warns_that_the_repo_may_be_on_the_new_branch() -> None:
+    status = StatusBarInfo(type="E", message="Branch restore failed: was refs/heads/main; Transport required")
     result = await _pull(_backend(status), [])
     assert not result.success
     assert (result.error or "").startswith("WARNING: the repository may have been left on branch feature/x")
-    assert f"{prefix}: was refs/heads/main" in (result.error or "")
+    assert "Branch restore failed: was refs/heads/main" in (result.error or "")
+
+
+@pytest.mark.anyio
+async def test_failed_pin_restore_asks_to_check_the_original_pin() -> None:
+    status = StatusBarInfo(type="E", message="Pin restore failed: was refs/heads/main; Transport required")
+    result = await _pull(_backend(status), [])
+    assert not result.success
+    error = result.error or ""
+    assert "previous branch was restored" in error
+    assert "pin" in error
+    assert "left on branch" not in error
+    assert "Pin restore failed: was refs/heads/main" in error
 
 
 @pytest.mark.anyio
