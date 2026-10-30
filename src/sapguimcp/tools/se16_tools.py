@@ -9,6 +9,7 @@ returning structured row data with automatic pagination for large result sets.
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 from dataclasses import field as dataclass_field
 from datetime import UTC, datetime, timedelta
@@ -17,12 +18,14 @@ from typing import TYPE_CHECKING, Any
 from fastmcp import Context, FastMCP
 from mcp.types import ToolAnnotations
 
+from sapguimcp.backend.desktop._com_thread import _get_com_error_code
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.backend.webgui.parsers.se16_parser import parse_se16_columns, parse_se16_hit_count, parse_se16_rows
 from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.lang import SE16_NO_ENTRIES_DE, SE16_NO_ENTRIES_EN
 from sapguimcp.models import SE16FileSummary, SE16Result, SE16Row, TableData
 from sapguimcp.tools.se11_tools import _lookup_object_on_initial_screen
+from sapguimcp.tools.table_helpers import _get_raw_tc
 from sapguimcp.utils import resolve_output_file_path, write_json_output_file
 
 if TYPE_CHECKING:
@@ -437,6 +440,26 @@ _SE16N_COL_FIELDNAME = 6  # GS_SELFIELDS-FIELDNAME (technical name)
 _SE16N_COL_LOW = 2  # GS_SELFIELDS-LOW (Von-Wert / From-Value)
 # Maximum number of offered SE16N selection fields named in a filter failure message
 _SE16N_MAX_OFFERED_FIELDS = 50
+# A grid window right after a scroll may be stale or half-refreshed: bounded re-reads, ~0.5 s in total
+_SE16N_SETTLE_ATTEMPTS = 10
+_SE16N_SETTLE_POLL_S = 0.05
+# COM errors that a fresh read of the control can get past. Deliberately local, not _com_thread's retry set: the
+# re-fetch retry must not change when that set does.
+_SE16N_STALE_PROXY_COM_ERRORS = frozenset(
+    {
+        -2147417851,  # 0x80010105 RPC_E_SERVERFAULT: what a proxy fetched before a scroll raises
+        -2147023179,  # 0x800706B5 RPC_S_UNKNOWN_IF
+    }
+)
+_SE16N_BUSY_COM_ERRORS = frozenset(
+    {
+        -2147417846,  # 0x8001010A RPC_E_SERVERCALL_RETRYLATER
+        -2147418111,  # 0x80010001 RPC_E_CALL_REJECTED
+    }
+)
+_SE16N_RETRY_CODES = _SE16N_STALE_PROXY_COM_ERRORS | _SE16N_BUSY_COM_ERRORS
+# DISP_E_EXCEPTION: what GetCell raises for a row beyond the data and for a cell that is not an input
+_COM_DISP_E_EXCEPTION = -2147352567
 
 
 @dataclass
@@ -486,28 +509,213 @@ def _filter_fill_failure(fill: _FilterFillResult, table: str, now: datetime) -> 
     return _empty_failure(error, table, now, filter_warnings=warnings)
 
 
-def _find_and_set_filter_cell(
-    raw_tc: Any, field_upper: str, value: str, visible: int, seen: list[str] | None = None
-) -> bool:
-    """Scan visible rows of an SE16N table control for a field and set its filter value.
+class _GridScanError(Exception):
+    """Reading or scrolling the SE16N selection grid failed (a technical failure, not 'field not found')."""
 
-    If ``seen`` is given, the (non-blank) field names read from the visible rows are appended to it,
-    so a caller can report which fields SE16N offers when the field is not found.
 
-    Returns True if the field was found and set, False otherwise.
-    """
-    for r in range(visible):
+def _resolve_se16n_tc_id(session: Any) -> str | None:
+    """Return the ID of the SE16N selection grid that exists on this release, or None."""
+    for tc_id in _SE16N_TC_IDS:
         try:
-            fname_cell = raw_tc.GetCell(r, _SE16N_COL_FIELDNAME)
-            text: str = fname_cell.Text
-            if seen is not None and text.strip():
-                seen.append(text.strip())
-            if text.upper() == field_upper:
-                raw_tc.GetCell(r, _SE16N_COL_LOW).Text = value
-                return True
+            session.find_by_id(tc_id)
+            return tc_id
         except Exception:  # pylint: disable=broad-exception-caught
             continue
-    return False
+    return None
+
+
+def _row_is_readable(get_tc: Callable[[], Any], row: int) -> bool:
+    """True if the field name of a grid row can be read through a fresh control (confirms or refutes the data end)."""
+    try:
+        str(get_tc().GetCell(row, _SE16N_COL_FIELDNAME).Text)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        if _get_com_error_code(exc) in (_COM_DISP_E_EXCEPTION, *_SE16N_RETRY_CODES):
+            return False
+        raise
+    return True
+
+
+def _read_window_names(get_tc: Callable[[], Any], count: int, settle: bool) -> list[str | None]:
+    """Read the field names of the first ``count`` rows of the grid's current window.
+
+    The control is re-fetched for every read. Right after a scroll the window may not be refreshed yet (#387 busy
+    errors, #937 half-empty windows): with ``settle`` a window counts once two consecutive reads agree and it is not
+    half-refreshed (first row filled, all other readable rows blank). Busy and stale-proxy errors are retried a
+    bounded number of times; any other COM error is raised at once. The grid's ``RowCount`` can exceed its data
+    rows: a row beyond the data raises ``DISP_E_EXCEPTION`` on ``GetCell`` and reads as ``None``. ``None`` is only
+    accepted as a contiguous tail of the window; an unreadable row followed by a readable one is a scan error.
+    """
+    previous: list[str | None] | None = None
+    last_exc: Exception | None = None
+    for attempt in range(_SE16N_SETTLE_ATTEMPTS):
+        if attempt:
+            time.sleep(_SE16N_SETTLE_POLL_S)
+        try:
+            tc = get_tc()
+            names: list[str | None] = []
+            for row in range(count):
+                try:
+                    names.append(str(tc.GetCell(row, _SE16N_COL_FIELDNAME).Text).strip())
+                except Exception as cell_exc:  # pylint: disable=broad-exception-caught
+                    if _get_com_error_code(cell_exc) != _COM_DISP_E_EXCEPTION:
+                        raise  # busy, stale or a lost connection: not a row beyond the data
+                    names.append(None)  # beyond the data rows
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            if _get_com_error_code(exc) not in _SE16N_RETRY_CODES:
+                raise
+            logger.warning("SE16N selection grid busy while reading", extra={"error": str(exc), "attempt": attempt})
+            last_exc, previous = exc, None
+            continue
+        readable = [name for name in names if name is not None]
+        if names[len(readable) :] != [None] * (len(names) - len(readable)):
+            raise _GridScanError(f"a row inside the data cannot be read ({len(readable)} of {count} rows readable)")
+        if len(readable) < count and _row_is_readable(get_tc, len(readable)):
+            # DISP_E_EXCEPTION is SAP GUI's generic error: the tail was only transiently unreadable, read again
+            logger.warning("SE16N selection grid tail readable on re-read", extra={"row": len(readable)})
+            previous = None
+            continue
+        # A half-refreshed window (#937) reads blank below its first row; rows beyond the data are None, not blank
+        half_empty = len(readable) > 1 and bool(readable[0]) and not any(readable[1:])
+        if not settle or not names or not readable or (not half_empty and names == previous):
+            return names
+        previous = names
+    raise _GridScanError(f"the window did not settle ({last_exc})" if last_exc else "the window did not settle")
+
+
+def _set_filter_value(get_tc: Callable[[], Any], row: int, field_upper: str, value: str) -> bool:
+    """Write the From-value of a grid row through a fresh control. False if the row verifiably takes no value.
+
+    SE16N lists fields it does not offer for selection, too; their From-value cell is not changeable and a write
+    raises ``DISP_E_EXCEPTION``. That error is SAP GUI's generic one, though, so it only counts as "not offered" when
+    a fresh control reports the cell as not ``Changeable``. After any other failure the cell is read back (a write
+    that raised may have landed), then written once more after a short sleep; a second failure, or an ambiguous
+    one, is raised as a scan error. The read-back compares stripped and case-insensitive, as SE16N may upper-case or
+    reformat a value; a value reformatted beyond that is written again, which is harmless.
+    """
+    last_exc: Exception | None = None
+    for attempt in range(2):
+        if attempt:
+            time.sleep(_SE16N_SETTLE_POLL_S)
+        try:
+            get_tc().GetCell(row, _SE16N_COL_LOW).Text = value
+            return True
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            last_exc = exc
+            logger.warning(
+                "SE16N value write failed", extra={"field_name": field_upper, "error": str(exc), "attempt": attempt}
+            )
+        try:
+            cell = get_tc().GetCell(row, _SE16N_COL_LOW)
+            if str(cell.Text).strip().casefold() == value.strip().casefold():
+                return True  # the write raised but landed
+            if _get_com_error_code(last_exc) == _COM_DISP_E_EXCEPTION and cell.Changeable is False:
+                logger.warning("SE16N field row is not changeable", extra={"field_name": field_upper})
+                return False
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            last_exc = exc
+    raise _GridScanError(f"Setting the SE16N filter {field_upper} failed: {last_exc}")
+
+
+def _fill_window(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    get_tc: Callable[[], Any],
+    first_row: int,
+    count: int,
+    known_end: int,
+    settle: bool,
+    pending: list[tuple[str, str, str]],
+    seen: list[str],
+) -> tuple[list[tuple[str, str, str]], int]:
+    """Set the filters of ``pending`` (requested name, upper-case name, value) whose field is in the current window.
+
+    The window starts at grid row ``first_row``; rows below ``known_end`` were already read as data, so an unreadable
+    one there is a scan error. The non-blank names read are appended to ``seen``. Returns the filters that are still
+    pending and the new ``known_end``, which stays below ``first_row + count`` when the window reaches past the data.
+    """
+    raw_names = _read_window_names(get_tc, count, settle)
+    names = [name or "" for name in raw_names]
+    readable = sum(name is not None for name in raw_names)
+    if first_row + readable < known_end:
+        raise _GridScanError(f"row {first_row + readable} of the data cannot be read")
+    seen.extend(name for name in names if name)
+    upper_names = [name.upper() for name in names]
+    still_pending = []
+    for requested, field_upper, value in pending:
+        if field_upper not in upper_names or not _set_filter_value(
+            get_tc, upper_names.index(field_upper), field_upper, value
+        ):
+            still_pending.append((requested, field_upper, value))
+            continue
+        logger.info("SE16N desktop filter set", extra={"field_name": field_upper, "value": value})
+    return still_pending, max(known_end, first_row + readable)
+
+
+def _scroll_grid(get_tc: Callable[[], Any], position: int) -> int:
+    """Set the scroll position and return the one the control reports afterwards (SAP may clamp or ignore it)."""
+    try:
+        get_tc().VerticalScrollbar.Position = position
+        return int(get_tc().VerticalScrollbar.Position)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        raise _GridScanError(f"Scrolling the SE16N selection grid failed at position {position}: {exc}") from exc
+
+
+def _scan_grid_for_filters(
+    get_tc: Callable[[], Any],
+    row_count: int,
+    visible: int,
+    known_end: int,
+    pending: list[tuple[str, str, str]],
+    seen: list[str],
+) -> list[tuple[str, str, str]]:
+    """Walk the grid one window (page) at a time, setting the pending filters; returns those never found.
+
+    Every window is read through a freshly fetched control: the proxy that was valid before a scroll is dead after it.
+    ``known_end`` is the number of leading rows already read as data.
+    """
+    maximum = _scrollbar_value(get_tc, "Maximum")
+    if maximum <= 0:
+        raise _GridScanError(
+            f"the SE16N selection grid reports no scroll range (Maximum {maximum}) for {row_count} rows, "
+            f"{visible} visible"
+        )
+    position = 0
+    while pending and position < maximum:
+        target = min(position + visible, maximum)
+        actual = _scroll_grid(get_tc, target)
+        if actual <= position:
+            raise _GridScanError(f"Scrolling the SE16N selection grid failed at position {target}: stayed at {actual}")
+        position = actual
+        count = min(visible, row_count - position)
+        try:
+            pending, known_end = _fill_window(get_tc, position, count, known_end, True, pending, seen)
+        except _GridScanError:
+            raise
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            raise _GridScanError(f"Reading the SE16N selection grid failed at position {position}: {exc}") from exc
+        if known_end < position + count:  # RowCount can exceed the data rows: the rest of the grid is empty
+            break
+    return pending
+
+
+def _scrollbar_value(get_tc: Callable[[], Any], name: str) -> int:
+    """Read ``VerticalScrollbar.<name>`` of the grid through a fresh control; a failure is a scan error."""
+    try:
+        return int(getattr(get_tc().VerticalScrollbar, name))
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        raise _GridScanError(f"Reading the SE16N selection grid scroll {name.lower()} failed: {exc}") from exc
+
+
+def _reset_grid_to_top(get_tc: Callable[[], Any], result: _FilterFillResult) -> None:
+    """Scroll the grid back to the top through a fresh control; a failure is logged and reported, never swallowed."""
+    try:
+        get_tc().VerticalScrollbar.Position = 0
+        position = int(get_tc().VerticalScrollbar.Position)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        logger.warning("Could not reset the SE16N selection grid", extra={"error": str(exc)})
+        result.other_errors.append(f"Could not return the SE16N selection grid to the top: {exc}")
+        return
+    if position != 0:
+        logger.warning("SE16N selection grid not at the top after reset", extra={"position": position})
+        result.other_errors.append(f"Could not return the SE16N selection grid to the top (stayed at {position})")
 
 
 @dataclass
@@ -694,73 +902,58 @@ async def _fill_se16n_filters_desktop(
 
     def _apply_filters() -> _FilterFillResult:
         result = _FilterFillResult()
-        tc = None
-        for tc_id in _SE16N_TC_IDS:
-            try:
-                tc = session.find_by_id(tc_id)
-                break
-            except Exception:  # pylint: disable=broad-exception-caught
-                continue
-        if tc is None:
+        tc_id = _resolve_se16n_tc_id(session)
+        if tc_id is None:
             result.other_errors.append("SE16N selection criteria table control not found")
             return result
-        # Unwrap Python wrapper to get the raw COM dispatch object
-        raw: Any = getattr(tc, "com", getattr(tc, "_com", tc))
 
+        def get_tc() -> Any:
+            return _get_raw_tc(session, tc_id)
+
+        raw = get_tc()
         row_count: int = raw.RowCount
         visible: int = raw.VisibleRowCount
         logger.debug("SE16N selection grid", extra={"row_count": row_count, "visible": visible})
 
-        offered: list[str] = []
-        for field_name, value in filters.items():
-            field_upper = field_name.upper()
-            seen: list[str] = []
+        pending = [(name, name.upper(), value) for name, value in filters.items()]
+        seen: list[str] = []
+        scan_failed = False
+        scrolled = False
+        try:
+            if (
+                row_count > visible and _scrollbar_value(get_tc, "Position") != 0
+            ):  # left over from an earlier failed call
+                scrolled = True
+                _scroll_grid(get_tc, 0)
+            count = min(visible, row_count)
+            try:
+                pending, known_end = _fill_window(get_tc, 0, count, 0, scrolled, pending, seen)
+            except _GridScanError:
+                raise
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                raise _GridScanError(f"Reading the SE16N selection grid failed at position 0: {exc}") from exc
+            if known_end == 0 and count:
+                raise _GridScanError("Reading the SE16N selection grid failed at position 0: the first row is empty")
+            # Field not in the visible rows - scroll through the grid (unless everything is visible already)
+            if pending and row_count > visible:
+                scrolled = True
+                pending = _scan_grid_for_filters(get_tc, row_count, visible, known_end, pending, seen)
+        except _GridScanError as exc:
+            logger.warning("SE16N selection grid scan failed", extra={"error": str(exc)})
+            result.other_errors.append(str(exc))
+            scan_failed = True
+        finally:
+            if scrolled:
+                _reset_grid_to_top(get_tc, result)
 
-            # Try visible rows first
-            if _find_and_set_filter_cell(raw, field_upper, value, visible, seen):
-                logger.info("SE16N desktop filter set", extra={"field_name": field_upper, "value": value})
-                continue
-
-            # Field not in visible range - scroll through the table (unless everything is visible already)
-            if row_count > visible and _set_filter_with_scrolling(raw, field_upper, value, visible, seen):
-                continue
-
-            result.unapplied_fields.append(field_name)
-            offered.extend(seen)
-
-        result.offered_fields = _dedupe_keep_order(offered)
+        # Only a complete scan may claim a field is not offered; after a technical failure that would be untrue.
+        if not scan_failed:
+            result.unapplied_fields = [requested for requested, _, _ in pending]
+            if pending:
+                result.offered_fields = _dedupe_keep_order(seen)
         return result
 
     return await com.run(_apply_filters)
-
-
-def _set_filter_with_scrolling(
-    raw_tc: Any, field_upper: str, value: str, visible: int, seen: list[str] | None = None
-) -> bool:
-    """Scroll through an SE16N table control to find and set a filter value.
-
-    Field names read while scrolling are appended to ``seen`` (may contain duplicates from overlapping windows).
-    """
-    scroll_max = raw_tc.VerticalScrollbar.Maximum
-    found = False
-    for scroll_pos in range(1, scroll_max + 1):
-        try:
-            raw_tc.VerticalScrollbar.Position = scroll_pos
-        except Exception:  # pylint: disable=broad-exception-caught
-            break
-        if _find_and_set_filter_cell(raw_tc, field_upper, value, visible, seen):
-            logger.info(
-                "SE16N desktop filter set (scrolled)",
-                extra={"field_name": field_upper, "value": value, "scroll": scroll_pos},
-            )
-            found = True
-            break
-    # Scroll back to top
-    try:
-        raw_tc.VerticalScrollbar.Position = 0
-    except Exception:  # pylint: disable=broad-exception-caught
-        pass
-    return found
 
 
 # Status bar fragments meaning "query ran, nothing found" (lower case, DE + EN)
