@@ -32,15 +32,19 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
+from sapguimcp.backend.desktop._tree_helpers import read_tree
 from sapguimcp.backend.desktop.models.com_results import (
+    TreeColumn,
     TreeContextMenuItem,
     TreeContextMenuResult,
+    TreeNode,
+    TreeReadResult,
 )
 from sapguimcp.backend.manager import get_backend
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["register_tree_tools", "_invoke_tree_context_menu"]
+__all__ = ["register_tree_tools", "_invoke_tree_context_menu", "_read_tree"]
 
 
 def _invoke_tree_context_menu(  # pylint: disable=too-many-arguments,too-many-locals
@@ -129,8 +133,108 @@ def _invoke_tree_context_menu(  # pylint: disable=too-many-arguments,too-many-lo
     return {"items": items, "selected": selected}
 
 
+def _read_tree(
+    session: Any,
+    tree_id: str | None,
+    *,
+    search: str | None,
+    column: str | None,
+    max_nodes: int,
+    root_key: str | None,
+) -> dict[str, Any]:
+    """Read or search the loaded nodes of a tree. Pure COM-layer function — must run on the ComThread.
+
+    ``session`` is a sapsucker-wrapped session or a raw COM object. Never expands, collapses or
+    selects. Raises ``ValueError`` for bad arguments / ambiguous trees, ``RuntimeError`` on COM errors.
+    """
+    raw_session = getattr(session, "com", getattr(session, "_com", session))
+    return read_tree(raw_session, tree_id, search=search, column=column, max_nodes=max_nodes, root_key=root_key)
+
+
 def register_tree_tools(mcp: FastMCP) -> None:
-    """Register tree-tool(s) with the MCP server — desktop backend only."""
+    """Register tree tools with the MCP server — desktop backend only."""
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=True,
+            destructive_hint=False,
+            idempotent_hint=True,
+            open_world_hint=False,
+        ),
+        description=(
+            "Read or search the nodes of a SAP tree control (SPRO IMG, SE80 object tree, SM34 "
+            "navigation tree, ...) — desktop backend only. Read-only: never expands, collapses "
+            "or selects anything.\n\n"
+            "Only nodes the control has ALREADY LOADED (expanded) are visible; collapsed subtrees "
+            "stay hidden until they are expanded in the GUI. Without `tree_id` the single tree of "
+            "the active window is auto-discovered, including trees in docking containers "
+            "(`wnd[0]/shellcont/...`); with several trees the error lists the candidate IDs.\n\n"
+            "`search` is a case-insensitive substring match over loaded nodes (node text and, for "
+            "column trees, all column texts, or only `column`); matches carry the ancestor `path`. "
+            "`root_key` restricts output to the descendants of one node. Output is capped at "
+            "`max_nodes` (default 200, max 1000); `truncated` and `total_nodes` tell what was missed.\n\n"
+            "Node order is SAP's `GetAllNodeKeys` order, which is not documented as display order; "
+            "use `level` and `path` to rebuild the hierarchy. `key` values are opaque and "
+            "space-padded: pass them back unchanged."
+        ),
+    )
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
+    async def sap_tree_read(
+        tree_id: Annotated[
+            str | None,
+            Field(description="Tree element ID (e.g. 'wnd[0]/shellcont/shell'). Omit to auto-discover."),
+        ] = None,
+        search: Annotated[
+            str | None, Field(description="Case-insensitive substring to look for in loaded nodes.")
+        ] = None,
+        column: Annotated[
+            str | None, Field(description="Restrict `search` to this column name (column trees only).")
+        ] = None,
+        max_nodes: Annotated[int, Field(ge=1, le=1000, description="Maximum nodes to return.")] = 200,
+        root_key: Annotated[
+            str | None, Field(description="Only return descendants of this node key (exact, padded).")
+        ] = None,
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> TreeReadResult:
+        try:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_tree_read")
+        except ValueError as e:
+            return TreeReadResult.failure(str(e))
+
+        if backend.backend_type != "desktop":
+            return TreeReadResult.failure("sap_tree_read is only available on the desktop backend.")
+
+        from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
+
+        assert isinstance(backend, DesktopBackend)  # noqa: S101
+        desktop_session = backend.require_session()
+
+        def _run() -> dict[str, Any]:
+            return _read_tree(
+                desktop_session, tree_id, search=search, column=column, max_nodes=max_nodes, root_key=root_key
+            )
+
+        try:
+            raw = await backend.com.run(_run)
+        except (ValueError, RuntimeError) as exc:
+            return TreeReadResult.failure(str(exc))
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            logger.exception("sap_tree_read failed")
+            return TreeReadResult.failure(f"COM execution error: {exc}")
+
+        return TreeReadResult(
+            tree_id=raw["tree_id"],
+            tree_type=raw["tree_type"],
+            columns=[TreeColumn(**c) for c in raw["columns"]],
+            nodes=[TreeNode(**n) for n in raw["nodes"]],
+            total_nodes=raw["total_nodes"],
+            returned_nodes=raw["returned_nodes"],
+            scanned_nodes=raw["scanned_nodes"],
+            skipped_nodes=raw["skipped_nodes"],
+            truncated=raw["truncated"],
+            scan_limit_hit=raw["scan_limit_hit"],
+        )
 
     @mcp.tool(
         annotations=ToolAnnotations(
