@@ -739,6 +739,8 @@ uv sync --group dev
 uv run playwright install chromium
 ```
 
+Run tools through `uv run ...` (not a bare `pytest` from an older venv).
+
 ### Run tests
 
 ```bash

@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from sapguimcp.tools.abapgit_tools import _abapgit_list_repos, _abapgit_pull_via_api
-from unittests.desktop.conftest import go_home, skip_no_sap
+from unittests.desktop.conftest import go_home, require_repo_registered, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
@@ -31,6 +31,7 @@ skip_no_transport = pytest.mark.skipif(not DEFAULT_TRANSPORT, reason="SAP_TEST_T
 @pytest.mark.anyio
 async def test_abapgit_pull_public_repo(backend) -> None:
     """Test pulling a public repository via COM automation."""
+    await require_repo_registered(backend, "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY")
     result = await _abapgit_pull_via_api(
         backend,
         repo="Z_PUBLIC_ABAPGIT_TEST_REPOSITORY",
@@ -49,6 +50,7 @@ async def test_abapgit_pull_public_repo(backend) -> None:
 @pytest.mark.anyio
 async def test_abapgit_pull_returns_status_message(backend) -> None:
     """Verify that pull returns an actual status message, not 'status unknown'."""
+    await require_repo_registered(backend, "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY")
     result = await _abapgit_pull_via_api(
         backend,
         repo="Z_PUBLIC_ABAPGIT_TEST_REPOSITORY",
@@ -148,6 +150,7 @@ async def test_abapgit_pull_injection_is_rejected_without_sap_call() -> None:
 @pytest.mark.anyio
 async def test_abapgit_pull_without_trkorr_returns_transport_guidance(backend) -> None:
     """Test that pulling without trkorr returns actionable transport guidance."""
+    await require_repo_registered(backend, "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY")
     result = await _abapgit_pull_via_api(
         backend,
         repo="Z_PUBLIC_ABAPGIT_TEST_REPOSITORY",
@@ -178,6 +181,9 @@ async def test_abapgit_pull_without_trkorr_returns_transport_guidance(backend) -
 @pytest.mark.anyio
 async def test_abapgit_list_repos(backend) -> None:
     """Test listing registered abapGit repositories via COM screen text reading."""
+    # Where the repo is not registered the test skips: the assertion below would otherwise fail on an
+    # environment gap, and must not pass vacuously either.
+    await require_repo_registered(backend, "Z_PUBLIC_ABAPGIT_TEST_REPOSITORY")
     result = await _abapgit_list_repos(backend)
 
     assert result.success, f"List failed: {result.error}"

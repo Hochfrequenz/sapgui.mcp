@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import faulthandler
 import os
-from typing import AsyncIterator
+from typing import TYPE_CHECKING, AsyncIterator
 from unittest.mock import MagicMock
 
 import pytest
@@ -14,7 +14,11 @@ from sapsucker import SapGui
 from sapguimcp.backend.desktop import DesktopBackend
 from sapguimcp.backend.desktop._com_thread import ComThread
 from sapguimcp.models.config import get_settings
+from sapguimcp.tools.abapgit_tools import _abapgit_list_repos
 from unittests.conftest import has_sap_desktop_creds
+
+if TYPE_CHECKING:
+    from sapguimcp.models.abapgit_models import AbapGitRepoInfo
 
 # ---------------------------------------------------------------------------
 # Test object names — centralized so they can be changed in one place.
@@ -45,6 +49,33 @@ async def go_home(backend) -> None:  # type: ignore[no-untyped-def]
     """Press F3 multiple times to return to Easy Access screen."""
     for _ in range(5):
         await backend.press_key("F3")
+
+
+# Successful, non-empty abapGit repo lists, cached to spare repeated SAP round trips.
+_REPO_LIST_CACHE: list[AbapGitRepoInfo] = []
+
+
+def repo_registered(repos: list[AbapGitRepoInfo], name: str) -> bool:
+    """Return whether ``name`` is among ``repos``. Exact match (abapGit names are upper-case)."""
+    return any(r.name == name for r in repos)
+
+
+async def require_repo_registered(backend, name: str) -> None:  # type: ignore[no-untyped-def]
+    """Skip the calling test if abapGit repo ``name`` is not registered on the SAP system.
+
+    Skips only if listing succeeded, returned at least one repo, and ``name`` is not among them.
+    A failed or empty listing (possibly a parser regression) never skips, so the test fails visibly.
+    """
+    repos = _REPO_LIST_CACHE
+    if not repos:
+        result = await _abapgit_list_repos(backend)
+        await go_home(backend)
+        if not result.success or not result.repos:
+            return
+        _REPO_LIST_CACHE[:] = result.repos
+        repos = _REPO_LIST_CACHE
+    if not repo_registered(repos, name):
+        pytest.skip(f"abapGit repo {name} is not registered on this SAP system (see docs/SAP_TEST_PREREQUISITES.md)")
 
 
 async def bp_teardown(backend) -> None:  # type: ignore[no-untyped-def]
