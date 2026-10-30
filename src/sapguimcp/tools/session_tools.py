@@ -132,13 +132,15 @@ async def sap_session_detach_impl(session_id: str) -> SessionDetachResult:
                 "this server); use sap_session_close."
             )
 
+        # Detach is COM-free: list from the registry only (no reconcile probes).
+        list_fast = getattr(backend, "list_sessions_fast", backend.list_sessions)
         if not await backend.has_session(session_id):
-            sessions = await backend.list_sessions()
+            sessions = await list_fast()
             available = ", ".join(s.session_id for s in sessions) or "(none)"
             return SessionDetachResult.failure(f"Session '{session_id}' not found. Active: {available}.")
 
         released = await detach(session_id)
-        remaining = await backend.list_sessions()
+        remaining = await list_fast()
         return SessionDetachResult(
             session_id=session_id,
             released_agent=released,

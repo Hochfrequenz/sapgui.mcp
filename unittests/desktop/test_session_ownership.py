@@ -177,9 +177,25 @@ async def test_list_sessions_reports_origin() -> None:
 
 
 @pytest.mark.anyio
+async def test_detach_unwatches_even_when_the_registry_held_the_only_reference() -> None:
+    """``_session_connections`` is weak: detach must keep the session alive until the sweep ran."""
+    backend, com = _backend()
+    ses = _session(MagicMock(), "/app/con[0]/ses[0]")
+    sid = backend.registry.register(ses, origin="attached")
+    backend._record_connection(ses, "/app/con[0]")  # pylint: disable=protected-access
+    del ses  # the registry is now the only strong reference
+
+    await backend.detach_session(sid)
+
+    com.unwatch_connection.assert_called_once_with("/app/con[0]")
+
+
+@pytest.mark.anyio
 async def test_backend_manager_close_never_closes_sap_sessions() -> None:
     backend, com = _backend()
-    manager = BackendManager(backend_type="desktop")
+    # Construct neutrally (desktop is rejected off Windows), then select the desktop branch of close().
+    manager = BackendManager(backend_type="webgui")
+    manager.backend_type = "desktop"
     manager._com_thread = com  # type: ignore[assignment]  # pylint: disable=protected-access
     conn = MagicMock()
     backend.registry.register(_session(conn, "/app/con[0]/ses[0]"), origin="attached")

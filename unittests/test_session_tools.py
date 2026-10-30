@@ -544,6 +544,8 @@ class TestSessionOwnership:
         assert result.success is True
         assert result.released_agent == "agent-1"
         backend.close_session.assert_not_called()
+        backend.list_sessions.assert_not_called()  # detach must stay COM-free (no reconcile)
+        backend.list_sessions_fast.assert_awaited()
 
     @pytest.mark.anyio
     async def test_detach_unknown_session(self) -> None:

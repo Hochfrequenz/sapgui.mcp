@@ -128,7 +128,7 @@ def opened_sessions(registry) -> list:  # type: ignore[no-untyped-def,type-arg]
     return [registry.get_session(sid) for sid in list(registry.list_sessions()) if registry.origin_of(sid) == "opened"]
 
 
-def close_owned_connections(sessions) -> int:  # type: ignore[no-untyped-def]
+def close_owned_connections(sessions, protected_sessions=()) -> int:  # type: ignore[no-untyped-def]
     """Close the SAP GUI connection of every given session, once per connection. Must run on the COM thread.
 
     STRICT FAIL-CLOSED: the fixture closes only connections that host a session from its own registry, never
@@ -139,19 +139,33 @@ def close_owned_connections(sessions) -> int:  # type: ignore[no-untyped-def]
     ``con[N]`` renumbering that closing causes cannot make us close the wrong one. Errors are swallowed
     (best effort). Returns the number of connections a close was attempted on.
 
-    Callers pass only sessions the server opened (see ``opened_sessions``): attached sessions live in the
-    user's own connections.
+    *sessions* are the sessions the server opened (see ``opened_sessions``). *protected_sessions* are
+    attached (user-owned) ones: a connection hosting any of them is never closed as a whole -- an opened
+    sibling there (e.g. from ``open_new_session``) is closed individually via ``CloseSession`` on its own
+    parent, so the attached window survives. The count includes those single-session closes.
     """
-    parents: list[object] = []
-    seen: set[str] = set()
-    for ses in sessions:
-        conn_id = None
+
+    def _conn_of(ses):  # type: ignore[no-untyped-def]
         try:
             conn = ses.com.Parent
-            conn_id = str(conn.Id)
+            return conn, str(conn.Id)
         except Exception:  # pylint: disable=broad-except
-            pass
-        if conn_id is not None and conn_id not in seen:
+            return None, None
+
+    protected_ids = {cid for cid in (_conn_of(ses)[1] for ses in protected_sessions) if cid is not None}
+    parents: list[object] = []
+    individual: list[tuple[object, object]] = []
+    seen: set[str] = set()
+    for ses in sessions:
+        conn, conn_id = _conn_of(ses)
+        if conn_id is None:
+            continue
+        if conn_id in protected_ids:
+            try:
+                individual.append((conn, ses.com.Id))
+            except Exception:  # pylint: disable=broad-except
+                pass
+        elif conn_id not in seen:
             seen.add(conn_id)
             parents.append(conn)
     attempted = 0
@@ -159,6 +173,12 @@ def close_owned_connections(sessions) -> int:  # type: ignore[no-untyped-def]
         attempted += 1
         try:
             conn.CloseConnection()  # type: ignore[attr-defined]
+        except Exception:  # pylint: disable=broad-except
+            pass
+    for conn, com_id in individual:
+        attempted += 1
+        try:
+            conn.CloseSession(str(com_id))  # type: ignore[attr-defined]
         except Exception:  # pylint: disable=broad-except
             pass
     return attempted
@@ -202,7 +222,10 @@ async def backend() -> AsyncIterator:  # type: ignore[type-arg]
     # close_owned_connections); the user's own windows are never touched.
     try:
         owned_sessions = opened_sessions(b.registry)
-        await com.run(lambda: close_owned_connections(owned_sessions))
+        attached_sessions = [
+            b.registry.get_session(sid) for sid in b.registry.list_sessions() if b.registry.is_attached(sid)
+        ]
+        await com.run(lambda: close_owned_connections(owned_sessions, attached_sessions))
     except Exception:  # pylint: disable=broad-except
         pass
     # Clear registry to avoid stale session references

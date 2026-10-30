@@ -55,3 +55,18 @@ def test_opened_sessions_excludes_attached() -> None:
     reg.register(mine)
     reg.register(theirs, origin="attached")
     assert opened_sessions(reg) == [mine]
+
+
+def test_shared_connection_with_attached_session_is_not_closed_wholesale() -> None:
+    conn = MagicMock()
+    opened = make_session("/app/con[0]", conn)
+    opened.com.Id = "/app/con[0]/ses[1]"
+    attached = make_session("/app/con[0]", conn)
+    other = MagicMock()
+    own = make_session("/app/con[1]", other)
+
+    assert close_owned_connections([opened, own], [attached]) == 2
+
+    conn.CloseConnection.assert_not_called()
+    conn.CloseSession.assert_called_once_with("/app/con[0]/ses[1]")
+    other.CloseConnection.assert_called_once()

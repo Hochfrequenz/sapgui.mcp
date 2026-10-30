@@ -1588,8 +1588,12 @@ class DesktopBackend:
             if not self.registry.has_session(session_id):
                 raise ValueError(f"Session '{session_id}' not found.")
             prev = self.registry.get_bound_agent(session_id)
+            # _session_connections holds sessions weakly: keep the object alive until the
+            # orphan sweep has run, or the entry vanishes and the watchdog never unwatches.
+            session = self.registry.get_session(session_id)
             self.registry.unregister(session_id)  # also drops the binding
             self._unwatch_orphaned_connections()
+            del session
             logger.info("detach_session", extra={"session_id": session_id})
             return prev
 
