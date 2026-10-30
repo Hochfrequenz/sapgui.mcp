@@ -33,12 +33,13 @@ from sapguimcp.backend.desktop import _abap_editor
 from sapguimcp.backend.desktop._com_thread import (
     _RPC_E_DISCONNECTED,
     NO_SESSION_TARGET,
-    RETRYABLE_COM_ERRORS,
+    RERAISE_COM_ERRORS,
     ComThread,
     SapSessionHaltedError,
     _get_com_error_code,
     com_call_target,
     describe_com_error,
+    is_server_fault_error,
     is_transient_busy_error,
 )
 from sapguimcp.backend.desktop._landscape import _find_landscape_path, _parse_landscape_xml
@@ -443,7 +444,7 @@ def _read_selected(session: Any, element_id: str) -> bool | None:
     try:
         return bool(session.find_by_id(element_id).selected)
     except Exception as exc:  # pylint: disable=broad-exception-caught
-        if _get_com_error_code(exc) in (_RPC_E_DISCONNECTED, *RETRYABLE_COM_ERRORS):
+        if _get_com_error_code(exc) in (_RPC_E_DISCONNECTED, *RERAISE_COM_ERRORS):
             raise
         logger.debug("Could not read the state of %s", element_id, exc_info=True)
         return None
@@ -894,7 +895,7 @@ class DesktopBackend:
     #: point reports the session as unresponsive rather than blocking forever.
     _STATUS_PROBE_TIMEOUT_S: float = 5.0
 
-    async def get_session_status(self, session_id: str | None = None) -> SessionStatus:
+    async def get_session_status(self, session_id: str | None = None) -> SessionStatus:  # noqa: PLR0911
         """Check whether the SAP session is logged in and responsive.
 
         Args:
@@ -960,6 +961,14 @@ class DesktopBackend:
                     message=(
                         "Session is busy — a modal dialog may be blocking the SAP GUI. It is not dead; retry shortly."
                     ),
+                )
+            if is_server_fault_error(exc):
+                return SessionStatus(
+                    success=True,
+                    status="unknown",
+                    message="UNKNOWN: this session could not be confirmed active. The SAP GUI answered the "
+                    "probe with a server fault (the process responds, but the session state was not read). "
+                    "Do not assume it is usable; check again or call sap_login.",
                 )
             hint = describe_com_error(exc)
             return SessionStatus(success=True, status="unknown", message=hint or "Session not responsive")
@@ -1243,11 +1252,24 @@ class DesktopBackend:
                     extra={"session_id": session_id, "error": repr(exc)[:200]},
                 )
                 return False
+            if is_server_fault_error(exc) and await self._session_answers(session_id):
+                logger.info("close_session_server_fault", extra={"session_id": session_id, "error": repr(exc)[:200]})
+                return False
             result = False
         self.registry.unregister(session_id)
         self._unwatch_orphaned_connections()
         logger.info("close_session", extra={"session_id": session_id, "success": result})
         return result
+
+    async def _session_answers(self, session_id: str) -> bool:
+        """True if the session still answers one ``Id`` read (fail-fast probe, no retries)."""
+        try:
+            target = self.registry.get_session(session_id)
+            with self._com_target(target):
+                await self.com.run(lambda: str(target.com.Id), max_retries=0)
+        except Exception:  # pylint: disable=broad-exception-caught
+            return False
+        return True
 
     # ---- Reconciliation & bulk cleanup (issue #637) ----
 
@@ -1267,6 +1289,9 @@ class DesktopBackend:
         The probe call uses ``max_retries=0`` so the COM thread does NOT
         retry on ``RPC_S_UNKNOWN_IF`` — a stale-interface error on a probe
         means "this session is dead", not "transient — try again".
+
+        A server fault (``RPC_E_SERVERFAULT``, 0x80010105) on a probe proves the
+        process answered, so the session is kept as alive (status unknown).
 
         A "server busy" error (``RPC_E_SERVERCALL_RETRYLATER`` /
         ``RPC_E_CALL_REJECTED``) is **not** treated as dead: it means the SAP
@@ -1362,6 +1387,14 @@ class DesktopBackend:
                         alive.append(sid)
                     else:
                         dead.append(sid)
+                    continue
+                if is_server_fault_error(exc):
+                    # The call reached the process and it threw: alive, status unknown.
+                    logger.info(
+                        "reconcile_session_server_fault",
+                        extra={"session_id": sid, "error": repr(exc)[:200]},
+                    )
+                    alive.append(sid)
                     continue
                 logger.info(
                     "reconcile_dead_session",
@@ -1558,7 +1591,7 @@ class DesktopBackend:
                 message_id, message_number, params = None, None, []
             return text, msg_type, message_id, message_number, params
 
-        text, msg_type, message_id, message_number, params = await self.com.run(_read)
+        text, msg_type, message_id, message_number, params = await self.com.run(_read, retry_server_fault=True)
         bar_type: StatusBarType = cast(StatusBarType, msg_type) if msg_type in ("S", "E", "W", "I", "A") else "none"
         logger.debug(
             "status_bar",
@@ -1591,7 +1624,7 @@ class DesktopBackend:
                 "user": str(info.user),
             }
 
-        data = await self.com.run(_read)
+        data = await self.com.run(_read, retry_server_fault=True)
         return ScreenInfo(success=True, url="desktop://sap", **data)
 
     async def get_screen_text(  # pylint: disable=unused-argument
@@ -1638,7 +1671,7 @@ class DesktopBackend:
                 "main_content": content,
             }
 
-        data = await self.com.run(_read)
+        data = await self.com.run(_read, retry_server_fault=True)
         return ScreenText(success=True, **data)
 
     async def discover_fields(self) -> list[FieldInfo]:
@@ -1652,7 +1685,7 @@ class DesktopBackend:
             flat = _flatten(tree)
             return _discover_fields_from_tree(flat)
 
-        items = await self.com.run(_discover)
+        items = await self.com.run(_discover, retry_server_fault=True)
         logger.debug("discover_fields", extra={"count": len(items)})
         return [FieldInfo(**item) for item in items]
 
@@ -1701,7 +1734,7 @@ class DesktopBackend:
                 fields.append(field_dict)
             return fields, wnd_id
 
-        items, active_wnd = await self.com.run(_discover)
+        items, active_wnd = await self.com.run(_discover, retry_server_fault=True)
         logger.debug("get_form_fields", extra={"count": len(items)})
 
         fields = [FormField(**item) for item in items]
@@ -1735,7 +1768,7 @@ class DesktopBackend:
                     buttons.append({"label": label, "id": elem.id, "selector": elem.id})
             return buttons
 
-        items = await self.com.run(_discover)
+        items = await self.com.run(_discover, retry_server_fault=True)
         logger.debug("discover_buttons", extra={"count": len(items)})
         return [ButtonInfo(**item) for item in items]
 
@@ -1790,7 +1823,7 @@ class DesktopBackend:
 
             return "\n".join(lines), max_depth_found, elements_hidden
 
-        text, max_depth_found, elements_hidden = await self.com.run(_dump)
+        text, max_depth_found, elements_hidden = await self.com.run(_dump, retry_server_fault=True)
         return ComTreeSnapshot(text), max_depth_found, elements_hidden
 
     async def take_screenshot(self) -> bytes:
@@ -1963,7 +1996,7 @@ class DesktopBackend:
             wnd_id = _active_window_id(session)
             return str(cast(Any, session.find_by_id(wnd_id)).text)
 
-        return await self.com.run(_title)
+        return await self.com.run(_title, retry_server_fault=True)
 
     # ---- SapUiPrimitives (only press_key in Phase 1) ----
 

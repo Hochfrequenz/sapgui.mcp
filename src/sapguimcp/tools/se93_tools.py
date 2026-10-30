@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapguimcp.backend.desktop._com_thread import is_server_fault_error
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.backend.webgui.parsers.se93_parser import parse_se93_snapshot
 from sapguimcp.backend.webgui.types import AriaSnapshot
@@ -73,10 +74,12 @@ async def _read_checkbox(backend: WebGuiBackend | DesktopBackend, sap_name: str)
         try:
             chk = usr.find_by_name(sap_name, "GuiCheckBox")
             return bool(getattr(chk, "selected", False)) if chk is not None else False
-        except Exception:  # pylint: disable=broad-exception-caught
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            if is_server_fault_error(exc):
+                raise  # let the retry_server_fault opt-in retry it; a persistent fault must surface
             return False
 
-    return await com.run(_read)
+    return await com.run(_read, retry_server_fault=True)
 
 
 async def _lookup_tcode_desktop(  # pylint: disable=too-many-locals

@@ -246,7 +246,7 @@ async def test_script_combobox_key_assignment_takes_effect(backend):
 
     Uses the BP create-person screen: the first GuiComboBox with a selectable alternative.
     The value is read back in a second tool call, because reading the COM Key in the same
-    call right after setting it can hit RPC_E_SERVERCALL_RETRYLATER. Cleanup (/n, no save)
+    call right after setting it can hit RPC_E_SERVERFAULT. Cleanup (/n, no save)
     is done by the module's autouse fixture.
     """
     mcp = FastMCP("test")

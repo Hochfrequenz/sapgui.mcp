@@ -417,10 +417,10 @@ class TestDesktopGetSessionStatusHealthCheck:
         session = MagicMock()
         session.info.user = "BUSY"
         session.com.FindById.side_effect = _FakeComError(
-            -2147417851,
+            -2147417846,
             "server call retry later",
             None,
-            None,  # RPC_E_SERVERCALL_RETRYLATER
+            None,  # RPC_E_SERVERCALL_RETRYLATER (0x8001010A)
         )
         self._register(backend, session)
 
@@ -428,6 +428,19 @@ class TestDesktopGetSessionStatusHealthCheck:
 
         assert result.status != "active"
         assert "busy" in result.message.lower()
+
+    @pytest.mark.anyio
+    async def test_server_fault_handle_reported_unknown_not_busy_not_dead(self) -> None:
+        backend = _make_desktop_backend()
+        session = MagicMock()
+        session.com.FindById.side_effect = _FakeComError(-2147417851, "server threw", None, None)  # SERVERFAULT
+        self._register(backend, session)
+
+        result = await backend.get_session_status(session_id="s1")
+
+        assert result.status == "unknown"
+        assert "server fault" in result.message.lower()
+        assert "busy" not in result.message.lower()
 
     @pytest.mark.anyio
     async def test_probe_disables_retries(self) -> None:

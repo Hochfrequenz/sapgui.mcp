@@ -1,7 +1,7 @@
 """Shared helpers for reading SAP GUI desktop table controls (type 80).
 
 Centralises the scroll-with-re-find logic that prevents COM
-``RPC_E_SERVERCALL_RETRYLATER`` (0x80010105) errors on tab-hosted
+``RPC_E_SERVERFAULT`` (0x80010105) errors on tab-hosted
 ``GuiTableControl`` widgets.  See #387.
 
 The critical pattern (from SAP community best practice): after changing
@@ -140,7 +140,7 @@ def read_table_control_all_rows(session: Any, flatten_fn: Any, read_checkboxes: 
     After each ``VerticalScrollbar.Position`` change the table control is
     **re-found** via ``findById`` so that the COM cell references are fresh.
     This is the SAP-recommended pattern and avoids the
-    ``RPC_E_SERVERCALL_RETRYLATER`` (0x80010105) crash.  See #387.
+    ``RPC_E_SERVERFAULT`` (0x80010105) crash.  See #387.
     """
     info = _find_table_control_info(session, flatten_fn)
     if info is None:

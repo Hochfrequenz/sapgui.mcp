@@ -415,7 +415,7 @@ class TestRunOperationsResume:
             ComOperation(success=True, result='"a"'),
             ComOperation(success=True, result='"b"'),
         ]
-        carrier = ComBatchInterruptedError(completed, 2, -2147417851)
+        carrier = ComBatchInterruptedError(completed, 2, -2147417846)
         executed: list[str] = []
 
         def find_by_id(element_id: str, raise_error: bool = True) -> MagicMock:  # noqa: ARG001
@@ -455,12 +455,12 @@ class TestRunOperationsResume:
         ]
 
         def fake_op(session, operation):  # noqa: ARG001
-            raise FakeComError(-2147417851)
+            raise FakeComError(-2147417846)
 
         monkeypatch.setattr(com_tools, "_execute_single_op", fake_op)
         with pytest.raises(com_tools.ComBatchInterruptedError) as exc_info:
             _run_operations(MagicMock(), ops, stop_on_error=False, resume=ComBatchInterruptedError(done, 1, 0))
-        assert exc_info.value.error_code == -2147417851
+        assert exc_info.value.error_code == -2147417846
         assert exc_info.value.completed == done
 
     def test_retryable_error_through_real_op_path_raises_carrier(self):
@@ -475,7 +475,7 @@ class TestRunOperationsResume:
         session = MagicMock()
 
         def find_by_id(element_id: str, raise_error: bool = True):  # noqa: ARG001
-            raise FakeComError(-2147417851)
+            raise FakeComError(-2147417846)
 
         session.find_by_id = find_by_id
         ops = [
@@ -484,9 +484,9 @@ class TestRunOperationsResume:
         ]
         with pytest.raises(ComBatchInterruptedError) as exc_info:
             _run_operations(session, ops, stop_on_error=False)
-        assert exc_info.value.error_code == -2147417851
+        assert exc_info.value.error_code == -2147417846
         assert exc_info.value.completed_count == 0
-        assert _get_com_error_code(exc_info.value.__cause__) == -2147417851
+        assert _get_com_error_code(exc_info.value.__cause__) == -2147417846
 
     def test_non_retryable_error_propagates(self, monkeypatch):
         from sapguimcp.tools import com_tools

@@ -85,7 +85,9 @@ async def _read_classic_job_list(backend: "WebGuiBackend | DesktopBackend") -> T
     """Read the job overview as a classic list: SAP ERP 6.0 shows it as labels, not as an ALV grid."""
     desktop = cast("DesktopBackend", backend)
     session = desktop.require_session()
-    return await desktop.com.run(lambda: read_classic_list_table(session, _JOB_LIST_HEADER_TITLES, _MAX_JOBS))
+    return await desktop.com.run(
+        lambda: read_classic_list_table(session, _JOB_LIST_HEADER_TITLES, _MAX_JOBS), retry_server_fault=True
+    )
 
 
 _ALL_STATUSES = ["scheduled", "released", "ready", "active", "finished", "canceled"]
@@ -455,7 +457,9 @@ async def _fetch_job_log_desktop(backend: "WebGuiBackend | DesktopBackend", lang
         if any(title in (screen_text.title or "").lower() for title in _JOB_LOG_TITLES_ECC):
             desktop = cast("DesktopBackend", backend)
             session = desktop.require_session()
-            list_lines = await desktop.com.run(lambda: read_classic_list_lines(session, _MAX_LOG_LINES))
+            list_lines = await desktop.com.run(
+                lambda: read_classic_list_lines(session, _MAX_LOG_LINES), retry_server_fault=True
+            )
             if list_lines:
                 return SM37JobLog(job_name="", log_lines=list_lines)
 

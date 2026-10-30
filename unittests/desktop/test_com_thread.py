@@ -599,7 +599,7 @@ class TestComBatchResume:
                 if i == 2 and resume is None:
                     # First pass only: simulate a retryable COM error on op 2,
                     # carrying the two results already produced.
-                    raise ComBatchInterruptedError(done, i, -2147417851)
+                    raise ComBatchInterruptedError(done, i, -2147417846)
                 done.append(f"op{i}")
             return done
 
@@ -618,7 +618,7 @@ class TestComBatchResume:
         from sapguimcp.backend.desktop._com_thread import ComBatchInterruptedError
 
         def batch(resume=None):  # noqa: ARG001 — resume is unused; every attempt fails
-            raise ComBatchInterruptedError([], 0, -2147417851)
+            raise ComBatchInterruptedError([], 0, -2147417846)
 
         with pytest.raises(ComBatchInterruptedError):
             await com_thread.run(batch)
@@ -638,7 +638,7 @@ class TestComBatchResume:
             nonlocal calls
             calls += 1
             if calls == 1:
-                raise FakeComError(-2147417851)
+                raise FakeComError(-2147417846)
             return "ok"
 
         assert await com_thread.run(fn) == "ok"
@@ -682,7 +682,7 @@ class TestThrottleSignals:
                     self.hresult = hr
 
             def failing():
-                raise FakeComError(-2147417851)  # RETRYLATER
+                raise FakeComError(-2147417846)  # RETRYLATER (0x8001010A)
 
             thread._execute_with_retry(failing, concurrent.futures.Future(), last_call=0.0, max_retries=1)
             assert thread._current_interval_s > 0.1, "a busy error must back the interval off"

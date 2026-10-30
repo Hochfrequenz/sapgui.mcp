@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
-from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RETRYABLE_COM_ERRORS, _get_com_error_code
+from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RERAISE_COM_ERRORS, _get_com_error_code
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.backend.webgui.parsers.se37_parser import SE37TabSnapshots, parse_se37_snapshot
 from sapguimcp.backend.webgui.types import AriaSnapshot
@@ -87,9 +87,9 @@ _TYPE_RADIO_BUTTON = 41
 
 
 def _reraise_if_transient(exc: Exception) -> None:
-    """Re-raise a lost connection and the errors the COM thread retries: swallowing them would return partial header
-    data (blank fields, RFC flag false) instead of retrying."""
-    if _get_com_error_code(exc) in (_RPC_E_DISCONNECTED, *RETRYABLE_COM_ERRORS):
+    """Re-raise a lost connection, the errors the COM thread retries and server faults: swallowing them would return
+    partial header data (blank fields, RFC flag false) instead of surfacing the error."""
+    if _get_com_error_code(exc) in (_RPC_E_DISCONNECTED, *RERAISE_COM_ERRORS):
         raise exc
 
 
@@ -136,10 +136,10 @@ async def _read_tab_rows(
     session = backend.require_session()
     com = backend.com
     label = await _click_tab_bilingual(backend, de_label, en_label)
-    rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
+    rows = await com.run(lambda: _read_se37_table_control(session, _flatten), retry_server_fault=True)
     if label is not None and (not rows or rows == previous_rows):
         await backend.wait_for_condition(tab_table_control_loaded(label), timeout_ms=3000, poll_ms=250)
-        rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
+        rows = await com.run(lambda: _read_se37_table_control(session, _flatten), retry_server_fault=True)
     return rows
 
 
@@ -172,7 +172,7 @@ def _read_se37_table_control(session: Any, _flatten_fn: Any) -> list[dict[str, s
     """Find and read the first GuiTableControl (type 80) on screen.
 
     Scrolls through all rows with a settle delay after each scrollbar change
-    to avoid COM ``RPC_E_SERVERCALL_RETRYLATER`` errors (#387).
+    to avoid COM ``RPC_E_SERVERFAULT`` errors (#387).
     """
     return read_table_control(session, _flatten_fn)
 
@@ -257,12 +257,12 @@ async def _lookup_fm_desktop(  # pylint: disable=too-many-locals
         named_text_field_present((_HEADER_SHORT_TEXT,)), timeout_ms=3000, poll_ms=250
     ):
         logger.warning("SE37 attributes tab: the short text field did not appear within 3 s")
-    header = await com.run(lambda: _read_se37_header(session, _flatten))
+    header = await com.run(lambda: _read_se37_header(session, _flatten), retry_server_fault=True)
 
     # Read Import tab: try reading first (default tab), click only if table is empty.
     # SAP lazily instantiates tab subscreen controls — the table control may not
     # exist in the widget tree until the tab is explicitly activated by a click.
-    import_rows = await com.run(lambda: _read_se37_table_control(session, _flatten))
+    import_rows = await com.run(lambda: _read_se37_table_control(session, _flatten), retry_server_fault=True)
     if not import_rows:
         import_rows = await _read_tab_rows(backend, "Import", "Import", import_rows)
 

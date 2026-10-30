@@ -25,7 +25,7 @@ def _desktop_backend() -> Any:
     backend.wait_for_condition = AsyncMock(return_value=True)
     backend.require_session = MagicMock(return_value=MagicMock())
     backend.com = MagicMock()
-    backend.com.run = AsyncMock(side_effect=lambda job: job())
+    backend.com.run = AsyncMock(side_effect=lambda job, **_: job())
     return backend
 
 
@@ -205,7 +205,7 @@ async def test_lookup_class_opens_the_properties_tab_last_and_returns_its_header
     }
     clicked: list[str] = []
     backend.click_tab = AsyncMock(side_effect=clicked.append)
-    backend.com.run = AsyncMock(side_effect=lambda job: job())
+    backend.com.run = AsyncMock(side_effect=lambda job, **_: job())
     waits_before_header: list[Any] = []
 
     async def _record_wait(predicate: Any, **kwargs: Any) -> bool:

@@ -56,7 +56,7 @@ class TestDesktopBackendEnterTransaction:
         backend._session = session
 
         # Make com.run actually execute the function
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -75,7 +75,7 @@ class TestDesktopBackendEnterTransaction:
         backend = DesktopBackend.__new__(DesktopBackend)
         backend._session = session
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -94,7 +94,7 @@ class TestDesktopBackendEnterTransaction:
         backend = DesktopBackend.__new__(DesktopBackend)
         backend._session = session
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -136,7 +136,7 @@ class TestDesktopBackendPressKey:
         backend = DesktopBackend.__new__(DesktopBackend)
         backend._session = session
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -157,7 +157,7 @@ class TestDesktopBackendPressKey:
         backend = DesktopBackend.__new__(DesktopBackend)
         backend._session = session
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -174,7 +174,7 @@ def _make_backend_with_finder(session, finder_patch_target, finder_return):
     backend = DesktopBackend.__new__(DesktopBackend)
     backend._session = session
 
-    async def mock_run(fn):
+    async def mock_run(fn, **kwargs):
         return fn()
 
     backend.com = MagicMock()
@@ -196,7 +196,7 @@ class TestDesktopBackendFillField:
         backend = DesktopBackend.__new__(DesktopBackend)
         backend._session = session
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -219,7 +219,7 @@ class TestDesktopBackendFillField:
         backend = DesktopBackend.__new__(DesktopBackend)
         backend._session = session
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -245,7 +245,7 @@ class TestDesktopBackendClickButton:
         backend = DesktopBackend.__new__(DesktopBackend)
         backend._session = session
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -266,7 +266,7 @@ class TestDesktopBackendClickButton:
         backend = DesktopBackend.__new__(DesktopBackend)
         backend._session = session
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -291,7 +291,7 @@ class TestDesktopBackendClickTab:
         backend = DesktopBackend.__new__(DesktopBackend)
         backend._session = session
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -316,7 +316,7 @@ class TestDesktopBackendSetCheckbox:
         backend = DesktopBackend.__new__(DesktopBackend)
         backend._session = session
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -341,7 +341,7 @@ class TestDesktopBackendSetRadioButton:
         backend = DesktopBackend.__new__(DesktopBackend)
         backend._session = session
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -374,7 +374,7 @@ class TestDesktopBackendFillForm:
         backend = DesktopBackend.__new__(DesktopBackend)
         backend._session = session
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -399,7 +399,7 @@ class TestDesktopBackendFillForm:
         backend = DesktopBackend.__new__(DesktopBackend)
         backend._session = session
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -425,7 +425,7 @@ def _make_backend(session):
     backend = DesktopBackend.__new__(DesktopBackend)
     backend._session = session
 
-    async def mock_run(fn):
+    async def mock_run(fn, **kwargs):
         return fn()
 
     backend.com = MagicMock()
@@ -626,7 +626,7 @@ class TestDesktopBackendReadTable:
 
         session.find_by_id = patched_find
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -676,7 +676,7 @@ class TestDesktopBackendReadTable:
 
         session.find_by_id = patched_find
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -722,7 +722,7 @@ class TestDesktopBackendReadTable:
 
         session.find_by_id = patched_find
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -769,7 +769,7 @@ class TestDesktopBackendReadTable:
 
         session.find_by_id = patched_find
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
@@ -803,7 +803,7 @@ class TestDesktopBackendClickTableCell:
 
         session.find_by_id = patched_find
 
-        async def mock_run(fn):
+        async def mock_run(fn, **kwargs):
             return fn()
 
         backend.com = MagicMock()
