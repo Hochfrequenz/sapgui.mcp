@@ -741,7 +741,7 @@ def _validate_list_filters(name: str | None, package: str | None, url: str | Non
             return f"Invalid filter: {label} must not be empty"
         if len(value) > _FILTER_MAX_LENGTH:
             return f"Invalid filter: {label} is longer than {_FILTER_MAX_LENGTH} characters"
-    if key is not None and not _KEY_FILTER.fullmatch(key):
+    if key is not None and not _KEY_FILTER.fullmatch(key.strip()):
         return "Invalid filter: key must be 1 to 12 letters or digits"
     return None
 
@@ -807,7 +807,7 @@ def _filter_repos(
         matches_url = _text_matcher(url)
         checks.append(lambda repo: bool(repo.url) and matches_url(repo.url))
     if key is not None:
-        wanted = key.casefold()
+        wanted = key.strip().casefold()
         checks.append(lambda repo: repo.key is not None and repo.key.casefold() == wanted)
     return [repo for repo in repos if all(check(repo) for check in checks)]
 
@@ -823,6 +823,8 @@ def _apply_list_filters(
     """Filter a successful, complete list result (after the read and its completeness check) and shape it."""
     if not result.success:
         return result
+    # Safe: a result straight from _abapgit_list_repos only ever holds AbapGitRepoInfo (summaries are
+    # built below, after filtering), so the cast only narrows the declared union type.
     all_repos = cast("list[AbapGitRepoInfo]", result.repos)
     matched = _filter_repos(all_repos, name, package, url, key)
     total = result.total_count if result.total_count is not None else len(all_repos)
@@ -1307,7 +1309,8 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             agent_id: Agent identifier for binding check. Optional.
 
         Returns:
-            AbapGitListResult with list of AbapGitRepoInfo objects
+            AbapGitListResult with the matching repositories (AbapGitRepoInfo objects, or AbapGitRepoSummary
+            objects when compact=True) plus total_count and matched_count
 
         Example:
             sap_abapgit_list_repos(package="Z_MYAPP*", compact=True)

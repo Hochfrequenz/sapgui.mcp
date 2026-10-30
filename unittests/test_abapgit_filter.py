@@ -17,6 +17,7 @@ from sapguimcp.tools.abapgit_tools import (
     _abapgit_list_repos,
     _apply_list_filters,
     _filter_repos,
+    _glob_match,
     _parse_repo_lines,
     _validate_list_filters,
     register_abapgit_tools,
@@ -116,12 +117,38 @@ def test_repeated_stars_do_not_backtrack_catastrophically() -> None:
         {"name": "x" * 201},
         {"key": "ABCDEFGHIJKLM"},  # 13 characters
         {"key": "AB-1"},
-        {"key": "AB\n"},
+        {"key": "AB CD"},
     ],
 )
 def test_invalid_filters_are_rejected(kwargs: dict[str, str]) -> None:
     kw: dict[str, str | None] = {"name": None, "package": None, "url": None, "key": None, **kwargs}
     assert _validate_list_filters(**kw) is not None  # type: ignore[arg-type]
+
+
+def test_key_is_stripped_like_the_other_filters() -> None:
+    assert _validate_list_filters(None, None, None, " 100000000002\n") is None
+    assert _names(_filter_repos(_repos(), key=" 100000000002\n")) == ["My_Other"]
+
+
+@pytest.mark.parametrize(
+    ("pattern", "text", "expected"),
+    [
+        ("?a", "ba", True),
+        ("?a", "a", False),
+        ("?a", "", False),
+        ("*?", "", False),
+        ("*?", "x", True),
+        ("*", "", True),
+        ("**", "", True),
+        ("?", "", False),
+        ("a*", "", False),
+        ("", "", True),
+        ("*a?c", "xxabc", True),
+        ("*a?c", "xxac", False),
+    ],
+)
+def test_glob_match_edge_cases(pattern: str, text: str, expected: bool) -> None:
+    assert _glob_match(pattern, text) is expected
 
 
 def test_valid_filters_are_accepted() -> None:
