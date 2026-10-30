@@ -37,8 +37,10 @@ from sapguimcp.backend.desktop._com_thread import (
     ComThread,
     SapSessionHaltedError,
     _get_com_error_code,
+    classify_login_failure,
     com_call_target,
     describe_com_error,
+    find_login_failure_cause,
     is_server_fault_error,
     is_transient_busy_error,
 )
@@ -811,11 +813,25 @@ class DesktopBackend:
                 )
                 return LoginResult(success=True, user=user_name, session_id=new_session_id)
             except Exception as e:
+                # #789: surface the real COM cause sapsucker's message hides. No retry (#879).
+                error_text, engine_lost = classify_login_failure(e)
+                found_cause = find_login_failure_cause(e)
                 logger.warning(
                     "login",
-                    extra={"connection": connection_name, "user": username, "success": False, "error": str(e)},
+                    extra={
+                        "success": False,
+                        "hresult": f"0x{found_cause[0] & 0xFFFFFFFF:08X}" if found_cause else None,
+                        "cause_type": type(found_cause[1]).__name__ if found_cause else None,
+                    },
                 )
-                return LoginResult(success=False, error=str(e))
+                if engine_lost:
+                    # The engine is gone, so tracked sessions are dead: prune them. Guarded so a
+                    # reconcile error can never replace the login error.
+                    try:
+                        await self._reconcile_locked()
+                    except Exception:  # pylint: disable=broad-exception-caught
+                        logger.warning("login: reconcile after engine loss failed", exc_info=True)
+                return LoginResult(success=False, error=error_text)
 
     async def _watch_connection_of(self, session: GuiSession) -> None:
         """Let the COM thread watch *session*'s connection for an ABAP debugger.

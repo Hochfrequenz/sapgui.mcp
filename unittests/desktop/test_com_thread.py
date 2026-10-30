@@ -730,3 +730,85 @@ class TestEngineState:
         # After completion the engine is free again.
         state = await com_thread.engine_state()
         assert state["busy"] is False
+
+
+class TestClassifyLoginFailure:
+    """#789: a failed login reports the real COM cause instead of a misleading name hint."""
+
+    @staticmethod
+    def _chained(message: str, hresult: int | None) -> Exception:
+        outer = RuntimeError(message)
+        if hresult is not None:
+            outer.__cause__ = _FakeComError(hresult, "localized text", None, None)
+        return outer
+
+    @pytest.mark.parametrize(
+        ("hresult", "hex_code"),
+        [
+            (-2147023179, "0x800706B5"),
+            (-2147417848, "0x80010108"),
+            (-2147023174, "0x800706BA"),
+            (-2147023170, "0x800706BE"),
+        ],
+    )
+    def test_engine_lost_codes_get_hint_and_unsigned_hex(self, hresult, hex_code):
+        from sapguimcp.backend.desktop._com_thread import classify_login_failure
+
+        message, lost = classify_login_failure(self._chained("Could not open connection '<name>'.", hresult))
+        assert lost is True
+        assert "SAP Logon not reachable or connection lost" in message
+        assert "call sap_login again" in message
+        assert f"HRESULT {hex_code}" in message
+        assert "_FakeComError" in message
+        assert message.startswith("Could not open connection '<name>'.")
+
+    @pytest.mark.parametrize("hresult", [-2147417851, -2147417846, -2147418111, -42])
+    def test_other_hresults_are_annotated_without_hint(self, hresult):
+        from sapguimcp.backend.desktop._com_thread import classify_login_failure
+
+        message, lost = classify_login_failure(self._chained("Could not open connection '<name>'.", hresult))
+        assert lost is False
+        assert "HRESULT 0x" in message
+        assert "SAP Logon not reachable" not in message
+
+    def test_no_hresult_keeps_text_unchanged(self):
+        from sapguimcp.backend.desktop._com_thread import classify_login_failure
+
+        exc = self._chained("Could not open connection '<name>'. Verify the name matches an entry in SAP Logon.", None)
+        message, lost = classify_login_failure(exc)
+        assert lost is False
+        assert message == str(exc)
+
+    def test_walks_multiple_hops(self):
+        from sapguimcp.backend.desktop._com_thread import classify_login_failure
+
+        root = _FakeComError(-2147023174, "x", None, None)
+        mid = RuntimeError("mid")
+        mid.__cause__ = root
+        top = RuntimeError("top")
+        top.__cause__ = mid
+        message, lost = classify_login_failure(top)
+        assert lost is True
+        assert "0x800706BA" in message
+
+    def test_cycle_is_safe(self):
+        from sapguimcp.backend.desktop._com_thread import classify_login_failure
+
+        a = RuntimeError("a")
+        b = RuntimeError("b")
+        a.__cause__ = b
+        b.__cause__ = a
+        message, lost = classify_login_failure(a)
+        assert (message, lost) == ("a", False)
+
+    def test_hop_limit(self):
+        from sapguimcp.backend.desktop._com_thread import classify_login_failure
+
+        exc: Exception = _FakeComError(-2147023174, "x", None, None)
+        for _ in range(10):
+            outer = RuntimeError("wrap")
+            outer.__cause__ = exc
+            exc = outer
+        message, lost = classify_login_failure(exc)
+        assert lost is False
+        assert message == "wrap"
