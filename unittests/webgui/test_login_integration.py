@@ -78,7 +78,10 @@ async def test_page_reports_the_logon_language(sap_mcp_client: ClientSession) ->
     )
     assert page_lang.result, "the WebGUI page has no <html lang>"
     iso_code = page_lang.result.strip('"').split("-")[0].upper()
-    assert iso_code == get_sap_config().get_default().language.upper()
+    assert iso_code in {"DE", "EN"}, f"unexpected <html lang>: {page_lang.result}"
+    if not login.already_logged_in:
+        # A reused session keeps the language it was opened in; only a fresh logon must match.
+        assert iso_code == get_sap_config().get_default().language.upper()
 
 
 @pytest.mark.anyio

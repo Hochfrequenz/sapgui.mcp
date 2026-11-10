@@ -82,7 +82,7 @@ async def test_second_login_in_the_other_language(backend):
                     result = await _execute_sm37_lookup_desktop(
                         backend, job_name="*", username=None, statuses=None, from_date=None, to_date=None
                     )
-                    assert result.success or result.error, f"SM37 in {language}: no result"
+                    assert result.success, f"SM37 in {language} failed: {result.error}"
                     await go_home(backend)
             finally:
                 _current_session_id.reset(token)
@@ -107,5 +107,6 @@ async def test_sm37_date_range_in_the_session_language(backend):
             )
     finally:
         _current_session_id.reset(token)
-    assert result.success or result.job_count == 0, f"SM37 date range failed: {result.error}"
+    # An empty job list is still success=True; a date typed in the wrong format is not.
+    assert result.success, f"SM37 date range failed: {result.error}"
     await go_home(backend)
