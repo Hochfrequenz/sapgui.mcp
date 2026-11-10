@@ -237,13 +237,13 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
     ) -> None:
         """Register session and capture identity after a successful login."""
         registry = await self._get_registry()
-        if not registry.has_session("s1"):
-            registry.register(self._page)
         page_session = registry.session_id_of(self._page)
-        if page_session is not None:
-            registry.set_language(page_session, await self._read_page_language() or requested_language)
-            # The rest of this sap_login call works on this session (#1044).
-            set_session_language(registry.language_of(page_session))
+        if page_session is None:
+            page_session = registry.register(self._page)
+        language = await self._read_page_language() or requested_language or registry.language_of(page_session)
+        registry.set_language(page_session, language)
+        # The rest of this sap_login call works on this session (#1044).
+        set_session_language(registry.language_of(page_session))
         await self._capture_sap_identity(effective_url, mandant, session_id)
 
     async def _read_page_language(self) -> str | None:
@@ -291,7 +291,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             # Already logged in?
             okcode_field = await self._find_okcode_field()
             if okcode_field:
-                await self._post_login_setup(url, client, session_id, language)
+                await self._post_login_setup(url, client, session_id, None)
                 return LoginResult(url=url, already_logged_in=True, guidance=guidance_msg)
 
             # Check for login form
