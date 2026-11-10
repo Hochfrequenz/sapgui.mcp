@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from sapguimcp.models import TableData, TableRow
+from sapguimcp.session_language import use_language
 from sapguimcp.tools.slg1_tools import _slg1_lookup_desktop
 
 
@@ -28,9 +29,7 @@ def _backend(status_message: str, table: TableData) -> Any:
 
 
 async def _lookup(backend: Any) -> Any:
-    config = MagicMock()
-    config.get_default.return_value = SimpleNamespace(language="EN")
-    with patch("sapguimcp.tools.slg1_tools.get_sap_config", return_value=config):
+    with use_language("EN"):
         return await _slg1_lookup_desktop(backend, "OBJ")
 
 
