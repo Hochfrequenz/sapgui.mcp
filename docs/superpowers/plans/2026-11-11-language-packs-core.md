@@ -12,22 +12,26 @@ changes, except the SLG1 text fix.
 and is re-exported by the new package's `__init__.py`. `text.py` holds the sibling value types
 `Text`, `RegexText`, `Template` with cached Python regex builders. `schema.py` holds the frozen,
 slotted `LanguagePack`, its sections (each declaring `MERGE` as a `ClassVar`), the canonical enums
-and the generic field-wise `merge`. `de.py` / `en.py` are the packs; `invariant.py` holds texts
-that are the same in every logon language. `__init__.py` is the registry: it reads the phase-1
+and the generic field-wise `merge`. `de.py` / `en.py` are the packs; `invariant.py` holds the separate `Invariant` type and its constant `INVARIANT` (texts that are
+the same in every logon language). `__init__.py` is the registry: it reads the phase-1
 context variable through `session_language.current_language()` and caches merged views in a dict.
-`models/config.py` takes its `SUPPORTED_LANGUAGES` from `lang.supported_languages()`.
+`models/config.py` drops its `SUPPORTED_LANGUAGES` constant and passes `lang.supported_languages()` to
+the config loader.
 
 **Tech Stack:** Python 3.11+, frozen slotted dataclasses, `functools.cache`, `re`, pytest.
 
 Spec: `docs/superpowers/specs/2026-11-10-language-packs-design.md` §1–§6 and the scanner-free
-part of §10. Phase 1 (session language plumbing) is already on this branch.
+part of §10. Phase 1 (session language plumbing, #1046) is merged to `main`; Task 0 branches from
+it and checks that it is really there.
 
 **Not in 2a** (split decided):
 
 - **2b:** no-literal scanner, `lang_baseline.json`, synthetic third language (with the
   registration hook it needs, see decision 13), test pack from `lang_test.py` / `lang_strings`.
 - **2c:** `sources.py`, `harvest_lang_texts.py`, `Text.for_js()` / `RegexText.for_js()` and the JS
-  object-argument convention.
+  object-argument convention, and the `html_lang` → SAP language key lookup that WebGUI
+  `_read_page_language` needs (the pack carries `html_lang`; nothing maps a page's `<html lang>`
+  back to a pack in 2a).
 
 ## Decisions made while planning
 
@@ -46,7 +50,7 @@ part of §10. Phase 1 (session language plumbing) is already on this branch.
    `session_pages` start **empty**: their texts live in backends and JS today, and copying them
    into packs before the phase-3 migration moves the consumers would create a second, untested
    source of truth. `keys` is **seeded** from `sap_tools._is_keyboard_shortcut` (Ctrl/Strg,
-   Shift/Umschalt, Alt, Enter/Eingabe, Delete/Entf, all `word=True`), so the `all` merge, a
+   Shift/Umschalt, Alt, Enter/Eingabe, Delete/Entf, Escape/Esc, all `word=True`), so the `all` merge, a
    canonical mapping in an `all` section and the `same_as_en` check run on real data. `status`,
    `se38`, `abapgit`, `quick_report` are added by their phase-3 migrations, with fields in both
    packs at once (required fields).
@@ -61,12 +65,13 @@ part of §10. Phase 1 (session language plumbing) is already on this branch.
    (`Klassenpflege: {name} anzeigen` / `Class Builder: Display {name}`). `spro.results_dialog`
    stays a `Text` holding today's fragments; turning it into a template needs fixture evidence
    (phase 3).
-5. **`invariant.py` is its own dataclass**, `Invariant`, reached through `lang.invariant()`, not a
-   section merged into `LanguagePack`. A pack field would have to be filled in every pack (required
-   fields), and merging language-independent text is the identity. It holds `sm34_hint`
-   (`SM30_USE_SM34_*` = "SM34", a transaction code).
-6. **`universal()` returns `UniversalView`**, a dataclass with exactly the four `all` sections, not
-   a full `LanguagePack`. mypy then rejects parsing a transaction screen against every language. In
+5. **`invariant.py` is its own dataclass**, `Invariant`, exported as the constant `lang.INVARIANT`
+   (no accessor function: there is nothing to select or merge), not a section of `LanguagePack`. A
+   pack field would have to be filled in every pack (required fields), and merging
+   language-independent text is the identity. It holds `sm34_hint` (`SM30_USE_SM34_*` = "SM34", a
+   transaction code).
+6. **`universal()` returns `UniversalView`** (defined in `schema.py`, re-exported by `lang`), its own
+   dataclass with exactly the four `all` sections, not a full `LanguagePack`. mypy then rejects parsing a transaction screen against every language. In
    `current()` the `all` sections hold the same texts, session pack first (click-candidate
    order); `universal()` uses registration order.
 7. **`current()` without a known language raises `UnsupportedLanguageError`** (message "…needs the
@@ -76,8 +81,10 @@ part of §10. Phase 1 (session language plumbing) is already on this branch.
    production code calls `current()` in 2a.
 8. **`SapLanguage`, `as_sap_language` and `session_sap_language` stay unchanged in 2a.** They type
    the date formatting of SLG1/SM37/ST22 (phase-1 callers); the pack's `date_format` replaces them
-   in the SM37/SLG1/ST22 migration. `models/config.py` switches to `lang.supported_languages()`, and
-   a test pins `set(get_args(SapLanguage)) == set(lang.supported_languages())` until then.
+   in the SM37/SLG1/ST22 migration. `models/config.py` loses `SUPPORTED_LANGUAGES` (its only consumer
+   was the config loader; checked with a grep over `src`) and calls `lang.supported_languages()`
+   instead, and a test pins `set(get_args(SapLanguage)) == set(lang.supported_languages())` until
+   then.
 9. **SLG1 text fix:** `SLG1_NO_LOGS_FOUND_EN` becomes SAP's BL 208 text "No log found in the
    database". The former text stays as `SLG1_NO_LOGS_FOUND_EN_LEGACY` and as the second variant
    of `slg1.no_logs_found`, because `unittests/test_slg1_desktop_unreadable_list.py` feeds it and
@@ -95,6 +102,40 @@ part of §10. Phase 1 (session language plumbing) is already on this branch.
     silently.
 13. **No registration API yet.** `_PACKS` is a module-level dict. Phase 2b's synthetic language
     needs a test hook that registers a pack and clears `_views` and `universal.cache_clear()`.
+    Until then a test may patch `lang._PACKS` only for things that read the registry directly
+    (`supported_languages()`, `pack_for()`); it must not be combined with `view_for()` /
+    `current()` / `universal()`, whose caches would keep the patched pack.
+14. **Guards are helpers.** Each completeness guard is a function `_check_…(pack, reference)`
+    called by the parametrized test, so phase 2b's synthetic language runs the same checks. The
+    cheap mutation checks are permanent negative tests built with `dataclasses.replace(DE, …)`;
+    only the `schema.py` mutation (a merge mode) stays a manual step.
+15. **`HasAlt` is a plain `Protocol`** (static typing only), not `@runtime_checkable`: nothing
+    outside tests would call `isinstance` on it.
+16. **`Template` details.** Each literal part is scoped on its own (`(?i:…)`), so a group value
+    stays outside the case fold; whitespace runs in literals match `\s+`; a placeholder at the
+    very end of a variant captures the whole rest of the line (`.+`), any other default group is
+    lazy (`.+?`); placeholder names are identifiers (`[A-Za-z_]\w*`). `RegexText` rejects named
+    groups (they belong in `Template`).
+
+## Consequences for phase 3 (read before planning it)
+
+2a changes no consumer, but the registry it ships changes what the migrations will cost:
+
+- **The autouse fixture leaves the language unset.** `reset_session_language` (phase 1) runs
+  every test with language `None`. Once a parser or tool calls `lang.current()`, its existing unit
+  tests fail with `UnsupportedLanguageError` until they run inside `with lang.use("DE"):` or take
+  the `lang_de` / `lang_en` fixtures from Task 5. Every migration edits its test files; budget it.
+- **SLG1, SM37 and ST22 change behaviour.** Today `session_sap_language()` falls back to the
+  default system's language when the session language is unknown, and collapses an unsupported
+  session language to EN with a warning. `lang.current()` does neither: both cases become
+  `UnsupportedLanguageError`. List this as a behaviour change in the migration PR and live-test it:
+  a tool call without a known session language, and one on a session whose language has no pack.
+- **Module-level compiled patterns move to call time.** A pattern such as
+  `re.compile(rf"…{X_DE}…")` built at import cannot use `lang.current()`, which needs the session.
+  Build the regex source inside the function from `lang.current()` and compile it with
+  `text.compiled(source)` (cached by source string), or use a `Text.pattern` / `Template`.
+- **`lang.universal()` stays session-free.** Popup, status-type, session-page and key-name checks
+  migrate to it and keep working before login and on unsupported languages.
 
 ## Testing rules (read before running anything)
 
@@ -117,10 +158,11 @@ part of §10. Phase 1 (session language plumbing) is already on this branch.
 | Move `src/sapguimcp/lang.py` → `src/sapguimcp/lang/_legacy.py`                                    | former constants, verbatim, explicit `__all__`; SM37 maps derived from the packs; SLG1 EN fix                                                                 |
 | Create `src/sapguimcp/lang/__init__.py`                                                           | registry and public API; re-exports `_legacy`                                                                                                                 |
 | Create `src/sapguimcp/lang/text.py`                                                               | `Text`, `RegexText`, `Template`, `HasAlt`, `alt_of`, cached regex builders                                                                                    |
-| Create `src/sapguimcp/lang/schema.py`                                                             | canonical enums, sections with `MERGE`, `LanguagePack`, `sections`/`iter_leaves`/`resolve`, `merge`                                                           |
+| Create `src/sapguimcp/lang/schema.py`                                                             | canonical enums, sections with `MERGE`, `LanguagePack`, `UniversalView`, `sections`/`iter_leaves`/`resolve`, `merge`                                          |
 | Create `src/sapguimcp/lang/de.py`, `en.py`                                                        | the packs                                                                                                                                                     |
 | Create `src/sapguimcp/lang/invariant.py`                                                          | `Invariant`, `INVARIANT`                                                                                                                                      |
-| Modify `src/sapguimcp/models/config.py`                                                           | `SUPPORTED_LANGUAGES = supported_languages()`                                                                                                                 |
+| Modify `src/sapguimcp/models/config.py`                                                           | delete `SUPPORTED_LANGUAGES`; the loader gets `supported_languages()`                                                                                         |
+| Modify `unittests/conftest.py`                                                                    | `lang_de` / `lang_en` fixtures                                                                                                                                |
 | Modify `src/sapguimcp/tools/slg1_tools.py`, `src/sapguimcp/backend/webgui/parsers/slg1_parser.py` | accept `SLG1_NO_LOGS_FOUND_EN_LEGACY` too                                                                                                                     |
 | Tests (new)                                                                                       | `unittests/lang/__init__.py`, `test_text.py`, `test_schema_merge.py`, `test_packs.py`, `test_registry.py`, `test_pack_completeness.py`, `test_legacy_shim.py` |
 | Tests (modified)                                                                                  | `unittests/test_sap_config_languages.py`, `unittests/test_slg1_desktop_unreadable_list.py`, `unittests/webgui/test_slg1_parser.py`                            |
@@ -131,20 +173,49 @@ Rule from the spec: type design and central paths go to opus (reviewed by fable)
 moves and data entry go to sonnet/haiku. Escalate one level after two failed attempts or a design
 finding in review; never downgrade mid-task.
 
-| Task                                            | Implement                                | Review | Depends on | Parallel with |
-| ----------------------------------------------- | ---------------------------------------- | ------ | ---------- | ------------- |
-| 1 move `lang.py` into the package               | haiku                                    | sonnet | —          | —             |
-| 2 `text.py` value types and regex builders      | opus                                     | fable  | 1          | —             |
-| 3 `schema.py`: sections, merge modes, `merge`   | opus                                     | fable  | 2          | —             |
-| 4 DE/EN packs, `invariant.py`                   | sonnet                                   | sonnet | 3          | —             |
-| 5 registry in `__init__.py`                     | opus                                     | fable  | 4          | —             |
-| 6 completeness guards (§10, scanner-free)       | sonnet                                   | opus   | 5          | 7, 8          |
-| 7 legacy consistency, SM37 derivation, SLG1 fix | sonnet                                   | sonnet | 5          | 6, 8          |
-| 8 `SUPPORTED_LANGUAGES` from the packs          | sonnet                                   | opus   | 5          | 6, 7          |
-| 9 final verification and live tests             | controller (haiku may collect summaries) | —      | 6, 7, 8    | —             |
+| Task                                            | Implement                                | Review | Depends on |
+| ----------------------------------------------- | ---------------------------------------- | ------ | ---------- |
+| 0 branch from `main`, check preconditions       | controller                               | -      | -          |
+| 1 move `lang.py` into the package               | haiku                                    | sonnet | 0          |
+| 2 `text.py` value types and regex builders      | opus                                     | fable  | 1          |
+| 3 `schema.py`: sections, merge modes, `merge`   | opus                                     | fable  | 2          |
+| 4 DE/EN packs, `invariant.py`                   | sonnet                                   | sonnet | 3          |
+| 5 registry in `__init__.py`, language fixtures  | opus                                     | fable  | 4          |
+| 6 completeness guards (§10, scanner-free)       | sonnet                                   | opus   | 5          |
+| 7 legacy consistency, SM37 derivation, SLG1 fix | sonnet                                   | sonnet | 6          |
+| 8 drop `SUPPORTED_LANGUAGES`, use the packs     | sonnet                                   | opus   | 7          |
+| 9 final verification and live tests             | controller (haiku may collect summaries) | -      | 8          |
 
-Tasks 6, 7 and 8 touch disjoint files. When they run in parallel in one working tree, each agent
-stages only its own paths; if `git commit` reports `index.lock`, wait and retry the commit.
+Tasks run strictly in order, one agent at a time in one working tree. Tasks 6, 7 and 8 are
+sequential (6 → 7 → 8), not parallel: Task 7 reuses the guards' helpers and Task 8 the registry
+tests, and one shared index makes parallel commits fragile.
+
+---
+
+### Task 0: Branch from `main` and check the preconditions
+
+Phase 1 (#1046) is merged, so the work branches from `main`. Stop and report if a check fails: the
+plan builds on phase 1 and must not recreate it.
+
+- [ ] **Step 1: Branch**
+
+```bash
+git fetch origin
+git switch -c feat/1044-phase2a-language-pack-core origin/main
+```
+
+- [ ] **Step 2: Check what phase 1 and the spec provide** — every command must succeed:
+
+```bash
+test -f src/sapguimcp/session_language.py
+grep -n "def reset_session_language" unittests/conftest.py
+grep -n "def use_language\|def current_language\|def normalize_language\|def set_session_language" src/sapguimcp/session_language.py
+test -f docs/superpowers/specs/2026-11-10-language-packs-design.md
+test ! -d src/sapguimcp/lang
+```
+
+The `grep` for `reset_session_language` must find the autouse fixture; without it a test that sets
+the session language leaks it into the next test.
 
 ---
 
@@ -216,9 +287,9 @@ __all__ += _legacy.__all__
 - [ ] **Step 5: Check that every value is unchanged**
 
 ```bash
-# <scratch> = any directory outside the repository, e.g. the agent's scratchpad
-git show HEAD:src/sapguimcp/lang.py > <scratch>/old_lang.py
-uv run python - <scratch>/old_lang.py <<'EOF'
+tmp="$(mktemp -d)"   # outside the repository
+git show main:src/sapguimcp/lang.py > "$tmp/old_lang.py"
+uv run python - "$tmp/old_lang.py" <<'EOF'
 import runpy, sys
 import sapguimcp.lang as new
 old = runpy.run_path(sys.argv[1])
@@ -271,7 +342,7 @@ import re
 
 import pytest
 
-from sapguimcp.lang.text import HasAlt, RegexText, Template, Text, alt_of
+from sapguimcp.lang.text import RegexText, Template, Text, alt_of
 
 
 class TestTextValidation:
@@ -337,11 +408,6 @@ class TestTextAlt:
     def test_without_fold_the_group_is_case_sensitive(self) -> None:
         assert Text(("Abc",), fold=False).alt == "(?:Abc)"
 
-    def test_has_alt_protocol(self) -> None:
-        assert isinstance(Text(("x",)), HasAlt)
-        assert isinstance(RegexText(("x",)), HasAlt)
-        assert not isinstance(Template(("{x}",)), HasAlt)
-
 
 class TestRegexText:
     def test_an_invalid_pattern_fails_at_construction(self) -> None:
@@ -352,6 +418,13 @@ class TestRegexText:
         regex = RegexText(("Dictionary.*Typ", "Dictionary.*type"))
         assert regex.alt == "(?i:(?:Dictionary.*Typ)|(?:Dictionary.*type))"
         assert regex.pattern.search("dictionary: TYPE")
+
+    def test_named_groups_are_rejected(self) -> None:
+        with pytest.raises(ValueError, match="belong in Template"):
+            RegexText(("Display (?P<name>\\w+)",))
+
+    def test_unnamed_groups_are_fine(self) -> None:
+        assert RegexText(("Dictionary (Typ|type)",)).pattern.search("dictionary TYPE")
 
 
 class TestTemplate:
@@ -392,12 +465,43 @@ class TestTemplate:
         with pytest.raises(KeyError, match="other"):
             Template(("Display {name}",)).search("Display X", other=r"\w+")
 
+    def test_a_group_value_stays_outside_the_case_fold(self) -> None:
+        template = Template(("Display {name}",))
+        assert template.search("Display abc", name=r"[A-Z]+") is None
+        assert template.search("DISPLAY ABC", name=r"[A-Z]+") is not None  # the literal part folds
+
+    def test_a_trailing_placeholder_captures_the_whole_rest(self) -> None:
+        match = Template(("Display {name}",)).search("Display CL_FOO")
+        assert match is not None
+        assert match["name"] == "CL_FOO"
+
+    def test_a_placeholder_in_the_middle_is_lazy(self) -> None:
+        match = Template(("Class Builder: {name} display",)).search("Class Builder: CL_FOO display")
+        assert match is not None
+        assert match["name"] == "CL_FOO"
+
+    def test_whitespace_in_a_literal_part_matches_any_whitespace_run(self) -> None:
+        template = Template(("Display {name}",))
+        for heading in ("Display  CL_FOO", "Display\tCL_FOO", "Display\u00a0CL_FOO"):
+            match = template.search(heading, name=r"\w+")
+            assert match is not None, heading
+            assert match["name"] == "CL_FOO"
+
+    def test_braces_that_are_not_identifiers_stay_literal(self) -> None:
+        template = Template(("{1} and {name}",))
+        assert template.placeholders == {"name"}
+        assert template.format(name="X") == "{1} and X"
+
 
 class TestAltOf:
     def test_joins_texts_into_one_group(self) -> None:
         pattern = re.compile(alt_of(Text(("Klasse", "Class")), Text(("Interface",))))
         assert pattern.fullmatch("interface")
         assert pattern.fullmatch("Klasse")
+
+    def test_accepts_regex_texts(self) -> None:
+        pattern = re.compile(alt_of(Text(("Klasse",)), RegexText(("Dictionary.*Typ",))))
+        assert pattern.fullmatch("dictionary: Typ")
 
     def test_needs_a_text(self) -> None:
         with pytest.raises(ValueError, match="at least one"):
@@ -428,20 +532,25 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from functools import cache
-from typing import TYPE_CHECKING, Protocol, TypeVar, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, TypeVar
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
 
 T = TypeVar("T")
 
-_PLACEHOLDER = re.compile(r"\{(\w+)\}")
+_PLACEHOLDER = re.compile(r"\{([A-Za-z_]\w*)\}")
 _DEFAULT_GROUP = r".+?"
+_TRAILING_GROUP = r".+"
+"""A placeholder that ends a variant captures the whole rest of the line, not a lazy fragment."""
 
 
-@runtime_checkable
 class HasAlt(Protocol):
-    """Anything that renders as a regex alternation group to embed into a larger regex."""
+    """Anything that renders as a regex alternation group to embed into a larger regex.
+
+    Static typing only (not ``runtime_checkable``): ``Template`` deliberately has no ``alt``, and
+    mypy is what keeps it out of ``alt_of``.
+    """
 
     @property
     def alt(self) -> str:
@@ -511,6 +620,14 @@ def compiled(source: str) -> re.Pattern[str]:
     return re.compile(source)
 
 
+def _literal_source(literal: str, fold: bool) -> str:
+    """Scoped regex for one literal part of a template; whitespace runs match any whitespace."""
+    if not literal:
+        return ""
+    body = r"\s+".join(re.escape(piece) for piece in re.split(r"\s+", literal))
+    return _scoped(body, fold)
+
+
 @cache
 def template_patterns(
     variants: tuple[str, ...], fold: bool, groups: tuple[tuple[str, str], ...]
@@ -518,7 +635,8 @@ def template_patterns(
     """One compiled pattern per template variant (Python rejects duplicate group names).
 
     ``groups`` maps placeholder names to the regex source of their capture group; placeholders
-    without an entry capture ``.+?``. Literal parts are escaped.
+    without an entry capture ``.+?`` (``.+`` at the very end of a variant). Each literal part is
+    scoped on its own with the case flag, so the capture groups stay outside the fold.
     """
     sources = dict(groups)
     patterns: list[re.Pattern[str]] = []
@@ -526,12 +644,13 @@ def template_patterns(
         parts: list[str] = []
         position = 0
         for match in _PLACEHOLDER.finditer(variant):
-            parts.append(re.escape(variant[position : match.start()]))
+            parts.append(_literal_source(variant[position : match.start()], fold))
             name = match.group(1)
-            parts.append(f"(?P<{name}>{sources.get(name, _DEFAULT_GROUP)})")
+            default = _TRAILING_GROUP if match.end() == len(variant) else _DEFAULT_GROUP
+            parts.append(f"(?P<{name}>{sources.get(name, default)})")
             position = match.end()
-        parts.append(re.escape(variant[position:]))
-        patterns.append(re.compile(_scoped("".join(parts), fold)))
+        parts.append(_literal_source(variant[position:], fold))
+        patterns.append(re.compile("".join(parts)))
     return tuple(patterns)
 
 
@@ -601,14 +720,19 @@ class Text:
 
 @dataclass(frozen=True, slots=True)
 class RegexText:
-    """Irregular text that needs a regex; raw pattern strings. No iteration, no clicking."""
+    """Irregular text that needs a regex; raw pattern strings. No iteration, no clicking.
+
+    No named groups: several patterns are alternated into one regex, where a repeated group name
+    is an error. Text with captures belongs in :class:`Template`.
+    """
 
     patterns: tuple[str, ...]
     fold: bool = True
 
     def __post_init__(self) -> None:
         for pattern in _require_strings("RegexText patterns", self.patterns):
-            re.compile(pattern)  # fail at import, not at first use
+            if re.compile(pattern).groupindex:  # fail at import, not at first use
+                raise ValueError(f"named groups belong in Template, not RegexText: {pattern!r}")
 
     @property
     def alt(self) -> str:
@@ -692,6 +816,8 @@ Notes for the implementer:
 - `re.escape` escapes spaces (`Anzahl\ Treffer`), exactly like today's `bilingual_pattern`.
 - `(?i:…)` scopes the case flag, so `alt` embeds into case-sensitive regexes.
 - A `str` group value in `Template.search` is a raw regex; a `HasAlt` value contributes its `alt`.
+- `Template` scopes the case flag around each literal part, not around the whole pattern, so a
+  group value such as `[A-Z]+` stays case-sensitive (decision 16).
 
 - [ ] **Step 4: Run to verify they pass**
 
@@ -877,6 +1003,7 @@ class Key(StrEnum):
     ALT = "Alt"
     ENTER = "Enter"
     DELETE = "Delete"
+    ESCAPE = "Escape"
 
 
 def canonical(entries: Mapping[S, Text]) -> Mapping[S, Text]:
@@ -912,7 +1039,7 @@ class SessionPagesSection:
 
 @dataclass(frozen=True, slots=True)
 class KeysSection:
-    """Localized key names, from ``sap_tools._is_keyboard_shortcut``."""
+    """Localized key names, from ``sap_tools._is_keyboard_shortcut`` (F-keys are language-free)."""
 
     MERGE: ClassVar[MergeMode] = "all"
     names: Mapping[Key, Text]
@@ -1085,12 +1212,30 @@ class LanguagePack:
     st22: St22Section
 
 
+@dataclass(frozen=True, slots=True)
+class UniversalView:
+    """The ``all`` sections merged over every registered pack, independent of any session.
+
+    Its own type with exactly the four ``all`` sections, not a ``LanguagePack``: mypy then rejects
+    parsing a transaction screen (a ``session_en`` section) against every language.
+    """
+
+    popup: PopupSection
+    status_type: StatusTypeSection
+    session_pages: SessionPagesSection
+    keys: KeysSection
+
+
+PackLike = LanguagePack | UniversalView
+"""What the walkers accept: a pack, a merged view of it, or the universal view."""
+
+
 # =============================================================================
 # Walking and merging
 # =============================================================================
 
 
-def sections(pack: LanguagePack) -> Iterator[tuple[str, Any]]:
+def sections(pack: PackLike) -> Iterator[tuple[str, Any]]:
     """``(name, section)`` for every section field of ``pack`` (skips scalar pack fields)."""
     for field in dataclasses.fields(pack):
         value = getattr(pack, field.name)
@@ -1098,7 +1243,7 @@ def sections(pack: LanguagePack) -> Iterator[tuple[str, Any]]:
             yield field.name, value
 
 
-def iter_leaves(pack: LanguagePack) -> Iterator[tuple[str, Leaf]]:
+def iter_leaves(pack: PackLike) -> Iterator[tuple[str, Leaf]]:
     """Every text of ``pack`` with its path: ``se16.hit_count_label``, ``sm37.status[Ready]``."""
     for section_name, section in sections(pack):
         for field in dataclasses.fields(section):
@@ -1111,7 +1256,7 @@ def iter_leaves(pack: LanguagePack) -> Iterator[tuple[str, Leaf]]:
                 yield path, value
 
 
-def resolve(pack: LanguagePack, path: str) -> Leaf:
+def resolve(pack: PackLike, path: str) -> Leaf:
     """The text at ``path`` (as produced by :func:`iter_leaves`); ``KeyError`` if there is none."""
     for leaf_path, leaf in iter_leaves(pack):
         if leaf_path == path:
@@ -1306,7 +1451,7 @@ DE = LanguagePack(
     html_lang="de",
     logon_dropdown="Deutsch",
     date_format="%d.%m.%Y",
-    same_as_en=frozenset({"se24.interface_label", "keys.names[Alt]"}),
+    same_as_en=frozenset({"se24.interface_label", "keys.names[Alt]", "keys.names[Escape]"}),
     common=CommonSection(
         display=Text(("Anzeigen",)),
         not_found=Text(("nicht gefunden",)),
@@ -1327,6 +1472,7 @@ DE = LanguagePack(
                 Key.ALT: Text(("Alt",), word=True),
                 Key.ENTER: Text(("Eingabe",), word=True),
                 Key.DELETE: Text(("Entf",), word=True),
+                Key.ESCAPE: Text(("Escape", "Esc"), word=True),
             }
         ),
     ),
@@ -1494,6 +1640,7 @@ EN = LanguagePack(
                 Key.ALT: Text(("Alt",), word=True),
                 Key.ENTER: Text(("Enter",), word=True),
                 Key.DELETE: Text(("Delete",), word=True),
+                Key.ESCAPE: Text(("Escape", "Esc"), word=True),
             }
         ),
     ),
@@ -1623,7 +1770,7 @@ from sapguimcp.lang.text import Text
 
 @dataclass(frozen=True, slots=True)
 class Invariant:
-    """Language-independent texts, available in every session via ``lang.invariant()``."""
+    """Language-independent texts; exported as the constant ``lang.INVARIANT``."""
 
     sm34_hint: Text
     """SM30 points to SM34 for view clusters; the transaction code is not translated."""
@@ -1649,7 +1796,7 @@ git commit -m "feat(lang): DE and EN language packs from the lang.py texts (#104
 
 ---
 
-### Task 5: Registry and accessors
+### Task 5: Registry, accessors and language fixtures
 
 Spec §4–§6. `lang/` must not import `sapguimcp.models.config` (the config imports from here).
 `session_language` imports only `sapguimcp.utils` at module level, so importing it is safe.
@@ -1657,6 +1804,7 @@ Spec §4–§6. `lang/` must not import `sapguimcp.models.config` (the config im
 **Files:**
 
 - Modify (replace): `src/sapguimcp/lang/__init__.py`
+- Modify: `unittests/conftest.py` (`lang_de`, `lang_en`)
 - Test: `unittests/lang/test_registry.py`
 
 - [ ] **Step 1: Write the failing tests**
@@ -1735,11 +1883,30 @@ def test_universal_needs_no_session() -> None:
         names = lang.universal().keys.names
     assert names[Key.CTRL].variants == ("Strg", "Ctrl")
     assert names[Key.ALT].variants == ("Alt",)
+    assert names[Key.ESCAPE].variants == ("Escape", "Esc")
     assert lang.universal() is lang.universal()
 
 
-def test_invariant_texts() -> None:
-    assert lang.invariant().sm34_hint.variants == ("SM34",)
+def test_invariant_is_a_constant_of_its_own_type() -> None:
+    assert isinstance(lang.INVARIANT, lang.Invariant)
+    assert lang.INVARIANT.sm34_hint.variants == ("SM34",)
+
+
+def test_universal_is_not_a_language_pack() -> None:
+    assert not isinstance(lang.universal(), lang.LanguagePack)
+    assert isinstance(lang.universal(), lang.UniversalView)
+
+
+def test_lang_de_fixture(lang_de: lang.LanguagePack) -> None:
+    assert current_language() == "DE"
+    assert lang_de is lang.current()
+    assert lang_de.code == "DE"
+
+
+def test_lang_en_fixture(lang_en: lang.LanguagePack) -> None:
+    assert current_language() == "EN"
+    assert lang_en is lang.current()
+    assert lang_en.code == "EN"
 
 
 def test_lang_does_not_import_the_config() -> None:
@@ -1764,7 +1931,7 @@ Public API:
   :class:`UnsupportedLanguageError` when the session language has no pack.
 - :func:`universal` - the sections that match every registered language (popups, status-type
   inference, session pages, key names), usable without any session.
-- :func:`invariant` - texts that are the same in every logon language.
+- :data:`INVARIANT` - texts that are the same in every logon language (an :class:`Invariant`).
 - :func:`use` / :func:`set_session_language` - set the session language (tests, login).
 - :func:`pack_for`, :func:`supported_languages` - the registry.
 
@@ -1788,15 +1955,7 @@ from sapguimcp.lang._legacy import *  # noqa: F403  # re-export of the former la
 from sapguimcp.lang.de import DE
 from sapguimcp.lang.en import EN
 from sapguimcp.lang.invariant import INVARIANT, Invariant
-from sapguimcp.lang.schema import (
-    KeysSection,
-    LanguagePack,
-    PopupSection,
-    SessionPagesSection,
-    StatusTypeSection,
-    merge,
-    sections,
-)
+from sapguimcp.lang.schema import LanguagePack, UniversalView, merge, sections
 from sapguimcp.lang.text import HasAlt, RegexText, Template, Text, alt_of
 from sapguimcp.session_language import current_language, normalize_language, set_session_language, use_language
 
@@ -1804,6 +1963,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
 __all__ = [
+    "INVARIANT",
     "HasAlt",
     "Invariant",
     "LanguagePack",
@@ -1814,7 +1974,6 @@ __all__ = [
     "UnsupportedLanguageError",
     "alt_of",
     "current",
-    "invariant",
     "pack_for",
     "set_session_language",
     "supported_languages",
@@ -1848,16 +2007,6 @@ class UnsupportedLanguageError(RuntimeError):
         else:
             message = f"{feature} needs a language pack for {language}; supported: {supported}"
         super().__init__(message)
-
-
-@dataclasses.dataclass(frozen=True, slots=True)
-class UniversalView:
-    """The ``all`` sections merged over every registered pack, independent of any session."""
-
-    popup: PopupSection
-    status_type: StatusTypeSection
-    session_pages: SessionPagesSection
-    keys: KeysSection
 
 
 def supported_languages() -> tuple[str, ...]:
@@ -1919,11 +2068,6 @@ def universal() -> UniversalView:
     )
 
 
-def invariant() -> Invariant:
-    """Texts that are the same in every logon language."""
-    return INVARIANT
-
-
 @contextmanager
 def use(code: str | None) -> Iterator[None]:
     """Temporarily set the session language: ``with lang.use("DE"): lang.current()``."""
@@ -1938,42 +2082,84 @@ Notes for the implementer:
   `__init__`.
 - `_build_view` uses `dataclasses.replace(session, **merged)`, so every scalar pack field comes
   from the session pack without listing them.
+- `UniversalView` lives in `schema.py` (the walkers `sections` / `iter_leaves` / `resolve` accept
+  it); `__init__` re-exports it. `INVARIANT` is re-exported as a constant: no accessor.
 - `current()` checks `code not in _PACKS` itself (rather than calling `pack_for`) so the error names
   the caller's `feature`.
 
-- [ ] **Step 4: Run to verify they pass**
+- [ ] **Step 4: Ship the `lang_de` / `lang_en` fixtures** in `unittests/conftest.py`, right after
+      the autouse `reset_session_language` fixture. Phase 3's migrated parser and tool tests need a
+      session language (see "Consequences for phase 3"); shipping the fixtures now means every
+      migration reuses them instead of inventing its own:
+
+```python
+@pytest.fixture
+def lang_de() -> Generator["LanguagePack", None, None]:
+    """Run the test in a German session; yields the merged view ``lang.current()`` returns."""
+    from sapguimcp import lang
+
+    with lang.use("DE"):
+        yield lang.current()
+
+
+@pytest.fixture
+def lang_en() -> Generator["LanguagePack", None, None]:
+    """Run the test in an English session; yields the merged view ``lang.current()`` returns."""
+    from sapguimcp import lang
+
+    with lang.use("EN"):
+        yield lang.current()
+```
+
+and, at the top of the file with the other imports, a type-only import:
+
+```python
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sapguimcp.lang import LanguagePack
+```
+
+(`conftest.py` imports `sapguimcp` lazily today, because the config probe must not run at
+collection time; keep the runtime imports inside the fixtures.)
+
+- [ ] **Step 5: Run to verify they pass**
 
 Run: `uv run --group tests python -m pytest unittests/lang/ -q`
 
-- [ ] **Step 5: Re-run the importers' tests from Task 1 Step 6** (the re-export must still work).
+- [ ] **Step 6: Re-run the importers' tests from Task 1 Step 6** (the re-export must still work).
 
-- [ ] **Step 6: Lint and type check.**
+- [ ] **Step 7: Lint and type check.**
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add src/sapguimcp/lang/__init__.py unittests/lang/test_registry.py
-git commit -m "feat(lang): pack registry with current(), universal() and pack_for() (#1044)"
+git add src/sapguimcp/lang/__init__.py unittests/lang/test_registry.py unittests/conftest.py
+git commit -m "feat(lang): pack registry with current(), universal() and pack_for(); lang_de/lang_en fixtures (#1044)"
 ```
 
 ---
 
 ### Task 6: Completeness and translation guards
 
-Spec §10, the checks that need no source scanner. These tests pass against correct packs, so the
-TDD step is a **mutation check**: break a pack on purpose, see the right test fail, revert.
+Spec §10, the checks that need no source scanner. Each guard is a helper `_check_…(pack,
+reference)` (or `(pack)` when it needs no reference) that the parametrized tests call for every
+registered language, so phase 2b's synthetic third language runs the same helpers. The guards pass
+against correct packs, so the TDD step is the **negative tests**: each one builds a broken pack
+with `dataclasses.replace(DE, …)` and asserts that the right guard rejects it. Only one defect, a
+wrong merge mode in `schema.py`, is checked by hand.
 
 **Files:**
 
 - Test: `unittests/lang/test_pack_completeness.py`
 
-- [ ] **Step 1: Write the guards**
+- [ ] **Step 1: Write the guards and the negative tests**
 
 ```python
 """Completeness and translation guards over every registered language pack (#1044, spec section 10).
 
 Phase 2a covers the checks that need no source scanner. The synthetic third language and the
-no-literal scanner follow in phase 2b.
+no-literal scanner follow in phase 2b; that phase calls the ``_check_*`` helpers with its own pack.
 """
 
 import dataclasses
@@ -1981,18 +2167,25 @@ import re
 from collections.abc import Mapping
 from datetime import date
 from enum import StrEnum
+from typing import Any
 
 import pytest
 
 from sapguimcp import lang
+from sapguimcp.lang.de import DE
 from sapguimcp.lang.schema import (
     DumpSection,
     JobStatus,
     Key,
+    KeysSection,
     LanguagePack,
     Leaf,
+    PackLike,
+    PopupSection,
+    Sm37Section,
     TransportStatus,
     Visibility,
+    canonical,
     iter_leaves,
     resolve,
     sections,
@@ -2018,7 +2211,7 @@ def _packs() -> list[LanguagePack]:
     return [lang.pack_for(code) for code in LANGUAGES]
 
 
-def _mappings(pack: LanguagePack) -> dict[str, Mapping[StrEnum, Text]]:
+def _mappings(pack: PackLike) -> dict[str, Mapping[StrEnum, Text]]:
     found: dict[str, Mapping[StrEnum, Text]] = {}
     for section_name, section in sections(pack):
         for field in dataclasses.fields(section):
@@ -2028,86 +2221,72 @@ def _mappings(pack: LanguagePack) -> dict[str, Mapping[StrEnum, Text]]:
     return found
 
 
-def _group_names(leaf: Leaf) -> frozenset[str]:
-    if isinstance(leaf, Template):
-        return leaf.placeholders
-    if isinstance(leaf, RegexText):
-        return frozenset(name for pattern in leaf.patterns for name in re.compile(pattern).groupindex)
-    return frozenset()
+def _placeholders(leaf: Leaf) -> frozenset[str]:
+    return leaf.placeholders if isinstance(leaf, Template) else frozenset()
 
 
-@pytest.mark.parametrize("code", LANGUAGES)
-def test_pack_scalars(code: str) -> None:
-    pack = lang.pack_for(code)
-    assert pack.code == code
+# ---------------------------------------------------------------------------
+# The guards. Each raises AssertionError (or KeyError for an unresolvable path).
+# ---------------------------------------------------------------------------
+
+
+def _check_scalars(pack: LanguagePack) -> None:
     assert pack.html_lang == pack.html_lang.lower()
     assert pack.logon_dropdown.strip()
     assert date(2026, 2, 22).strftime(pack.date_format)
 
 
-def test_html_lang_codes_are_unique() -> None:
-    assert len({pack.html_lang for pack in _packs()}) == len(LANGUAGES)
-
-
-@pytest.mark.parametrize("code", LANGUAGES)
-def test_every_leaf_is_a_text_value_with_variants(code: str) -> None:
-    for path, leaf in iter_leaves(lang.pack_for(code)):
+def _check_leaves_are_texts(pack: PackLike) -> None:
+    for path, leaf in iter_leaves(pack):
         assert isinstance(leaf, Text | RegexText | Template), path
         values = leaf.patterns if isinstance(leaf, RegexText) else leaf.variants
         assert values, path
         assert all(value.strip() for value in values), path
 
 
-@pytest.mark.parametrize("code", LANGUAGES)
-def test_every_regex_compiles(code: str) -> None:
-    for path, leaf in iter_leaves(lang.pack_for(code)):
+def _check_regexes_compile(pack: PackLike) -> None:
+    for path, leaf in iter_leaves(pack):
         if isinstance(leaf, Template):
             leaf.search("")  # compiles one pattern per variant
         else:
             assert isinstance(leaf.pattern, re.Pattern), path
 
 
-@pytest.mark.parametrize("code", LANGUAGES)
-def test_same_fields_kinds_and_flags_as_en(code: str) -> None:
-    pack = dict(iter_leaves(lang.pack_for(code)))
-    reference = dict(iter_leaves(EN))
-    assert pack.keys() == reference.keys()
-    for path, leaf in pack.items():
-        other = reference[path]
+def _check_same_shape_as(pack: LanguagePack, reference: LanguagePack) -> None:
+    """Same fields, same text kinds, same flags."""
+    leaves = dict(iter_leaves(pack))
+    expected = dict(iter_leaves(reference))
+    assert leaves.keys() == expected.keys()
+    for path, leaf in leaves.items():
+        other = expected[path]
         assert type(leaf) is type(other), path
         assert leaf.fold == other.fold, path
         assert getattr(leaf, "word", False) == getattr(other, "word", False), path
 
 
-@pytest.mark.parametrize("code", LANGUAGES)
-def test_same_placeholders_and_groups_as_en(code: str) -> None:
-    for path, leaf in iter_leaves(lang.pack_for(code)):
-        assert _group_names(leaf) == _group_names(resolve(EN, path)), path
+def _check_same_placeholders(pack: LanguagePack, reference: LanguagePack) -> None:
+    for path, leaf in iter_leaves(pack):
+        assert _placeholders(leaf) == _placeholders(resolve(reference, path)), path
 
 
-def test_merge_modes() -> None:
-    section_types = {name: type(section) for name, section in sections(EN)}
+def _check_merge_modes(pack: LanguagePack) -> None:
+    section_types = {name: type(section) for name, section in sections(pack)}
     for name, section_type in section_types.items():
         assert "MERGE" in vars(section_type), f"{name}: declare MERGE in the class body"
     assert {name for name, section_type in section_types.items() if section_type.MERGE == "all"} == ALL_SECTIONS
     assert {section_type.MERGE for section_type in section_types.values()} == {"all", "session_en"}
 
 
-def test_universal_holds_exactly_the_all_sections() -> None:
-    assert {field.name for field in dataclasses.fields(lang.UniversalView)} == ALL_SECTIONS
-
-
-def test_canonical_mappings_are_declared() -> None:
-    assert _mappings(EN).keys() == CANONICAL.keys()
-
-
-@pytest.mark.parametrize("code", LANGUAGES)
-def test_canonical_mappings_cover_every_member(code: str) -> None:
-    for path, mapping in _mappings(lang.pack_for(code)).items():
+def _check_canonical_mappings(pack: PackLike) -> None:
+    """Every canonical mapping is declared and covers every member of its enum."""
+    mappings = _mappings(pack)
+    expected = {path: members for path, members in CANONICAL.items() if path.split(".")[0] in dict(sections(pack))}
+    assert mappings.keys() == expected.keys()
+    for path, mapping in mappings.items():
         assert set(mapping) == set(CANONICAL[path]), path
 
 
-def _assert_no_collisions(view_name: str, mappings: dict[str, Mapping[StrEnum, Text]]) -> None:
+def _check_no_collisions(view_name: str, mappings: dict[str, Mapping[StrEnum, Text]]) -> None:
     for path, mapping in mappings.items():
         owner: dict[str, StrEnum] = {}
         for member, text in mapping.items():
@@ -2118,14 +2297,83 @@ def _assert_no_collisions(view_name: str, mappings: dict[str, Mapping[StrEnum, T
                 )
 
 
+def _check_untranslated_declared(pack: LanguagePack, reference: LanguagePack) -> None:
+    """A field equal to EN must be listed in ``same_as_en``, so a copied ``en.py`` fails."""
+    equal = {path for path, leaf in iter_leaves(pack) if leaf == resolve(reference, path)}
+    assert equal == pack.same_as_en
+
+
+def _check_same_as_en_entries(pack: LanguagePack, reference: LanguagePack) -> None:
+    """Stale entries fail: every entry names a field that exists and still equals EN."""
+    for path in pack.same_as_en:
+        assert resolve(pack, path) == resolve(reference, path), path
+
+
+# ---------------------------------------------------------------------------
+# The guards over every registered language
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("code", LANGUAGES)
+def test_pack_scalars(code: str) -> None:
+    pack = lang.pack_for(code)
+    assert pack.code == code
+    _check_scalars(pack)
+
+
+def test_html_lang_codes_are_unique() -> None:
+    assert len({pack.html_lang for pack in _packs()}) == len(LANGUAGES)
+
+
+@pytest.mark.parametrize("code", LANGUAGES)
+def test_every_leaf_is_a_text_value_with_variants(code: str) -> None:
+    _check_leaves_are_texts(lang.pack_for(code))
+    _check_leaves_are_texts(lang.view_for(code))
+
+
+@pytest.mark.parametrize("code", LANGUAGES)
+def test_every_regex_compiles(code: str) -> None:
+    _check_regexes_compile(lang.pack_for(code))
+    _check_regexes_compile(lang.view_for(code))
+
+
+def test_every_universal_regex_compiles() -> None:
+    _check_regexes_compile(lang.universal())
+
+
+@pytest.mark.parametrize("code", LANGUAGES)
+def test_same_fields_kinds_and_flags_as_en(code: str) -> None:
+    _check_same_shape_as(lang.pack_for(code), EN)
+
+
+@pytest.mark.parametrize("code", LANGUAGES)
+def test_same_placeholders_as_en(code: str) -> None:
+    _check_same_placeholders(lang.pack_for(code), EN)
+
+
+@pytest.mark.parametrize("code", LANGUAGES)
+def test_merge_modes(code: str) -> None:
+    _check_merge_modes(lang.pack_for(code))
+
+
+def test_universal_holds_exactly_the_all_sections() -> None:
+    assert {field.name for field in dataclasses.fields(lang.UniversalView)} == ALL_SECTIONS
+
+
+@pytest.mark.parametrize("code", LANGUAGES)
+def test_canonical_mappings_are_declared_and_cover_every_member(code: str) -> None:
+    _check_canonical_mappings(lang.pack_for(code))
+    _check_canonical_mappings(lang.view_for(code))
+
+
 @pytest.mark.parametrize("code", LANGUAGES)
 def test_no_variant_maps_to_two_members_in_a_session_view(code: str) -> None:
     with lang.use(code):
-        _assert_no_collisions(code, _mappings(lang.current()))
+        _check_no_collisions(code, _mappings(lang.current()))
 
 
 def test_no_variant_maps_to_two_members_in_the_universal_view() -> None:
-    _assert_no_collisions("universal", {"keys.names": lang.universal().keys.names})
+    _check_no_collisions("universal", {"keys.names": lang.universal().keys.names})
 
 
 def test_en_declares_nothing_as_same_as_en() -> None:
@@ -2134,38 +2382,98 @@ def test_en_declares_nothing_as_same_as_en() -> None:
 
 @pytest.mark.parametrize("code", [code for code in LANGUAGES if code != "EN"])
 def test_untranslated_fields_are_declared(code: str) -> None:
-    """A field equal to EN must be listed in ``same_as_en``, so a copied ``en.py`` fails."""
-    pack = lang.pack_for(code)
-    equal = {path for path, leaf in iter_leaves(pack) if leaf == resolve(EN, path)}
-    assert equal == pack.same_as_en
+    _check_untranslated_declared(lang.pack_for(code), EN)
 
 
 @pytest.mark.parametrize("code", [code for code in LANGUAGES if code != "EN"])
 def test_same_as_en_entries_resolve(code: str) -> None:
-    """Stale entries fail: every entry names a field that exists and still equals EN."""
-    pack = lang.pack_for(code)
-    for path in pack.same_as_en:
-        assert resolve(pack, path) == resolve(EN, path), path
+    _check_same_as_en_entries(lang.pack_for(code), EN)
+
+
+# ---------------------------------------------------------------------------
+# Negative tests: every guard rejects the defect it exists for. They replace manual mutation
+# checks; ``dataclasses.replace`` builds the broken pack from DE.
+# ---------------------------------------------------------------------------
+
+
+def _broken(**changes: Any) -> LanguagePack:
+    return dataclasses.replace(DE, **changes)
+
+
+def test_guard_rejects_an_untranslated_field_that_is_not_declared() -> None:
+    with pytest.raises(AssertionError):
+        _check_untranslated_declared(_broken(same_as_en=frozenset()), EN)
+
+
+def test_guard_rejects_a_copy_of_the_english_pack() -> None:
+    with pytest.raises(AssertionError):
+        _check_untranslated_declared(dataclasses.replace(EN, code="XX", same_as_en=frozenset()), EN)
+
+
+def test_guard_rejects_a_same_as_en_entry_without_a_field() -> None:
+    with pytest.raises(KeyError):
+        _check_same_as_en_entries(_broken(same_as_en=DE.same_as_en | {"se16.missing"}), EN)
+
+
+def test_guard_rejects_a_same_as_en_entry_that_no_longer_equals_en() -> None:
+    with pytest.raises(AssertionError):
+        _check_same_as_en_entries(_broken(same_as_en=DE.same_as_en | {"se16.hit_count_label"}), EN)
+
+
+def test_guard_rejects_a_flag_that_differs_from_en() -> None:
+    names = canonical({**DE.keys.names, Key.ALT: Text(("Alt",))})  # word=True dropped
+    with pytest.raises(AssertionError):
+        _check_same_shape_as(_broken(keys=KeysSection(names=names)), EN)
+
+
+def test_guard_rejects_a_text_kind_that_differs_from_en() -> None:
+    changed = dataclasses.replace(DE.se11, dictionary_type=Text(("Dictionary-Typ",)))
+    with pytest.raises(AssertionError):
+        _check_same_shape_as(_broken(se11=changed), EN)
+
+
+def test_guard_rejects_a_canonical_mapping_without_a_member() -> None:
+    status = canonical({member: text for member, text in DE.sm37.status.items() if member != JobStatus.CANCELED})
+    with pytest.raises(AssertionError):
+        _check_canonical_mappings(_broken(sm37=Sm37Section(status=status)))
+
+
+def test_guard_rejects_a_variant_that_maps_to_two_members() -> None:
+    status = canonical({**DE.sm37.status, JobStatus.READY: Text(("Geplant",))})
+    with pytest.raises(AssertionError, match="Geplant"):
+        _check_no_collisions("DE", _mappings(_broken(sm37=Sm37Section(status=status))))
+
+
+def test_guard_rejects_a_template_with_other_placeholders_than_en() -> None:
+    changed = dataclasses.replace(DE.se24, display_title=Template(("Klassenpflege: {object} anzeigen",)))
+    with pytest.raises(AssertionError):
+        _check_same_placeholders(_broken(se24=changed), EN)
+
+
+def test_guard_rejects_a_section_without_its_own_merge_declaration() -> None:
+    @dataclasses.dataclass(frozen=True, slots=True)
+    class Inheriting(PopupSection):  # inherits MERGE instead of declaring it in its own body
+        pass
+
+    with pytest.raises(AssertionError, match="declare MERGE"):
+        _check_merge_modes(_broken(popup=Inheriting()))
 ```
 
-- [ ] **Step 2: Run** — expected PASS:
+- [ ] **Step 2: Run** — expected PASS (the guards accept the real packs, the negative tests see
+      each defect rejected):
 
 Run: `uv run --group tests python -m pytest unittests/lang/test_pack_completeness.py -q`
 
-- [ ] **Step 3: Mutation checks** — apply each edit alone, run the file, confirm the named test
-      fails, then `git checkout -- src/sapguimcp/lang/` before the next one:
+- [ ] **Step 3: One manual mutation check** (a merge mode cannot be built with `replace`): in
+      `src/sapguimcp/lang/schema.py` change `PopupSection.MERGE` to `"session_en"`, run the file,
+      confirm `test_merge_modes[DE]` and `test_merge_modes[EN]` fail, then revert:
 
-| Edit                                                                     | Expected failure                                                          |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `de.py`: `same_as_en=frozenset()`                                        | `test_untranslated_fields_are_declared[DE]`                               |
-| `de.py`: add `"se16.missing"` to `same_as_en`                            | `test_same_as_en_entries_resolve[DE]` (`KeyError`)                        |
-| `de.py`: `Key.ALT: Text(("Alt",))` (drop `word=True`)                    | `test_same_fields_kinds_and_flags_as_en[DE]` and the DE `same_as_en` test |
-| `de.py`: delete the `JobStatus.CANCELED` entry                           | `test_canonical_mappings_cover_every_member[DE]`                          |
-| `de.py`: `JobStatus.READY: Text(("Geplant",))`                           | `test_no_variant_maps_to_two_members_in_a_session_view[DE]`               |
-| `de.py`: `display_title=Template(("Klassenpflege: {object} anzeigen",))` | `test_same_placeholders_and_groups_as_en[DE]`                             |
-| `schema.py`: `PopupSection.MERGE = "session_en"`                         | `test_merge_modes`                                                        |
+```bash
+git checkout -- src/sapguimcp/lang/de.py src/sapguimcp/lang/schema.py
+```
 
-Note: a flag mismatch also makes `view_for("DE")` raise in `merge`; that is intended (decision 12).
+Note: a flag mismatch between packs also makes `view_for("DE")` raise in `merge`; that is intended
+(decision 12).
 
 - [ ] **Step 4: Lint and type check.**
 
@@ -2205,7 +2513,7 @@ from sapguimcp.lang import _legacy
 from sapguimcp.lang.schema import iter_leaves
 from sapguimcp.lang.text import RegexText, Text
 
-# Constant name without _DE/_EN -> pack field path ("invariant." paths point into lang.invariant()).
+# Constant name without _DE/_EN -> pack field path ("invariant." paths point into lang.INVARIANT).
 LEGACY_PATHS: dict[str, str] = {
     "SE16_HIT_COUNT_LABEL": "se16.hit_count_label",
     "SE16_ROW_SELECT_HINT": "common.row_select_hint",
@@ -2304,7 +2612,7 @@ def _target(name: str) -> tuple[str, str]:
 
 def _values(code: str, path: str) -> set[str]:
     if path.startswith("invariant."):
-        leaf = getattr(lang.invariant(), path.removeprefix("invariant."))
+        leaf = getattr(lang.INVARIANT, path.removeprefix("invariant."))
     else:
         leaf = dict(iter_leaves(lang.pack_for(code)))[path]
     assert isinstance(leaf, Text | RegexText), path
@@ -2447,7 +2755,8 @@ in the existing `from sapguimcp.lang import (...)` block and make `is_slg1_no_re
 
 Run: `uv run --group tests python -m pytest unittests/lang/ unittests/test_slg1_desktop_unreadable_list.py unittests/webgui/test_slg1_parser.py unittests/webgui/test_sm37_parser.py unittests/test_sm37_desktop_empty_result.py -q`
 
-- [ ] **Step 8: Re-run Task 1 Step 5** (value comparison). Expected now: the assertion lists exactly
+- [ ] **Step 8: Re-run Task 1 Step 5** (value comparison, with `tmp="$(mktemp -d)"` and
+      `git show main:src/sapguimcp/lang.py > "$tmp/old_lang.py"` as there). Expected now: the assertion lists exactly
       `['SLG1_NO_LOGS_FOUND_EN']`; that is the intended fix. Everything else is unchanged.
 
 - [ ] **Step 9: Lint and type check.**
@@ -2476,7 +2785,8 @@ Spec §6, building on #1042: a new pack becomes an accepted `systems.json` langu
 
 ```python
 def test_supported_languages_come_from_the_language_packs() -> None:
-    assert config_module.SUPPORTED_LANGUAGES == supported_languages() == ("DE", "EN")
+    assert supported_languages() == ("DE", "EN")
+    assert not hasattr(config_module, "SUPPORTED_LANGUAGES")  # no second copy of the list
 
 
 def test_sap_language_literal_matches_the_packs() -> None:
@@ -2493,6 +2803,8 @@ def test_config_accepts_every_registered_pack_language(monkeypatch: pytest.Monke
 
     monkeypatch.setattr(config_module, "_sap_config", None)
     monkeypatch.setattr(config_module, "load_sap_config", fake_load)
+    # Only the registry is patched: the loader reads supported_languages(), which does not touch
+    # the merged-view caches. Do not combine this with lang.current()/universal() (decision 13).
     monkeypatch.setitem(lang._PACKS, "XX", lang.pack_for("EN"))  # pylint: disable=protected-access
     config_module.get_sap_config()
     assert seen == [("DE", "EN", "XX")]
@@ -2502,21 +2814,20 @@ def test_config_accepts_every_registered_pack_language(monkeypatch: pytest.Monke
 
 Run: `uv run --group tests python -m pytest unittests/test_sap_config_languages.py -q`
 Expected: `test_config_accepts_every_registered_pack_language` fails with
-`[('DE', 'EN')] == [('DE', 'EN', 'XX')]`; the others pass.
+`[('DE', 'EN')] == [('DE', 'EN', 'XX')]`, and
+`test_supported_languages_come_from_the_language_packs` fails on the `hasattr` assertion; the
+others pass.
 
-- [ ] **Step 3: Implement.** In `src/sapguimcp/models/config.py`:
+- [ ] **Step 3: Implement.** First `git grep -n SUPPORTED_LANGUAGES -- src`: the only hits are in
+      `src/sapguimcp/models/config.py` (the `__all__` entry, the definition, the docstring and the
+      loader call). If another consumer has appeared, keep a constant for it and say so in the
+      commit message. Otherwise, in `src/sapguimcp/models/config.py`:
     - change `from typing import Literal, Optional, get_args` to `from typing import Literal, Optional`;
     - replace `from sapguimcp.utils import SapLanguage` with `from sapguimcp.lang import supported_languages`;
-    - replace the `SUPPORTED_LANGUAGES` block with:
-
-```python
-# Login languages this server can drive: one per registered language pack (#1044), so a new
-# pack is accepted in systems.json at once. ``utils.SapLanguage`` must list the same codes until
-# the phase-3 migrations retire it (checked by unittests/test_sap_config_languages.py).
-SUPPORTED_LANGUAGES: tuple[str, ...] = supported_languages()
-```
-
-- in `get_sap_config`, read the registry at load time and update the docstring's first sentence:
+    - delete the `"SUPPORTED_LANGUAGES",` entry of `__all__` and the whole `SUPPORTED_LANGUAGES`
+      block (comment and assignment): a module constant would freeze the registry at import time,
+      and the list lives in the registry alone;
+    - in `get_sap_config`, read the registry at load time and update the docstring's first sentence:
 
 ```python
     A system whose ``language`` has no language pack (``lang.supported_languages()``) makes this
@@ -2534,7 +2845,8 @@ SUPPORTED_LANGUAGES: tuple[str, ...] = supported_languages()
 `uv run python -c "import sapguimcp.models.config, sapguimcp.server"` (the server import pulls
 the whole tool graph).
 
-- [ ] **Step 5: Lint and type check.**
+- [ ] **Step 5: Lint and type check.** Deleting the constant leaves a stray blank line in
+      `config.py`; `uv run --group linting ruff format src/sapguimcp/models/config.py` fixes it.
 
 - [ ] **Step 6: Commit**
 
@@ -2554,7 +2866,7 @@ git commit -m "feat(config): supported logon languages come from the language pa
 uv run --group tests python -m pytest unittests/lang/ unittests/test_sap_config_languages.py unittests/test_config.py unittests/test_config_error_classification.py unittests/test_utils.py unittests/test_session_language.py unittests/test_tools_session_language.py unittests/test_slg1_desktop_unreadable_list.py unittests/test_sm37_desktop_empty_result.py unittests/test_spro_scope_note.py unittests/test_se09_label_parsing.py unittests/test_se11_readiness.py unittests/webgui/test_se09_parser.py unittests/webgui/test_se11_parser.py unittests/webgui/test_se16_parser.py unittests/webgui/test_se24_parser.py unittests/webgui/test_se37_parser.py unittests/webgui/test_se93_parser.py unittests/webgui/test_slg1_parser.py unittests/webgui/test_sm30_parser.py unittests/webgui/test_sm37_parser.py unittests/webgui/test_spro_parser.py unittests/webgui/test_st22_parser.py -q
 ```
 
-- [ ] Value comparison against `main` (Task 1 Step 5 with `git show main:src/sapguimcp/lang.py`):
+- [ ] Value comparison against `main` (Task 1 Step 5, which already reads `main:src/sapguimcp/lang.py`):
       only `SLG1_NO_LOGS_FOUND_EN` differs.
 - [ ] `git grep -n "sapguimcp/lang.py\|lang\.py" -- src unittests` lists only the docstrings that
       name the former module on purpose (`_legacy.py`, `unittests/webgui/testdata/lang_test.py`,

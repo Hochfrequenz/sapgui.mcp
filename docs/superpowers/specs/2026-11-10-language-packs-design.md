@@ -81,12 +81,14 @@ Explicit exceptions and non-goals:
 
 ```
 src/sapguimcp/lang/
-  __init__.py   # public API + registry: current, universal, use, set_session_language, pack_for,
-                # supported_languages, UnsupportedLanguageError, alt_of, click_tab, set_checkbox
+  __init__.py   # public API + registry: current, universal, INVARIANT, use, set_session_language,
+                # pack_for, supported_languages, UnsupportedLanguageError, alt_of, click_tab,
+                # set_checkbox
   text.py       # Text, RegexText, Template, HasAlt protocol, Python and JS regex builders
-  schema.py     # frozen dataclasses: LanguagePack, its sections, merge declarations
+  schema.py     # frozen dataclasses: LanguagePack, UniversalView, its sections, merge declarations
   sources.py    # SAP source key per pack field (§9)
-  invariant.py  # texts that are the same in every logon language (abapGit UI, our Z report)
+  invariant.py  # Invariant type + INVARIANT constant: texts that are the same in every logon
+                # language (abapGit UI, our Z report)
   de.py         # DE = LanguagePack(...)
   en.py         # EN = LanguagePack(...)
   README.md     # "How to add a language" recipe
@@ -228,15 +230,18 @@ asserts which sections are `all`.
 
 Two accessors:
 
-- **`lang.universal()`** returns the `all` sections. It is a module-level merged constant, built
-  once and independent of any session. Popup classification, status-type inference, login and logoff
+- **`lang.universal()`** returns a `UniversalView`, its own type holding exactly the four `all`
+  sections (not a `LanguagePack`, so mypy rejects parsing a transaction screen against every
+  language). It is built once and independent of any session. Popup classification, status-type inference, login and logoff
   pages and shortcut parsing use it, so they work in every situation: no session, an unsupported
   session language, or explicit `session_id` paths that bypass the context variable.
 - **`lang.current()`** returns the session's `session_en` view. If the session language has no
   pack, it raises `UnsupportedLanguageError`, e.g. "SE24 lookup needs a language pack; supported:
   DE, EN".
 
-`invariant.py` is merged into both. Merged views are cached in a plain `dict[str, LanguagePack]`.
+`invariant.py` is not merged into either: `Invariant` is a separate dataclass, exported as the
+constant `lang.INVARIANT`, and merging language-independent text would be the identity. Merged
+views are cached in a plain `dict[str, LanguagePack]`.
 The packs are not hashable once they contain mappings, so `lru_cache` keyed on a pack does not work.
 
 Why `session_en`: standard SAP UI texts that are not translated are shown in the system's secondary
