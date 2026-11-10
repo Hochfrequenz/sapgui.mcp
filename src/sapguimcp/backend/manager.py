@@ -75,8 +75,8 @@ class BackendManager:  # pylint: disable=too-few-public-methods
                 assert isinstance(cached, DesktopBackend)
                 effective = session or cached.registry.primary_session
                 _current_session_id.set(effective)
-                set_session_language(cached.registry.language_of(effective))
                 cached.registry.check_binding(effective, agent_id, tool_name)
+                set_session_language(cached.registry.language_of(effective))
                 return cached
             if self._com_thread is None:
                 interval = get_settings().com_min_interval_ms
@@ -85,6 +85,7 @@ class BackendManager:  # pylint: disable=too-few-public-methods
             self._backends["desktop"] = new_backend
             effective = session or new_backend.registry.primary_session
             _current_session_id.set(effective)
+            # The fresh registry is empty, so this clears any stale value.
             set_session_language(new_backend.registry.language_of(effective))
             return new_backend
         raise ValueError(f"No implementation for backend '{self.backend_type}'")

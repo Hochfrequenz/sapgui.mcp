@@ -256,7 +256,11 @@ def _desktop_backend_with_languages(languages: dict[str, str | None]) -> Desktop
 def desktop_backend_symbol(monkeypatch, desktop_symbols):
     """Also inject ``DesktopBackend`` (Windows-only import in the manager module)."""
     monkeypatch.setattr(manager_module, "DesktopBackend", DesktopBackend, raising=False)
-    yield
+    token = _current_session_id.set(None)
+    try:
+        yield
+    finally:
+        _current_session_id.reset(token)
 
 
 @pytest.mark.anyio
@@ -323,4 +327,45 @@ async def test_recover_desktop_if_dead_clears_session_language(desktop_symbols) 
     manager._backends["desktop"] = "stale-backend"  # type: ignore[assignment]
     with use_language("DE"):
         await manager._recover_desktop_if_dead()
+        assert current_language() is None
+
+
+@pytest.mark.anyio
+async def test_desktop_get_or_create_fresh_backend_clears_language(desktop_backend_symbol) -> None:
+    """The fresh-backend path (empty registry) clears a stale language."""
+    manager = _make_desktop_manager()
+    with patch.object(manager_module, "ComThread", MagicMock()), use_language("DE"):
+        await manager.get_or_create()
+        assert current_language() is None
+
+
+@pytest.mark.anyio
+async def test_desktop_get_or_create_language_isolated_between_tasks(desktop_backend_symbol) -> None:
+    """Concurrent tool calls (own tasks) each see their own session's language."""
+    manager = _make_desktop_manager()
+    manager._backends["desktop"] = _desktop_backend_with_languages({"s1": "DE", "s2": "EN"})
+
+    async def call(session: str) -> str | None:
+        await manager.get_or_create(session=session)
+        await asyncio.sleep(0)
+        return current_language()
+
+    with use_language("FR"):
+        t1 = asyncio.create_task(call("s1"))
+        t2 = asyncio.create_task(call("s2"))
+        assert await t1 == "DE"
+        assert await t2 == "EN"
+        assert current_language() == "FR"
+
+
+@pytest.mark.anyio
+async def test_desktop_get_or_create_recovers_dead_thread_clears_language(desktop_backend_symbol) -> None:
+    """get_or_create with a dead COM worker rebuilds and leaves no stale language."""
+    manager = _make_desktop_manager()
+    dead_thread = MagicMock()
+    dead_thread.is_alive = False
+    manager._com_thread = dead_thread
+    manager._backends["desktop"] = _desktop_backend_with_languages({"s1": "DE"})
+    with patch.object(manager_module, "ComThread", MagicMock()), use_language("DE"):
+        await manager.get_or_create()
         assert current_language() is None

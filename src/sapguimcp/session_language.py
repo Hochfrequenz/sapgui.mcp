@@ -5,6 +5,12 @@ language. ``BackendManager.get_or_create`` sets it for every tool call, ``sap_lo
 the session it just opened, and desktop recovery clears it. ``ComThread.run`` copies the caller's
 context to the COM worker, so the value is visible inside COM closures too.
 
+Limitation: session tools that take an explicit ``session_id`` (``tools/session_tools.py``: close,
+detach, bind, release, reset_to_primary) resolve the backend without a session, so the variable
+holds the primary session's language there. Nothing on those paths reads it today; phase 2 must
+wrap such backend methods in ``use_language(registry.language_of(session_id))`` if they ever need
+texts.
+
 Phase 1 of #1044: this module only carries the language. The language packs of phase 2 build on
 it (``lang.current()``).
 """
