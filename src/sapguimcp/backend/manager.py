@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, get_args
 from sapguimcp.backend.webgui.backend import WebGuiBackend
 from sapguimcp.backend.webgui.browser import close_browser_manager, get_browser_manager
 from sapguimcp.models.config import BackendType, get_settings
+from sapguimcp.session_language import set_session_language
 
 if sys.platform == "win32" or TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend, _current_session_id
@@ -55,6 +56,8 @@ class BackendManager:  # pylint: disable=too-few-public-methods
             browser_manager = await get_browser_manager()
             page = await browser_manager.get_or_create_session_page_checked(session, agent_id, tool_name)
             session_key = session or browser_manager.registry.primary_session
+            # Same registry WebGuiBackend._get_registry() records the language in.
+            set_session_language(browser_manager.registry.language_of(session_key))
             cached = self._backends.get(session_key)
             if cached is not None and self._page_ids.get(session_key) == id(page):
                 return cached
@@ -72,6 +75,7 @@ class BackendManager:  # pylint: disable=too-few-public-methods
                 assert isinstance(cached, DesktopBackend)
                 effective = session or cached.registry.primary_session
                 _current_session_id.set(effective)
+                set_session_language(cached.registry.language_of(effective))
                 cached.registry.check_binding(effective, agent_id, tool_name)
                 return cached
             if self._com_thread is None:
@@ -81,6 +85,7 @@ class BackendManager:  # pylint: disable=too-few-public-methods
             self._backends["desktop"] = new_backend
             effective = session or new_backend.registry.primary_session
             _current_session_id.set(effective)
+            set_session_language(new_backend.registry.language_of(effective))
             return new_backend
         raise ValueError(f"No implementation for backend '{self.backend_type}'")
 
@@ -120,6 +125,8 @@ class BackendManager:  # pylint: disable=too-few-public-methods
             # Reset ContextVar so a stale session id from before the crash
             # doesn't hit the freshly empty registry on the next lookup.
             _current_session_id.set(None)
+            # The language belonged to a session of the dropped registry.
+            set_session_language(None)
 
     async def close(self) -> None:
         """Shut down the active backend and release resources."""

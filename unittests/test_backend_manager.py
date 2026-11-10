@@ -1,19 +1,22 @@
 """Tests for BackendManager."""
 
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 import sapguimcp.backend.manager as manager_module
-from sapguimcp.backend.desktop import _current_session_id
+from sapguimcp.backend.desktop import DesktopBackend, _current_session_id
 from sapguimcp.backend.desktop._com_thread import ComThread
+from sapguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 from sapguimcp.backend.manager import (
     BackendManager,
     close_backend,
     get_backend_manager,
     reset_backend_manager,
 )
+from sapguimcp.backend.webgui.models.session_registry import SessionRegistry
+from sapguimcp.session_language import current_language, use_language
 
 
 def test_backend_manager_default_type() -> None:
@@ -231,3 +234,93 @@ async def test_recover_desktop_if_dead_blocks_when_lock_held(desktop_symbols) ->
     # "caller" we simulated never actually cleared anything), so it clears.
     assert manager._com_thread is None
     assert "desktop" not in manager._backends
+
+
+# ---------------------------------------------------------------------------
+# Session language on every tool call (#1044)
+# ---------------------------------------------------------------------------
+
+
+def _desktop_backend_with_languages(languages: dict[str, str | None]) -> DesktopBackend:
+    """A DesktopBackend (no COM) whose real registry holds one session per entry."""
+    backend = DesktopBackend.__new__(DesktopBackend)
+    backend.registry = DesktopSessionRegistry()
+    for code in languages.values():
+        sid = backend.registry.register(MagicMock())
+        backend.registry.set_language(sid, code)
+    assert backend.registry.list_sessions() == list(languages)
+    return backend
+
+
+@pytest.fixture
+def desktop_backend_symbol(monkeypatch, desktop_symbols):
+    """Also inject ``DesktopBackend`` (Windows-only import in the manager module)."""
+    monkeypatch.setattr(manager_module, "DesktopBackend", DesktopBackend, raising=False)
+    yield
+
+
+@pytest.mark.anyio
+async def test_desktop_get_or_create_sets_session_language(desktop_backend_symbol) -> None:
+    """An explicit session gets its own language; no session gets the primary's."""
+    manager = _make_desktop_manager()
+    manager._backends["desktop"] = _desktop_backend_with_languages({"s1": "DE", "s2": "EN"})
+    with use_language(None):
+        await manager.get_or_create(session="s2")
+        assert current_language() == "EN"
+        await manager.get_or_create()
+        assert current_language() == "DE"
+
+
+@pytest.mark.anyio
+async def test_desktop_get_or_create_clears_stale_language(desktop_backend_symbol) -> None:
+    """A session without a recorded language leaves no stale value from an earlier call."""
+    manager = _make_desktop_manager()
+    manager._backends["desktop"] = _desktop_backend_with_languages({"s1": "DE", "s2": None})
+    with use_language(None):
+        await manager.get_or_create(session="s1")
+        assert current_language() == "DE"
+        await manager.get_or_create(session="s2")
+        assert current_language() is None
+
+
+@pytest.mark.anyio
+async def test_webgui_get_or_create_sets_session_language() -> None:
+    """WebGUI reads the language from the browser manager's registry (the one the backend writes)."""
+    registry = SessionRegistry()
+    for code in ("DE", "EN", None):  # s3 has no recorded language
+        page = MagicMock()
+        page.is_closed.return_value = False
+        sid = registry.register(page)
+        registry.set_language(sid, code)
+    browser_manager = MagicMock()
+    browser_manager.registry = registry
+    browser_manager.get_or_create_session_page_checked = AsyncMock(
+        side_effect=lambda session, *_: registry.get_page(session)
+    )
+    manager = BackendManager(backend_type="webgui")
+    with (
+        patch("sapguimcp.backend.manager.get_browser_manager", AsyncMock(return_value=browser_manager)),
+        use_language(None),
+    ):
+        await manager.get_or_create(session="s2")
+        assert current_language() == "EN"
+        await manager.get_or_create()
+        assert current_language() == "DE"
+        # Cached backend path (same page) sets it too.
+        await manager.get_or_create(session="s2")
+        assert current_language() == "EN"
+        await manager.get_or_create(session="s3")
+        assert current_language() is None
+
+
+@pytest.mark.anyio
+async def test_recover_desktop_if_dead_clears_session_language(desktop_symbols) -> None:
+    """Recovery drops the registry, so the language it recorded must not survive either."""
+    manager = _make_desktop_manager()
+    dead_thread = MagicMock()
+    dead_thread.is_alive = False
+    manager._com_thread = dead_thread
+    manager._backends["desktop"] = "stale-backend"  # type: ignore[assignment]
+    with use_language("DE"):
+        await manager._recover_desktop_if_dead()
+        assert current_language() is None
