@@ -32,8 +32,8 @@ def _get_configured_systems() -> tuple[list[dict[str, str]], str | None]:
     A missing config file is a legitimate setup (landscape-only use) and yields
     ``([], None)``.  An invalid config yields ``([], <message>)`` so the caller
     sees why instead of a silently empty list.  The message is built by
-    ``try_get_sap_config`` from error locations and problem texts only, never
-    from file content (no YAML snippets, no input values).
+    ``try_get_sap_config``; it never quotes YAML source lines or secret values
+    (see there).
     """
     sap_cfg, config_error = try_get_sap_config()
     if sap_cfg is None:

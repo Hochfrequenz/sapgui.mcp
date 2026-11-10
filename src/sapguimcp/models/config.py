@@ -65,10 +65,13 @@ def try_get_sap_config() -> tuple[SapMcpConfig | None, str | None]:
     ``(None, <message>)`` for every other load failure: invalid content
     (``ValueError``, including pydantic ``ValidationError``), unreadable path
     (``OSError`` such as ``IsADirectoryError`` / ``PermissionError``) and
-    malformed YAML.  The message never contains file content: pydantic errors
-    are reduced to ``<location>: <message>`` (the location holds keys only) and
-    YAML errors to a fixed text plus line/column, because PyYAML's own message
-    quotes the source line, which may hold a password.
+    malformed YAML.  The message never quotes YAML source lines or secret
+    values: YAML errors are reduced to a fixed text plus line/column, because
+    PyYAML's own message quotes the source line, which may hold a password, and
+    pydantic errors to ``<location>: <message>`` (the location holds keys only).
+    sap-mcp-config's own messages deliberately quote the offending value of
+    non-secret fields (host, client, language, default_system), e.g.
+    ``got "IT"``, so the user sees what to fix.
     """
     try:
         return get_sap_config(), None
