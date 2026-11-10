@@ -3,9 +3,13 @@
 import os
 from collections.abc import Generator, Iterable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from dotenv import load_dotenv
+
+if TYPE_CHECKING:
+    from sapguimcp.lang import LanguagePack
 
 # Load .env file if it exists (for local development and integration tests)
 load_dotenv()
@@ -63,6 +67,24 @@ def reset_session_language() -> Generator[None, None, None]:
 
     with use_language(None):
         yield
+
+
+@pytest.fixture
+def lang_de() -> Generator["LanguagePack", None, None]:
+    """Run the test in a German session; yields the merged view ``lang.current()`` returns."""
+    from sapguimcp import lang
+
+    with lang.use("DE"):
+        yield lang.current()
+
+
+@pytest.fixture
+def lang_en() -> Generator["LanguagePack", None, None]:
+    """Run the test in an English session; yields the merged view ``lang.current()`` returns."""
+    from sapguimcp import lang
+
+    with lang.use("EN"):
+        yield lang.current()
 
 
 @pytest.fixture(autouse=True)
