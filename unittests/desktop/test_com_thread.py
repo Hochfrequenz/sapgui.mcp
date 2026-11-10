@@ -105,6 +105,87 @@ class TestComThread:
         assert call_count == 2, f"Expected 2 calls (1 failure + 1 retry), got {call_count}"
 
     @pytest.mark.anyio
+    async def test_run_sees_callers_context_variables(self, com_thread):
+        """#1044: COM closures see the caller's context (e.g. the session language)."""
+        from sapguimcp.session_language import current_language, use_language
+
+        with use_language("DE"):
+            assert await com_thread.run(current_language) == "DE"
+        with use_language("EN"):
+            assert await com_thread.run(current_language) == "EN"
+
+    @pytest.mark.anyio
+    async def test_run_context_is_per_call(self, com_thread):
+        """Concurrent callers with different contexts each see their own value."""
+        from sapguimcp.session_language import current_language, set_session_language
+
+        async def call(code: str) -> str | None:
+            set_session_language(code)
+            return await com_thread.run(current_language)
+
+        assert await asyncio.gather(call("DE"), call("EN"), call("FR")) == ["DE", "EN", "FR"]
+
+    @pytest.mark.anyio
+    async def test_worker_writes_do_not_leak(self, com_thread):
+        """Context-variable writes inside a COM closure stay on the worker's copy."""
+        from sapguimcp.session_language import current_language, set_session_language, use_language
+
+        with use_language("DE"):
+            await com_thread.run(lambda: set_session_language("EN"))
+            assert current_language() == "DE"
+            assert await com_thread.run(current_language) == "DE"
+
+    @pytest.mark.anyio
+    async def test_many_sequential_calls_under_one_context(self, com_thread):
+        """A fresh copy per call: repeated calls never hit 'cannot enter context'."""
+        from sapguimcp.session_language import current_language, use_language
+
+        with use_language("DE"):
+            results = [await com_thread.run(current_language) for _ in range(20)]
+        assert results == ["DE"] * 20
+
+    @pytest.mark.anyio
+    async def test_retry_keeps_callers_context(self, com_thread):
+        """A retried call re-enters the same context copy and still sees the caller's value."""
+        from sapguimcp.session_language import current_language, use_language
+
+        class FakeComError(Exception):
+            def __init__(self, hr):
+                super().__init__(hr)
+                self.hresult = hr
+
+        call_count = 0
+
+        def fail_once_then_read_language():
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise FakeComError(-2147023179)  # RPC_S_UNKNOWN_IF, retryable
+            return current_language()
+
+        with use_language("DE"):
+            assert await com_thread.run(fail_once_then_read_language) == "DE"
+        assert call_count == 2
+
+    @pytest.mark.anyio
+    async def test_batch_resume_keeps_callers_context(self, com_thread):
+        """The batch-resume retry passes its carrier through the context copy (#879, #1044)."""
+        from sapguimcp.backend.desktop._com_thread import ComBatchInterruptedError
+        from sapguimcp.session_language import current_language, use_language
+
+        seen: list[tuple[object, str | None]] = []
+
+        def batch(carrier=None):
+            seen.append((carrier.completed if carrier is not None else None, current_language()))
+            if carrier is None:
+                raise ComBatchInterruptedError(["step1"], 1, -2147023179)  # RPC_S_UNKNOWN_IF
+            return [*carrier.completed, "step2"]
+
+        with use_language("DE"):
+            assert await com_thread.run(batch) == ["step1", "step2"]
+        assert seen == [(None, "DE"), (["step1"], "DE")]
+
+    @pytest.mark.anyio
     async def test_other_exceptions_not_wrapped(self, com_thread):
         """Non-disconnect exceptions propagate unchanged."""
 

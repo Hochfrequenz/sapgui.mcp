@@ -50,7 +50,7 @@ import logging
 import queue
 import threading
 import time
-from contextvars import ContextVar
+from contextvars import ContextVar, copy_context
 from typing import Any, Callable, NamedTuple, TypeVar
 
 logger = logging.getLogger(__name__)
@@ -616,7 +616,16 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 "cannot be revived. The BackendManager must rebuild it."
             )
         cf_future: concurrent.futures.Future[T] = concurrent.futures.Future()
-        self._queue.put((fn, cf_future, max_retries, com_call_target.get(), retry_server_fault))
+        # Run fn inside a copy of the caller's context so context variables (the session
+        # language, #1044) are visible on the worker, and writes made there stay on the copy.
+        # One fresh copy per call, never stored: a Context cannot be entered twice at once, and
+        # retries re-enter it one after another. ``ctx.run`` forwards the batch carrier the
+        # retry path passes (#879). ``com_call_target`` stays hand-carried: the watchdog thread
+        # reads it outside the call.
+        ctx = copy_context()
+        self._queue.put(
+            (functools.partial(ctx.run, fn), cf_future, max_retries, com_call_target.get(), retry_server_fault)
+        )
         return await asyncio.wrap_future(cf_future)
 
     @property
