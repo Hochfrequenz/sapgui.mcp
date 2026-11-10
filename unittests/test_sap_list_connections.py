@@ -8,7 +8,7 @@ import pytest
 from pydantic import SecretStr
 
 _PATCH_GET_BACKEND = "sapguimcp.tools.sap_list_connections_impl.get_backend"
-_PATCH_GET_SAP_CONFIG = "sapguimcp.tools.sap_list_connections_impl.get_sap_config"
+_PATCH_GET_SAP_CONFIG = "sapguimcp.models.config.get_sap_config"
 
 _SAMPLE_LANDSCAPE_XML = dedent("""\
     <?xml version="1.0"?>
@@ -123,8 +123,9 @@ class TestConfiguredSystems:
         from sapguimcp.tools.sap_list_connections_impl import _get_configured_systems
 
         with patch(_PATCH_GET_SAP_CONFIG, return_value=_make_sap_config()):
-            systems = _get_configured_systems()
+            systems, error = _get_configured_systems()
 
+        assert error is None
         assert len(systems) == 2
         s4 = next(s for s in systems if s["key"] == "sysA")
         assert s4["sap_logon_entry"] == "DEV S/4HANA"
@@ -138,9 +139,36 @@ class TestConfiguredSystems:
         from sapguimcp.tools.sap_list_connections_impl import _get_configured_systems
 
         with patch(_PATCH_GET_SAP_CONFIG, side_effect=FileNotFoundError):
-            systems = _get_configured_systems()
+            systems, error = _get_configured_systems()
 
         assert systems == []
+        assert error is None  # no config file is a legitimate setup, not an error
+
+    def test_get_configured_systems_invalid_config_reports_error(self) -> None:
+        from sapguimcp.tools.sap_list_connections_impl import _get_configured_systems
+
+        message = 'system "dev": language must be one of "DE", "EN", got "IT"'
+        with patch(_PATCH_GET_SAP_CONFIG, side_effect=ValueError(message)):
+            systems, error = _get_configured_systems()
+
+        assert systems == []
+        assert error == message
+
+    @pytest.mark.anyio
+    async def test_tool_reports_invalid_config_instead_of_silent_empty_list(self) -> None:
+        from sapguimcp.tools.sap_list_connections_impl import sap_list_connections_impl
+
+        message = 'system "dev": language must be one of "DE", "EN", got "IT"'
+        with (
+            patch(_PATCH_GET_BACKEND, new=AsyncMock(side_effect=RuntimeError("no backend"))),
+            patch("sapguimcp.tools.sap_list_connections_impl._find_landscape_path", return_value=None),
+            patch(_PATCH_GET_SAP_CONFIG, side_effect=ValueError(message)),
+        ):
+            result = await sap_list_connections_impl()
+
+        assert result.configured_systems == []
+        assert result.config_error is not None
+        assert "language must be one of" in result.config_error
 
     @pytest.mark.anyio
     async def test_tool_includes_configured_systems(self) -> None:

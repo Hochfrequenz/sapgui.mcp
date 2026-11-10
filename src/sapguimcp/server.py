@@ -18,7 +18,7 @@ from sapguimcp.backend.manager import close_backend
 from sapguimcp.logging_config import configure_logging
 from sapguimcp.middleware import ToolCallLoggingMiddleware
 from sapguimcp.middleware.logging import masked_payload_serializer
-from sapguimcp.models.config import get_sap_config, get_settings
+from sapguimcp.models.config import get_settings, try_get_sap_config
 from sapguimcp.prompts import register_prompts
 from sapguimcp.resources import (
     register_feedback_resources,
@@ -277,21 +277,29 @@ ESCAPE HATCHES (when SAP-specific tools are insufficient):
 def _build_instructions() -> str:
     base = _DESKTOP_INSTRUCTIONS if _settings.backend_type == "desktop" else _WEBGUI_INSTRUCTIONS
     base = _CROSS_SERVER_GUIDANCE + base
-    try:
-        sap_cfg = get_sap_config()
-        keys = list(sap_cfg.systems.keys())
-        default = sap_cfg.default_system
-        systems_info = (
-            f"\nAVAILABLE SYSTEMS (from systems.json):\n"
-            f"Default: {default!r}\n"
-            f"All system keys: {keys}\n"
-            f"When multiple systems are configured, use the choose tool to let the user "
-            f"pick a system before calling sap_login(). "
-            f"Pass the selected key as system_key to sap_login().\n"
+    sap_cfg, config_error = try_get_sap_config()
+    if config_error:  # invalid config: don't crash startup, but say why
+        logger.error("SAP config file could not be loaded, no systems listed: %s", config_error)
+        return (
+            base
+            + "\nCONFIGURATION ERROR: the SAP config file (SAP_CONFIG_FILE / systems.json) could not be loaded, "
+            + "no systems are available until it is fixed:\n"
+            + f"{config_error}\n"
+            + "The server must be restarted after fixing the file for these instructions to update; "
+            + "sap_list_connections reports the live state.\n"
         )
-        return base + systems_info
-    except (FileNotFoundError, ValueError):  # config not found or invalid — don't crash
+    if sap_cfg is None:  # no config file: nothing to list, tools report it when they need it
         return base
+    keys = list(sap_cfg.systems.keys())
+    default = sap_cfg.default_system
+    return (
+        base + f"\nAVAILABLE SYSTEMS (from systems.json):\n"
+        f"Default: {default!r}\n"
+        f"All system keys: {keys}\n"
+        f"When multiple systems are configured, use the choose tool to let the user "
+        f"pick a system before calling sap_login(). "
+        f"Pass the selected key as system_key to sap_login().\n"
+    )
 
 
 SERVER_INSTRUCTIONS = _build_instructions()

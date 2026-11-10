@@ -324,7 +324,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             "system_key to sap_login), and 'connections' from SAP Logon "
             "(SAPUILandscape.xml, Desktop only). "
             "IMPORTANT: pass a configured_systems 'key' as system_key to sap_login, "
-            "NOT a SAP Logon entry name."
+            "NOT a SAP Logon entry name. "
+            "If configured_systems is empty, check config_error."
         )
     )
     async def sap_list_connections() -> ConnectionListResult:

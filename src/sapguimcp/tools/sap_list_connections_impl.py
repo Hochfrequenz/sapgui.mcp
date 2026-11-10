@@ -7,7 +7,7 @@ from pydantic import Field
 from sapguimcp.backend.desktop._landscape import _find_landscape_path, _parse_landscape_xml
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.base import ToolResult
-from sapguimcp.models.config import get_sap_config
+from sapguimcp.models.config import try_get_sap_config
 
 __all__ = ["sap_list_connections_impl", "_parse_landscape_xml"]
 
@@ -17,14 +17,27 @@ class ConnectionListResult(ToolResult):
 
     connections: list[dict[str, Any]] = Field(default_factory=list)
     configured_systems: list[dict[str, str]] = Field(default_factory=list)
+    config_error: str | None = Field(
+        default=None,
+        description=(
+            "Why systems.json could not be loaded (e.g. an unsupported language). "
+            "None when the config is valid or no config file exists."
+        ),
+    )
 
 
-def _get_configured_systems() -> list[dict[str, str]]:
-    """Return systems from systems.json without sensitive fields."""
-    try:
-        sap_cfg = get_sap_config()
-    except (FileNotFoundError, ValueError):
-        return []
+def _get_configured_systems() -> tuple[list[dict[str, str]], str | None]:
+    """Return systems from systems.json without sensitive fields, plus a config error.
+
+    A missing config file is a legitimate setup (landscape-only use) and yields
+    ``([], None)``.  An invalid config yields ``([], <message>)`` so the caller
+    sees why instead of a silently empty list.  The message is built by
+    ``try_get_sap_config``; it never quotes YAML source lines or secret values
+    (see there).
+    """
+    sap_cfg, config_error = try_get_sap_config()
+    if sap_cfg is None:
+        return [], config_error
     result = []
     for key, system in sap_cfg.systems.items():
         result.append(
@@ -36,12 +49,12 @@ def _get_configured_systems() -> list[dict[str, str]]:
                 "language": system.language,
             }
         )
-    return result
+    return result, None
 
 
 async def sap_list_connections_impl() -> ConnectionListResult:
     """List available SAP Logon connections from the landscape file or backend."""
-    configured_systems = _get_configured_systems()
+    configured_systems, config_error = _get_configured_systems()
     try:
         backend = await get_backend(tool_name="sap_list_connections")
         connections = await backend.list_connections()
@@ -49,6 +62,7 @@ async def sap_list_connections_impl() -> ConnectionListResult:
             success=True,
             connections=connections,
             configured_systems=configured_systems,
+            config_error=config_error,
         )
     except Exception:  # pylint: disable=broad-exception-caught
         # Fall back to reading the landscape file directly
@@ -58,10 +72,12 @@ async def sap_list_connections_impl() -> ConnectionListResult:
                 success=True,
                 connections=[],
                 configured_systems=configured_systems,
+                config_error=config_error,
             )
         connections = _parse_landscape_xml(path.read_text(encoding="utf-8"))
         return ConnectionListResult(
             success=True,
             connections=connections,
             configured_systems=configured_systems,
+            config_error=config_error,
         )
