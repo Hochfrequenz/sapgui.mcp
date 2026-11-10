@@ -7,7 +7,7 @@ from pydantic import Field
 from sapguimcp.backend.desktop._landscape import _find_landscape_path, _parse_landscape_xml
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.base import ToolResult
-from sapguimcp.models.config import get_sap_config
+from sapguimcp.models.config import try_get_sap_config
 
 __all__ = ["sap_list_connections_impl", "_parse_landscape_xml"]
 
@@ -34,12 +34,9 @@ def _get_configured_systems() -> tuple[list[dict[str, str]], str | None]:
     sees why instead of a silently empty list.  The message comes from
     sap-mcp-config, which scrubs configured values from it.
     """
-    try:
-        sap_cfg = get_sap_config()
-    except FileNotFoundError:
-        return [], None
-    except ValueError as exc:
-        return [], str(exc)
+    sap_cfg, config_error = try_get_sap_config()
+    if sap_cfg is None:
+        return [], config_error
     result = []
     for key, system in sap_cfg.systems.items():
         result.append(

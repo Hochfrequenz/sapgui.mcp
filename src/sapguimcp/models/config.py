@@ -12,7 +12,8 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Literal, Optional, get_args
 
-from pydantic import Field
+import yaml
+from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sap_mcp_config import Config as SapMcpConfig
 from sap_mcp_config import load_default as load_sap_config
@@ -27,6 +28,7 @@ __all__ = [
     "SapGuiSettings",
     "get_sap_config",
     "get_settings",
+    "try_get_sap_config",
 ]
 
 # ---------------------------------------------------------------------------
@@ -53,6 +55,27 @@ def get_sap_config() -> SapMcpConfig:
     if _sap_config is None:
         _sap_config = load_sap_config(supported_languages=SUPPORTED_LANGUAGES)
     return _sap_config
+
+
+def try_get_sap_config() -> tuple[SapMcpConfig | None, str | None]:
+    """Load the shared SAP config, classifying failures instead of raising.
+
+    Returns ``(config, None)`` on success, ``(None, None)`` when no config file
+    exists (a legitimate landscape-only setup, stays silent) and
+    ``(None, <message>)`` for every other load failure: invalid content
+    (``ValueError``, including pydantic ``ValidationError``), unreadable path
+    (``OSError`` such as ``IsADirectoryError`` / ``PermissionError``) and
+    malformed YAML.  For a ``ValidationError`` only the per-error messages are
+    reported; pydantic's header and ``input_value`` boilerplate are dropped.
+    """
+    try:
+        return get_sap_config(), None
+    except FileNotFoundError:
+        return None, None
+    except ValidationError as exc:
+        return None, "; ".join(str(err["msg"]) for err in exc.errors())
+    except (ValueError, OSError, yaml.YAMLError) as exc:
+        return None, str(exc) or type(exc).__name__
 
 
 # Backend type: "webgui" for Playwright browser automation,

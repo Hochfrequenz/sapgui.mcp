@@ -319,7 +319,7 @@ class TestServerInstructions:
         from sapguimcp.server import _build_instructions
 
         cfg = _multi_system_config()
-        with patch("sapguimcp.server.get_sap_config", return_value=cfg):
+        with patch("sapguimcp.models.config.get_sap_config", return_value=cfg):
             instructions = _build_instructions()
 
         assert "dev-100" in instructions
@@ -330,7 +330,7 @@ class TestServerInstructions:
         from sapguimcp.server import _build_instructions
 
         cfg = _multi_system_config()
-        with patch("sapguimcp.server.get_sap_config", return_value=cfg):
+        with patch("sapguimcp.models.config.get_sap_config", return_value=cfg):
             instructions = _build_instructions()
 
         assert "choose" in instructions
@@ -338,7 +338,7 @@ class TestServerInstructions:
     def test_instructions_graceful_when_config_missing(self) -> None:
         from sapguimcp.server import _build_instructions
 
-        with patch("sapguimcp.server.get_sap_config", side_effect=FileNotFoundError):
+        with patch("sapguimcp.models.config.get_sap_config", side_effect=FileNotFoundError):
             instructions = _build_instructions()
 
         assert "AVAILABLE SYSTEMS" not in instructions

@@ -8,7 +8,7 @@ import pytest
 from pydantic import SecretStr
 
 _PATCH_GET_BACKEND = "sapguimcp.tools.sap_list_connections_impl.get_backend"
-_PATCH_GET_SAP_CONFIG = "sapguimcp.tools.sap_list_connections_impl.get_sap_config"
+_PATCH_GET_SAP_CONFIG = "sapguimcp.models.config.get_sap_config"
 
 _SAMPLE_LANDSCAPE_XML = dedent("""\
     <?xml version="1.0"?>
