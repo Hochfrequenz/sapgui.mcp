@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast, get_args
 
 from sapguimcp.utils import SapLanguage, as_sap_language
 
@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _session_language: ContextVar[str | None] = ContextVar("session_language", default=None)
+_warned_languages: set[str] = set()
 
 
 def normalize_language(code: str | None) -> str | None:
@@ -62,8 +63,11 @@ def use_language(code: str | None) -> Iterator[None]:
 def session_sap_language() -> SapLanguage:
     """The current session's language narrowed to what the tools handle today.
 
-    Falls back to the configured default system's language when the session language is
-    unknown — the behaviour before #1044. Phase 2 replaces this with the language packs.
+    A session language outside :data:`SapLanguage` (the real logon language, not config-validated)
+    collapses to ``"EN"`` with a one-time warning per code, until phase 2 of #1044 brings the
+    language packs. When the session language is unknown, falls back to the configured default
+    system's language (the behaviour before #1044); that fallback raises like the old call sites
+    did if the config is missing or invalid.
     """
     code = current_language()
     if code is None:
@@ -71,6 +75,12 @@ def session_sap_language() -> SapLanguage:
         # module must stay cheap to import from the backends.
         from sapguimcp.models.config import get_sap_config  # noqa: PLC0415
 
-        code = get_sap_config().get_default().language
-        logger.debug("session language unknown, using the default system's", extra={"language": code})
-    return as_sap_language(code)
+        default_code = get_sap_config().get_default().language
+        logger.debug("session language unknown, using the default system's", extra={"language": default_code})
+        return as_sap_language(default_code)
+    if code in get_args(SapLanguage):
+        return cast("SapLanguage", code)
+    if code not in _warned_languages:
+        _warned_languages.add(code)
+        logger.warning("session language not supported, using EN", extra={"language": code})
+    return "EN"

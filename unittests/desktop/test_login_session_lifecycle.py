@@ -48,7 +48,7 @@ def _make_backend() -> DesktopBackend:
     backend = DesktopBackend(com_thread=MagicMock())
 
     async def passthrough(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
-        return fn()
+        return fn()  # runs closures in the caller's context, unlike production (copy per call)
 
     backend.com.run = passthrough  # type: ignore[method-assign]
     return backend

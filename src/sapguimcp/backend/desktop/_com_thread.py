@@ -338,7 +338,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         # signals "this session is dead", not "try again".
         # The last element is the SAP connection the call targets (see ``com_call_target``).
         self._queue: queue.Queue[
-            tuple[Callable[[], Any], concurrent.futures.Future[Any], int | None, str | None, bool] | None
+            tuple[Callable[..., Any], concurrent.futures.Future[Any], int | None, str | None, bool] | None
         ] = queue.Queue()
         # Halt watchdog state (see module docstring). ``_state_lock`` guards the
         # in-flight call bookkeeping shared between the worker and the watchdog.
@@ -392,6 +392,8 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 tracked = functools.partial(self._invoke_tracked, fn, target)
                 self._execute_with_retry(tracked, cf_future, last_call, max_retries, retry_server_fault)
                 last_call = time.monotonic()
+                # Do not pin the last caller's Context while blocked in queue.get().
+                del item, fn, tracked
         except Exception:
             # Forensic snapshot — without this, we can't tell *why* the worker
             # died (issue #628). Pair this with ``com_thread_dead_call_attempted``

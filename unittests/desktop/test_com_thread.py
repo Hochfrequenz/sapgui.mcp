@@ -126,6 +126,23 @@ class TestComThread:
         assert await asyncio.gather(call("DE"), call("EN"), call("FR")) == ["DE", "EN", "FR"]
 
     @pytest.mark.anyio
+    async def test_cancelled_queued_call_does_not_disturb_next_call(self, com_thread):
+        """A queued call cancelled before pickup is skipped; the next call still sees its context."""
+        from sapguimcp.session_language import current_language, use_language
+
+        release = threading.Event()
+        slow = asyncio.ensure_future(com_thread.run(lambda: release.wait(2.0)))
+        await asyncio.sleep(0.1)
+        queued = asyncio.ensure_future(com_thread.run(lambda: "never"))
+        await asyncio.sleep(0.1)
+        queued.cancel()
+        await asyncio.sleep(0.05)
+        release.set()
+        await slow
+        with use_language("EN"):
+            assert await com_thread.run(current_language) == "EN"
+
+    @pytest.mark.anyio
     async def test_worker_writes_do_not_leak(self, com_thread):
         """Context-variable writes inside a COM closure stay on the worker's copy."""
         from sapguimcp.session_language import current_language, set_session_language, use_language
