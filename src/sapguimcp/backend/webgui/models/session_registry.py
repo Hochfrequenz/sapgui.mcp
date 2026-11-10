@@ -4,6 +4,7 @@ import logging
 from typing import TYPE_CHECKING, Callable
 
 from sapguimcp.models.base import SessionBindConflictError
+from sapguimcp.session_language import normalize_language
 
 if TYPE_CHECKING:
     from playwright.async_api import BrowserContext, Page
@@ -28,6 +29,7 @@ class SessionRegistry:
         self._page_to_session: dict["Page", str] = {}
         self._pages_with_listeners: set["Page"] = set()  # Track pages with close listeners
         self._bindings: dict[str, str] = {}  # session_id -> agent_id
+        self._languages: dict[str, str] = {}  # session_id -> SAP logon language key (#1044)
 
     @property
     def primary_session(self) -> str:
@@ -72,6 +74,22 @@ class SessionRegistry:
         )
         return session_id
 
+    def set_language(self, session_id: str, code: str | None) -> None:
+        """Record *session_id*'s logon language; ``None``/empty removes it."""
+        normalized = normalize_language(code)
+        if normalized is None:
+            self._languages.pop(session_id, None)
+        else:
+            self._languages[session_id] = normalized
+
+    def language_of(self, session_id: str) -> str | None:
+        """Logon language of *session_id*, or ``None`` when unknown."""
+        return self._languages.get(session_id)
+
+    def session_id_of(self, page: "Page") -> str | None:
+        """Session id of a registered page, or ``None``."""
+        return self._page_to_session.get(page)
+
     def unregister(self, session_id: str) -> None:
         """Remove a session from the registry.
 
@@ -82,6 +100,7 @@ class SessionRegistry:
             page = self._sessions.pop(session_id)
             self._page_to_session.pop(page, None)
             self._bindings.pop(session_id, None)  # Clear binding
+            self._languages.pop(session_id, None)
             logger.info("Unregistered session", extra={"session": session_id})
 
     def get_page(self, session_id: str | None) -> "Page":
@@ -108,6 +127,7 @@ class SessionRegistry:
             self._sessions.pop(sid, None)
             self._page_to_session.pop(page, None)
             self._bindings.pop(sid, None)  # Clear binding
+            self._languages.pop(sid, None)
             raise ValueError(
                 f"Session '{sid}' expired (tab closed). "
                 "Use sap_transaction(tcode, new_window=True) to create a new session."
@@ -241,6 +261,7 @@ class SessionRegistry:
             session_id = self._page_to_session.pop(page)
             self._sessions.pop(session_id, None)
             self._bindings.pop(session_id, None)  # Clear binding
+            self._languages.pop(session_id, None)
             logger.info("Session auto-unregistered (page closed)", extra={"session": session_id})
 
     async def setup_context_listeners(self, context: "BrowserContext") -> None:

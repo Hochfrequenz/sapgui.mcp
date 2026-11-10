@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Iterable, Literal
 # Reuse the conflict error from the webgui registry so callers can catch
 # a single class regardless of which backend produced it.
 from sapguimcp.models.base import SessionBindConflictError
+from sapguimcp.session_language import normalize_language
 
 if TYPE_CHECKING:
     from sapsucker.components.session import GuiSession
@@ -44,6 +45,8 @@ class DesktopSessionRegistry:
         # session_id -> who created the session (issue #1009). Every destructive path
         # (close, reset_to_primary) asks ``is_attached`` before touching SAP GUI.
         self._origins: dict[str, SessionOrigin] = {}
+        # session_id -> SAP logon language key (#1044). Absent when unknown.
+        self._languages: dict[str, str] = {}
 
     @property
     def primary_session(self) -> str:
@@ -109,6 +112,18 @@ class DesktopSessionRegistry:
         logger.info("Registered desktop session", extra={"session": session_id})
         return session_id
 
+    def set_language(self, session_id: str, code: str | None) -> None:
+        """Record *session_id*'s logon language; ``None``/empty removes it."""
+        normalized = normalize_language(code)
+        if normalized is None:
+            self._languages.pop(session_id, None)
+        else:
+            self._languages[session_id] = normalized
+
+    def language_of(self, session_id: str) -> str | None:
+        """Logon language of *session_id*, or ``None`` when unknown."""
+        return self._languages.get(session_id)
+
     def origin_of(self, session_id: str) -> SessionOrigin | None:
         """Origin of *session_id* (``"opened"`` / ``"attached"``), or None if unknown."""
         return self._origins.get(session_id)
@@ -161,6 +176,7 @@ class DesktopSessionRegistry:
         self._bindings.pop(session_id, None)
         self._busy_since.pop(session_id, None)
         self._origins.pop(session_id, None)
+        self._languages.pop(session_id, None)
         logger.info("Unregistered desktop session", extra={"session": session_id})
 
     def prune(self, dead_ids: Iterable[str]) -> list[str]:
@@ -190,6 +206,7 @@ class DesktopSessionRegistry:
                 self._bindings.pop(sid, None)
                 self._busy_since.pop(sid, None)
                 self._origins.pop(sid, None)
+                self._languages.pop(sid, None)
                 logger.info(
                     "Pruned dead desktop session",
                     extra={"session": sid, "bound_to": agent},
@@ -216,6 +233,7 @@ class DesktopSessionRegistry:
         self._bindings.clear()
         self._busy_since.clear()
         self._origins.clear()
+        self._languages.clear()  # the counter restarts, so a stale language would attach to the next s1
         self._counter = 0
         if had_sessions:
             logger.info("Cleared desktop session registry")

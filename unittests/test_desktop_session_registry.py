@@ -407,3 +407,47 @@ class TestBusyState:
         reg.unregister("s1")  # only s2 left
         reg.mark_busy("s2", 100.0)
         assert reg.canonical_primary_session() == "s2"
+
+
+# ---------------------------------------------------------------------------
+# logon language (#1044)
+# ---------------------------------------------------------------------------
+
+
+def test_language_is_stored_and_cleared() -> None:
+    reg = DesktopSessionRegistry()
+    sid = reg.register(_make_mock_session())
+    assert reg.language_of(sid) is None
+    reg.set_language(sid, "de")
+    assert reg.language_of(sid) == "DE"
+    reg.unregister(sid)
+    assert reg.language_of(sid) is None
+
+
+def test_language_of_unknown_session_is_none() -> None:
+    assert DesktopSessionRegistry().language_of("s9") is None
+
+
+def test_set_language_none_removes_it() -> None:
+    reg = DesktopSessionRegistry()
+    sid = reg.register(_make_mock_session())
+    reg.set_language(sid, "EN")
+    reg.set_language(sid, None)
+    assert reg.language_of(sid) is None
+
+
+def test_prune_clears_language() -> None:
+    reg = DesktopSessionRegistry()
+    sid = reg.register(_make_mock_session())
+    reg.set_language(sid, "DE")
+    assert reg.prune([sid]) == [sid]
+    assert reg.language_of(sid) is None
+
+
+def test_clear_clears_language_so_it_does_not_attach_to_the_next_s1() -> None:
+    reg = DesktopSessionRegistry()
+    sid = reg.register(_make_mock_session())
+    reg.set_language(sid, "DE")
+    reg.clear()
+    assert reg.register(_make_mock_session()) == sid  # the counter restarted
+    assert reg.language_of(sid) is None

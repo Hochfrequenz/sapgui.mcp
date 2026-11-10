@@ -50,7 +50,7 @@ import logging
 import queue
 import threading
 import time
-from contextvars import ContextVar
+from contextvars import ContextVar, copy_context
 from typing import Any, Callable, NamedTuple, TypeVar
 
 logger = logging.getLogger(__name__)
@@ -338,7 +338,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         # signals "this session is dead", not "try again".
         # The last element is the SAP connection the call targets (see ``com_call_target``).
         self._queue: queue.Queue[
-            tuple[Callable[[], Any], concurrent.futures.Future[Any], int | None, str | None, bool] | None
+            tuple[Callable[..., Any], concurrent.futures.Future[Any], int | None, str | None, bool] | None
         ] = queue.Queue()
         # Halt watchdog state (see module docstring). ``_state_lock`` guards the
         # in-flight call bookkeeping shared between the worker and the watchdog.
@@ -392,6 +392,8 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 tracked = functools.partial(self._invoke_tracked, fn, target)
                 self._execute_with_retry(tracked, cf_future, last_call, max_retries, retry_server_fault)
                 last_call = time.monotonic()
+                # Do not pin the last caller's Context while blocked in queue.get().
+                del item, fn, tracked
         except Exception:
             # Forensic snapshot — without this, we can't tell *why* the worker
             # died (issue #628). Pair this with ``com_thread_dead_call_attempted``
@@ -616,7 +618,16 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 "cannot be revived. The BackendManager must rebuild it."
             )
         cf_future: concurrent.futures.Future[T] = concurrent.futures.Future()
-        self._queue.put((fn, cf_future, max_retries, com_call_target.get(), retry_server_fault))
+        # Run fn inside a copy of the caller's context so context variables (the session
+        # language, #1044) are visible on the worker, and writes made there stay on the copy.
+        # One fresh copy per call, never stored: a Context cannot be entered twice at once, and
+        # retries re-enter it one after another. ``ctx.run`` forwards the batch carrier the
+        # retry path passes (#879). ``com_call_target`` stays hand-carried: the watchdog thread
+        # reads it outside the call.
+        ctx = copy_context()
+        self._queue.put(
+            (functools.partial(ctx.run, fn), cf_future, max_retries, com_call_target.get(), retry_server_fault)
+        )
         return await asyncio.wrap_future(cf_future)
 
     @property

@@ -352,3 +352,50 @@ class TestBrowserManagerBindingCheck:
         record = warning_records[0]
         assert record.bound_to == "agent-1"  # type: ignore[attr-defined]
         assert record.accessed_by == "agent-2"  # type: ignore[attr-defined]
+
+
+class TestSessionRegistryLanguage:
+    """Logon language per session (#1044)."""
+
+    @staticmethod
+    def _page(closed: bool = False) -> MagicMock:
+        page = MagicMock()
+        page.is_closed.return_value = closed
+        return page
+
+    def test_language_is_stored_and_cleared(self) -> None:
+        reg = SessionRegistry()
+        sid = reg.register(self._page())
+        assert reg.language_of(sid) is None
+        reg.set_language(sid, "de")
+        assert reg.language_of(sid) == "DE"
+        reg.unregister(sid)
+        assert reg.language_of(sid) is None
+
+    def test_language_of_unknown_session_is_none(self) -> None:
+        assert SessionRegistry().language_of("s9") is None
+
+    def test_session_id_of(self) -> None:
+        reg = SessionRegistry()
+        page = self._page()
+        sid = reg.register(page)
+        assert reg.session_id_of(page) == sid
+        assert reg.session_id_of(self._page()) is None
+
+    def test_page_close_clears_language(self) -> None:
+        reg = SessionRegistry()
+        page = self._page()
+        sid = reg.register(page)
+        reg.set_language(sid, "EN")
+        reg._on_page_closed(page)  # pylint: disable=protected-access
+        assert reg.language_of(sid) is None
+
+    def test_stale_tab_cleanup_clears_language(self) -> None:
+        reg = SessionRegistry()
+        page = self._page()
+        sid = reg.register(page)
+        reg.set_language(sid, "EN")
+        page.is_closed.return_value = True
+        with pytest.raises(ValueError, match="expired"):
+            reg.get_page(sid)
+        assert reg.language_of(sid) is None

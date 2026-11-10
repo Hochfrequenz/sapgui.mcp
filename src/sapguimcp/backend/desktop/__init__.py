@@ -85,6 +85,7 @@ from sapguimcp.models.sap_results import (
     TableRow,
     TransactionResult,
 )
+from sapguimcp.session_language import set_session_language
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
@@ -800,12 +801,26 @@ class DesktopBackend:
 
                 new_session_id = self.registry.register(session)
                 await self._watch_connection_of(session)
-                user_name = await self.com.run(lambda: str(session.info.user))
+
+                def _read_user_and_language() -> tuple[str, str | None]:
+                    user = str(session.info.user)
+                    try:
+                        return user, str(session.info.language)
+                    except Exception:  # pylint: disable=broad-exception-caught
+                        # A failed language read must not fail the login (#1044).
+                        logger.debug("could not read the session language", exc_info=True)
+                        return user, None
+
+                user_name, logon_language = await self.com.run(_read_user_and_language)
+                self.registry.set_language(new_session_id, logon_language)
+                # The rest of this sap_login call works on the new session (#1044).
+                set_session_language(logon_language)
                 logger.info(
                     "login",
                     extra={
                         "connection": connection_name,
                         "user": user_name,
+                        "language": logon_language,
                         "session_id": new_session_id,
                         "success": True,
                     },
@@ -1074,6 +1089,8 @@ class DesktopBackend:
     async def _open_new_session_locked(self, tcode: str) -> tuple[str | None, int, str | None]:
         """``open_new_session`` body — caller must hold ``_mutation_lock``."""
         session = self.require_session()
+        # Resolve the parent before registering the new session, which could become primary.
+        parent_id = _current_session_id.get() or self.registry.primary_session
 
         try:
             await self.com.run(session.create_session)
@@ -1099,6 +1116,8 @@ class DesktopBackend:
             if result_session is None:
                 return None, count, None
             session_id = self.registry.register(result_session)
+            # A session opened from another one shares its connection, so its logon language.
+            self.registry.set_language(session_id, self.registry.language_of(parent_id))
             self._record_connection(result_session, connection_id)
             logger.info("open_session", extra={"tcode": tcode, "session_id": session_id, "count": count})
             return session_id, count, title

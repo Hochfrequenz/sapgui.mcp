@@ -57,6 +57,15 @@ def reset_settings() -> Generator[None, None, None]:
 
 
 @pytest.fixture(autouse=True)
+def reset_session_language() -> Generator[None, None, None]:
+    """Reset the session-language context variable around every test (#1044)."""
+    from sapguimcp.session_language import use_language
+
+    with use_language(None):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def clean_environment() -> Generator[None, None, None]:
     """Clean environment variables before each test."""
     env_vars_to_clear = [

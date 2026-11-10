@@ -67,6 +67,24 @@ async def test_sap_login(sap_mcp_client: ClientSession) -> None:
 
 
 @pytest.mark.anyio
+async def test_page_reports_the_logon_language(sap_mcp_client: ClientSession) -> None:
+    """``<html lang>`` names the logon language; the WebGUI backend reads it after login (#1044)."""
+    from sapguimcp.models.config import get_sap_config  # noqa: PLC0415
+
+    login = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    assert login.success, f"Login failed: {login.error}"
+    page_lang = await call_tool_typed(
+        sap_mcp_client, "browser_evaluate", {"script": "document.documentElement.lang"}, EvaluateResult
+    )
+    assert page_lang.result, "the WebGUI page has no <html lang>"
+    iso_code = page_lang.result.strip('"').split("-")[0].upper()
+    assert iso_code in {"DE", "EN"}, f"unexpected <html lang>: {page_lang.result}"
+    if not login.already_logged_in:
+        # A reused session keeps the language it was opened in; only a fresh logon must match.
+        assert iso_code == get_sap_config().get_default().language.upper()
+
+
+@pytest.mark.anyio
 async def test_settings_dialog_capture(sap_mcp_client: ClientSession) -> None:
     """Capture the settings dialog HTML for selector testing.
 
