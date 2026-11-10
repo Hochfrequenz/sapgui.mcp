@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Every tool call knows the logon language of the session it works on. SLG1, SM37 and ST22
-stop reading the language of the *default* system.
+stop reading the language of the _default_ system.
 
 **Architecture:** A new module `sapguimcp/session_language.py` holds a backend-neutral context
 variable with the current session's SAP language key. Both session registries store each
@@ -38,34 +38,35 @@ system's language — today's behaviour — and logs it at debug level. Phase 2 
 
 ## File structure
 
-| File | Responsibility |
-|---|---|
-| Create `src/sapguimcp/session_language.py` | context variable, `current_language`, `set_session_language`, `use_language`, `normalize_language`, `session_sap_language` |
-| Modify `src/sapguimcp/backend/desktop/_com_thread.py` | `run()` copies the caller context to the worker |
-| Modify `src/sapguimcp/backend/desktop/_session_registry.py` | `_languages` dict, `set_language`, `language_of`, cleanup in `unregister`/`prune` |
-| Modify `src/sapguimcp/backend/desktop/__init__.py` | login reads `(user, language)`; `_open_new_session_locked` copies the parent's language; login sets the context variable |
-| Modify `src/sapguimcp/backend/webgui/models/session_registry.py` | `_languages` dict, `set_language`, `language_of`, `session_id_of`, cleanup |
-| Modify `src/sapguimcp/backend/webgui/backend.py` | `_post_login_setup` reads the page language; `/o` tabs inherit it |
-| Modify `src/sapguimcp/backend/manager.py` | `get_or_create` sets the variable; recovery clears it |
-| Modify `src/sapguimcp/tools/slg1_tools.py`, `sm37_tools.py`, `st22_tools.py` | use `session_sap_language()` |
-| Tests | `unittests/test_session_language.py` (new), `unittests/desktop/test_com_thread.py`, `unittests/test_desktop_session_registry.py`, `unittests/test_session_registry.py`, `unittests/test_backend_manager.py`, `unittests/desktop/test_login_session_lifecycle.py`, `unittests/test_webgui_session_language.py` (new) |
+| File                                                                         | Responsibility                                                                                                                                                                                                                                                                                                      |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Create `src/sapguimcp/session_language.py`                                   | context variable, `current_language`, `set_session_language`, `use_language`, `normalize_language`, `session_sap_language`                                                                                                                                                                                          |
+| Modify `src/sapguimcp/backend/desktop/_com_thread.py`                        | `run()` copies the caller context to the worker                                                                                                                                                                                                                                                                     |
+| Modify `src/sapguimcp/backend/desktop/_session_registry.py`                  | `_languages` dict, `set_language`, `language_of`, cleanup in `unregister`/`prune`                                                                                                                                                                                                                                   |
+| Modify `src/sapguimcp/backend/desktop/__init__.py`                           | login reads `(user, language)`; `_open_new_session_locked` copies the parent's language; login sets the context variable                                                                                                                                                                                            |
+| Modify `src/sapguimcp/backend/webgui/models/session_registry.py`             | `_languages` dict, `set_language`, `language_of`, `session_id_of`, cleanup                                                                                                                                                                                                                                          |
+| Modify `src/sapguimcp/backend/webgui/backend.py`                             | `_post_login_setup` reads the page language; `/o` tabs inherit it                                                                                                                                                                                                                                                   |
+| Modify `src/sapguimcp/backend/manager.py`                                    | `get_or_create` sets the variable; recovery clears it                                                                                                                                                                                                                                                               |
+| Modify `src/sapguimcp/tools/slg1_tools.py`, `sm37_tools.py`, `st22_tools.py` | use `session_sap_language()`                                                                                                                                                                                                                                                                                        |
+| Tests                                                                        | `unittests/test_session_language.py` (new), `unittests/desktop/test_com_thread.py`, `unittests/test_desktop_session_registry.py`, `unittests/test_session_registry.py`, `unittests/test_backend_manager.py`, `unittests/desktop/test_login_session_lifecycle.py`, `unittests/test_webgui_session_language.py` (new) |
 
 ## Model assignment (from the spec)
 
-| Task | Implement | Review |
-|---|---|---|
-| 1 `session_language` module | opus | fable (with Task 2) |
-| 2 `copy_context` in `ComThread.run` | opus | fable |
-| 3 registries + desktop/WebGUI language reads | sonnet | opus |
-| 4 manager wiring + recovery | opus | fable |
-| 5 SLG1/SM37/ST22 switch | sonnet | sonnet |
-| 6 live tests | controller runs, haiku may collect summaries | — |
+| Task                                         | Implement                                    | Review              |
+| -------------------------------------------- | -------------------------------------------- | ------------------- |
+| 1 `session_language` module                  | opus                                         | fable (with Task 2) |
+| 2 `copy_context` in `ComThread.run`          | opus                                         | fable               |
+| 3 registries + desktop/WebGUI language reads | sonnet                                       | opus                |
+| 4 manager wiring + recovery                  | opus                                         | fable               |
+| 5 SLG1/SM37/ST22 switch                      | sonnet                                       | sonnet              |
+| 6 live tests                                 | controller runs, haiku may collect summaries | —                   |
 
 ---
 
 ### Task 1: `session_language` module
 
 **Files:**
+
 - Create: `src/sapguimcp/session_language.py`
 - Test: `unittests/test_session_language.py`
 
@@ -231,6 +232,7 @@ git commit -m "feat(lang): context variable for the session's logon language (#1
 ### Task 2: `ComThread.run` copies the caller's context
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/desktop/_com_thread.py` (`run`, around lines 592-620)
 - Test: `unittests/desktop/test_com_thread.py`
 
@@ -325,6 +327,7 @@ git commit -m "fix(desktop): COM closures see the caller's context variables (#1
 ### Task 3: Both registries store each session's language
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/desktop/_session_registry.py`
 - Modify: `src/sapguimcp/backend/desktop/__init__.py` (login ~line 801-803, `_open_new_session_locked` ~line 1074-1101)
 - Modify: `src/sapguimcp/backend/webgui/models/session_registry.py`
@@ -393,12 +396,12 @@ WebGUI additionally:
 ```
 
 - [ ] **Step 4: Failing desktop login test** in `unittests/desktop/test_login_session_lifecycle.py`
-  (use `make_mock_session(language=...)` from `unittests/desktop/conftest.py:245-262`; the file's
-  `_make_backend` passthrough returns `fn()`, so a tuple-returning lambda works): after a successful
-  login with language `"DE"`, `backend.registry.language_of(result.session_id) == "DE"` **and**
-  `current_language() == "DE"`. A second test: `open_new_session` from a `DE` session registers the
-  new session with language `DE`. Wrap each test body in `with use_language(None):` so the value
-  does not leak into other tests (anyio shares the runner task).
+      (use `make_mock_session(language=...)` from `unittests/desktop/conftest.py:245-262`; the file's
+      `_make_backend` passthrough returns `fn()`, so a tuple-returning lambda works): after a successful
+      login with language `"DE"`, `backend.registry.language_of(result.session_id) == "DE"` **and**
+      `current_language() == "DE"`. A second test: `open_new_session` from a `DE` session registers the
+      new session with language `DE`. Wrap each test body in `with use_language(None):` so the value
+      does not leak into other tests (anyio shares the runner task).
 
 - [ ] **Step 5: Implement desktop**
 
@@ -427,13 +430,13 @@ few lines above. Add `"language": logon_language` to the existing `login` log `e
 (`require_session` resolves the parent through `get_session(None)`, i.e. the same default.)
 
 - [ ] **Step 6: Failing WebGUI tests** in the new `unittests/test_webgui_session_language.py`. Pattern
-  from `unittests/test_get_session_status_per_id.py:214`:
-  `patch.object(type(backend), "_get_registry", new=AsyncMock(return_value=SessionRegistry()))`, also
-  patch `_capture_sap_identity`, page `evaluate=AsyncMock(return_value="de")`. With that,
-  `_post_login_setup` leaves `registry.language_of(<page's session>) == "DE"` and
-  `current_language() == "DE"`. A page returning `""` falls back to the
-  `language` passed to `login` (pass it into `_post_login_setup` as a new keyword argument).
-  A test for `_register_new_window_session`: the new tab inherits the origin tab's language.
+      from `unittests/test_get_session_status_per_id.py:214`:
+      `patch.object(type(backend), "_get_registry", new=AsyncMock(return_value=SessionRegistry()))`, also
+      patch `_capture_sap_identity`, page `evaluate=AsyncMock(return_value="de")`. With that,
+      `_post_login_setup` leaves `registry.language_of(<page's session>) == "DE"` and
+      `current_language() == "DE"`. A page returning `""` falls back to the
+      `language` passed to `login` (pass it into `_post_login_setup` as a new keyword argument).
+      A test for `_register_new_window_session`: the new tab inherits the origin tab's language.
 
 - [ ] **Step 7: Implement WebGUI**
 
@@ -491,26 +494,27 @@ git commit -m "feat: session registries record each session's logon language (#1
 (Login already sets it, Task 3.)
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/manager.py` (`get_or_create`, `_recover_desktop_if_dead`). Import
   `set_session_language` at module top level, **not** inside the `if sys.platform == "win32" or
-  TYPE_CHECKING:` block — the WebGUI path needs it on every platform.
+TYPE_CHECKING:` block — the WebGUI path needs it on every platform.
 - Test: `unittests/test_backend_manager.py`.
-  - Desktop: use `_make_desktop_manager()` and the `desktop_symbols` fixture (lines ~82-116); seed
-    `manager._backends["desktop"]` with `DesktopBackend.__new__` plus a real
-    `DesktopSessionRegistry`; leaving `_com_thread=None` makes recovery a no-op.
-  - WebGUI: patch `sapguimcp.backend.manager.get_browser_manager` to return a mock whose
-    `get_or_create_session_page_checked` is an `AsyncMock` and whose `registry` is a real
-    `SessionRegistry`.
-  - Wrap each test in `with use_language(None):`.
+    - Desktop: use `_make_desktop_manager()` and the `desktop_symbols` fixture (lines ~82-116); seed
+      `manager._backends["desktop"]` with `DesktopBackend.__new__` plus a real
+      `DesktopSessionRegistry`; leaving `_com_thread=None` makes recovery a no-op.
+    - WebGUI: patch `sapguimcp.backend.manager.get_browser_manager` to return a mock whose
+      `get_or_create_session_page_checked` is an `AsyncMock` and whose `registry` is a real
+      `SessionRegistry`.
+    - Wrap each test in `with use_language(None):`.
 
 - [ ] **Step 1: Failing tests**
-  - desktop: registry with `s1` (`DE`) and `s2` (`EN`); `get_or_create(session="s2")` →
-    `current_language() == "EN"`; `get_or_create()` → language of the primary session.
-  - desktop: a session without a recorded language → `current_language() is None` (no stale value
-    from a previous call in the same task).
-  - webgui: same with the browser manager's registry.
-  - recovery: call `_recover_desktop_if_dead` directly with a dead `_com_thread` mock
-    (`is_alive = False`); afterwards `current_language() is None`.
+    - desktop: registry with `s1` (`DE`) and `s2` (`EN`); `get_or_create(session="s2")` →
+      `current_language() == "EN"`; `get_or_create()` → language of the primary session.
+    - desktop: a session without a recorded language → `current_language() is None` (no stale value
+      from a previous call in the same task).
+    - webgui: same with the browser manager's registry.
+    - recovery: call `_recover_desktop_if_dead` directly with a dead `_com_thread` mock
+      (`is_alive = False`); afterwards `current_language() is None`.
 
 - [ ] **Step 2: Run, verify failure.**
 
@@ -542,18 +546,19 @@ git commit -m "feat: every tool call carries its session's logon language (#1044
 ### Task 5: SLG1, SM37, ST22 use the session's language
 
 **Files:**
+
 - Modify: `src/sapguimcp/tools/slg1_tools.py:136-137,294-295`, `src/sapguimcp/tools/sm37_tools.py:241-242,501-502`, `src/sapguimcp/tools/st22_tools.py:162-163`
 - Test: `unittests/test_slg1_desktop_unreadable_list.py`, `unittests/test_sm37_desktop_empty_result.py`, `unittests/test_st22_desktop_readiness.py`, plus one new test per tool
 
 - [ ] **Step 1: Failing test per tool**: with the default system configured as `EN` (patch
-  `sapguimcp.models.config.get_sap_config`) and `use_language("DE")`, the tool formats a date as
-  `DD.MM.YYYY` / uses the DE labels. Before the change it uses EN.
+      `sapguimcp.models.config.get_sap_config`) and `use_language("DE")`, the tool formats a date as
+      `DD.MM.YYYY` / uses the DE labels. Before the change it uses EN.
 
 - [ ] **Step 1b: Update existing tests** that patch the tool modules' `get_sap_config`, which no
-  longer exists there after this task: `unittests/test_slg1_desktop_unreadable_list.py:33`,
-  `unittests/test_slg1_log_tree.py:94`, `unittests/test_sm37_desktop_empty_result.py:39,52,70`.
-  Replace each patch with `use_language("EN")` / `use_language("DE")` matching the language the test
-  configured.
+      longer exists there after this task: `unittests/test_slg1_desktop_unreadable_list.py:33`,
+      `unittests/test_slg1_log_tree.py:94`, `unittests/test_sm37_desktop_empty_result.py:39,52,70`.
+      Replace each patch with `use_language("EN")` / `use_language("DE")` matching the language the test
+      configured.
 
 - [ ] **Step 2: Run, verify failure.**
 
@@ -592,15 +597,15 @@ git commit -m "fix(slg1,sm37,st22): use the session's logon language, not the de
 ### Task 6: Live verification (controller only, single SAP connection)
 
 - [ ] Desktop backend, on both systems (the ECC and the S/4HANA system), DE and EN where configured:
-  - login, then `sap_sm37_lookup` with a date range, `sap_slg1_lookup` with a date range,
-    `sap_st22_lookup` for today: no regression.
-  - a second login to a system with a different language in the same server process, then the
-    same lookups on each session: each uses its own language.
+    - login, then `sap_sm37_lookup` with a date range, `sap_slg1_lookup` with a date range,
+      `sap_st22_lookup` for today: no regression.
+    - a second login to a system with a different language in the same server process, then the
+      same lookups on each session: each uses its own language.
 - [ ] Run the relevant existing live tests by path (`unittests/desktop/` login/session lifecycle,
-  SM37/SLG1/ST22 live tests) and record the literal pytest summaries for the PR. Rerun a failure
-  on its own and compare with `main` before calling it real (flaky-test rule in the spec).
+      SM37/SLG1/ST22 live tests) and record the literal pytest summaries for the PR. Rerun a failure
+      on its own and compare with `main` before calling it real (flaky-test rule in the spec).
 - [ ] WebGUI: one login + SM37 live test if the WebGUI environment is available; otherwise state
-  in the PR that it was not run and why.
+      in the PR that it was not run and why.
 
 Then: PR with the spec, this plan and the code; self-review, Copilot review, CI green; ask before
 merging.
