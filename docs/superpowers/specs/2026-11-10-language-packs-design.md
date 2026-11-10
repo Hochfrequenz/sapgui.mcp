@@ -15,43 +15,43 @@ finding every site by hand.
 Further findings of the inventory:
 
 - **Duplicates:**
-  - the inactive-objects phrase exists 3×;
-  - local `_bilingual` helpers exist 3× (`_click_tab_bilingual` twice, `_set_checkbox_bilingual` once);
-  - "Display" exists 5× and "not found" 6× in `lang.py`;
-  - SM37 and ST22 tools and parsers use different "no entries" lists.
+    - the inactive-objects phrase exists 3×;
+    - local `_bilingual` helpers exist 3× (`_click_tab_bilingual` twice, `_set_checkbox_bilingual` once);
+    - "Display" exists 5× and "not found" 6× in `lang.py`;
+    - SM37 and ST22 tools and parsers use different "no entries" lists.
 - **Single-language bugs:**
-  - SE24 visibility/static/constant only match EN, so DE private methods come out public;
-  - the desktop SM37 status is not normalised;
-  - the SE16 hit count only accepts `.` as thousands separator;
-  - the `extract_status_bar.js` noise filter and the `discover_fields.js` dropdown check are DE only;
-  - `check_popup.js` lacks `yes`/`no`;
-  - SE09 `region "Liste"` is DE only;
-  - the abapGit EN initial-screen check (`"Entry"`) never matches.
+    - SE24 visibility/static/constant only match EN, so DE private methods come out public;
+    - the desktop SM37 status is not normalised;
+    - the SE16 hit count only accepts `.` as thousands separator;
+    - the `extract_status_bar.js` noise filter and the `discover_fields.js` dropdown check are DE only;
+    - `check_popup.js` lacks `yes`/`no`;
+    - SE09 `region "Liste"` is DE only;
+    - the abapGit EN initial-screen check (`"Entry"`) never matches.
 - **Wrong texts:** a sample lookup in SAP's message table showed that `lang.py` expects an EN SLG1
   text that SAP does not show. `SLG1_NO_LOGS_FOUND_EN` is "No log could be found in the database",
   but message BL 208 in EN reads "No log found in the database". Hand-typed texts drift.
-- **Wrong language source:** SLG1, SM37 and ST22 take the language from the *default* system, not
+- **Wrong language source:** SLG1, SM37 and ST22 take the language from the _default_ system, not
   from the session's system.
 - **Shortcut names:** `sap_tools.parse_shortcut_from_title` returns localized shortcut text (`Strg+S`) that
   the desktop key mapping does not accept.
 
 ### Today's ways of handling language, and what replaces each
 
-| # | Today | Example | Replaced by |
-|---|---|---|---|
-| 1 | `X_DE` / `X_EN` constants in `lang.py` | `SE16_HIT_COUNT_LABEL_DE` | pack field `se16.hit_count_label` |
-| 2 | `bilingual_pattern(de, en)` | SE16/SE24 parsers | `Text.alt` / `Text.pattern` |
-| 3 | inline DE/EN tuples, `for label in (...)` loops, `bilingual_target` dicts | `("Datentyp", "Data type")` | iterating a `Text` |
-| 4 | inline regex alternations, `name_de`/`name_en` groups | `(?:Eintrag\|Entry)\s+\d+\s+(?:von\|of)` | `Template` / `RegexText` / `alt_of` |
-| 5 | lowercase substring checks | `"einstieg" in title.lower()` | `Text.contains` |
-| 6 | `if language == "DE"` branches | job-log button, SLG1 labels | iterating a `Text` |
-| 7 | DE/EN dict keys for column headers | `row.get("Methode", row.get("Method"))` | `Text.first_key` |
-| 8 | local `_bilingual` helpers (3 copies) | `_click_tab_bilingual` | shared `click_tab` / `set_checkbox` taking a `Text` |
-| 9 | literals inside JS files | `'Meldungsleiste'`, `[title*='Schlie']` | `for_js()` argument, or deleted (§7) |
-| 10 | language from the default system | `sap_cfg.get_default().language` | `lang.current()` via context variable |
-| 11 | `SapLanguage` Literal, `as_sap_language()` | `utils.py`, passed to `sap-mcp-config` by #1042 | `lang.supported_languages()` |
-| 12 | localized maps keyed by text | `SM37_STATUS_MAP_DE` | canonical mapping `JobStatus → Text` |
-| 13 | test-only DE/EN constants and `SAP_LANGUAGE` check | `unittests/webgui/testdata/lang_test.py`, `lang_strings` fixture | test pack using the same mechanism (§10) |
+| #   | Today                                                                     | Example                                                          | Replaced by                                         |
+| --- | ------------------------------------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------- |
+| 1   | `X_DE` / `X_EN` constants in `lang.py`                                    | `SE16_HIT_COUNT_LABEL_DE`                                        | pack field `se16.hit_count_label`                   |
+| 2   | `bilingual_pattern(de, en)`                                               | SE16/SE24 parsers                                                | `Text.alt` / `Text.pattern`                         |
+| 3   | inline DE/EN tuples, `for label in (...)` loops, `bilingual_target` dicts | `("Datentyp", "Data type")`                                      | iterating a `Text`                                  |
+| 4   | inline regex alternations, `name_de`/`name_en` groups                     | `(?:Eintrag\|Entry)\s+\d+\s+(?:von\|of)`                         | `Template` / `RegexText` / `alt_of`                 |
+| 5   | lowercase substring checks                                                | `"einstieg" in title.lower()`                                    | `Text.contains`                                     |
+| 6   | `if language == "DE"` branches                                            | job-log button, SLG1 labels                                      | iterating a `Text`                                  |
+| 7   | DE/EN dict keys for column headers                                        | `row.get("Methode", row.get("Method"))`                          | `Text.first_key`                                    |
+| 8   | local `_bilingual` helpers (3 copies)                                     | `_click_tab_bilingual`                                           | shared `click_tab` / `set_checkbox` taking a `Text` |
+| 9   | literals inside JS files                                                  | `'Meldungsleiste'`, `[title*='Schlie']`                          | `for_js()` argument, or deleted (§7)                |
+| 10  | language from the default system                                          | `sap_cfg.get_default().language`                                 | `lang.current()` via context variable               |
+| 11  | `SapLanguage` Literal, `as_sap_language()`                                | `utils.py`, passed to `sap-mcp-config` by #1042                  | `lang.supported_languages()`                        |
+| 12  | localized maps keyed by text                                              | `SM37_STATUS_MAP_DE`                                             | canonical mapping `JobStatus → Text`                |
+| 13  | test-only DE/EN constants and `SAP_LANGUAGE` check                        | `unittests/webgui/testdata/lang_test.py`, `lang_strings` fixture | test pack using the same mechanism (§10)            |
 
 The guard tests (§10) make sure none of the old mechanisms comes back.
 
@@ -139,9 +139,9 @@ class Template:                               # language-dependent word order
 Rules:
 
 - **Templates compile one pattern per variant.** `search`/`match` return the first hit.
-  - Python `re` rejects duplicate group names across alternatives. That is why today's code has
-    `name_de`/`name_en`.
-  - Every variant uses the same group names, so callers read `m["name"]` regardless of language.
+    - Python `re` rejects duplicate group names across alternatives. That is why today's code has
+      `name_de`/`name_en`.
+    - Every variant uses the same group names, so callers read `m["name"]` regardless of language.
 - **Caching:** frozen, slotted dataclasses have no `__dict__`, so `cached_property` does not work.
   `alt` and `pattern` go through module-level `@lru_cache` builders keyed by
   `(variants, fold, word)`.
@@ -157,11 +157,12 @@ Rules:
   `Class|Klasse|Interface` or `(Success|Error)\s+(Message Bar)`.
 - **JS:** `for_js()` has its own JS escaper and builder. Python's `re.escape` output is invalid in
   JS `u` mode, JS `\b` is ASCII-only, and scoped `(?i:…)` is not portable. It therefore emits:
-  - a plain source;
-  - `(?<![\p{L}\p{N}_])…(?![\p{L}\p{N}_])` for word boundaries;
-  - flags `iu`.
-  
-  Composites that mix case sensitivity are Python-only.
+    - a plain source;
+    - `(?<![\p{L}\p{N}_])…(?![\p{L}\p{N}_])` for word boundaries;
+    - flags `iu`.
+
+    Composites that mix case sensitivity are Python-only.
+
 - **Playwright:** `text=` selectors and `get_by_role(name=…)` take candidates by iteration or
   `name=text.pattern`. No selector helpers on `Text` until a second call site needs one.
 
@@ -202,11 +203,12 @@ Field rules:
   truncation ("Ext. Identif.", "Job-Erstelle"). There is no release tagging.
 - **Canonical mappings:** classification and normalisation use mappings keyed by an enum, for
   example:
-  - `sm37.status: Mapping[JobStatus, Text]`, wrapped in `MappingProxyType`;
-  - SE09 status, SE24 visibility/level, ST22 section, activation result.
-  
-  The completeness test checks that every enum member has a `Text`. A collision test checks that no
-  variant maps to two members in any merged view.
+    - `sm37.status: Mapping[JobStatus, Text]`, wrapped in `MappingProxyType`;
+    - SE09 status, SE24 visibility/level, ST22 section, activation result.
+
+    The completeness test checks that every enum member has a `Text`. A collision test checks that no
+    variant maps to two members in any merged view.
+
 - **Shared vs invariant texts:** SAP-translated texts that happen to coincide in DE and EN
   (`Interface`, `Workbench`, `Customizing`) stay in the packs, because a third language may differ.
   Only text that is fixed in every logon language goes to `invariant.py`: abapGit's English UI,
@@ -219,10 +221,10 @@ The merge mode is declared per section as a `ClassVar` in the class body. It is 
 argument, because `@dataclass(slots=True)` re-creates the class and silently drops it. A guard test
 asserts which sections are `all`.
 
-| Merge | Packs used, in order | Sections |
-|---|---|---|
-| `session_en` (default) | session pack, then EN | every section not listed below |
-| `all` | every registered pack | `popup`, `status_type`, `session_pages`, `keys` |
+| Merge                  | Packs used, in order  | Sections                                        |
+| ---------------------- | --------------------- | ----------------------------------------------- |
+| `session_en` (default) | session pack, then EN | every section not listed below                  |
+| `all`                  | every registered pack | `popup`, `status_type`, `session_pages`, `keys` |
 
 Two accessors:
 
@@ -264,20 +266,20 @@ session the current tool call works on. It is set only through
 Where the language comes from:
 
 - **Desktop:**
-  - Login already reads `session.info.user` on the COM thread right after registration. The same
-    call returns `(user, session.info.language)`, so no extra COM call is needed.
-  - The language is cached on the registry entry. Child sessions copy their parent's language.
-  - Sessions registered through the legacy `_session` setter have no language and get only
-    `universal()`; no production code uses that setter. There is no lazy COM read, which would block
-    every tool call on a wedged session.
-  - When attached-session registration lands, its language read uses the probe's timeout with no
-    retries.
+    - Login already reads `session.info.user` on the COM thread right after registration. The same
+      call returns `(user, session.info.language)`, so no extra COM call is needed.
+    - The language is cached on the registry entry. Child sessions copy their parent's language.
+    - Sessions registered through the legacy `_session` setter have no language and get only
+      `universal()`; no production code uses that setter. There is no lazy COM read, which would block
+      every tool call on a wedged session.
+    - When attached-session registration lands, its language read uses the probe's timeout with no
+      retries.
 - **WebGUI:**
-  - Read `document.documentElement.lang` in `_post_login_setup`, which all three login success paths
-    call, and map it to the SAP key via the packs' `html_lang`.
-  - Store it in a new `SessionRegistry._languages: dict[str, str]`, cleared in `unregister` /
-    `_on_page_closed`.
-  - Tabs auto-registered via `/o` inherit it in `_register_new_window_session`.
+    - Read `document.documentElement.lang` in `_post_login_setup`, which all three login success paths
+      call, and map it to the SAP key via the packs' `html_lang`.
+    - Store it in a new `SessionRegistry._languages: dict[str, str]`, cleared in `unregister` /
+      `_on_page_closed`.
+    - Tabs auto-registered via `/o` inherit it in `_register_new_window_session`.
 
 **COM worker thread**: `ComThread.run` enqueues each call for a plain worker thread, which does not
 see the caller's context variables; only `com_call_target` is copied by hand. A closure calling
@@ -287,11 +289,11 @@ see the caller's context variables; only `com_call_target` is copied by hand. A 
   store it on `self`. Enqueue `functools.partial(ctx.run, fn)`. Keep the hand-carried target in the
   tuple, because the watchdog reads it from another thread.
 - **Safety:**
-  - `run()` is async, so a worker closure cannot nest it.
-  - There is one worker thread.
-  - Retries run one after another; each one enters and exits the copy.
-  - `wait_for_condition` polls issue separate `run()` calls.
-  - Context-variable writes on the worker are discarded.
+    - `run()` is async, so a worker closure cannot nest it.
+    - There is one worker thread.
+    - Retries run one after another; each one enters and exits the copy.
+    - `wait_for_condition` polls issue separate `run()` calls.
+    - Context-variable writes on the worker are discarded.
 - **Convention:** resolve the pack in the caller (`t = lang.current()`) and close over `t`.
 
 **Tests**: `with lang.use("DE"):` sets the variable. One fixture runs against several packs without
@@ -317,22 +319,22 @@ unsupported language in `systems.json` is a loud config error.
 Before a literal is moved into a pack, check for a language-independent alternative. Where one
 exists, the literal is deleted. Already identified:
 
-| Site | Replace with | Note |
-|---|---|---|
-| `discover_fields.js` `'Dropdown-Listenfeld'` | the `ct === 'CB'` attribute (as `check_field_type.js` does) | |
-| `read_se16n_selection_rows.js` grid detection by headers | `[lsdata*="GS_SELFIELDS-"]` (same file) | |
-| `backend.py` `span[title*='Einstellungen'/'Settings']` | `[lsdata*='SETTINGS']` (next line) | |
-| `extract_status_bar.js` classes `fehler`/`warnung`/`erfolg` | delete: CSS class names are not translated | |
-| `backend/webgui/parsers/se09_parser.py` `Transport Organizer: Auftr/Requ` | contains `Transport Organizer:` | as `se09_tools.py` already does |
-| `se24_tools.py` `"interface"` in title (desktop) | the header read in `_read_se24_header` | WebGUI parser keeps a pack text |
-| abapGit "transaction not found" (desktop) | message ID `("S#", "343")`, as `sap_tools.py` does | |
-| desktop label fallbacks in SM37/ST22/SE16/SE09 | the technical names already tried first (`BTCH2170-*`, `S_UNAME-LOW`, `S_DATUM-LOW`, `GD-TAB`, `GD-MAX_LINES`, `TRDYSE01CM-USERNAME`) | |
-| catalog DE column fallbacks | `TCODE` / `PGMNA` / `DESSION` / `TABNAME` | |
-| `data/sap_field_registry.json` `title*='Ausführen'` | `#EXECUTE_BTN` | |
-| `sap_tools.SELECTORS["settings_button"]` text entries | delete (test-only; id/gear entries remain) | |
-| `check_popup.js` `[title*='Close'/'Schlie']` | the `close` class/id selectors in the same list | popup detection: only with fixture or live evidence, else `popup.close` |
-| desktop column titles in internal parsers (SE11, SE24 edit) | `Columns(c).Name` instead of `Title` | changes row keys; needs a live check |
-| desktop activation confirmation keywords | T100 message ID from the status bar | needs a live check for the IDs |
+| Site                                                                      | Replace with                                                                                                                          | Note                                                                    |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `discover_fields.js` `'Dropdown-Listenfeld'`                              | the `ct === 'CB'` attribute (as `check_field_type.js` does)                                                                           |                                                                         |
+| `read_se16n_selection_rows.js` grid detection by headers                  | `[lsdata*="GS_SELFIELDS-"]` (same file)                                                                                               |                                                                         |
+| `backend.py` `span[title*='Einstellungen'/'Settings']`                    | `[lsdata*='SETTINGS']` (next line)                                                                                                    |                                                                         |
+| `extract_status_bar.js` classes `fehler`/`warnung`/`erfolg`               | delete: CSS class names are not translated                                                                                            |                                                                         |
+| `backend/webgui/parsers/se09_parser.py` `Transport Organizer: Auftr/Requ` | contains `Transport Organizer:`                                                                                                       | as `se09_tools.py` already does                                         |
+| `se24_tools.py` `"interface"` in title (desktop)                          | the header read in `_read_se24_header`                                                                                                | WebGUI parser keeps a pack text                                         |
+| abapGit "transaction not found" (desktop)                                 | message ID `("S#", "343")`, as `sap_tools.py` does                                                                                    |                                                                         |
+| desktop label fallbacks in SM37/ST22/SE16/SE09                            | the technical names already tried first (`BTCH2170-*`, `S_UNAME-LOW`, `S_DATUM-LOW`, `GD-TAB`, `GD-MAX_LINES`, `TRDYSE01CM-USERNAME`) |                                                                         |
+| catalog DE column fallbacks                                               | `TCODE` / `PGMNA` / `DESSION` / `TABNAME`                                                                                             |                                                                         |
+| `data/sap_field_registry.json` `title*='Ausführen'`                       | `#EXECUTE_BTN`                                                                                                                        |                                                                         |
+| `sap_tools.SELECTORS["settings_button"]` text entries                     | delete (test-only; id/gear entries remain)                                                                                            |                                                                         |
+| `check_popup.js` `[title*='Close'/'Schlie']`                              | the `close` class/id selectors in the same list                                                                                       | popup detection: only with fixture or live evidence, else `popup.close` |
+| desktop column titles in internal parsers (SE11, SE24 edit)               | `Columns(c).Name` instead of `Title`                                                                                                  | changes row keys; needs a live check                                    |
+| desktop activation confirmation keywords                                  | T100 message ID from the status bar                                                                                                   | needs a live check for the IDs                                          |
 
 New code follows the same rule (documented in `ARCHITECTURE.md`).
 
@@ -350,14 +352,14 @@ Python (`se16_tools`, `se09_tools`) follow the same rule. `set_language_field.js
 Most texts in a pack exist in SAP's own text tables, keyed by technical ID and language. During the
 migration every text is looked at anyway, so its source key is recorded in `lang/sources.py`:
 
-| Kind of text | SAP source | Source key type |
-|---|---|---|
-| field labels, column headers | data element texts (`DD04T`: short/medium/long/heading) | `DataElement(name, length)` |
-| screen texts, tabs, radio/checkbox texts | screen texts (`D021T`) | `ScreenText(program, screen, field)` |
-| buttons, menu entries, function texts | GUI status texts (`RSMPTEXTS`) | `GuiFunction(program, fcode)` |
-| status-bar messages | messages (`T100`) | `Message(class, number)` |
-| fixed values (e.g. job status) | domain fixed values (`DD07T`) | `DomainValue(domain, value)` |
-| transaction titles | `TSTCT` | `Transaction(tcode)` |
+| Kind of text                             | SAP source                                              | Source key type                      |
+| ---------------------------------------- | ------------------------------------------------------- | ------------------------------------ |
+| field labels, column headers             | data element texts (`DD04T`: short/medium/long/heading) | `DataElement(name, length)`          |
+| screen texts, tabs, radio/checkbox texts | screen texts (`D021T`)                                  | `ScreenText(program, screen, field)` |
+| buttons, menu entries, function texts    | GUI status texts (`RSMPTEXTS`)                          | `GuiFunction(program, fcode)`        |
+| status-bar messages                      | messages (`T100`)                                       | `Message(class, number)`             |
+| fixed values (e.g. job status)           | domain fixed values (`DD07T`)                           | `DomainValue(domain, value)`         |
+| transaction titles                       | `TSTCT`                                                 | `Transaction(tcode)`                 |
 
 A field without an SAP source is recorded as `Manual(reason)`. Examples: composed titles, WebGUI
 framework texts such as "Message Bar", and ST22 dump section headings.
@@ -400,12 +402,12 @@ runs on a system that has it, e.g. the #1041 reporter's.
 over `backend/webgui/js/*.js`:
 
 1. **Sink rule (primary)**, an AST check that flags a string constant which is:
-   - an argument to a UI sink: `click_button`, `click_tab`, `fill_field`, `fill_form` keys,
-     `set_checkbox`, `select_dropdown`, `get_by_role(name=…)`, `text=` / `has-text(...)` /
-     `[title*=…]` selectors;
-   - an operand of `in` / `==` / `startswith` / `endswith` / `re.*` where the other side is a name
-     matching `title|heading|snapshot|status|msg|message|text|label|header|kind|level`;
-   - a key in `row.get(...)` / `row[...]`.
+    - an argument to a UI sink: `click_button`, `click_tab`, `fill_field`, `fill_form` keys,
+      `set_checkbox`, `select_dropdown`, `get_by_role(name=…)`, `text=` / `has-text(...)` /
+      `[title*=…]` selectors;
+    - an operand of `in` / `==` / `startswith` / `endswith` / `re.*` where the other side is a name
+      matching `title|heading|snapshot|status|msg|message|text|label|header|kind|level`;
+    - a key in `row.get(...)` / `row[...]`.
 2. **Value rule (secondary)**: case-folded substring match against the variants of 5 or more
    characters in every registered pack.
 3. **JS rule**: string and regex literals used in `includes`, `===`, `match`, `test`, `replace`,
@@ -413,7 +415,7 @@ over `backend/webgui/js/*.js`:
 
 Skipped: docstrings, logging calls, `description=` keyword arguments.
 
-Exemptions, keyed by *file + literal*, not by line:
+Exemptions, keyed by _file + literal_, not by line:
 
 - `unittests/lang_baseline.json` is **shrink-only**. It is seeded from the manual inventory of all
   ~175 sites, not only from what the detector finds. A new hit fails, and so does an entry that no
@@ -458,41 +460,42 @@ Exemptions, keyed by *file + literal*, not by line:
 Phased. Each PR is live-tested on both systems.
 
 1. **Session language plumbing**:
-   - the language context variable, `set_session_language` at the three sites;
-   - the desktop language read in the existing login COM call;
-   - the WebGUI read in `_post_login_setup`;
-   - `copy_context` in `ComThread.run` with its guard test;
-   - SLG1/SM37/ST22 stop reading the default system.
-   
-   This fixes a real bug before any pack exists.
+    - the language context variable, `set_session_language` at the three sites;
+    - the desktop language read in the existing login COM call;
+    - the WebGUI read in `_post_login_setup`;
+    - `copy_context` in `ComThread.run` with its guard test;
+    - SLG1/SM37/ST22 stop reading the default system.
+
+    This fixes a real bug before any pack exists.
+
 2. **Foundation**:
-   - the `lang/` package with the three text types, schema, merging, `current()`/`universal()`,
-     `invariant.py`;
-   - DE/EN packs (today's `lang.py` content, regrouped);
-   - `supported_languages()` in the #1042 wiring;
-   - `UnsupportedLanguageError`;
-   - the JS object-argument convention;
-   - `sources.py` and `harvest_lang_texts.py` (verify mode);
-   - the test pack;
-   - guard tests with the seeded baseline and the synthetic third language;
-   - the `lang.py` shim.
+    - the `lang/` package with the three text types, schema, merging, `current()`/`universal()`,
+      `invariant.py`;
+    - DE/EN packs (today's `lang.py` content, regrouped);
+    - `supported_languages()` in the #1042 wiring;
+    - `UnsupportedLanguageError`;
+    - the JS object-argument convention;
+    - `sources.py` and `harvest_lang_texts.py` (verify mode);
+    - the test pack;
+    - guard tests with the seeded baseline and the synthetic third language;
+    - the `lang.py` shim.
 3. **Migration per area**, one PR each. Each PR applies the §7 deletions first, records every
    moved text's source, shrinks the baseline and fixes that area's single-language bugs and drifted
    texts. Areas:
-   - status bar / popups / session pages / keys (backends + JS)
-   - SE11/SE16
-   - SE24/SE37/SE38 (+ edit tools)
-   - SE09/SE93
-   - SM30/SPRO
-   - SM37/SLG1/ST22
-   - abapGit / quick report
-   - catalogs and data files
+    - status bar / popups / session pages / keys (backends + JS)
+    - SE11/SE16
+    - SE24/SE37/SE38 (+ edit tools)
+    - SE09/SE93
+    - SM30/SPRO
+    - SM37/SLG1/ST22
+    - abapGit / quick report
+    - catalogs and data files
 4. **Cleanup**: delete `lang.py`, add the pseudo-locale test, and document the rule in
    `ARCHITECTURE.md` / `CONTRIBUTING.md`.
-Not part of this work: shipping Italian or any other new language. This work only records where
-every DE/EN text comes from in SAP (`sources.py`) and provides the harvest script. A later language
-then follows the recipe in §11: run the draft mode on a system with that language installed, then
-an agent pass for the manual fields.
+   Not part of this work: shipping Italian or any other new language. This work only records where
+   every DE/EN text comes from in SAP (`sources.py`) and provides the harvest script. A later language
+   then follows the recipe in §11: run the draft mode on a system with that language installed, then
+   an agent pass for the manual fields.
 
 ## Model assignment per task
 
@@ -502,30 +505,30 @@ moves, lookups and test runs go to the cheap ones. A task is escalated one level
 twice or its review finds a design problem, never downgraded mid-task. A failing live test is not an
 agent failure until it is shown to be real (see the flakiness note under Risks).
 
-| Phase | Task | Implement | Review |
-|---|---|---|---|
-| 1 | `copy_context` in `ComThread.run`, context variable, `set_session_language` sites incl. recovery | opus | fable |
-| 1 | desktop language in the login COM call, WebGUI read in `_post_login_setup`, registry storage, `/o` inheritance | sonnet | opus |
-| 1 | SLG1/SM37/ST22 switch from default system to `lang.current()` | sonnet | sonnet |
-| 2 | `Text`/`RegexText`/`Template`, Python and JS regex builders, escaper, word boundaries | opus | fable |
-| 2 | schema, generic merge, `current()`/`universal()`, merge-mode declaration, caching | opus | fable |
-| 2 | DE/EN packs: regroup today's `lang.py` content into sections | sonnet | sonnet |
-| 2 | `sources.py`: find each DE/EN text's SAP source via ADT queries (`T100`, `DD04T`, `D021T`, `RSMPTEXTS`, `DD07T`, `TSTCT`) | sonnet | sonnet spot check |
-| 2 | `harvest_lang_texts.py` (verify mode) | sonnet | opus |
-| 2 | no-literal scanner (AST sink rule, value rule, JS rule) | sonnet | opus |
-| 2 | seed `lang_baseline.json` from the inventory | haiku | sonnet spot check |
-| 2 | completeness, collision, flag, merge-mode, untranslated-field tests; synthetic third language | sonnet | opus |
-| 2 | test pack from `lang_test.py` / `lang_strings`; JS object-argument convention | sonnet | sonnet |
-| 3 | migration: status bar / popups / session pages / keys (backends + JS); popup behaviour must stay identical | opus | fable |
-| 3 | migration: SE24/SE37/SE38 (template-heavy, single-language bugs) | sonnet | opus |
-| 3 | migration: SE11/SE16, SE09/SE93, SM30/SPRO, SM37/SLG1/ST22, abapGit / quick report | sonnet | opus (first area), sonnet (later areas following the same pattern) |
-| 3 | migration: catalogs and data files (§7 deletions, technical names) | haiku | sonnet |
-| 3 | §7 deletions that need a live check (popup close selectors, column `Name`, T100 activation IDs) | sonnet | opus |
-| 4 | delete `lang.py`, docs in `ARCHITECTURE.md` / `CONTRIBUTING.md`, `lang/README.md` recipe | haiku | sonnet |
-| 4 | pseudo-locale test (fixture rewriting limited to text nodes and attributes) | sonnet | opus |
-| all | running unit and live tests, collecting literal pytest summaries | haiku | — |
-| all | diagnosing a failing live test | sonnet | — |
-| all | leak and fact check of every public issue/PR text before posting | opus | — |
+| Phase | Task                                                                                                                      | Implement | Review                                                             |
+| ----- | ------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------ |
+| 1     | `copy_context` in `ComThread.run`, context variable, `set_session_language` sites incl. recovery                          | opus      | fable                                                              |
+| 1     | desktop language in the login COM call, WebGUI read in `_post_login_setup`, registry storage, `/o` inheritance            | sonnet    | opus                                                               |
+| 1     | SLG1/SM37/ST22 switch from default system to `lang.current()`                                                             | sonnet    | sonnet                                                             |
+| 2     | `Text`/`RegexText`/`Template`, Python and JS regex builders, escaper, word boundaries                                     | opus      | fable                                                              |
+| 2     | schema, generic merge, `current()`/`universal()`, merge-mode declaration, caching                                         | opus      | fable                                                              |
+| 2     | DE/EN packs: regroup today's `lang.py` content into sections                                                              | sonnet    | sonnet                                                             |
+| 2     | `sources.py`: find each DE/EN text's SAP source via ADT queries (`T100`, `DD04T`, `D021T`, `RSMPTEXTS`, `DD07T`, `TSTCT`) | sonnet    | sonnet spot check                                                  |
+| 2     | `harvest_lang_texts.py` (verify mode)                                                                                     | sonnet    | opus                                                               |
+| 2     | no-literal scanner (AST sink rule, value rule, JS rule)                                                                   | sonnet    | opus                                                               |
+| 2     | seed `lang_baseline.json` from the inventory                                                                              | haiku     | sonnet spot check                                                  |
+| 2     | completeness, collision, flag, merge-mode, untranslated-field tests; synthetic third language                             | sonnet    | opus                                                               |
+| 2     | test pack from `lang_test.py` / `lang_strings`; JS object-argument convention                                             | sonnet    | sonnet                                                             |
+| 3     | migration: status bar / popups / session pages / keys (backends + JS); popup behaviour must stay identical                | opus      | fable                                                              |
+| 3     | migration: SE24/SE37/SE38 (template-heavy, single-language bugs)                                                          | sonnet    | opus                                                               |
+| 3     | migration: SE11/SE16, SE09/SE93, SM30/SPRO, SM37/SLG1/ST22, abapGit / quick report                                        | sonnet    | opus (first area), sonnet (later areas following the same pattern) |
+| 3     | migration: catalogs and data files (§7 deletions, technical names)                                                        | haiku     | sonnet                                                             |
+| 3     | §7 deletions that need a live check (popup close selectors, column `Name`, T100 activation IDs)                           | sonnet    | opus                                                               |
+| 4     | delete `lang.py`, docs in `ARCHITECTURE.md` / `CONTRIBUTING.md`, `lang/README.md` recipe                                  | haiku     | sonnet                                                             |
+| 4     | pseudo-locale test (fixture rewriting limited to text nodes and attributes)                                               | sonnet    | opus                                                               |
+| all   | running unit and live tests, collecting literal pytest summaries                                                          | haiku     | —                                                                  |
+| all   | diagnosing a failing live test                                                                                            | sonnet    | —                                                                  |
+| all   | leak and fact check of every public issue/PR text before posting                                                          | opus      | —                                                                  |
 
 Reviews follow the existing PR workflow (self-review, Copilot review, CI). The review column is the
 additional agent review per PR.
@@ -543,11 +546,11 @@ additional agent review per PR.
 - **A third language** needs a system with it installed, for both harvesting and live tests.
 - **Flaky integration tests**: the live tests may turn out to be flaky (timing, session state, a
   shared SAP connection), which would make a migration PR look broken when it is not. Mitigations:
-  - run only the tests relevant to the area, one PR at a time on the single SAP connection;
-  - rerun a failed test on its own before treating the failure as real;
-  - compare against the same test on `main`: a test that also fails there is pre-existing and gets
-    its own issue instead of blocking the PR;
-  - report every flaky test in the PR with its literal pytest output.
-  
-  The unit-level guards (completeness, scanner, parser snapshot tests) are deterministic and carry
-  the main weight, so flaky live tests slow the rollout down but do not weaken the guarantee.
+    - run only the tests relevant to the area, one PR at a time on the single SAP connection;
+    - rerun a failed test on its own before treating the failure as real;
+    - compare against the same test on `main`: a test that also fails there is pre-existing and gets
+      its own issue instead of blocking the PR;
+    - report every flaky test in the PR with its literal pytest output.
+
+    The unit-level guards (completeness, scanner, parser snapshot tests) are deterministic and carry
+    the main weight, so flaky live tests slow the rollout down but do not weaken the guarantee.
