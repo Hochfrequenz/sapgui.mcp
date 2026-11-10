@@ -63,3 +63,22 @@ async def test_slg1_formats_the_date_in_the_session_language(language: str, expe
         await _slg1_lookup_desktop(backend, "OBJ", None, None, "2026-11-10", None)
     typed = [call.args[1] for call in backend.focus_and_type.await_args_list]
     assert expected in typed
+
+
+@pytest.mark.anyio
+async def test_session_language_beats_the_default_systems_language() -> None:
+    """The default system is DE, the session is EN: the session wins (#1044)."""
+    config = MagicMock()
+    config.get_default.return_value.language = "DE"
+    backend = MagicMock()
+    backend.press_key = AsyncMock()
+    backend.wait_for_ready = AsyncMock()
+    backend.fill_field = AsyncMock()
+    with (
+        use_language("EN"),
+        patch("sapguimcp.models.config.get_sap_config", return_value=config),
+        patch("sapguimcp.tools.st22_tools._try_quick_button", AsyncMock(return_value=False)),
+        patch("sapguimcp.tools.st22_tools._clear_user_field", AsyncMock()),
+    ):
+        await _execute_search(backend, "2026-11-10")
+    assert backend.fill_field.await_args.args[1] == "11/10/2026"
