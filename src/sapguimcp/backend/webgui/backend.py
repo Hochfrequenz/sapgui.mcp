@@ -46,6 +46,7 @@ from sapguimcp.models.sap_results import (
     TableRow,
     TransactionResult,
 )
+from sapguimcp.session_language import normalize_language, set_session_language
 
 if TYPE_CHECKING:
     from playwright.async_api import Page
@@ -232,12 +233,33 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         effective_url: str,
         mandant: str,
         session_id: str | None,
+        requested_language: str | None = None,
     ) -> None:
         """Register session and capture identity after a successful login."""
         registry = await self._get_registry()
         if not registry.has_session("s1"):
             registry.register(self._page)
+        page_session = registry.session_id_of(self._page)
+        if page_session is not None:
+            registry.set_language(page_session, await self._read_page_language() or requested_language)
+            # The rest of this sap_login call works on this session (#1044).
+            set_session_language(registry.language_of(page_session))
         await self._capture_sap_identity(effective_url, mandant, session_id)
+
+    async def _read_page_language(self) -> str | None:
+        """SAP logon language from the page's ``<html lang>`` (ISO code, e.g. ``de``).
+
+        Phase 1 of #1044: ISO and SAP keys coincide for DE and EN. Phase 2 maps ISO codes to SAP
+        keys through the language packs' ``html_lang``.
+        """
+        try:
+            value = await self._page.evaluate("() => document.documentElement.lang || ''")
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.debug("could not read the page language", exc_info=True)
+            return None
+        if not isinstance(value, str):  # e.g. a mocked page
+            return None
+        return normalize_language(value.split("-")[0])
 
     async def login(  # pylint: disable=too-many-arguments,too-many-positional-arguments,unused-argument
         self,
@@ -269,7 +291,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             # Already logged in?
             okcode_field = await self._find_okcode_field()
             if okcode_field:
-                await self._post_login_setup(url, client, session_id)
+                await self._post_login_setup(url, client, session_id, language)
                 return LoginResult(url=url, already_logged_in=True, guidance=guidance_msg)
 
             # Check for login form
@@ -310,7 +332,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             try:
                 await self._page.wait_for_selector("#ToolbarOkCode", timeout=15000, state="visible")
                 logger.info("Login successful, OK-Code field visible")
-                await self._post_login_setup(url, client, session_id)
+                await self._post_login_setup(url, client, session_id, language)
                 return LoginResult(url=url, user=username, guidance=guidance_msg)
             except Exception:  # pylint: disable=broad-exception-caught
                 page_content = await self._page.content()
@@ -321,7 +343,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                             timeout=5000,
                         )
                         await self._page.wait_for_selector("#ToolbarOkCode", timeout=10000, state="visible")
-                        await self._post_login_setup(url, client, session_id)
+                        await self._post_login_setup(url, client, session_id, language)
                         return LoginResult(url=url, user=username, already_logged_in=True, guidance=guidance_msg)
                     except Exception:  # pylint: disable=broad-exception-caught
                         pass
@@ -568,6 +590,9 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             new_page = pages[-1]
             registry = await self._get_registry()
             new_session_id = registry.register(new_page)
+            origin_session = registry.session_id_of(self._page)
+            if origin_session is not None:
+                registry.set_language(new_session_id, registry.language_of(origin_session))
             logger.info("Auto-registered new session from new_window=True", extra={"session": new_session_id})
             title = await new_page.title()
         else:

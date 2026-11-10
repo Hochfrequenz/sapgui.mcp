@@ -27,11 +27,12 @@ is needed, and use the same ``passthrough`` shape as
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from sapguimcp.backend.desktop import DesktopBackend
+from sapguimcp.session_language import current_language, use_language
 from unittests.desktop.conftest import make_mock_session
 
 
@@ -462,3 +463,54 @@ async def test_non_lost_com_failure_does_not_reconcile() -> None:
     assert "HRESULT 0x80010105" in result.error
     assert "SAP Logon not reachable" not in result.error
     assert not reconcile_calls
+
+
+# ---------------------------------------------------------------------------
+# #1044 — the logon language of each session
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.anyio
+async def test_login_records_logon_language_and_sets_context_variable() -> None:
+    with use_language(None):
+        backend = _make_backend()
+        fresh = make_mock_session(language="DE")
+
+        with patch("sapguimcp.backend.desktop._sapsucker_login", return_value=fresh):
+            result = await backend.login(
+                url="ignored",
+                username="user",
+                password="pass",
+                client="100",
+                language="EN",
+                connection_name="TEST_CONN",
+            )
+
+        assert result.session_id is not None
+        assert backend.registry.language_of(result.session_id) == "DE"
+        assert current_language() == "DE"
+
+
+@pytest.mark.anyio
+async def test_open_new_session_inherits_the_parent_language() -> None:
+    with use_language(None):
+        backend = _make_backend()
+        parent_id = backend.registry.register(make_mock_session())
+        backend.registry.set_language(parent_id, "DE")
+        child = make_mock_session()
+        results = iter([None, (child, 2, "title", "con0")])
+
+        async def fake_run(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
+            return next(results)
+
+        backend.com.run = fake_run  # type: ignore[method-assign]
+
+        with (
+            patch("sapguimcp.backend.desktop.asyncio.sleep", new=AsyncMock()),
+            patch.object(backend, "_record_connection"),
+        ):
+            session_id, _count, _title = await backend._open_new_session_locked("SE00")
+
+        assert session_id is not None
+        assert session_id != parent_id
+        assert backend.registry.language_of(session_id) == "DE"
