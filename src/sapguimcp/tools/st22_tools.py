@@ -33,16 +33,16 @@ from sapguimcp.backend.webgui.parsers.st22_parser import (
 )
 from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.models import TableData
-from sapguimcp.models.config import get_sap_config
 from sapguimcp.models.st22_models import (
     ST22Dump,
     ST22DumpDetail,
     ST22DumpDetailResult,
     ST22DumpListResult,
 )
+from sapguimcp.session_language import session_sap_language
 from sapguimcp.tools.classic_list_helpers import read_classic_list_lines
 from sapguimcp.tools.desktop_wait_predicates import screen_changed
-from sapguimcp.utils import SapLanguage, as_sap_language, format_sap_date
+from sapguimcp.utils import SapLanguage, format_sap_date
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
@@ -159,8 +159,7 @@ async def _execute_search(backend: "WebGuiBackend | DesktopBackend", target_date
     1. Try Heute/Gestern quick buttons (preferred - works for all users)
     2. Fall back to clearing user field + filling date + F8
     """
-    sap_cfg = get_sap_config()
-    language: SapLanguage = as_sap_language(sap_cfg.get_default().language)
+    language: SapLanguage = session_sap_language()
 
     # Strategy 1: Quick buttons for today/yesterday
     if await _try_quick_button(backend, target_date):

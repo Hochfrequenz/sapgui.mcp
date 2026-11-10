@@ -27,11 +27,12 @@ is needed, and use the same ``passthrough`` shape as
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from sapguimcp.backend.desktop import DesktopBackend
+from sapguimcp.backend.desktop import DesktopBackend, _current_session_id
+from sapguimcp.session_language import current_language, use_language
 from unittests.desktop.conftest import make_mock_session
 
 
@@ -47,7 +48,7 @@ def _make_backend() -> DesktopBackend:
     backend = DesktopBackend(com_thread=MagicMock())
 
     async def passthrough(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
-        return fn()
+        return fn()  # runs closures in the caller's context, unlike production (copy per call)
 
     backend.com.run = passthrough  # type: ignore[method-assign]
     return backend
@@ -462,3 +463,107 @@ async def test_non_lost_com_failure_does_not_reconcile() -> None:
     assert "HRESULT 0x80010105" in result.error
     assert "SAP Logon not reachable" not in result.error
     assert not reconcile_calls
+
+
+# ---------------------------------------------------------------------------
+# #1044 — the logon language of each session
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.anyio
+async def test_login_records_logon_language_and_sets_context_variable() -> None:
+    with use_language(None):
+        backend = _make_backend()
+        fresh = make_mock_session(language="DE")
+
+        with patch("sapguimcp.backend.desktop._sapsucker_login", return_value=fresh):
+            result = await backend.login(
+                url="ignored",
+                username="user",
+                password="pass",
+                client="100",
+                language="EN",
+                connection_name="TEST_CONN",
+            )
+
+        assert result.session_id is not None
+        assert backend.registry.language_of(result.session_id) == "DE"
+        assert current_language() == "DE"
+
+
+@pytest.mark.anyio
+async def test_open_new_session_inherits_the_parent_language() -> None:
+    with use_language(None):
+        backend = _make_backend()
+        parent_id = backend.registry.register(make_mock_session())
+        backend.registry.set_language(parent_id, "DE")
+        child = make_mock_session()
+        results = iter([None, (child, 2, "title", "con0")])
+
+        async def fake_run(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
+            return next(results)
+
+        backend.com.run = fake_run  # type: ignore[method-assign]
+
+        with (
+            patch("sapguimcp.backend.desktop.asyncio.sleep", new=AsyncMock()),
+            patch.object(backend, "_record_connection"),
+        ):
+            session_id, _count, _title = await backend._open_new_session_locked("SE00")
+
+        assert session_id is not None
+        assert session_id != parent_id
+        assert backend.registry.language_of(session_id) == "DE"
+
+
+@pytest.mark.anyio
+async def test_open_new_session_inherits_the_language_of_the_non_primary_calling_session() -> None:
+    with use_language(None):
+        backend = _make_backend()
+        s1 = backend.registry.register(make_mock_session())
+        backend.registry.set_language(s1, "EN")
+        s2 = backend.registry.register(make_mock_session())
+        backend.registry.set_language(s2, "DE")
+        child = make_mock_session()
+        results = iter([None, (child, 3, "title", "con0")])
+
+        async def fake_run(fn: Any, *, max_retries: int | None = None) -> Any:  # pylint: disable=unused-argument
+            return next(results)
+
+        backend.com.run = fake_run  # type: ignore[method-assign]
+
+        token = _current_session_id.set(s2)
+        try:
+            with (
+                patch("sapguimcp.backend.desktop.asyncio.sleep", new=AsyncMock()),
+                patch.object(backend, "_record_connection"),
+            ):
+                session_id, _count, _title = await backend._open_new_session_locked("SE00")
+        finally:
+            _current_session_id.reset(token)
+
+        assert session_id is not None
+        assert backend.registry.language_of(session_id) == "DE"
+
+
+@pytest.mark.anyio
+async def test_login_survives_a_failing_language_read() -> None:
+    with use_language(None):
+        backend = _make_backend()
+        fresh = make_mock_session()
+        type(fresh.info).language = property(lambda _self: (_ for _ in ()).throw(RuntimeError("boom")))
+
+        with patch("sapguimcp.backend.desktop._sapsucker_login", return_value=fresh):
+            result = await backend.login(
+                url="ignored",
+                username="user",
+                password="pass",
+                client="100",
+                language="EN",
+                connection_name="TEST_CONN",
+            )
+
+        assert result.success is True
+        assert result.user == "TESTUSER"
+        assert result.session_id is not None
+        assert backend.registry.language_of(result.session_id) is None

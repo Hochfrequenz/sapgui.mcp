@@ -10,6 +10,7 @@ import pytest
 
 from sapguimcp.models import TableData
 from sapguimcp.models.sap_results import TableRow
+from sapguimcp.session_language import use_language
 from sapguimcp.tools.sm37_tools import _execute_sm37_lookup_desktop, _fetch_job_log_desktop, _is_job_log_screen
 
 
@@ -34,9 +35,7 @@ def _backend(status_message: str) -> Any:
     ],
 )
 async def test_a_status_bar_without_matching_jobs_is_an_empty_result(message: str) -> None:
-    config = MagicMock()
-    config.get_default.return_value = SimpleNamespace(language="DE")
-    with patch("sapguimcp.tools.sm37_tools.get_sap_config", return_value=config):
+    with use_language("DE"):
         result = await _execute_sm37_lookup_desktop(_backend(message), "*", None, None, None, None)
     assert result.success
     assert result.jobs == []
@@ -45,11 +44,9 @@ async def test_a_status_bar_without_matching_jobs_is_an_empty_result(message: st
 
 @pytest.mark.anyio
 async def test_a_status_bar_that_merely_starts_like_the_empty_message_is_not_an_empty_result() -> None:
-    config = MagicMock()
-    config.get_default.return_value = SimpleNamespace(language="DE")
     # The status is no "empty" message, so the lookup goes on to read the list (which the fake backend refuses).
     with (
-        patch("sapguimcp.tools.sm37_tools.get_sap_config", return_value=config),
+        use_language("DE"),
         pytest.raises(AssertionError, match="no list to read"),
     ):
         await _execute_sm37_lookup_desktop(_backend("Kein Job ausgewählt"), "*", None, None, None, None)
@@ -65,9 +62,7 @@ def _filter_backend(*, fillable: set[str]) -> Any:
 
 
 async def _lookup(backend: Any, *args: Any) -> Any:
-    config = MagicMock()
-    config.get_default.return_value = SimpleNamespace(language="DE")
-    with patch("sapguimcp.tools.sm37_tools.get_sap_config", return_value=config):
+    with use_language("DE"):
         return await _execute_sm37_lookup_desktop(backend, *args)
 
 

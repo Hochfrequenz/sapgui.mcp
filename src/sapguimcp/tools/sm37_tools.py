@@ -24,15 +24,15 @@ from sapguimcp.backend.webgui.parsers.sm37_parser import (
 )
 from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.models import TableData
-from sapguimcp.models.config import get_sap_config
 from sapguimcp.models.sm37_models import SM37Job, SM37JobListResult, SM37JobLog
+from sapguimcp.session_language import session_sap_language
 from sapguimcp.tools.classic_list_helpers import (
     read_classic_list_lines,
     read_classic_list_table,
     select_first_classic_list_entry,
 )
 from sapguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
-from sapguimcp.utils import SapLanguage, as_sap_language, format_sap_date
+from sapguimcp.utils import SapLanguage, format_sap_date
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
@@ -238,8 +238,7 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
 ) -> SM37JobListResult:
     """Desktop-specific SM37 lookup using read_table instead of ARIA parsing."""
     now = datetime.now(UTC)
-    sap_cfg = get_sap_config()
-    language: SapLanguage = as_sap_language(sap_cfg.get_default().language)
+    language: SapLanguage = session_sap_language()
 
     logger.info("SM37 desktop backend path", extra={"job_name": job_name})
 
@@ -498,8 +497,7 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
 ) -> SM37JobListResult:
     """Execute the SM37 lookup workflow on the given backend."""
     now = datetime.now(UTC)
-    sap_cfg = get_sap_config()
-    language: SapLanguage = as_sap_language(sap_cfg.get_default().language)
+    language: SapLanguage = session_sap_language()
 
     # Desktop backend: use read_table instead of ARIA snapshot parsing
     if backend.backend_type == "desktop":
