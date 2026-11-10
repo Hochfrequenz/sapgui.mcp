@@ -279,10 +279,11 @@ def _build_instructions() -> str:
     base = _CROSS_SERVER_GUIDANCE + base
     sap_cfg, config_error = try_get_sap_config()
     if config_error:  # invalid config: don't crash startup, but say why
-        logger.error("systems.json is invalid, no systems listed: %s", config_error)
+        logger.error("SAP config file could not be loaded, no systems listed: %s", config_error)
         return (
             base
-            + "\nCONFIGURATION ERROR: systems.json is invalid, no systems are available until it is fixed:\n"
+            + "\nCONFIGURATION ERROR: the SAP config file (SAP_CONFIG_FILE / systems.json) could not be loaded, "
+            + "no systems are available until it is fixed:\n"
             + f"{config_error}\n"
             + "The server must be restarted after fixing the file for these instructions to update; "
             + "sap_list_connections reports the live state.\n"

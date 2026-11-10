@@ -97,3 +97,55 @@ def test_broken_config_does_not_crash_instructions(broken_config: Path) -> None:
     text = server._build_instructions()  # pylint: disable=protected-access
     assert "CONFIGURATION ERROR" in text
     assert "AVAILABLE SYSTEMS" not in text
+
+
+_SECRET = "s3cr3t-sentinel"  # noqa: S105
+
+
+def _write_malformed_yaml_with_secret(path: Path) -> Path:
+    yaml_path = path.parent / "secret.yaml"
+    yaml_path.write_text(f'systems:\n  dev:\n    password: {_SECRET}: "oops\n', encoding="utf-8")
+    return yaml_path
+
+
+def test_malformed_yaml_message_never_echoes_content(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(config_module, "_sap_config", None)
+    monkeypatch.setenv("SAP_CONFIG_FILE", str(_write_malformed_yaml_with_secret(tmp_path / "x")))
+    _, message = config_module.try_get_sap_config()
+    assert message
+    assert _SECRET not in message
+    assert "line 3" in message
+    instructions = server._build_instructions()  # pylint: disable=protected-access
+    assert _SECRET not in instructions
+    assert "CONFIGURATION ERROR" in instructions
+    systems, error = _get_configured_systems()
+    assert systems == []
+    assert error
+    assert _SECRET not in error
+
+
+def test_wrong_typed_host_names_the_location(config_file: Path) -> None:
+    _write_it(config_file)
+    data = json.loads(config_file.read_text(encoding="utf-8"))
+    data["systems"]["dev"]["language"] = "DE"
+    data["systems"]["dev"]["host"] = 123
+    config_file.write_text(json.dumps(data), encoding="utf-8")
+    _, message = config_module.try_get_sap_config()
+    assert message
+    assert "dev" in message
+    assert "host" in message
+    assert "not-a-real-password" not in message
+
+
+def test_multiple_errors_joined_by_newline(config_file: Path) -> None:
+    _write_it(config_file)
+    data = json.loads(config_file.read_text(encoding="utf-8"))
+    data["systems"]["dev"]["language"] = "DE"
+    data["systems"]["dev"]["host"] = 123
+    data["systems"]["dev"]["client"] = ["x"]
+    config_file.write_text(json.dumps(data), encoding="utf-8")
+    _, message = config_module.try_get_sap_config()
+    assert message
+    assert "\n" in message
+    assert "; " not in message

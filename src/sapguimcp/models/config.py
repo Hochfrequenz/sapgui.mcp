@@ -65,16 +65,27 @@ def try_get_sap_config() -> tuple[SapMcpConfig | None, str | None]:
     ``(None, <message>)`` for every other load failure: invalid content
     (``ValueError``, including pydantic ``ValidationError``), unreadable path
     (``OSError`` such as ``IsADirectoryError`` / ``PermissionError``) and
-    malformed YAML.  For a ``ValidationError`` only the per-error messages are
-    reported; pydantic's header and ``input_value`` boilerplate are dropped.
+    malformed YAML.  The message never contains file content: pydantic errors
+    are reduced to ``<location>: <message>`` (the location holds keys only) and
+    YAML errors to a fixed text plus line/column, because PyYAML's own message
+    quotes the source line, which may hold a password.
     """
     try:
         return get_sap_config(), None
     except FileNotFoundError:
         return None, None
     except ValidationError as exc:
-        return None, "; ".join(str(err["msg"]) for err in exc.errors())
-    except (ValueError, OSError, yaml.YAMLError) as exc:
+        lines = []
+        for err in exc.errors():
+            loc = ".".join(str(part) for part in err["loc"])
+            msg = str(err["msg"]).removeprefix("Value error, ")
+            lines.append(f"{loc}: {msg}" if loc else msg)
+        return None, "\n".join(lines)
+    except yaml.YAMLError as exc:
+        mark = getattr(exc, "problem_mark", None)
+        where = f" (line {mark.line + 1}, column {mark.column + 1})" if mark else ""
+        return None, "invalid YAML in the SAP config file" + where
+    except (ValueError, OSError) as exc:
         return None, str(exc) or type(exc).__name__
 
 
