@@ -8,6 +8,9 @@ importer to ``lang.current()``; phase 4 deletes this module.
 
 import re
 
+from sapguimcp.lang.de import DE
+from sapguimcp.lang.en import EN
+
 __all__ = [
     "SE09_DISPLAY_BUTTON_DE",
     "SE09_DISPLAY_BUTTON_EN",
@@ -117,6 +120,7 @@ __all__ = [
     "SLG1_LOG_LIST_SCREEN_EN",
     "SLG1_NO_LOGS_FOUND_DE",
     "SLG1_NO_LOGS_FOUND_EN",
+    "SLG1_NO_LOGS_FOUND_EN_LEGACY",
     "SM30_DISPLAY_BUTTON_DE",
     "SM30_DISPLAY_BUTTON_EN",
     "SM30_DISPLAY_VIEW_DE",
@@ -341,7 +345,10 @@ SLG1_LOG_LIST_SCREEN_EN = "Display Logs"
 
 # Status bar message when no logs found
 SLG1_NO_LOGS_FOUND_DE = "Es konnte kein Protokoll auf der Datenbank gefunden werden"
-SLG1_NO_LOGS_FOUND_EN = "No log could be found in the database"
+# SAP message BL 208 in EN (#1044: the former text was hand-typed and drifted).
+SLG1_NO_LOGS_FOUND_EN = "No log found in the database"
+# The former expectation; still accepted by the SLG1 tool and parser until the SLG1 migration.
+SLG1_NO_LOGS_FOUND_EN_LEGACY = "No log could be found in the database"
 
 
 # =============================================================================
@@ -350,22 +357,12 @@ SLG1_NO_LOGS_FOUND_EN = "No log could be found in the database"
 
 # Status text mapping (as shown in job list result rows, lowercase in ARIA)
 # Exported because parsers and tools both reference these.
-SM37_STATUS_MAP_DE = {
-    "geplant": "Scheduled",
-    "freigegeben": "Released",
-    "bereit": "Ready",
-    "aktiv": "Active",
-    "fertig": "Finished",
-    "abgebrochen": "Canceled",
+SM37_STATUS_MAP_DE: dict[str, str] = {
+    variant.lower(): status.value for status, text in DE.sm37.status.items() for variant in text
 }
 
-SM37_STATUS_MAP_EN = {
-    "scheduled": "Scheduled",
-    "released": "Released",
-    "ready": "Ready",
-    "active": "Active",
-    "finished": "Finished",
-    "canceled": "Canceled",
+SM37_STATUS_MAP_EN: dict[str, str] = {
+    variant.lower(): status.value for status, text in EN.sm37.status.items() for variant in text
 }
 
 

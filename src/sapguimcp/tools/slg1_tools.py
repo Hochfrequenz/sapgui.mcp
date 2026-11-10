@@ -24,7 +24,7 @@ from sapguimcp.backend.webgui.parsers.slg1_parser import (
     parse_slg1_log_list,
 )
 from sapguimcp.backend.webgui.types import AriaSnapshot
-from sapguimcp.lang import SLG1_NO_LOGS_FOUND_DE, SLG1_NO_LOGS_FOUND_EN
+from sapguimcp.lang import SLG1_NO_LOGS_FOUND_DE, SLG1_NO_LOGS_FOUND_EN, SLG1_NO_LOGS_FOUND_EN_LEGACY
 from sapguimcp.models import TableData
 from sapguimcp.models.slg1_models import (
     SLG1FileSummary,
@@ -209,6 +209,7 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
             "no application log",
             SLG1_NO_LOGS_FOUND_DE,
             SLG1_NO_LOGS_FOUND_EN,
+            SLG1_NO_LOGS_FOUND_EN_LEGACY,
         ]
     ):
         return SLG1LogListResult(
