@@ -18,11 +18,13 @@ SapLanguage = Literal["DE", "EN"]
 def as_sap_language(value: str) -> SapLanguage:
     """Narrow a configured language string to the two values date formatting handles.
 
-    ``sap-mcp-config`` still guarantees a system's language is ``DE`` or ``EN``,
-    but since 1.1.0 it *types* the field as ``str``: the check moved off the
-    field onto the ``Config`` model validator, so that one invalid language no
-    longer aborts validation and hides every other error.  That leaves the
-    static type too wide to assign straight to :data:`SapLanguage`.
+    The configured language is only guaranteed to be ``DE`` or ``EN`` because
+    ``sapguimcp.models.config`` passes this module's :data:`SapLanguage` values
+    to ``sap-mcp-config`` as ``supported_languages`` when loading (since
+    sap-mcp-config 2.0.0 the library no longer hardcodes the list).  The check
+    runs on load only; a directly constructed ``Config`` skips it.  Besides,
+    ``sap-mcp-config`` *types* the field as ``str``, which is too wide to assign
+    straight to :data:`SapLanguage`.
 
     Narrowing at runtime rather than with a ``cast`` keeps this correct even if
     the upstream guarantee changes again.  Anything unrecognised becomes ``EN``,

@@ -10,14 +10,17 @@ import sys
 import tempfile
 from enum import StrEnum
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal, Optional, get_args
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sap_mcp_config import Config as SapMcpConfig
 from sap_mcp_config import load_default as load_sap_config
 
+from sapguimcp.utils import SapLanguage
+
 __all__ = [
+    "SUPPORTED_LANGUAGES",
     "BackendType",
     "BrowserMode",
     "BrowserType",
@@ -32,12 +35,23 @@ __all__ = [
 
 _sap_config: SapMcpConfig | None = None
 
+# Login languages this server can drive (date formatting, selection screens).
+# Derived from the ``SapLanguage`` literal so the list handed to sap-mcp-config
+# cannot drift from the type the rest of the code narrows to.
+SUPPORTED_LANGUAGES: tuple[str, ...] = get_args(SapLanguage)
+
 
 def get_sap_config() -> SapMcpConfig:
-    """Load the shared SAP system config (singleton)."""
+    """Load the shared SAP system config (singleton).
+
+    A system whose ``language`` is not in :data:`SUPPORTED_LANGUAGES` makes this
+    raise a ``ValueError`` (pydantic ``ValidationError``) instead of letting the
+    language through.  An omitted language defaults to ``EN``.  A failed load is
+    not cached, so fixing the file takes effect on the next call.
+    """
     global _sap_config  # pylint: disable=global-statement
     if _sap_config is None:
-        _sap_config = load_sap_config()
+        _sap_config = load_sap_config(supported_languages=SUPPORTED_LANGUAGES)
     return _sap_config
 
 

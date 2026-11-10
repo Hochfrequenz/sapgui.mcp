@@ -290,8 +290,14 @@ def _build_instructions() -> str:
             f"Pass the selected key as system_key to sap_login().\n"
         )
         return base + systems_info
-    except (FileNotFoundError, ValueError):  # config not found or invalid — don't crash
+    except FileNotFoundError:  # no config file: nothing to list, tools report it when they need it
         return base
+    except ValueError as exc:  # invalid config: don't crash startup, but say why
+        logger.error("systems.json is invalid, no systems listed: %s", exc)
+        return (
+            base
+            + f"\nCONFIGURATION ERROR: systems.json is invalid, no systems are available until it is fixed:\n{exc}\n"
+        )
 
 
 SERVER_INSTRUCTIONS = _build_instructions()
