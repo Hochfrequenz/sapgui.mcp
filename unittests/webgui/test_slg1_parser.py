@@ -14,6 +14,7 @@ from sapguimcp.backend.webgui.parsers.slg1_parser import (
     is_slg1_no_results,
     parse_slg1_log_list,
 )
+from sapguimcp.backend.webgui.types import AriaSnapshot
 
 SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "slg1_exploration"
 
@@ -63,6 +64,17 @@ class TestSLG1ScreenDetection:
         """Log list screen should not be detected as no results."""
         snapshot = _load_snapshot("slg1_log_list")
         assert is_slg1_no_results(snapshot) is False
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            "Es konnte kein Protokoll auf der Datenbank gefunden werden",
+            "No log found in the database",
+            "No log could be found in the database",
+        ],
+    )
+    def test_detect_no_results_from_the_status_bar_text(self, message: str) -> None:
+        assert is_slg1_no_results(AriaSnapshot(f'- status "{message}"')) is True
 
 
 class TestSLG1LogListParsing:

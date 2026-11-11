@@ -56,7 +56,7 @@ _TEXT_LINE_RE = re.compile(r'^\s*- text:\s*"?(?P<content>[^"]*)"?\s*$')
 # Target system line: "-> XXX ..."
 _TARGET_RE = re.compile(r"^->\s+(\S+)")
 
-# Status keywords (DE/EN) — values sourced from lang.py constants
+# Status keywords (DE/EN) — values sourced from sapguimcp.lang constants
 _STATUS_KEYWORDS = {
     SE09_MODIFIABLE_DE: "Modifiable",
     SE09_MODIFIABLE_EN: "Modifiable",

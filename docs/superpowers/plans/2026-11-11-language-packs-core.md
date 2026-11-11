@@ -136,6 +136,14 @@ it and checks that it is really there.
   `text.compiled(source)` (cached by source string), or use a `Text.pattern` / `Template`.
 - **`lang.universal()` stays session-free.** Popup, status-type, session-page and key-name checks
   migrate to it and keep working before login and on unsupported languages.
+- **`Text` matches loosely by default.** `fold=True, word=False` makes `.contains()` a
+  case-insensitive substring test (`"Display"` also matches inside `"Display View"`). A call site
+  that matched exactly or anchored today must use `.equals()` or a `Text` with `word=True`.
+- **Snapshot templates.** A trailing placeholder captures up to the next `"` or line end, so ARIA
+  snapshot lines work; for anything narrower, pass an explicit `name=` group.
+- **Registering test packs (phase 2b).** `view_for()` and `universal()` are cached per process.
+  Phase 2b adds one `_register_for_tests(pack)` helper that clears both caches; tests must use it
+  instead of patching `lang._PACKS`.
 
 ## Testing rules (read before running anything)
 

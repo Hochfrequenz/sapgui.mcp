@@ -67,6 +67,7 @@ async def test_rows_with_a_log_number_column_are_logs() -> None:
     [
         "No application log found",
         "Es konnte kein Protokoll auf der Datenbank gefunden werden",
+        "No log found in the database",
         "No log could be found in the database",
     ],
 )

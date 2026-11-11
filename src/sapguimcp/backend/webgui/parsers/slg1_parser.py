@@ -35,6 +35,7 @@ from sapguimcp.lang import (
     SLG1_LOG_LIST_SCREEN_EN,
     SLG1_NO_LOGS_FOUND_DE,
     SLG1_NO_LOGS_FOUND_EN,
+    SLG1_NO_LOGS_FOUND_EN_LEGACY,
 )
 from sapguimcp.models.slg1_models import (
     SLG1LogEntry,
@@ -90,7 +91,10 @@ def is_slg1_log_list_screen(snapshot: AriaSnapshot) -> bool:
 def is_slg1_no_results(snapshot: AriaSnapshot) -> bool:
     """Check if SLG1 returned no logs (status bar message or still on initial screen)."""
     snapshot_lower = snapshot.lower()
-    return SLG1_NO_LOGS_FOUND_DE.lower() in snapshot_lower or SLG1_NO_LOGS_FOUND_EN.lower() in snapshot_lower
+    return any(
+        text.lower() in snapshot_lower
+        for text in (SLG1_NO_LOGS_FOUND_DE, SLG1_NO_LOGS_FOUND_EN, SLG1_NO_LOGS_FOUND_EN_LEGACY)
+    )
 
 
 def _clean_cell_value(value: str) -> str:
