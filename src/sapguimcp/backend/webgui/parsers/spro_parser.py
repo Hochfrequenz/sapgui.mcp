@@ -53,7 +53,7 @@ _GRIDCELL_EMPTY_PATTERN = re.compile(r"^\s*- gridcell:\s*$")
 
 def _is_selection_cell(value: str, t: LanguagePack) -> bool:
     """Check if a gridcell value is the row selection hint text."""
-    return t.common.row_select_hint.contains(value)
+    return any(value.startswith(hint) for hint in t.common.row_select_hint)  # case-sensitive, as before
 
 
 def _has_results_dialog(snapshot: str, t: LanguagePack) -> bool:

@@ -2,6 +2,7 @@
 
 from sapguimcp.lang.schema import (
     AbapgitSection,
+    CatalogSection,
     CommonSection,
     DumpSection,
     JobStatus,
@@ -62,7 +63,7 @@ EN = LanguagePack(
     abapgit=AbapgitSection(
         error_keywords=Text(("not found",)),
         status_error=Text(("not found",)),
-        screen_errors=Text(("repository not found", "transport required")),
+        screen_errors=Text(("transport required",)),
         transport_required=Text(("transport required",)),
         no_task=Text(("no modifiable task", "has no task")),
         button_labels=Text(("OK", "Cancel", "Yes", "No")),
@@ -71,6 +72,7 @@ EN = LanguagePack(
         # (a DE-only check in practice); kept until the title is read live.
         se38_initial_title=Text(("Entry",)),
     ),
+    catalog=CatalogSection(screen_header=Text(("Screen number",))),
     quick_report=QuickReportSection(
         empty_patterns=Text(("no data", "no entries", "no job", "no documents")),
         execute_button=Text(("Execute", "Execute Highlighted")),

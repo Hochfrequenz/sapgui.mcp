@@ -168,6 +168,14 @@ class AbapgitSection:
 
 
 @dataclass(frozen=True, slots=True)
+class CatalogSection:
+    """Column headers of the TSTC read through SE16 on WebGUI, which keys rows by header text."""
+
+    MERGE: ClassVar[MergeMode] = "session_en"
+    screen_header: Text
+
+
+@dataclass(frozen=True, slots=True)
 class QuickReportSection:
     MERGE: ClassVar[MergeMode] = "session_en"
     empty_patterns: Text
@@ -308,6 +316,7 @@ class LanguagePack:
     session_pages: SessionPagesSection
     keys: KeysSection
     abapgit: AbapgitSection
+    catalog: CatalogSection
     quick_report: QuickReportSection
     se09: Se09Section
     se11: Se11Section

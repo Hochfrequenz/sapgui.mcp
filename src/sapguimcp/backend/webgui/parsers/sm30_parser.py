@@ -162,7 +162,7 @@ def parse_sm30_columns(snapshot: AriaSnapshot, t: LanguagePack) -> list[str]:
 
 def _is_selection_cell(value: str, t: LanguagePack) -> bool:
     """Check if a gridcell value is the row selection hint text."""
-    return t.common.row_select_hint.contains(value)
+    return any(value.startswith(hint) for hint in t.common.row_select_hint)  # case-sensitive, as before
 
 
 def parse_sm30_rows(  # pylint: disable=too-many-branches

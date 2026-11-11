@@ -40,6 +40,6 @@ INVARIANT = Invariant(
     abapgit_key_not_found=Text(("repository not found: key",)),
     abapgit_error_words=Text(("error", "exception", "failed", "required", "transport", "repository")),
     abapgit_error=Text(("error",)),
-    abapgit_screen_errors=Text(("exception", "error:")),
+    abapgit_screen_errors=Text(("repository not found", "exception", "error:")),
     abapgit_trkorr_hint=Text(("provide p_trkorr", "p_trkorr=")),
 )

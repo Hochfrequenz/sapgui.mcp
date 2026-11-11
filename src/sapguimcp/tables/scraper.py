@@ -26,6 +26,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from sapguimcp import lang
 from sapguimcp.tables.models import TableCatalog, TableField, TableInfo
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,7 @@ async def get_table_list_from_dd02l(
     backend = await get_backend()
     all_tables: set[str] = set()
 
+    t = lang.current("DD02L table list")
     for prefix in prefixes:
         logger.info("Querying DD02L", extra={"prefix": f"{prefix}*"})
         result = await _execute_se16_query(
@@ -84,7 +86,7 @@ async def get_table_list_from_dd02l(
 
         if result.success and hasattr(result, "rows"):
             for row in result.rows:
-                tabname = row.data.get("TABNAME", "")
+                tabname = row.data.get("TABNAME") or t.se11.table_name.first_key(row.data) or ""
                 if tabname:
                     all_tables.add(str(tabname).strip().upper())
 

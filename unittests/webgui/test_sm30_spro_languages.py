@@ -3,7 +3,7 @@
 import pytest
 
 from sapguimcp import lang
-from sapguimcp.backend.webgui.parsers.sm30_parser import parse_sm30_snapshot
+from sapguimcp.backend.webgui.parsers.sm30_parser import _is_selection_cell, parse_sm30_snapshot
 from sapguimcp.backend.webgui.parsers.spro_parser import parse_spro_search_results
 
 _SM30_DE = """\
@@ -97,3 +97,18 @@ def test_spro_english_results_in_an_english_session() -> None:
         result = parse_spro_search_results(_SPRO_EN, "country", lang.current())
 
     assert [a.activity_name for a in result.activities] == ["Define countries"]
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("Zum Auswählen einer Zeile drücken Sie die Leertaste.", True),
+        ("To select a row, press the space bar.", True),
+        ("Zum Auswählen", True),
+        ("Click to select", False),  # no longer a case-insensitive substring match
+        ("to select", False),
+    ],
+)
+def test_selection_cell_is_a_case_sensitive_hint_prefix(value: str, expected: bool) -> None:
+    with lang.use("DE"):  # the merged German view knows both languages
+        assert _is_selection_cell(value, lang.current()) is expected

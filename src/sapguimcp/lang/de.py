@@ -2,6 +2,7 @@
 
 from sapguimcp.lang.schema import (
     AbapgitSection,
+    CatalogSection,
     CommonSection,
     DumpSection,
     JobStatus,
@@ -69,6 +70,7 @@ DE = LanguagePack(
         inactive_objects=Text(("Inaktive Objekte",)),
         se38_initial_title=Text(("Einstieg",)),
     ),
+    catalog=CatalogSection(screen_header=Text(("Dynpro",))),
     quick_report=QuickReportSection(
         empty_patterns=Text(("keine Daten", "keine Werte", "kein Job", "keine Belege")),
         execute_button=Text(("Ausführen", "Ausführen Hervorgehoben")),

@@ -15,9 +15,12 @@ Design Notes:
   because CO01 should match "PP-Orders" (CO0*) not "CO-General" (CO*)
 """
 
+from collections.abc import Mapping
 from typing import Any, Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+
+from sapguimcp.lang.schema import LanguagePack
 
 # Transaction types (same as SE93)
 TransactionType = Literal["dialog", "report", "unknown"]
@@ -115,6 +118,14 @@ def detect_area(tcode: str) -> str | None:
     return None
 
 
+def tstc_columns(row: Mapping[str, Any], t: LanguagePack) -> tuple[Any, Any, Any]:
+    """``(tcode, program, screen)`` of a TSTC row: technical names first, then the header texts of the language."""
+    tcode = row.get("TCODE") or t.se93.transaction_code.first_key(row) or ""
+    program = row.get("PGMNA") or t.common.program.first_key(row) or ""
+    screen = row.get("DESSION") or t.catalog.screen_header.first_key(row)
+    return tcode, program, screen
+
+
 class TransactionInfo(BaseModel):
     """Complete transaction metadata for the catalog.
 
@@ -152,17 +163,15 @@ class TransactionInfo(BaseModel):
     retrieved_at: AwareDatetime | None = Field(default=None, description="UTC timestamp when data was retrieved")
 
     @classmethod
-    def from_tstc_row(cls, row_data: dict[str, object]) -> "TransactionInfo":
+    def from_tstc_row(cls, row_data: dict[str, object], t: LanguagePack) -> "TransactionInfo":
         """Create TransactionInfo from a TSTC table row.
 
-        TSTC columns are read by their technical names, which do not depend on the logon language:
-        - TCODE: Transaction code
-        - PGMNA: Program name
-        - DESSION: Screen/session number
+        The technical column names (TCODE, PGMNA, DESSION) are tried first; the WebGUI SE16 parser keys rows by
+        column header text, so the pack's header texts follow (see ``tstc_columns``).
         """
-        tcode = str(row_data.get("TCODE", "")).strip()
-        program = str(row_data.get("PGMNA", "")).strip()
-        screen = row_data.get("DESSION")
+        tcode, program, screen = tstc_columns(row_data, t)
+        tcode = str(tcode).strip()
+        program = str(program).strip()
 
         screen_number = None
         if screen is not None and screen != "":

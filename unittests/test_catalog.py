@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.catalog.models import (
     SAP_AREA_PREFIXES,
     TransactionCatalog,
@@ -99,7 +100,7 @@ class TestTransactionInfo:
             "PGMNA": "SAPMV45A",
             "DESSION": "100",
         }
-        txn = TransactionInfo.from_tstc_row(row)
+        txn = TransactionInfo.from_tstc_row(row, lang.view_for("DE"))
 
         assert txn.tcode == "VA01"
         assert txn.program == "SAPMV45A"
@@ -107,17 +108,18 @@ class TestTransactionInfo:
         assert txn.area == "SD-Sales"
         assert txn.enriched is False
 
-    def test_from_tstc_row_reads_technical_names_only(self) -> None:
-        """Localized column headers are not a supported key (language-independent technical names only)."""
-        row = {
-            "TCODE": "ME21N",
-            "PGMNA": "SAPLMEGUI",
-            "DESSION": "200",
-            "Transaktionscode": "XXXX",
-            "Programm": "OTHER",
-            "Dynpro": "999",
-        }
-        txn = TransactionInfo.from_tstc_row(row)
+    @pytest.mark.parametrize(
+        ("code", "row"),
+        [
+            ("DE", {"Transaktionscode": "ME21N", "Programm": "SAPLMEGUI", "Dynpro": "200"}),
+            ("EN", {"Transaction Code": "ME21N", "Program": "SAPLMEGUI", "Screen number": "200"}),
+            ("EN", {"Transaction code": "ME21N", "Program": "SAPLMEGUI", "Screen number": "200"}),
+            ("DE", {"TCODE": "ME21N", "Programm": "SAPLMEGUI", "DESSION": "200"}),
+        ],
+    )
+    def test_from_tstc_row_header_keyed_rows(self, code: str, row: dict[str, object]) -> None:
+        """The WebGUI SE16 parser keys rows by column header text; technical names win when present."""
+        txn = TransactionInfo.from_tstc_row(row, lang.view_for(code))
 
         assert txn.tcode == "ME21N"
         assert txn.program == "SAPLMEGUI"
@@ -130,7 +132,7 @@ class TestTransactionInfo:
             "TCODE": "SE38",
             "PGMNA": "SAPMS38M",
         }
-        txn = TransactionInfo.from_tstc_row(row)
+        txn = TransactionInfo.from_tstc_row(row, lang.view_for("DE"))
 
         assert txn.tcode == "SE38"
         assert txn.screen_number is None
@@ -142,7 +144,7 @@ class TestTransactionInfo:
             "PGMNA": " SAPMV45A ",
             "DESSION": " 100 ",
         }
-        txn = TransactionInfo.from_tstc_row(row)
+        txn = TransactionInfo.from_tstc_row(row, lang.view_for("DE"))
 
         assert txn.tcode == "VA01"
         assert txn.program == "SAPMV45A"
