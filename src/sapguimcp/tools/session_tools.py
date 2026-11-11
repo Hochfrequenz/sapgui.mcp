@@ -96,7 +96,7 @@ async def sap_session_close_impl(session_id: str) -> SessionCloseResult:
 
         closed = await backend.close_session(session_id)
         if not closed:
-            return SessionCloseResult.failure(f"Failed to close session '{session_id}'.")
+            return SessionCloseResult.failure(f"Failed to close session '{session_id}'.")  # lang-ok: our own message
 
         remaining = await backend.list_sessions()
         return SessionCloseResult(

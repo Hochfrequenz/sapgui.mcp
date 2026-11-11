@@ -1,7 +1,5 @@
 """Integration tests for shortcut discovery (sap_get_shortcuts)."""
 
-import os
-
 import pytest
 from mcp import ClientSession
 
@@ -9,6 +7,7 @@ from sapguimcp.models import (
     LoginResult,
     ShortcutsResult,
 )
+from unittests.webgui.testdata.lang_test import UiTestPack
 
 from .conftest import call_tool_typed
 from .integration_helpers import _wait_for_transaction_screen
@@ -40,15 +39,12 @@ async def test_sap_get_shortcuts_returns_shortcuts(sap_mcp_client: ClientSession
 
 
 @pytest.mark.anyio
-async def test_sap_get_shortcuts_has_execute_f8(sap_mcp_client: ClientSession) -> None:
-    """Test that SE16 screen has F8-related shortcut (Execute).
+async def test_sap_get_shortcuts_has_execute_f8(sap_mcp_client: ClientSession, ui_texts: UiTestPack) -> None:
+    """Test that the SE16 screen reports its shortcuts with canonical English key names.
 
-    Note: Some SAP configurations show "F8" while others show "Strg+F8" (Ctrl+F8).
-    This test accepts any shortcut containing "F8".
+    The button titles read "Online Handbuch (Strg+F8)" on a German logon; the tool returns
+    "Ctrl+F8" and "Enter" in every logon language (#1044).
     """
-    sap_language = os.environ.get("SAP_LANGUAGE", "DE")
-    if sap_language != "DE":
-        pytest.skip("Skipping F8 Execute test in non-DE language environments")
 
     await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
     await sap_mcp_client.call_tool("sap_transaction", {"tcode": "SE16"})
@@ -58,11 +54,11 @@ async def test_sap_get_shortcuts_has_execute_f8(sap_mcp_client: ClientSession) -
     assert data.success, f"sap_get_shortcuts failed: {data.error}"
 
     shortcuts = data.shortcuts
-    # Accept any shortcut containing "F8" (plain F8, Strg+F8, Ctrl+F8, etc.)
     print(shortcuts)
-    assert any(sc for sc in shortcuts if sc.shortcut == "Strg+F8" and sc.action == "Online Handbuch")
-    assert any(sc for sc in shortcuts if sc.shortcut == "Eingabe" and sc.action == "Tabelleninhalt")
-    assert any(sc for sc in shortcuts if sc.shortcut == "F7" and sc.action == "Tabelleninhalt")
+    texts = ui_texts.se16
+    assert any(sc.shortcut == "Ctrl+F8" and texts.online_manual_action.equals(sc.action) for sc in shortcuts)
+    assert any(sc.shortcut == "Enter" and texts.table_contents_action.equals(sc.action) for sc in shortcuts)
+    assert any(sc.shortcut == "F7" and texts.table_contents_action.equals(sc.action) for sc in shortcuts)
 
 
 @pytest.mark.anyio

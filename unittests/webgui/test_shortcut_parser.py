@@ -23,13 +23,13 @@ class TestParseShortcutFromTitle:
         result = parse_shortcut_from_title("Save (Strg+S)")
         assert result is not None
         assert result.action == "Save"
-        assert result.shortcut == "Strg+S"
+        assert result.shortcut == "Ctrl+S"  # canonical English key names (#1044)
 
     def test_shift_combo(self) -> None:
         result = parse_shortcut_from_title("Beenden (Umschalt+F3)")
         assert result is not None
         assert result.action == "Beenden"
-        assert result.shortcut == "Umschalt+F3"
+        assert result.shortcut == "Shift+F3"
 
     def test_not_a_shortcut_date(self) -> None:
         result = parse_shortcut_from_title("Created (2024-01-01)")
