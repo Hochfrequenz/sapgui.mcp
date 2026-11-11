@@ -134,7 +134,7 @@ SOURCES: Mapping[str, Source] = MappingProxyType(
         "se24.visibility[Protected]": NOT_LOOKED_UP,
         "se24.visibility[Private]": NOT_LOOKED_UP,
         "se24.static": ScreenText("SAPLSEOD", "0351", "DY_0203-CHECK_CLASS_METHOD"),
-        "se24.abstract": ScreenText("SAPLSEOD", "0351", "VSEOMETHOD-MTDABSTRCT"),
+        "se24.abstract": Manual("screen text SAPLSEOD 0351 VSEOMETHOD-MTDABSTRCT exists on the S/4HANA release only"),
         "se37.initial_screen": NOT_LOOKED_UP,
         "se37.display_title": NOT_LOOKED_UP,
         "se93.initial_screen": NOT_LOOKED_UP,
