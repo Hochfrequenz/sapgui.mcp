@@ -21,14 +21,13 @@ pytestmark = [
 
 
 @pytest.mark.anyio
-async def test_click_button_on_se38(backend) -> None:
-    """click_button clicks 'Anzeigen'/'Display' on SE38 initial screen."""
+async def test_click_button_on_se38(backend, pack) -> None:
+    """click_button clicks the Display button on the SE38 initial screen."""
     await backend.enter_transaction("SE38")
-    await backend.fill_field("Programm", "SAPLSMTR_NAVIGATION")
+    await backend.fill_field(next(iter(pack.common.program)), "SAPLSMTR_NAVIGATION")
 
     buttons = await backend.discover_buttons()
-    display_labels = ["Anzeigen", "Display"]
-    matched = [b for b in buttons if b.label in display_labels]
+    matched = [b for b in buttons if pack.common.display.equals(b.label)]
     assert matched, f"Expected a Display button, got: {[b.label for b in buttons]}"
 
     # click_button should not raise

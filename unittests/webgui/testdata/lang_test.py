@@ -59,6 +59,13 @@ class Se16Texts:
 
 
 @dataclass(frozen=True, slots=True)
+class SproTexts:
+    """SPRO (IMG): a search term that finds IMG activities in the logon language."""
+
+    img_area_search: Text
+
+
+@dataclass(frozen=True, slots=True)
 class ButtonTexts:
     """Common popup and dialog buttons."""
 
@@ -78,6 +85,7 @@ class UiTestPack:
     sm30: Sm30Texts
     se38: Se38Texts
     se16: Se16Texts
+    spro: SproTexts
     buttons: ButtonTexts
 
 
@@ -107,6 +115,7 @@ TEST_DE = UiTestPack(
         online_manual_action=Text(("Online Handbuch",)),
         table_contents_action=Text(("Tabelleninhalt",)),
     ),
+    spro=SproTexts(img_area_search=Text(("Finanzwesen",))),
     buttons=ButtonTexts(
         cancel=Text(("Abbrechen",)),
         ok=Text(("OK",)),
@@ -141,6 +150,7 @@ TEST_EN = UiTestPack(
         online_manual_action=Text(("Online Manual",)),
         table_contents_action=Text(("Table Contents",)),
     ),
+    spro=SproTexts(img_area_search=Text(("Financial Accounting",))),
     buttons=ButtonTexts(
         cancel=Text(("Cancel",)),
         ok=Text(("OK",)),

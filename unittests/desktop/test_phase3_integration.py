@@ -53,16 +53,15 @@ async def test_check_popup_detects_modal(backend):
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_dismiss_popup_on_exit_with_changes(backend):
+async def test_dismiss_popup_on_exit_with_changes(backend, pack):
     """dismiss_popup can handle the 'unsaved data' popup when leaving a transaction."""
     # Navigate to SE38, enter a program name, open for display
     await backend.enter_transaction("SE38")
-    await backend.fill_field("Programm", "SAPLSMTR_NAVIGATION")
+    await backend.fill_field(next(iter(pack.common.program)), "SAPLSMTR_NAVIGATION")
 
     buttons = await backend.discover_buttons()
-    display_labels = ["Anzeigen", "Display"]
     for btn in buttons:
-        if btn.label in display_labels:
+        if pack.common.display.equals(btn.label):
             await backend.click_button(btn.label)
             break
 
@@ -109,15 +108,14 @@ async def test_read_editor_source_returns_none_on_non_editor_screen(backend):
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_read_editor_source_on_se38(backend):
+async def test_read_editor_source_on_se38(backend, pack):
     """read_editor_source attempts to read from SE38 editor (may return None due to COM limitation)."""
     await backend.enter_transaction("SE38")
-    await backend.fill_field("Programm", "SAPLSMTR_NAVIGATION")
+    await backend.fill_field(next(iter(pack.common.program)), "SAPLSMTR_NAVIGATION")
 
     buttons = await backend.discover_buttons()
-    display_labels = ["Anzeigen", "Display"]
     for btn in buttons:
-        if btn.label in display_labels:
+        if pack.common.display.equals(btn.label):
             await backend.click_button(btn.label)
             break
 

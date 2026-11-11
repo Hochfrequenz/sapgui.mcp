@@ -101,6 +101,21 @@ def test_the_header_is_recognised_ignoring_case() -> None:
     assert [row.data for row in table.rows] == [{"JOB NAME": "JOB_A", "Status": "x"}]
 
 
+def test_a_tall_screen_without_a_list_header_is_not_scanned_page_by_page() -> None:
+    """The header is on the first page: when it is not there, the other pages are not read (they could be thousands)."""
+    scrollbar = _Scrollbar(maximum=100000, page_size=20)
+    reads: list[int] = []
+
+    class _CountingUsr(_Usr):
+        def dump_tree(self) -> list[Any]:
+            reads.append(1)
+            return [_label(0, 0, "unrelated")]
+
+    table = read_classic_list_table(_session(_CountingUsr({}, scrollbar)), _TITLES, 200)
+    assert table.headers == []
+    assert len(reads) == 1
+
+
 def _tall_list_pages(
     first_entry_row: int, last_entry_row: int, visible_rows: int, positions: list[int]
 ) -> dict[int, Any]:
