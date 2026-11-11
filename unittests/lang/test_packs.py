@@ -47,3 +47,9 @@ def test_iter_leaves_and_resolve() -> None:
     assert resolve(DE, "sm37.status[Ready]") == Text(("Bereit",))
     with pytest.raises(KeyError):
         resolve(DE, "se16.missing")
+
+
+@pytest.mark.parametrize("label", ["Maintain", "Edit"])
+def test_en_sm30_maintain_button_variants(label: str) -> None:
+    """S/4HANA labels the SM30 maintain button "Edit", ECC "Maintain"."""
+    assert EN.sm30.maintain.contains(label)

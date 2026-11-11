@@ -108,6 +108,11 @@ class TestTransactionInfo:
         assert txn.area == "SD-Sales"
         assert txn.enriched is False
 
+    def test_from_tstc_row_technical_dypno(self) -> None:
+        """TSTC's screen number field is DYPNO (not DESSION); both technical names resolve."""
+        row = {"TCODE": "VA01", "PGMNA": "SAPMV45A", "DYPNO": "0101"}
+        assert TransactionInfo.from_tstc_row(row, lang.view_for("EN")).screen_number == "0101"
+
     @pytest.mark.parametrize(
         ("code", "row"),
         [
