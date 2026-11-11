@@ -24,7 +24,6 @@ from sapguimcp.lang.schema import (
     Leaf,
     PackLike,
     PopupSection,
-    Sm37Section,
     TransportStatus,
     Visibility,
     canonical,
@@ -277,13 +276,13 @@ def test_guard_rejects_a_text_kind_that_differs_from_en() -> None:
 def test_guard_rejects_a_canonical_mapping_without_a_member() -> None:
     status = canonical({member: text for member, text in DE.sm37.status.items() if member != JobStatus.CANCELED})
     with pytest.raises(AssertionError):
-        _check_canonical_mappings(_broken(sm37=Sm37Section(status=status)))
+        _check_canonical_mappings(_broken(sm37=dataclasses.replace(DE.sm37, status=status)))
 
 
 def test_guard_rejects_a_variant_that_maps_to_two_members() -> None:
     status = canonical({**DE.sm37.status, JobStatus.READY: Text(("Geplant",))})
     with pytest.raises(AssertionError, match="Geplant"):
-        _check_no_collisions("DE", _mappings(_broken(sm37=Sm37Section(status=status))))
+        _check_no_collisions("DE", _mappings(_broken(sm37=dataclasses.replace(DE.sm37, status=status))))
 
 
 def test_guard_rejects_a_template_with_other_placeholders_than_en() -> None:

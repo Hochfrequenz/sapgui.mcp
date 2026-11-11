@@ -6,11 +6,17 @@ from datetime import date
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.models.sm37_models import SM37JobListResult
 from sapguimcp.tools.sm37_tools import _execute_sm37_lookup, _execute_sm37_lookup_desktop
 from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
+
+
+def _t(backend):  # type: ignore[no-untyped-def]
+    """The language pack of the fixture's logon language (the backend manager sets it for a real tool call)."""
+    return lang.view_for(backend.registry.language_of(backend.registry.primary_session))
 
 
 @skip_no_sap
@@ -19,6 +25,7 @@ async def test_sm37_default_selection(backend):
     """SM37: default params returns well-formed SM37JobListResult."""
     result = await _execute_sm37_lookup_desktop(
         backend,
+        t=_t(backend),
         job_name="*",
         username=None,
         statuses=None,
@@ -44,6 +51,7 @@ async def test_sm37_no_jobs_for_fake_user(backend):
     """
     result = await _execute_sm37_lookup_desktop(
         backend,
+        t=_t(backend),
         job_name="*",
         username="ZZZFAKEUSER",
         statuses=None,
@@ -62,6 +70,7 @@ async def test_sm37_model_serializes(backend):
     """SM37JobListResult must JSON-serialize (roundtrip)."""
     result = await _execute_sm37_lookup_desktop(
         backend,
+        t=_t(backend),
         job_name="*",
         username=None,
         statuses=None,
@@ -103,6 +112,7 @@ async def test_sm37_with_wildcard_jobname(backend):
     """
     result = await _execute_sm37_lookup_desktop(
         backend,
+        t=_t(backend),
         job_name="*",
         username="*",
         statuses=None,
@@ -127,6 +137,7 @@ async def test_sm37_finished_status_filter(backend):
     """SM37: statuses=['finished'] returns only finished jobs (or 0 jobs)."""
     result = await _execute_sm37_lookup_desktop(
         backend,
+        t=_t(backend),
         job_name="*",
         username=None,
         statuses=["finished"],
@@ -147,6 +158,7 @@ async def test_sm37_with_date_range(backend):
     today = date.today().isoformat()
     result = await _execute_sm37_lookup_desktop(
         backend,
+        t=_t(backend),
         job_name="*",
         username=None,
         statuses=None,
@@ -167,6 +179,7 @@ async def test_sm37_include_log_desktop(backend):
     # First find a finished job to use
     probe = await _execute_sm37_lookup_desktop(
         backend,
+        t=_t(backend),
         job_name="*",
         username=None,
         statuses=["finished"],
@@ -181,6 +194,7 @@ async def test_sm37_include_log_desktop(backend):
     target_job = probe.jobs[0].job_name
     result = await _execute_sm37_lookup(
         backend,
+        t=_t(backend),
         job_name=target_job,
         username=None,
         statuses=["finished"],

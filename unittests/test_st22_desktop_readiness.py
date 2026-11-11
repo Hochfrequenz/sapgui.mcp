@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.backend.desktop import DesktopBackend
 from sapguimcp.models import TableData
 from sapguimcp.models.sap_results import ScreenInfo, StatusBarInfo, TableRow
@@ -38,7 +39,7 @@ async def test_detail_waits_for_the_detail_screen_not_a_fixed_time() -> None:
             AsyncMock(return_value=["What happened?", "something"]),
         ),
     ):
-        result = await _st22_lookup_desktop(backend, None, 0)
+        result = await _st22_lookup_desktop(backend, lang.view_for("DE"), None, 0)
     assert result.success
     backend.wait.assert_not_awaited()
     backend.wait_for_condition.assert_awaited_once()

@@ -8,9 +8,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.models import TableData
 from sapguimcp.models.sap_results import TableRow
-from sapguimcp.session_language import use_language
 from sapguimcp.tools.sm37_tools import _execute_sm37_lookup_desktop, _fetch_job_log_desktop, _is_job_log_screen
 
 
@@ -35,8 +35,7 @@ def _backend(status_message: str) -> Any:
     ],
 )
 async def test_a_status_bar_without_matching_jobs_is_an_empty_result(message: str) -> None:
-    with use_language("DE"):
-        result = await _execute_sm37_lookup_desktop(_backend(message), "*", None, None, None, None)
+    result = await _execute_sm37_lookup_desktop(_backend(message), lang.view_for("DE"), "*", None, None, None, None)
     assert result.success
     assert result.jobs == []
     assert result.job_count == 0
@@ -45,11 +44,10 @@ async def test_a_status_bar_without_matching_jobs_is_an_empty_result(message: st
 @pytest.mark.anyio
 async def test_a_status_bar_that_merely_starts_like_the_empty_message_is_not_an_empty_result() -> None:
     # The status is no "empty" message, so the lookup goes on to read the list (which the fake backend refuses).
-    with (
-        use_language("DE"),
-        pytest.raises(AssertionError, match="no list to read"),
-    ):
-        await _execute_sm37_lookup_desktop(_backend("Kein Job ausgewählt"), "*", None, None, None, None)
+    with pytest.raises(AssertionError, match="no list to read"):
+        await _execute_sm37_lookup_desktop(
+            _backend("Kein Job ausgewählt"), lang.view_for("DE"), "*", None, None, None, None
+        )
 
 
 def _filter_backend(*, fillable: set[str]) -> Any:
@@ -62,8 +60,7 @@ def _filter_backend(*, fillable: set[str]) -> Any:
 
 
 async def _lookup(backend: Any, *args: Any) -> Any:
-    with use_language("DE"):
-        return await _execute_sm37_lookup_desktop(backend, *args)
+    return await _execute_sm37_lookup_desktop(backend, lang.view_for("DE"), *args)
 
 
 @pytest.mark.anyio
@@ -100,6 +97,14 @@ async def test_a_filter_that_cannot_be_filled_fails_the_lookup(args: tuple[Any, 
     backend.press_key.assert_not_awaited()  # the query was not run with the default selection
 
 
+@pytest.mark.anyio
+async def test_an_unfillable_filter_is_not_retried_with_localized_labels() -> None:
+    """The BTCH2170 field names are the same on every release and language: no label is tried after them."""
+    backend = _filter_backend(fillable=set())
+    await _lookup(backend, "MYJOB*", None, None, None, None)
+    assert [call.args[0] for call in backend.focus_and_type.await_args_list] == ["BTCH2170-JOBNAME"]
+
+
 def _listing_backend(table: Any, session: Any) -> Any:
     """A desktop backend that gets past the selection screen and then reads ``table`` (or falls back to ``session``)."""
     backend = _backend("")
@@ -114,7 +119,7 @@ def _listing_backend(table: Any, session: Any) -> Any:
 
 @pytest.mark.anyio
 async def test_a_classic_job_list_is_read_when_there_is_no_alv_grid() -> None:
-    """SAP ERP 6.0 shows the job overview as labels: the German column titles map onto the job fields."""
+    """SAP ERP 6.0 lists the jobs as labels: the German titles map onto the job fields, the status is canonical."""
     usr_prefix = "/app/con[0]/ses[0]/wnd[0]/usr"
 
     def _label(column: int, row: int, text: str) -> Any:
@@ -143,7 +148,7 @@ async def test_a_classic_job_list_is_read_when_there_is_no_alv_grid() -> None:
     job = result.jobs[0]
     assert (job.job_name, job.status, job.user, job.start_time, job.duration) == (
         "MYJOB",
-        "fertig",
+        "Finished",  # the status is normalised like on the WebGUI (#1044: it used to come back as 'fertig')
         "USER1",
         "08.10.2026 00:49:27",
         "1",
@@ -162,10 +167,10 @@ async def test_the_classic_reader_does_not_run_when_the_alv_grid_has_headers() -
 
 
 def test_the_job_log_screen_of_sap_erp_6_0_is_recognised_by_its_title() -> None:
-    assert _is_job_log_screen("Job-Log zu Job MYJOB / 12345678")
-    assert _is_job_log_screen("Job log for job MYJOB / 12345678")
-    assert _is_job_log_screen("Job Log Einträge")
-    assert not _is_job_log_screen("Job-Übersicht")
+    assert _is_job_log_screen("Job-Log zu Job MYJOB / 12345678", lang.view_for("DE"))
+    assert _is_job_log_screen("Job log for job MYJOB / 12345678", lang.view_for("DE"))
+    assert _is_job_log_screen("Job Log Einträge", lang.view_for("DE"))
+    assert not _is_job_log_screen("Job-Übersicht", lang.view_for("DE"))
 
 
 @pytest.mark.anyio
@@ -181,7 +186,7 @@ async def test_the_job_log_is_fetched_from_a_classic_list_when_there_is_no_grid(
         patch("sapguimcp.tools.sm37_tools.select_first_classic_list_entry", return_value=True),
         patch("sapguimcp.tools.sm37_tools.read_classic_list_lines", return_value=["08.10.2026 00:49:27 Job gestartet"]),
     ):
-        log = await _fetch_job_log_desktop(backend, "DE")
+        log = await _fetch_job_log_desktop(backend, lang.view_for("DE"))
     assert log is not None
     assert log.log_lines == ["08.10.2026 00:49:27 Job gestartet"]  # not the menu entries of the screen text
     backend.click_button.assert_awaited_once_with("Job-Log")
@@ -193,7 +198,7 @@ async def test_no_job_log_is_fetched_when_no_job_could_be_selected() -> None:
     backend.click_table_cell = AsyncMock(side_effect=ValueError("No ALV grid found on screen"))
     backend.click_button = AsyncMock()
     with patch("sapguimcp.tools.sm37_tools.select_first_classic_list_entry", return_value=False):
-        assert await _fetch_job_log_desktop(backend, "DE") is None
+        assert await _fetch_job_log_desktop(backend, lang.view_for("DE")) is None
     backend.click_button.assert_not_awaited()  # Job-Log must not run without a selected job
 
 
@@ -207,7 +212,7 @@ async def test_the_classic_list_reader_is_not_used_for_a_log_screen_without_the_
         return_value=SimpleNamespace(title="Job Log Entries", main_content=["08.10.2026 00:49:27 Job started"])
     )
     with patch("sapguimcp.tools.sm37_tools.read_classic_list_lines", side_effect=AssertionError("must not run")):
-        log = await _fetch_job_log_desktop(backend, "EN")
+        log = await _fetch_job_log_desktop(backend, lang.view_for("EN"))
     assert log is not None
     assert log.log_lines == ["08.10.2026 00:49:27 Job started"]
 

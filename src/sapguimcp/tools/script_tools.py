@@ -388,7 +388,7 @@ def _wait(ms: float | int, deadline: float) -> None:
     Raises ``TimeoutError`` without sleeping if the pause would run past the
     sandbox *deadline* (a ``time.monotonic()`` value derived from the tool timeout).
     """
-    seconds = _check_duration("wait duration", ms, allow_zero=True) / 1000.0
+    seconds = _check_duration("wait duration", ms, allow_zero=True) / 1000.0  # lang-ok: our own message
     if time.monotonic() + seconds > deadline:
         raise TimeoutError("wait(...) would exceed the tool timeout")
     time.sleep(seconds)

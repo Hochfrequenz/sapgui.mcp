@@ -192,9 +192,18 @@ EN = LanguagePack(
     slg1=Slg1Section(
         initial_screen=Text(("Analyze Application Log",)),
         log_list_screen=Text(("Display Logs",)),
-        # BL 208 in EN. The second variant is the text lang.py expected before #1044; kept until
-        # the SLG1 migration confirms no release shows it.
-        no_logs_found=Text(("No log found in the database", "No log could be found in the database")),
+        # BL 208 in EN.
+        no_logs_found=Text(("No log found in the database", "No logs", "No application log")),
+        log_object=Text(("Object",)),
+        log_subobject=Text(("Subobject",)),
+        external_id=Text(("External ID",)),
+        from_datetime=Text(("From (Date/Time)",)),
+        to_datetime=Text(("To (Date/Time)",)),
+        log_number=Text(("Log Number",)),
+        col_date=Text(("Date",)),
+        col_time=Text(("Time",)),
+        col_messages=Text(("No. Messages",)),
+        empty_cell=Text(("Empty",)),
     ),
     sm30=Sm30Section(
         initial_screen=Text(("Table View Maintenance",)),
@@ -209,7 +218,7 @@ EN = LanguagePack(
     sm37=Sm37Section(
         status=canonical(
             {
-                JobStatus.SCHEDULED: Text(("Scheduled",)),
+                JobStatus.SCHEDULED: Text(("Scheduled", "Sched.")),
                 JobStatus.RELEASED: Text(("Released",)),
                 JobStatus.READY: Text(("Ready",)),
                 JobStatus.ACTIVE: Text(("Active",)),
@@ -217,6 +226,25 @@ EN = LanguagePack(
                 JobStatus.CANCELED: Text(("Canceled",)),
             }
         ),
+        col_status=Text(("Status",)),
+        job_name=Text(("Job Name", "Job name"), fold=False),
+        user_name=Text(("User Name", "User name"), fold=False),
+        from_date=Text(("From Date",)),
+        to_date=Text(("To Date",)),
+        job_log_button=Text(("Job Log",)),
+        job_log_heading=Text(("Job Log Entries",), fold=False),
+        job_log_title_ecc=Text(("Job Log for Job",)),
+        job_list_heading=Text(("Job Overview",), fold=False),
+        no_jobs=Text(("No job match", "No jobs found")),
+        select_hint=Text(("To select",), fold=False),
+        selected_hint=Text(("Selected",), fold=False),
+        event_driven=Text(("event-driven",), fold=False),
+        abap_program=Text(("ABAP Program",), fold=False),
+        col_start_date=Text(("Start Date",)),
+        col_start_time=Text(("Start Time",)),
+        col_duration=Text(("Duration", "Duration(sec.)")),
+        col_created_by=Text(("Created By", "Job Created By")),
+        col_client=Text(("Client",)),
     ),
     spro=SproSection(
         initial_screen=Text(("Customizing: Execute Project",)),
@@ -234,9 +262,37 @@ EN = LanguagePack(
         section=canonical(
             {
                 DumpSection.WHAT_HAPPENED: Text(("What happened?",)),
-                DumpSection.HOW_TO_CORRECT: Text(("How to Correct the Error",)),
+                DumpSection.HOW_TO_CORRECT: Text(("How to Correct the Error", "What can you do?")),
                 DumpSection.ERROR_ANALYSIS: Text(("Error Analysis",)),
             }
         ),
+        today=Text(("Today",)),
+        yesterday=Text(("Yesterday",)),
+        date_field=Text(("Date",)),
+        runtime_errors=Text(("Runtime Errors", "Runtime Error")),
+        no_dumps=Text(("No entries found", "No short dumps", "No dumps")),
+        col_time=Text(("Time",)),
+        col_program=Text(("Program", "Terminated Program")),
+        col_error_type=Text(("Runtime Errors", "Runtime Error")),
+        col_short_text=Text(("Short Text",)),
+        call_stack_heading=Text(("Active Calls/Events", "Active Calls", "Call Stack")),
+        other_headings=Text(
+            (
+                "System Environment",
+                "User-Specific System Environment",
+                "Information on Where Terminated",
+                "Source Code Extract",
+                "Contents of System Fields",
+                "Chosen Variables",
+                "Active Calls in SAP Kernel",
+                "User and Transaction",
+                "Short Text",
+                "Internal Notes",
+            )
+        ),
+        source_code_start=RegexText((r"Source Code",)),
+        source_code_of=RegexText((r"Source Code of",)),
+        source_line=Text(("Source Code Line",)),
+        line=Text(("Line",)),
     ),
 )

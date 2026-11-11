@@ -94,7 +94,6 @@ IRREGULAR: dict[str, tuple[str, str]] = {
     "SE37_DISPLAY_PREFIX_EN": ("EN", "common.display"),
     "SE24_DISPLAY_SUFFIX_DE": ("DE", "common.display"),
     "SE24_DISPLAY_PREFIX_EN": ("EN", "common.display"),
-    "SLG1_NO_LOGS_FOUND_EN_LEGACY": ("EN", "slg1.no_logs_found"),
 }
 
 NOT_TEXTS = {"bilingual_pattern", "SM37_STATUS_MAP_DE", "SM37_STATUS_MAP_EN"}
@@ -142,6 +141,7 @@ def test_sm37_status_maps_are_unchanged() -> None:
     }
     assert lang.SM37_STATUS_MAP_EN == {
         "scheduled": "Scheduled",
+        "sched.": "Scheduled",  # D021T text of the checkbox (SAPLBTCH 2170), added with the SM37 migration
         "released": "Released",
         "ready": "Ready",
         "active": "Active",
@@ -157,4 +157,3 @@ def test_bilingual_pattern_is_unchanged() -> None:
 
 def test_slg1_no_logs_found_en_is_sap_message_bl_208() -> None:
     assert lang.SLG1_NO_LOGS_FOUND_EN == "No log found in the database"
-    assert lang.SLG1_NO_LOGS_FOUND_EN_LEGACY == "No log could be found in the database"

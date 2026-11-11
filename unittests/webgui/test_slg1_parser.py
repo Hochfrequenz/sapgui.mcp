@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.backend.webgui.parsers.slg1_parser import (
     is_slg1_initial_screen,
     is_slg1_log_list_screen,
@@ -15,6 +16,9 @@ from sapguimcp.backend.webgui.parsers.slg1_parser import (
     parse_slg1_log_list,
 )
 from sapguimcp.backend.webgui.types import AriaSnapshot
+
+T = lang.view_for("DE")  # German first, English after: the snapshots of both languages are parsed
+
 
 SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "slg1_exploration"
 
@@ -33,48 +37,47 @@ class TestSLG1ScreenDetection:
     def test_detect_initial_screen(self) -> None:
         """Should detect the SLG1 selection screen."""
         snapshot = _load_snapshot("slg1_initial")
-        assert is_slg1_initial_screen(snapshot) is True
+        assert is_slg1_initial_screen(snapshot, T) is True
 
     def test_detect_initial_screen_not_log_list(self) -> None:
         """Initial screen should not be detected as log list."""
         snapshot = _load_snapshot("slg1_initial")
-        assert is_slg1_log_list_screen(snapshot) is False
+        assert is_slg1_log_list_screen(snapshot, T) is False
 
     def test_detect_no_results(self) -> None:
         """Should detect when no logs are found (status bar message)."""
         snapshot = _load_snapshot("slg1_no_results")
-        assert is_slg1_no_results(snapshot) is True
+        assert is_slg1_no_results(snapshot, T) is True
 
     def test_detect_no_results_is_still_initial(self) -> None:
         """No results screen is still the initial screen (with status bar)."""
         snapshot = _load_snapshot("slg1_no_results")
-        assert is_slg1_initial_screen(snapshot) is True
+        assert is_slg1_initial_screen(snapshot, T) is True
 
     def test_log_list_is_not_initial(self) -> None:
         """Log list screen should not be detected as initial."""
         snapshot = _load_snapshot("slg1_log_list")
-        assert is_slg1_initial_screen(snapshot) is False
+        assert is_slg1_initial_screen(snapshot, T) is False
 
     def test_log_list_is_log_list(self) -> None:
         """Log list screen should be detected as log list."""
         snapshot = _load_snapshot("slg1_log_list")
-        assert is_slg1_log_list_screen(snapshot) is True
+        assert is_slg1_log_list_screen(snapshot, T) is True
 
     def test_log_list_is_not_no_results(self) -> None:
         """Log list screen should not be detected as no results."""
         snapshot = _load_snapshot("slg1_log_list")
-        assert is_slg1_no_results(snapshot) is False
+        assert is_slg1_no_results(snapshot, T) is False
 
     @pytest.mark.parametrize(
         "message",
         [
-            "Es konnte kein Protokoll auf der Datenbank gefunden werden",
-            "No log found in the database",
-            "No log could be found in the database",
+            "Es konnte kein Protokoll auf der Datenbank gefunden werden.",  # SAP message BL 208, DE
+            "No log found in the database",  # SAP message BL 208, EN
         ],
     )
     def test_detect_no_results_from_the_status_bar_text(self, message: str) -> None:
-        assert is_slg1_no_results(AriaSnapshot(f'- status "{message}"')) is True
+        assert is_slg1_no_results(AriaSnapshot(f'- status "{message}"'), T) is True
 
 
 class TestSLG1LogListParsing:
@@ -83,7 +86,7 @@ class TestSLG1LogListParsing:
     def test_parse_log_list_has_entries(self) -> None:
         """Should parse at least one log entry from the list."""
         snapshot = _load_snapshot("slg1_log_list")
-        result = parse_slg1_log_list(snapshot)
+        result = parse_slg1_log_list(snapshot, T)
 
         assert result.success
         assert result.log_count > 0
@@ -92,7 +95,7 @@ class TestSLG1LogListParsing:
     def test_log_entry_has_required_fields(self) -> None:
         """Each log entry should have log_number, object, date, time."""
         snapshot = _load_snapshot("slg1_log_list")
-        result = parse_slg1_log_list(snapshot)
+        result = parse_slg1_log_list(snapshot, T)
 
         if not result.logs:
             pytest.skip("No logs parsed - check snapshot content")
@@ -106,7 +109,7 @@ class TestSLG1LogListParsing:
     def test_log_entry_has_user(self) -> None:
         """Log entries should have a user field."""
         snapshot = _load_snapshot("slg1_log_list")
-        result = parse_slg1_log_list(snapshot)
+        result = parse_slg1_log_list(snapshot, T)
 
         if not result.logs:
             pytest.skip("No logs parsed")
@@ -117,7 +120,7 @@ class TestSLG1LogListParsing:
     def test_log_number_is_numeric(self) -> None:
         """Log numbers should be numeric strings."""
         snapshot = _load_snapshot("slg1_log_list")
-        result = parse_slg1_log_list(snapshot)
+        result = parse_slg1_log_list(snapshot, T)
 
         for entry in result.logs:
             assert entry.log_number.isdigit(), f"log_number should be numeric, got {entry.log_number!r}"
@@ -125,7 +128,7 @@ class TestSLG1LogListParsing:
     def test_message_count_is_nonnegative(self) -> None:
         """Message counts should be non-negative integers."""
         snapshot = _load_snapshot("slg1_log_list")
-        result = parse_slg1_log_list(snapshot)
+        result = parse_slg1_log_list(snapshot, T)
 
         for entry in result.logs:
             assert entry.message_count >= 0, f"message_count should be >= 0, got {entry.message_count}"
@@ -133,7 +136,7 @@ class TestSLG1LogListParsing:
     def test_no_results_returns_empty(self) -> None:
         """No results should return empty log list."""
         snapshot = _load_snapshot("slg1_no_results")
-        result = parse_slg1_log_list(snapshot)
+        result = parse_slg1_log_list(snapshot, T)
 
         assert result.success
         assert result.log_count == 0
@@ -143,7 +146,7 @@ class TestSLG1LogListParsing:
     def test_known_log_objects_present(self) -> None:
         """Known log objects from the test system should be present."""
         snapshot = _load_snapshot("slg1_log_list")
-        result = parse_slg1_log_list(snapshot)
+        result = parse_slg1_log_list(snapshot, T)
 
         objects = {entry.object for entry in result.logs}
         # Based on the captured snapshot, these objects exist
@@ -154,7 +157,7 @@ class TestSLG1LogListParsing:
         list_snapshot = _load_snapshot("slg1_log_list")
         expanded_snapshot = _load_snapshot("slg1_expanded_log")
 
-        list_result = parse_slg1_log_list(list_snapshot)
-        expanded_result = parse_slg1_log_list(expanded_snapshot)
+        list_result = parse_slg1_log_list(list_snapshot, T)
+        expanded_result = parse_slg1_log_list(expanded_snapshot, T)
 
         assert list_result.log_count == expanded_result.log_count
