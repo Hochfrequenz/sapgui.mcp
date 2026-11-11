@@ -6,14 +6,17 @@ literals that look like SAP screen text, with three rules:
 1. **Sink rule** (AST): a literal passed to a UI sink (``click_button``, ``get_by_role(name=...)``,
    a local ``*_bilingual`` helper, a ``text=`` / ``has-text(...)`` / ``[title*=...]`` selector),
    compared with ``in`` / ``==`` / ``startswith`` / ``re.*`` against a name that looks like screen
-   text (``title``, ``status``, ``label``, ...), or used as a key of ``row.get(...)`` / ``row[...]``.
+   text (``title``, ``status``, ``label``, ...; also through ``for k in ("a", "b")`` loops and
+   generators whose variable is compared that way), or used as a key of ``row.get(...)`` / ``row[...]``.
 2. **Value rule**: a literal that contains, as whole words and case-folded, a variant of five or
-   more characters of any registered language pack. It skips the server's own messages (f-string
-   parts, ``raise`` arguments, ``error=`` / ``message=`` values), identifiers, CSS selectors and
-   prose of more than six words; the sink rule still applies to those.
+   more characters of any registered language pack. It skips the server's own messages (f-strings
+   inside ``raise`` or ``error=`` / ``message=`` values, ``raise`` arguments), identifiers, CSS
+   selectors and prose of more than six words; the sink rule still applies to those. Other f-strings
+   are checked on their constant parts.
 3. **JS rule**: a string or regex literal used with ``includes``, ``===``, ``match``, ``test``,
    ``replace``, ..., or in a ``title*=`` / ``has-text`` selector, in ``.js`` files and in JS
-   functions held in Python strings (``evaluate_javascript("() => {...}")``).
+   functions held in Python strings (``evaluate_javascript("() => {...}")``). The value rule also
+   applies to regex bodies and to template literals without ``${``.
 
 Skipped everywhere: docstrings, logging calls, ``description=`` keyword arguments, and literals that
 are code (no letters, one character, ``snake_case``, ALL CAPS, only DOM/ARIA vocabulary).
@@ -21,12 +24,14 @@ are code (no letters, one character, ``snake_case``, ALL CAPS, only DOM/ARIA voc
 Exemptions are keyed by file and literal, never by line:
 
 - ``unittests/lang_baseline.json`` is shrink-only: ``{file: {literal: count}}``, where ``count`` is
-  how many (not skipped, not ``lang-ok``) literals in that file have exactly that value. A new hit
+  how many (not skipped, not ``lang-ok``) literals in that file have exactly that value, so the
+  count includes every non-exempt occurrence of a baselined literal, flagged or not. A new hit
   fails, and so does an entry whose count no longer matches. Phase-3 migrations only delete or lower
-  entries; ``uv run python unittests/test_no_ui_literals.py --prune`` does that and never adds one.
+  entries; ``uv run --group tests python unittests/test_no_ui_literals.py --prune`` does that and never adds one.
 - ``# lang-ok: <reason>`` (``// lang-ok: <reason>`` in JS) on any line of the literal is a permanent
   exemption for literals that are code identifiers or the server's own messages. A pack added later
-  may need new ``lang-ok`` comments, never a baseline entry.
+  may need new ``lang-ok`` comments, never a baseline entry. In a JS function held in a Python string
+  only a ``// lang-ok`` inside the JS counts; a Python ``# lang-ok`` on the line does not exempt it.
 """
 
 import ast
@@ -73,6 +78,9 @@ SINK_CALLS = frozenset(
         "get_by_label",
         "get_by_title",
         "get_by_placeholder",
+        "set_radio_button",
+        "dismiss_popup",
+        "get_dropdown_options",
     }
 )
 """Calls whose string arguments are screen texts (positional, keyword, or dict keys)."""
@@ -80,7 +88,10 @@ SINK_CALL_PATTERN = re.compile(r"bilingual|^_?click_\w*(?:button|tab)|^find_butt
 """Local helpers that click or set by label: ``_click_tab_bilingual``, ``_click_display_button``, ..."""
 SINK_KEYWORDS = frozenset({"has_text", "has_not_text"})
 """``locator(..., has_text=...)``; ``name=`` counts only in ``get_by_role``."""
-CONTEXT_NAME = re.compile(r"title|heading|snapshot|status|msg|message|text|label|header|kind|level", re.IGNORECASE)
+CONTEXT_NAME = re.compile(
+    r"title|heading|snapshot|status|msg|message|text|label|header|kind|level|caption|tooltip|content|screen|popup|dialog",
+    re.IGNORECASE,
+)
 ROW_NAME = re.compile(r"(?:^|_)rows?(?:$|_)", re.IGNORECASE)
 STRING_METHODS = frozenset({"startswith", "endswith", "find", "rfind", "index", "count", "split", "partition"})
 TRANSPARENT_METHODS = frozenset({"lower", "upper", "casefold", "strip", "lstrip", "rstrip"})
@@ -184,7 +195,9 @@ def _header_like(literal: str) -> bool:
 def _identifier(node: ast.AST) -> str | None:
     """The name a context check looks at: ``title``, ``self.title``, ``title.lower()``, ``rows[0]``."""
     while True:
-        if (
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "str" and node.args:
+            node = node.args[0]
+        elif (
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Attribute)
             and node.func.attr in TRANSPARENT_METHODS
@@ -203,7 +216,9 @@ def _identifier(node: ast.AST) -> str | None:
 
 def _is_context(node: ast.AST) -> bool:
     name = _identifier(node)
-    return name is not None and CONTEXT_NAME.search(name) is not None
+    if name is None or name.lower().endswith("statuses"):
+        return False  # ``_ALL_STATUSES``: tool parameter values, not screen text
+    return CONTEXT_NAME.search(name) is not None
 
 
 def _literals(node: ast.AST) -> list[ast.Constant]:
@@ -212,6 +227,8 @@ def _literals(node: ast.AST) -> list[ast.Constant]:
         return [node]
     if isinstance(node, ast.Tuple | ast.List | ast.Set):
         return [elt for elt in node.elts if isinstance(elt, ast.Constant) and isinstance(elt.value, str)]
+    if isinstance(node, ast.JoinedStr):  # f"Sichern {x}": the constant parts
+        return [part for part in node.values if isinstance(part, ast.Constant) and isinstance(part.value, str)]
     return []
 
 
@@ -248,12 +265,13 @@ def _skipped(tree: ast.Module) -> set[int]:
 def _messages(tree: ast.Module) -> set[int]:
     """ids of the server's own messages, which the value rule skips.
 
-    f-string parts, ``raise`` arguments, ``error=`` / ``message=`` / ... keyword values, the values
-    of such keys in dict literals (``{"error": "..."}``) and ``.get("error", "...")`` defaults.
+    ``raise`` arguments (f-strings included), ``error=`` / ``message=`` / ... keyword values, the
+    values of such keys in dict literals (``{"error": "..."}``) and ``.get("error", "...")`` defaults.
+    Other f-strings are not messages: their constant parts go through the value rule.
     """
     found: set[int] = set()
     for node in ast.walk(tree):
-        if isinstance(node, ast.JoinedStr | ast.Raise):
+        if isinstance(node, ast.Raise):
             found.update(id(n) for n in _all_strings(node))
         elif isinstance(node, ast.keyword) and node.arg in MESSAGE_KEYWORDS:
             found.update(id(n) for n in _all_strings(node.value))
@@ -302,10 +320,46 @@ def _call_sinks(node: ast.Call, flag: _Flag) -> None:
         flag([n for n in _literals(node.args[0]) if _header_like(n.value)], "row-key")
 
 
+def _target_compared(scope: ast.AST, name: str) -> bool:
+    """``name`` is compared with a screen-text name inside ``scope``: ``k in title``, ``title.startswith(k)``."""
+    for node in ast.walk(scope):
+        if isinstance(node, ast.Compare):
+            operands = [node.left, *node.comparators]
+            for left, op, right in zip(operands, node.ops, operands[1:], strict=False):
+                if isinstance(op, ast.In | ast.NotIn | ast.Eq | ast.NotEq) and (
+                    (_identifier(left) == name and _is_context(right))
+                    or (_identifier(right) == name and _is_context(left))
+                ):
+                    return True
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in STRING_METHODS
+            and _is_context(node.func.value)
+            and any(_identifier(arg) == name for arg in node.args)
+        ):
+            return True
+    return False
+
+
+def _loop_hits(node: ast.AST, flag: _Flag) -> None:
+    """``any(k in title for k in ("a", "b"))`` and ``for k in ("a", "b"): if k in title``."""
+    if isinstance(node, ast.ListComp | ast.SetComp | ast.GeneratorExp | ast.DictComp):
+        loops = [(generator.target, generator.iter) for generator in node.generators]
+    elif isinstance(node, ast.For):
+        loops = [(node.target, node.iter)]
+    else:
+        return
+    for target, iterable in loops:
+        if isinstance(target, ast.Name) and _target_compared(node, target.id):
+            flag(_literals(iterable), "compare")
+
+
 def _sink_hits(tree: ast.Module) -> dict[int, str]:
     """ids of string constants the sink rule flags, with the sub-rule that flagged them."""
     flag = _Flag()
     for node in ast.walk(tree):
+        _loop_hits(node, flag)
         if isinstance(node, ast.Call):
             _call_sinks(node, flag)
         elif isinstance(node, ast.Compare):
@@ -349,12 +403,14 @@ def scan_python_source(source: str, relative: str) -> tuple[list[Hit], Counter[s
     for node in ast.walk(tree):
         if not (isinstance(node, ast.Constant) and isinstance(node.value, str)) or not node.value.strip():
             continue
-        if id(node) in skipped or ok_lines & set(range(node.lineno, (node.end_lineno or node.lineno) + 1)):
+        if id(node) in skipped:
             continue
-        if INLINE_JS.match(node.value):
+        if INLINE_JS.match(node.value):  # only a ``// lang-ok`` inside the JS exempts it, not a Python comment
             inner_hits, inner_counts = scan_js_source(node.value, relative, node.lineno)
             hits.extend(inner_hits)
             counts.update(inner_counts)
+            continue
+        if ok_lines & set(range(node.lineno, (node.end_lineno or node.lineno) + 1)):
             continue
         counts[node.value] += 1
         rule = sinks.get(id(node)) or ("value" if id(node) not in messages and matches_pack(node.value) else None)
@@ -441,9 +497,10 @@ def scan_js_source(source: str, relative: str, first_line: int = 1) -> tuple[lis
             continue
         counts[value] += 1
         rule = _js_rule(tokens, index, value)
-        if rule is None and token.kind == "str" and not _js_message(tokens, index) and matches_pack(value):
-            rule = "value"
         words = value[1 : value.rindex("/")] if token.kind == "regex" else value
+        interpolated = token.kind == "tmpl" and "${" in value
+        if rule is None and not interpolated and not _js_message(tokens, index) and matches_pack(words):
+            rule = "value"
         if rule is not None and not is_technical(words):
             hits.append(Hit(relative, first_line + token.line - 1, value, rule))
     return hits, counts
@@ -530,8 +587,8 @@ def canonical_json(baseline: dict[str, dict[str, int]]) -> str:
 
 def new_hits(hits: list[Hit], baseline: dict[str, dict[str, int]]) -> list[str]:
     return [
-        f"{hit.path}:{hit.line}: {hit.literal!r} ({hit.rule}): move it into a language pack, or mark a code "
-        "identifier or the server's own message with '# lang-ok: <reason>'"
+        f"{hit.path}:{hit.line}: {hit.literal!r} ({hit.rule}): move it into a language pack, or mark it "
+        "'# lang-ok: <reason>' if it is code or our own message"
         for hit in hits
         if hit.literal not in baseline.get(hit.path, {})
     ]
@@ -547,7 +604,7 @@ def stale_entries(counts: dict[str, Counter[str]], baseline: dict[str, dict[str,
             elif actual < expected:
                 found.append(
                     f"{path}: {literal!r} occurs {actual}x, the baseline says {expected}x: shrink the entry "
-                    "(uv run python unittests/test_no_ui_literals.py --prune)"
+                    "(uv run --group tests python unittests/test_no_ui_literals.py --prune)"
                 )
     return found
 
@@ -706,6 +763,64 @@ def test_js_rule_skips_code_and_messages(source: str) -> None:
     assert _js(source) == []
 
 
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ('click_button(s, f"Sichern {x}")', [("Sichern ", "sink-call")]),
+        ('LABEL = f"Anzahl Treffer {n}"', [("Anzahl Treffer ", "value")]),
+        ('ok = any(k in title for k in ("Pflegen", "Maintain"))', [("Pflegen", "compare"), ("Maintain", "compare")]),
+        (
+            'for k in ("Pflegen", "Maintain"):\n    if title.startswith(k):\n        break',
+            [("Pflegen", "compare"), ("Maintain", "compare")],
+        ),
+        ('ok = str(popup_text).startswith("Sichern")', [("Sichern", "compare")]),
+        ('ok = "Sichern" in dialog', [("Sichern", "compare")]),
+        ('set_radio_button(session, "Anzeigen")', [("Anzeigen", "sink-call")]),
+    ],
+)
+def test_python_rules_stronger(source: str, expected: list[tuple[str, str]]) -> None:
+    assert _python(source) == expected
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        'raise ValueError(f"Number of Hits {n} not found")',
+        'result = Result(error=f"Number of Hits {n}")',
+        'ok = any(k in data for k in ("Zzzzzz", "Yyyyyy"))',
+        "ok = any(k in title for k in kinds)",
+        'ok = "Sichern" in _ALL_STATUSES',
+        'ok = "Sichern" in allowed_statuses',
+        'x = [k for k in ("Zzzzzz", "Yyyyyy")]',
+    ],
+)
+def test_python_rules_stronger_skip(source: str) -> None:
+    assert _python(source) == []
+
+
+def test_python_lang_ok_does_not_exempt_inline_javascript() -> None:
+    source = "JS = \"() => { return t === 'Anzeigen'; }\"  # lang-ok: not for JS\n"
+    assert [(hit.literal, hit.rule) for hit in scan_python_source(source, "x.py")[0]] == [("Anzeigen", "js-equality")]
+    inner = 'JS = """() => {\n    return t === \'Anzeigen\'; // lang-ok: test fixture\n}"""\n'
+    assert scan_python_source(inner, "x.py")[0] == []
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ("const re = /Anzahl Treffer|Number of Hits/;", [("/Anzahl Treffer|Number of Hits/", "value")]),
+        ("const s = `Anzahl Treffer`;", [("Anzahl Treffer", "value")]),
+    ],
+)
+def test_js_value_rule_covers_regex_and_templates(source: str, expected: list[tuple[str, str]]) -> None:
+    assert _js(source) == expected
+
+
+@pytest.mark.parametrize("source", ["const s = `Anzahl Treffer ${n}`;", r"const re = /\d+\s*(?:abc)/;"])
+def test_js_value_rule_skips_interpolated_templates_and_code_regex(source: str) -> None:
+    assert _js(source) == []
+
+
 def test_value_rule_matches_whole_words_only() -> None:
     assert matches_pack("Number of Hits")
     assert not matches_pack("Number of Hitsfoo")
@@ -728,5 +843,5 @@ def test_new_hits_ignores_baselined_literals() -> None:
 
 if __name__ == "__main__":
     if sys.argv[1:] != ["--prune"]:
-        raise SystemExit("usage: uv run python unittests/test_no_ui_literals.py --prune")
+        raise SystemExit("usage: uv run --group tests python unittests/test_no_ui_literals.py --prune")
     BASELINE.write_text(canonical_json(prune(load_baseline(), scan()[1])), encoding="utf-8", newline="\n")

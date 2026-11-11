@@ -220,8 +220,8 @@ async def _set_se09_selection_screen(
             logger.warning("SE09 desktop: could not fill username field, results may be unfiltered")
 
     # Request type checkboxes
-    wb_checked = request_type in ("all", "workbench")
-    cust_checked = request_type in ("all", "customizing")
+    wb_checked = request_type in ("all", "workbench")  # lang-ok: tool parameter values
+    cust_checked = request_type in ("all", "customizing")  # lang-ok: tool parameter values
     await _set_checkbox_bilingual(backend, "Workbench-Auftr\u00e4ge", "Workbench Requests", wb_checked)
     await _set_checkbox_bilingual(backend, "Customizing-Auftr\u00e4ge", "Customizing Requests", cust_checked)
 
@@ -688,8 +688,8 @@ def register_se09_tools(mcp: FastMCP) -> None:
     )
     async def sap_se09_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         username: str | None = None,
-        request_type: Literal["workbench", "customizing", "all"] = "all",
-        status: Literal["modifiable", "released", "all"] = "modifiable",
+        request_type: Literal["workbench", "customizing", "all"] = "all",  # lang-ok: tool parameter values
+        status: Literal["modifiable", "released", "all"] = "modifiable",  # lang-ok: tool parameter values
         include_objects: bool = False,
         output_file: str | None = None,
         session: str | None = None,

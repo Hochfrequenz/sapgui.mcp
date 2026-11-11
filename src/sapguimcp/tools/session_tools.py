@@ -83,7 +83,9 @@ async def sap_session_close_impl(session_id: str) -> SessionCloseResult:
         if not await backend.has_session(session_id):
             sessions = await backend.list_sessions()
             available = ", ".join(s.session_id for s in sessions) or "(none)"
-            return SessionCloseResult.failure(f"Session '{session_id}' not found. Active: {available}.")
+            return SessionCloseResult.failure(
+                f"Session '{session_id}' not found. Active: {available}."  # lang-ok: our own message
+            )
 
         if await backend.session_origin(session_id) == "attached":
             return SessionCloseResult.failure(
@@ -137,7 +139,9 @@ async def sap_session_detach_impl(session_id: str) -> SessionDetachResult:
         if not await backend.has_session(session_id):
             sessions = await list_fast()
             available = ", ".join(s.session_id for s in sessions) or "(none)"
-            return SessionDetachResult.failure(f"Session '{session_id}' not found. Active: {available}.")
+            return SessionDetachResult.failure(
+                f"Session '{session_id}' not found. Active: {available}."  # lang-ok: our own message
+            )
 
         released = await detach(session_id)
         remaining = await list_fast()
@@ -181,7 +185,9 @@ async def sap_session_bind_impl(
         if not await backend.has_session(session_id):
             sessions = await backend.list_sessions()
             available = ", ".join(s.session_id for s in sessions) or "(none)"
-            return SessionBindResult.failure(f"Session '{session_id}' not found. Active: {available}.")
+            return SessionBindResult.failure(
+                f"Session '{session_id}' not found. Active: {available}."  # lang-ok: our own message
+            )
 
         old_agent = await backend.bind_session(session_id, agent_id, force=force)
 
@@ -219,7 +225,9 @@ async def sap_session_release_impl(session_id: str) -> SessionReleaseResult:
         if not await backend.has_session(session_id):
             sessions = await backend.list_sessions()
             available = ", ".join(s.session_id for s in sessions) or "(none)"
-            return SessionReleaseResult.failure(f"Session '{session_id}' not found. Active: {available}.")
+            return SessionReleaseResult.failure(
+                f"Session '{session_id}' not found. Active: {available}."  # lang-ok: our own message
+            )
 
         old_agent = await backend.release_session(session_id)
 

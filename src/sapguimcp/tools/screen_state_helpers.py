@@ -39,7 +39,7 @@ async def _apply_changes(
     for label, desired in target.checkboxes.items():
         cb_actual = current.checkboxes.get(label)
         if cb_actual is None:
-            diff.warnings.append(f"Checkbox '{label}' not found on screen")
+            diff.warnings.append(f"Checkbox '{label}' not found on screen")  # lang-ok: our own message
             continue
         if cb_actual != desired:
             try:
@@ -55,7 +55,7 @@ async def _apply_changes(
     for label, desired in target.radios.items():
         radio_actual = current.radios.get(label)
         if radio_actual is None:
-            diff.warnings.append(f"Radio '{label}' not found on screen")
+            diff.warnings.append(f"Radio '{label}' not found on screen")  # lang-ok: our own message
             continue
         if radio_actual != desired and desired is True:
             try:
@@ -71,7 +71,7 @@ async def _apply_changes(
     for label, desired_val in target.fields.items():
         field_actual = current.fields.get(label)
         if field_actual is None:
-            diff.warnings.append(f"Field '{label}' not found on screen")
+            diff.warnings.append(f"Field '{label}' not found on screen")  # lang-ok: our own message
             continue
         if field_actual != desired_val:
             try:

@@ -236,7 +236,7 @@ async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-position
         )
         state_result = await ensure_screen_state(backend, target)
         if not state_result.success:
-            warnings.append(f"Selection screen: {state_result.error}")
+            warnings.append(f"Selection screen: {state_result.error}")  # lang-ok: our own message
         warnings.extend(state_result.warnings)
 
     # 4. Execute report (F8) — retry up to 3 times if screen doesn't change.

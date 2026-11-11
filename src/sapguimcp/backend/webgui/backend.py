@@ -1036,7 +1036,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         if not field_check.get("found"):
             return DropdownFillResult(
                 success=False,
-                error_message=f"Field '{label}' not found",
+                error_message=f"Field '{label}' not found",  # lang-ok: our own message
             )
 
         if not field_check.get("isDropdown"):
@@ -1458,7 +1458,9 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
                 if not matched_button:
                     available = [b.label for b in popup.buttons]
-                    return ClosePopupResult.failure(f"Button '{button_label}' not found. Available: {available}")
+                    return ClosePopupResult.failure(
+                        f"Button '{button_label}' not found. Available: {available}"  # lang-ok: our own message
+                    )
 
                 if matched_button.id:
                     await self._page.click(escape_css_selector(f"#{matched_button.id}"))

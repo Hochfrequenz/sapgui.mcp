@@ -90,7 +90,7 @@ async def _read_classic_job_list(backend: "WebGuiBackend | DesktopBackend") -> T
     )
 
 
-_ALL_STATUSES = ["scheduled", "released", "ready", "active", "finished", "canceled"]
+_ALL_STATUSES = ["scheduled", "released", "ready", "active", "finished", "canceled"]  # lang-ok: tool parameter values
 
 
 async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals
@@ -135,7 +135,7 @@ async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many
     )
     state_result = await ensure_screen_state(backend, target)
     if not state_result.success:
-        errors.append(f"Failed to set selection screen state: {state_result.error}")
+        errors.append(f"Failed to set selection screen state: {state_result.error}")  # lang-ok: our own message
     errors.extend(state_result.warnings)
 
     # Date fields are filled manually (not via ensure_screen_state) because they
@@ -598,12 +598,12 @@ def register_sm37_tools(mcp: FastMCP) -> None:
         status: (
             list[
                 Literal[
-                    "scheduled",
-                    "released",
-                    "ready",
-                    "active",
-                    "finished",
-                    "canceled",
+                    "scheduled",  # lang-ok: tool parameter values
+                    "released",  # lang-ok: tool parameter values
+                    "ready",  # lang-ok: tool parameter values
+                    "active",  # lang-ok: tool parameter values
+                    "finished",  # lang-ok: tool parameter values
+                    "canceled",  # lang-ok: tool parameter values
                 ]
             ]
             | None

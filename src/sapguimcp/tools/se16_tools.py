@@ -286,7 +286,7 @@ def _check_table_not_found(snapshot: str, table: str) -> str | None:
     # Check for explicit "not found" error messages
     snapshot_lower = snapshot.lower()
     if "does not exist" in snapshot_lower or "existiert nicht" in snapshot_lower:
-        return f"Table '{table}' not found in SAP"
+        return f"Table '{table}' not found in SAP"  # lang-ok: our own message
 
     # No explicit error - will check columns after parsing
     return None

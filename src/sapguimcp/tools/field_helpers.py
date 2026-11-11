@@ -183,7 +183,7 @@ async def fill_and_display(
         status = await backend.get_status_bar()
         status_text = (status.message or "").lower()
         if status_text and any(msg in status_text for msg in _NOT_FOUND_MSGS):
-            return f"{tcode_label.capitalize()} '{name}' not found"
+            return f"{tcode_label.capitalize()} '{name}' not found"  # lang-ok: our own message
 
         # Poll: wait for the page to leave the initial screen.
         # Use screen title (via get_screen_info) rather than ARIA snapshot substring

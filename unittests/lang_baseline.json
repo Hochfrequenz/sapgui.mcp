@@ -120,6 +120,10 @@
     "constant": 1,
     "static": 2
   },
+  "src/sapguimcp/backend/webgui/parsers/se37_parser.py": {
+    " not found": 1,
+    "heading \"Function Builder:\\s*(?:(?P<fm_de>[A-Z0-9_/]+)\\s+": 1
+  },
   "src/sapguimcp/backend/webgui/parsers/se93_parser.py": {
     "anzeigen": 1,
     "display": 1
@@ -173,12 +177,12 @@
     "keine kurzdumps": 1,
     "laufzeitfehler": 1,
     "no short dumps": 1,
-    "program": 7,
+    "program": 1,
     "programm": 1,
     "runtime error": 1,
     "runtime errors": 1,
     "terminated program": 1,
-    "user": 6
+    "user": 1
   },
   "src/sapguimcp/catalog/models.py": {
     "Dynpro": 1,
@@ -239,6 +243,8 @@
     "yes": 1
   },
   "src/sapguimcp/tools/breakpoint_tools.py": {
+    "' not found in class '": 1,
+    "' not found in source (": 1,
     "ABAP Program Name": 1,
     "ABAP program name": 1,
     "ABAP-Programmname": 1,
@@ -246,9 +252,13 @@
     "Anzeigen": 2,
     "Anzeigen...": 1,
     "Breakpoint menu not found in Hilfsmittel": 1,
+    "Could not display class '": 1,
+    "Could not display function module '": 1,
+    "Could not display program '": 1,
     "Display": 1,
     "Display All": 1,
     "Display...": 1,
+    "Editor shell not found at wnd[0]/": 1,
     "Grid not found at wnd[1]/usr/cntlG_BP_CONTAINER/shellcont/shell": 1,
     "Method": 1,
     "Methode": 1,
@@ -304,12 +314,13 @@
     "Freigegeben": 2,
     "Modifiable": 2,
     "Released": 2,
+    "Transport Organizer:": 1,
     "User": 2,
     "Workbench Requests": 2,
     "Workbench-Aufträge": 2,
-    "all": 13,
-    "modifiable": 4,
-    "released": 3,
+    "all": 8,
+    "modifiable": 2,
+    "released": 2,
     "Änderbar": 2
   },
   "src/sapguimcp/tools/se11_tools.py": {
@@ -345,13 +356,16 @@
     "Tabelle": 5,
     "Table": 5,
     "does not exist": 1,
+    "entries": 1,
     "existiert nicht": 1,
+    "hits": 1,
     "input[title*='Tabelle'], input[aria-label*='Tabelle']": 1,
     "input[title*='Table'], input[aria-label*='Table']": 1,
     "keine einträge": 1,
     "keine werte": 1,
     "no entries": 1,
-    "no values": 1
+    "no values": 1,
+    "treffer": 1
   },
   "src/sapguimcp/tools/se24_edit_tools.py": {
     "Class Builder": 1,
@@ -490,9 +504,9 @@
     "User Name": 1,
     "User name": 2,
     "Zum Auswählen": 1,
-    "active": 5,
-    "canceled": 5,
-    "finished": 5,
+    "active": 3,
+    "canceled": 3,
+    "finished": 3,
     "job log for job": 1,
     "job-log zu job": 1,
     "kein job entspricht": 1,
@@ -500,9 +514,9 @@
     "keine jobs": 1,
     "no job match": 1,
     "no jobs found": 1,
-    "ready": 5,
-    "released": 5,
-    "scheduled": 5
+    "ready": 3,
+    "released": 3,
+    "scheduled": 3
   },
   "src/sapguimcp/tools/st22_tools.py": {
     "Benutzer": 2,
