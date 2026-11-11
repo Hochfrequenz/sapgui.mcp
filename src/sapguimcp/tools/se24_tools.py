@@ -364,6 +364,7 @@ async def _fill_and_display(
         backend,
         list(t.se24.class_field_label),
         class_name,
+        t,
         tcode_label="class/interface",  # lang-ok: our own message
     )
     if error_msg:

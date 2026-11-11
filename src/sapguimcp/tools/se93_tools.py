@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapguimcp import lang
 from sapguimcp.backend.desktop._com_thread import is_server_fault_error
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.backend.webgui.parsers.se93_parser import parse_se93_snapshot
@@ -33,6 +34,7 @@ from sapguimcp.tools.field_helpers import fill_and_display
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
+    from sapguimcp.lang import LanguagePack
 
 
 logger = logging.getLogger(__name__)
@@ -162,7 +164,9 @@ async def _lookup_tcode_desktop(  # pylint: disable=too-many-locals
     )
 
 
-async def _lookup_tcode_on_initial_screen(backend: WebGuiBackend | DesktopBackend, tcode: str) -> SE93Entry | SE93Error:
+async def _lookup_tcode_on_initial_screen(
+    backend: WebGuiBackend | DesktopBackend, tcode: str, t: LanguagePack
+) -> SE93Entry | SE93Error:
     """Look up a transaction code assuming we're already on the SE93 initial screen.
 
     The caller handles navigation (``enter_transaction``) and state reset
@@ -172,7 +176,7 @@ async def _lookup_tcode_on_initial_screen(backend: WebGuiBackend | DesktopBacken
     await backend.wait_for_ready()
 
     # Fill field with real keyboard events, press F7, and verify navigation.
-    error_msg = await fill_and_display(backend, _TCODE_FIELD_LABELS, tcode, tcode_label="transaction")
+    error_msg = await fill_and_display(backend, _TCODE_FIELD_LABELS, tcode, t, tcode_label="transaction")
     if error_msg:
         return SE93Error(
             tcode=tcode,
@@ -187,7 +191,9 @@ async def _lookup_tcode_on_initial_screen(backend: WebGuiBackend | DesktopBacken
     return parse_se93_snapshot(snapshot, tcode)
 
 
-async def _lookup_batch_webgui(backend: WebGuiBackend | DesktopBackend, tcode_list: list[str]) -> SE93Result:
+async def _lookup_batch_webgui(
+    backend: WebGuiBackend | DesktopBackend, tcode_list: list[str], t: LanguagePack
+) -> SE93Result:
     """Run SE93 lookups for a batch of tcodes on the WebGUI backend."""
     entries: list[SE93Entry] = []
     errors: list[SE93Error] = []
@@ -205,7 +211,7 @@ async def _lookup_batch_webgui(backend: WebGuiBackend | DesktopBackend, tcode_li
             continue
         await backend.wait_for_ready()
         try:
-            result = await _lookup_tcode_on_initial_screen(backend, tcode)
+            result = await _lookup_tcode_on_initial_screen(backend, tcode, t)
             if isinstance(result, SE93Entry):
                 entries.append(result)
             else:
@@ -308,7 +314,8 @@ def register_se93_tools(mcp: FastMCP) -> None:
         if backend.backend_type == "desktop":
             final_result = await _lookup_batch_desktop(backend, tcode_list)
         else:
-            final_result = await _lookup_batch_webgui(backend, tcode_list)
+            # The shared fill_and_display helper reads the not-found and initial-screen texts.
+            final_result = await _lookup_batch_webgui(backend, tcode_list, lang.current("sap_se93_lookup"))
 
         # Write to file if requested
         if output_file:

@@ -264,6 +264,7 @@ async def enrich_with_se93(
         Dict with enrichment statistics
     """
     # Import here to avoid circular imports
+    from sapguimcp import lang
     from sapguimcp.backend.manager import get_backend
     from sapguimcp.tools.se93_tools import _lookup_tcode_on_initial_screen
 
@@ -318,6 +319,8 @@ async def enrich_with_se93(
 
     # Get backend
     backend = await get_backend()
+    # Resolved once, outside the per-transaction try: an unsupported language must reach the caller.
+    t = lang.current("SE93 enrichment")
 
     # Process in batches
     for batch_start in range(0, total, batch_size):
@@ -343,7 +346,7 @@ async def enrich_with_se93(
 
             # Call SE93 lookup
             try:
-                result = await _lookup_tcode_on_initial_screen(backend, txn.tcode)
+                result = await _lookup_tcode_on_initial_screen(backend, txn.tcode, t)
 
                 if isinstance(result, SE93Entry):
                     # Apply enrichment

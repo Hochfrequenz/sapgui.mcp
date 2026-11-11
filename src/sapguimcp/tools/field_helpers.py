@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
+    from sapguimcp.lang import LanguagePack
 
 
 logger = logging.getLogger(__name__)
@@ -28,18 +29,16 @@ logger = logging.getLogger(__name__)
 _F7_POLL_INTERVAL_MS = 500
 _F7_MAX_POLLS = 10  # 10 * 500ms = 5 seconds max wait
 
-_NOT_FOUND_MSGS = frozenset(
-    {"existiert nicht", "does not exist", "nicht gefunden", "not found", "nicht vorhanden", "ist noch nicht vorhanden"}
-)
 
-_TOGGLE_LABELS = ("Anzeigen <-> Ändern", "Display <-> Change")
-
-
-async def toggle_to_change_mode(backend: WebGuiBackend | DesktopBackend) -> str | None:
+async def toggle_to_change_mode(backend: WebGuiBackend | DesktopBackend, t: LanguagePack) -> str | None:
     """Click Display<->Change toggle button. Retries once after 1s wait.
 
     The toggle button may not be rendered immediately after F7 navigation,
     so a single retry with a short wait is needed for reliability.
+
+    Args:
+        backend: The SAP UI backend instance.
+        t: The session's language pack (``lang.current()``), resolved by the calling tool.
 
     Returns:
         None on success, or an error message string on failure.
@@ -47,7 +46,7 @@ async def toggle_to_change_mode(backend: WebGuiBackend | DesktopBackend) -> str 
     for toggle_attempt in range(2):
         if toggle_attempt > 0:
             await asyncio.sleep(1.0)
-        for toggle_label in _TOGGLE_LABELS:
+        for toggle_label in t.common.display_change_toggle:
             try:
                 await backend.click_button(toggle_label)
                 await backend.wait_for_ready()
@@ -139,6 +138,7 @@ async def fill_and_display(
     backend: WebGuiBackend | DesktopBackend,
     labels: Sequence[str],
     name: str,
+    t: LanguagePack,
     *,
     tcode_label: str = "object",
 ) -> str | None:
@@ -152,6 +152,7 @@ async def fill_and_display(
         backend: The SAP UI backend instance.
         labels: DE/EN label variants for the input field.
         name: The object name to look up (e.g. class name, FM name).
+        t: The session's language pack (``lang.current()``), resolved by the calling tool.
         tcode_label: Human-readable label for error messages (e.g. "class", "function module").
 
     Returns:
@@ -181,19 +182,18 @@ async def fill_and_display(
 
         # Check for definitive "not found" error — no retry needed.
         status = await backend.get_status_bar()
-        status_text = (status.message or "").lower()
-        if status_text and any(msg in status_text for msg in _NOT_FOUND_MSGS):
+        status_text = status.message or ""
+        if status_text and (t.common.not_found.contains(status_text) or t.common.does_not_exist.contains(status_text)):
             return f"{tcode_label.capitalize()} '{name}' not found"  # lang-ok: our own message
 
         # Poll: wait for the page to leave the initial screen.
         # Use screen title (via get_screen_info) rather than ARIA snapshot substring
         # matching, which is fragile across SAP language variants.
-        # DE initial screen titles contain "Einstieg", EN contain "Initial".
+        # Initial screen titles contain common.initial_screen ("Einstieg", "Initial").
         navigated = False
         for poll in range(_F7_MAX_POLLS):
             screen = await backend.get_screen_info()
-            title_lower = (screen.title or "").lower()
-            if "einstieg" not in title_lower and "initial" not in title_lower:
+            if not t.common.initial_screen.contains(screen.title or ""):
                 navigated = True
                 break
             logger.debug("Still on initial screen, poll %d/%d", poll + 1, _F7_MAX_POLLS)
