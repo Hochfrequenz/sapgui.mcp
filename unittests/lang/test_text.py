@@ -179,3 +179,10 @@ def test_trailing_placeholder_stops_at_a_snapshot_quote() -> None:
     match = Template(("Display {name}",)).search('- heading "Class Builder: Display ZCL_FOO"')
     assert match is not None
     assert match["name"] == "ZCL_FOO"
+
+
+@pytest.mark.parametrize("pattern", [r"(a)\1", r"(a)?(?(1)b|c)"])
+def test_regex_text_rejects_numeric_group_references(pattern: str) -> None:
+    """Merged packs alternate patterns, which shifts group numbers (Copilot review on #1049)."""
+    with pytest.raises(ValueError, match="numeric backreferences"):
+        RegexText((pattern,))

@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 _PLACEHOLDER = re.compile(r"\{([A-Za-z_]\w*)\}")
+_NUMERIC_GROUP_REF = re.compile(r"\\[1-9]|\(\?\(\d")  # \1 … \9 and (?(1)…) conditionals
 _DEFAULT_GROUP = r".+?"
 _TRAILING_GROUP = r'[^"\n]+'  # stops at an ARIA snapshot's closing quote
 """A placeholder that ends a variant captures the whole rest of the line, not a lazy fragment."""
@@ -216,6 +217,10 @@ class RegexText:
         for pattern in _require_strings("RegexText patterns", self.patterns):
             if re.compile(pattern).groupindex:  # fail at import, not at first use
                 raise ValueError(f"named groups belong in Template, not RegexText: {pattern!r}")
+            if _NUMERIC_GROUP_REF.search(pattern):
+                # Group numbers shift once patterns are alternated (merged packs): \1 in the
+                # second pattern would refer to the first pattern's group.
+                raise ValueError(f"numeric backreferences are not allowed in RegexText: {pattern!r}")
         compiled(regex_alt(self.patterns, self.fold))  # e.g. a global "(?i)" fails when embedded
 
     @property
