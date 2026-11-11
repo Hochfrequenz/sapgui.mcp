@@ -17,10 +17,10 @@ from urllib.parse import urlparse
 from playwright.async_api import Error as PlaywrightError
 
 from sapguimcp.backend.webgui.browser import get_browser_manager
-from sapguimcp.backend.webgui.js_helpers import load_js, load_js_with_field_utils
+from sapguimcp.backend.webgui.js_helpers import load_js, load_js_with_field_utils, script_arg
 from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.backend.webgui.utils import escape_css_selector, is_sap_shortcut
-from sapguimcp.lang import language_for_html_lang
+from sapguimcp.lang import UnsupportedLanguageError, language_for_html_lang, pack_for
 from sapguimcp.middleware.logging import set_sap_identity
 from sapguimcp.models.alv_models import AlvCellInfo, AlvMetadata, TableCellClickResult
 from sapguimcp.models.base import CheckActivateResult, PopupButton, PopupInfo
@@ -102,6 +102,14 @@ def _parse_toolbar_note(snapshot_text: str) -> tuple[bool, str]:
 # ---------------------------------------------------------------------------
 # WebGuiBackend
 # ---------------------------------------------------------------------------
+
+
+def _logon_dropdown_text(language: str) -> str:
+    """Text of the logon page's language dropdown for ``language``; the key itself without a pack."""
+    try:
+        return pack_for(language).logon_dropdown
+    except UnsupportedLanguageError:
+        return language
 
 
 class WebGuiBackend:  # pylint: disable=too-many-public-methods
@@ -318,7 +326,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             try:
                 await self._page.evaluate(
                     load_js("set_language_field.js"),
-                    {"language": language},
+                    script_arg(language=language, dropdownText=_logon_dropdown_text(language)),
                 )
                 logger.debug("Set language field", extra={"language": language})
             except Exception as lang_err:  # pylint: disable=broad-exception-caught

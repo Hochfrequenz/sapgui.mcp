@@ -101,10 +101,6 @@
     "Selektionskriterien": 1,
     "Von-Wert": 1
   },
-  "src/sapguimcp/backend/webgui/js/set_language_field.js": {
-    "Deutsch": 1,
-    "English": 1
-  },
   "src/sapguimcp/backend/webgui/parsers/se09_parser.py": {
     "Auftrag": 1,
     "Aufträge": 1,
