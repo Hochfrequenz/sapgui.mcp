@@ -29,6 +29,7 @@ try:
 except ImportError:
     GuiGridView = None  # type: ignore[misc,assignment]
 
+from sapguimcp import lang
 from sapguimcp.backend.desktop import _abap_editor
 from sapguimcp.backend.desktop._com_thread import (
     _RPC_E_DISCONNECTED,
@@ -97,40 +98,34 @@ logger = logging.getLogger(__name__)
 #: Status-bar message types that mean the step failed.
 _ERROR_MESSAGE_TYPES = frozenset({"E", "A", "X"})
 
-#: Message fragments (DE/EN) that positively confirm an activation.
-_ACTIVATION_CONFIRMED = ("aktiviert", "activated")
-
-#: Fragments that negate a confirmation.  "aktiviert" is a substring of
-#: "konnte nicht aktiviert werden" and "deaktiviert", so the positive tokens
-#: above are only trusted when none of these appear.
-_ACTIVATION_DENIED = (
-    "nicht aktiv",
-    "not activated",
-    "not active",
-    "konnte nicht",
-    "kann nicht",
-    "could not",
-    "cannot",
-    "can't",
-    "fehlgeschlagen",
-    "failed",
-    "deaktiv",
-    "inaktiv",
-)
-
-#: Popups that are safe to confirm with Enter during check/activate.
-_KNOWN_SAFE_POPUPS = ("inaktive objekte", "inactive objects")
-
 #: How often to re-read the status bar while answering stacked popups.
 _MAX_POPUP_ROUNDS = 3
 
 
 def _confirms_activation(message: str) -> bool:
-    """True when ``message`` positively reports a completed activation."""
-    text = message.lower()
-    if any(token in text for token in _ACTIVATION_DENIED):
+    """True when ``message`` positively reports a completed activation.
+
+    "aktiviert" is a substring of "konnte nicht aktiviert werden" and "deaktiviert", so the
+    confirming fragments are only trusted when no denying fragment appears. Every registered
+    language is matched (``lang.universal()``).
+    """
+    status_type = lang.universal().status_type
+    if status_type.activation_denied.contains(message):
         return False
-    return any(token in text for token in _ACTIVATION_CONFIRMED)
+    return status_type.activation_confirmed.contains(message)
+
+
+def _classify_popup(title: str, message: str) -> PopupType:
+    """Popup type from keywords (substrings, any case) in its title and text, in every language."""
+    popup = lang.universal().popup
+    combined = f"{message} {title}"
+    if popup.type_error.contains(combined):
+        return PopupType.ERROR
+    if popup.type_info.contains(combined):
+        return PopupType.INFO
+    if popup.type_confirm.contains(combined):
+        return PopupType.CONFIRM
+    return PopupType.UNKNOWN
 
 
 def _unwrap_com(field: Any) -> Any:
@@ -2167,7 +2162,7 @@ class DesktopBackend:
                     _set_field_value(_unwrap_com(field), value)
                     filled.append(label)
                 except Exception as exc:  # pylint: disable=broad-exception-caught
-                    errors.append({"field": label, "error": str(exc)})
+                    errors.append({"field": label, "error": str(exc)})  # lang-ok: dict key
             return {"filled": filled, "not_found": not_found, "errors": errors, "wnd_id": wnd_id}
 
         data = await self.com.run(_fill)
@@ -2463,6 +2458,8 @@ class DesktopBackend:
         """
 
         session = self.require_session()
+        # Popups that are safe to confirm with Enter during check/activate, compared lower-cased.
+        safe_popups = tuple(title.lower() for title in lang.universal().popup.inactive_objects)
 
         def _check_activate() -> tuple[list[str], bool, bool]:
             wnd = session.find_by_id("wnd[0]")
@@ -2497,7 +2494,7 @@ class DesktopBackend:
                     if popup is None:
                         return last_msg, last_type
                     title = str(cast(Any, popup).text)
-                    if not any(known in title.lower() for known in _KNOWN_SAFE_POPUPS):
+                    if not any(known in title.lower() for known in safe_popups):
                         unexpected_dialogs.append(title)
                         logger.warning("check_and_activate_unexpected_dialog", extra={"title": title})
                     cast(Any, popup).send_v_key(0)  # Confirm with Enter
@@ -2552,17 +2549,18 @@ class DesktopBackend:
     async def dismiss_language_dialog(self) -> None:
         """Dismiss the 'Different original and logon languages' dialog if present.
 
-        Checks for modal wnd[1] containing "originalsprache" or "original"/"language"
-        text, and presses Enter to confirm.
+        Checks for modal wnd[1] whose title matches ``popup.original_language_hint`` of any
+        language ("originalsprache", or "original" and "language"), and presses Enter to confirm.
         """
         session = self.require_session()
+        hint = lang.universal().popup.original_language_hint.pattern
 
         def _dismiss() -> bool:
             popup = session.find_by_id("wnd[1]", raise_error=False)
             if popup is None:
                 return False
             text = str(cast(Any, popup).text).lower()
-            if "originalsprache" in text or ("original" in text and "language" in text):
+            if hint.search(text):
                 cast(Any, popup).send_v_key(0)  # Enter to confirm
                 return True
             return False
@@ -2612,16 +2610,7 @@ class DesktopBackend:
             return None
 
         # Determine popup type from title/message heuristics
-        popup_type = PopupType.UNKNOWN
-        msg_lower = (data["message"] or "").lower()
-        title_lower = (data["title"] or "").lower()
-        combined = msg_lower + " " + title_lower
-        if any(kw in combined for kw in ("error", "fehler")):
-            popup_type = PopupType.ERROR
-        elif any(kw in combined for kw in ("information", "hinweis")):
-            popup_type = PopupType.INFO
-        elif any(kw in combined for kw in ("confirm", "bestätigung", "ja", "nein", "yes", "no")):
-            popup_type = PopupType.CONFIRM
+        popup_type = _classify_popup(data["title"] or "", data["message"] or "")
 
         popup_buttons = [PopupButton(label=b["label"], id=b.get("id")) for b in data["buttons"]]
         logger.info(
