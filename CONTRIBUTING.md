@@ -199,6 +199,25 @@ Use Prettier for formatting:
 npm run format
 ```
 
+### SAP UI Texts and Languages
+
+SAP screen texts differ per logon language, so they live only in the language packs under
+`src/sapguimcp/lang/`. Never write a button label, title, status text or column header as a literal
+in tool, parser or JS code: read it from `lang.current()` (see
+[`ARCHITECTURE.md`](ARCHITECTURE.md#sap-ui-texts-and-language-packs) and the
+[design spec](docs/superpowers/specs/2026-11-10-language-packs-design.md)).
+
+`unittests/test_no_ui_literals.py` enforces this. If it flags a literal, move the text into the
+packs (plus a `SOURCES` entry in `lang/sources.py`), or, when the literal is code or the server's
+own message, add `# lang-ok: <reason>` on the flagged line (`// lang-ok: <reason>` in JS). Never add
+to `unittests/lang_baseline.json`; it holds only `tools/breakpoint_tools.py` (#1025).
+
+To add a new login language: create `lang/<xx>.py` modelled on `en.py`, register it in
+`lang/__init__.py`, fill the test pack in `unittests/webgui/testdata/lang_test.py`, verify it with
+`uv run python scripts/harvest_lang_texts.py <XX> --verify`, and run
+`uv run --group tests pytest unittests/lang unittests/test_no_ui_literals.py` (the pseudo-locale test
+included). The full recipe is in [`ARCHITECTURE.md`](ARCHITECTURE.md#adding-a-login-language).
+
 ## MCP Tool Guidelines
 
 ### Tool and Parameter Descriptions (Important!)

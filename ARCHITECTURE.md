@@ -36,16 +36,16 @@ graph TD
 
 ### Layer Responsibilities
 
-| Layer | Key Files | What It Does |
-|-------|-----------|-------------|
-| **Server** | `server.py` | Creates the FastMCP app, registers all tools/resources/prompts, manages lifecycle |
-| **Tools** | `tools/sap_tools.py`, `tools/se16_tools.py`, ... | Define MCP tools the LLM can call. Each tool gets a backend via `get_backend()`, calls protocol methods, returns a Pydantic result model |
-| **Backend Manager** | `backend/manager.py` | Singleton that creates/caches the right backend based on `BACKEND_TYPE`. Routes session IDs to backend instances |
-| **Protocol** | `backend/protocol.py` | Structural typing protocol (`SapUiBackend`) with 5 sub-protocols: Navigation, Primitives, Inspection, Editor, Popup. Both backends implement this — tools never import a concrete backend |
-| **WebGUI Backend** | `backend/webgui/backend.py`, `browser.py` | Implements protocol via Playwright page automation. Fills fields with JavaScript, reads screens with ARIA snapshots |
-| **Desktop Backend** | `backend/desktop/__init__.py` | Implements protocol via COM scripting through [sapsucker](https://github.com/Hochfrequenz/sapsucker). Dispatches all COM calls to a dedicated thread (`_com_thread.py`) for apartment-threading safety |
-| **Parsers** | `backend/webgui/parsers/*.py` | WebGUI-specific HTML-to-structured-data extraction. One parser per transaction (e.g., `se16_parser.py`, `se24_parser.py`) |
-| **Models** | `models/*.py` | Pydantic models for tool results, screen state, and config. Shared by both backends. Result models never import from backend or tools |
+| Layer               | Key Files                                        | What It Does                                                                                                                                                                                           |
+| ------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Server**          | `server.py`                                      | Creates the FastMCP app, registers all tools/resources/prompts, manages lifecycle                                                                                                                      |
+| **Tools**           | `tools/sap_tools.py`, `tools/se16_tools.py`, ... | Define MCP tools the LLM can call. Each tool gets a backend via `get_backend()`, calls protocol methods, returns a Pydantic result model                                                               |
+| **Backend Manager** | `backend/manager.py`                             | Singleton that creates/caches the right backend based on `BACKEND_TYPE`. Routes session IDs to backend instances                                                                                       |
+| **Protocol**        | `backend/protocol.py`                            | Structural typing protocol (`SapUiBackend`) with 5 sub-protocols: Navigation, Primitives, Inspection, Editor, Popup. Both backends implement this — tools never import a concrete backend              |
+| **WebGUI Backend**  | `backend/webgui/backend.py`, `browser.py`        | Implements protocol via Playwright page automation. Fills fields with JavaScript, reads screens with ARIA snapshots                                                                                    |
+| **Desktop Backend** | `backend/desktop/__init__.py`                    | Implements protocol via COM scripting through [sapsucker](https://github.com/Hochfrequenz/sapsucker). Dispatches all COM calls to a dedicated thread (`_com_thread.py`) for apartment-threading safety |
+| **Parsers**         | `backend/webgui/parsers/*.py`                    | WebGUI-specific HTML-to-structured-data extraction. One parser per transaction (e.g., `se16_parser.py`, `se24_parser.py`)                                                                              |
+| **Models**          | `models/*.py`                                    | Pydantic models for tool results, screen state, and config. Shared by both backends. Result models never import from backend or tools                                                                  |
 
 ## Request Flow
 
@@ -143,6 +143,47 @@ see issue #1009). Every destructive path asks `registry.is_attached(sid)` first:
 only the single ownership-checked site. A new close path must be checked against the registry and
 added to that allow-list deliberately.
 
+## SAP UI Texts and Language Packs
+
+Every text the server reads from or types into an SAP screen (button labels, tab titles, window
+titles, status-bar messages, column headers) depends on the SAP logon language. These texts live
+only in the language packs under `src/sapguimcp/lang/` (`de.py`, `en.py`, schema in `schema.py`);
+the session language is set at login and `lang.current()` returns the matching merged view (session
+pack, then EN). Design and rationale:
+[`docs/superpowers/specs/2026-11-10-language-packs-design.md`](docs/superpowers/specs/2026-11-10-language-packs-design.md).
+
+**The rule: no SAP UI literal outside `lang/`.** Tool, parser and JS code reads a `Text`,
+`RegexText` or `Template` from the pack (`contains`, `equals`, `alt`, `pattern`, `for_js()`) and
+never spells a screen text itself.
+
+Guards:
+
+- `unittests/test_no_ui_literals.py` scans `src/sapguimcp` (Python and the JS in `backend/webgui/js`)
+  for literals that look like SAP screen text. Fix a hit by moving the text into the packs (and a
+  `SOURCES` entry in `lang/sources.py`), or, if it is code or the server's own message, mark the
+  exact line with `# lang-ok: <reason>` (`// lang-ok: <reason>` in JS). The baseline
+  `unittests/lang_baseline.json` is shrink-only and holds only `tools/breakpoint_tools.py`, the one
+  documented exception (#1025).
+- `unittests/lang/` checks pack completeness, flag consistency, regex/JS portability, and
+  `test_pseudo_locale.py` round-trips a pseudo pack (every text replaced by a marker) through all
+  helpers, so no code path may depend on a DE or EN spelling.
+
+### Adding a login language
+
+1. Create `src/sapguimcp/lang/<xx>.py` with a `LanguagePack` of the same shape as `en.py` (copy it,
+   translate every text; mypy and `unittests/lang/test_pack_completeness.py` list the gaps). Texts
+   that are deliberately identical to EN go into `same_as_en`.
+2. Register the pack in `src/sapguimcp/lang/__init__.py` (`_PACKS`); the code becomes an accepted
+   `language` in `systems.json` at once.
+3. Fill the test pack (`unittests/webgui/testdata/lang_test.py`) and record fixtures for the new
+   language next to the existing `*_<lang>.html` snapshots.
+4. Verify the texts against SAP's own text tables:
+   `uv run python scripts/harvest_lang_texts.py <XX> --verify` (see `lang/sources.py`, `SOURCES`;
+   draft mode is not implemented yet). Fix every drift or mark the field `Manual` with a reason.
+5. Run `uv run --group tests pytest unittests/lang unittests/test_no_ui_literals.py` (completeness,
+   pseudo-locale, no-literal guards), then the live tests logged on in the new language.
+6. Known limitation: `tools/breakpoint_tools.py` stays DE/EN.
+
 ## How to Add a New Transaction Tool
 
 Follow the SE16 pattern. For a new transaction `SE99`:
@@ -227,12 +268,12 @@ In `server.py`, add the import and call `register_se99_tools(mcp)` alongside the
 
 Tests are marked `integration` automatically when they use a live SAP fixture (`backend` or `sap_mcp_client`), not by file name; file names below are only examples.
 
-| Category | Examples | Needs SAP? | How to run |
-|----------|----------|-----------|------------|
-| **Root unit tests** | `unittests/test_models.py`, `test_config.py`, `test_catalog.py`, ... | No | `uv run --group tests python -m pytest unittests/ -m "not integration"` |
-| **Desktop unit tests** | `unittests/desktop/test_desktop_backend.py`, `test_com_thread.py`, `test_element_finder.py`, `test_key_mapping.py`, ... | No (mocked) | `uv run --group tests python -m pytest unittests/ -m "not integration"` |
-| **Desktop integration** | `unittests/desktop/test_se16_integration.py`, `test_se24_integration.py`, ... | Yes (SAP GUI) | `uv run --group tests python -m pytest unittests/ -m integration` |
-| **WebGUI integration** | `unittests/webgui/test_se16_integration.py`, `test_*_exploration.py`, ... | Yes (SAP WebGUI) | `uv run --group tests python -m pytest unittests/ -m integration` |
+| Category                | Examples                                                                                                                | Needs SAP?       | How to run                                                              |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------- |
+| **Root unit tests**     | `unittests/test_models.py`, `test_config.py`, `test_catalog.py`, ...                                                    | No               | `uv run --group tests python -m pytest unittests/ -m "not integration"` |
+| **Desktop unit tests**  | `unittests/desktop/test_desktop_backend.py`, `test_com_thread.py`, `test_element_finder.py`, `test_key_mapping.py`, ... | No (mocked)      | `uv run --group tests python -m pytest unittests/ -m "not integration"` |
+| **Desktop integration** | `unittests/desktop/test_se16_integration.py`, `test_se24_integration.py`, ...                                           | Yes (SAP GUI)    | `uv run --group tests python -m pytest unittests/ -m integration`       |
+| **WebGUI integration**  | `unittests/webgui/test_se16_integration.py`, `test_*_exploration.py`, ...                                               | Yes (SAP WebGUI) | `uv run --group tests python -m pytest unittests/ -m integration`       |
 
 ### Skip Mechanism
 
@@ -261,10 +302,10 @@ All settings are in `src/sapguimcp/models/config.py` and loaded from environment
 
 ### Core (have defaults, but needed for SAP operations)
 
-| Variable | Description | Default |
-|----------|-------------|---------|
+| Variable       | Description           | Default  |
+| -------------- | --------------------- | -------- |
 | `BACKEND_TYPE` | `desktop` or `webgui` | `webgui` |
-| `SAP_LANGUAGE` | `DE` or `EN` | `EN` |
+| `SAP_LANGUAGE` | `DE` or `EN`          | `EN`     |
 
 **Desktop-only:** Connection name is configured in `~/.config/sap-mcp/systems.json`
 
@@ -274,11 +315,11 @@ SAP credentials (user, password, mandant) are loaded from `~/.config/sap-mcp/sys
 
 ### Optional
 
-| Group | Variables | Purpose |
-|-------|-----------|---------|
-| **Browser** | `BROWSER_MODE`, `BROWSER_TYPE`, `CDP_URL`, `CHROME_PATH`, `CHROME_USER_DATA_DIR`, `BROWSER_HEADLESS` | Chrome/Playwright configuration |
-| **COM timing** | `COM_MIN_INTERVAL_MS` | Minimum ms between COM calls (desktop, prevents overload) |
-| **GitHub** | `GITHUB_PAT`, `GITHUB_USER`, `GITHUB_REPO`, `ABAPGIT_PAT` | Feedback issue creation, abapGit operations |
-| **Logging** | `PAPERTRAIL_HOST`, `PAPERTRAIL_PORT` | Remote syslog (optional) |
+| Group          | Variables                                                                                            | Purpose                                                   |
+| -------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| **Browser**    | `BROWSER_MODE`, `BROWSER_TYPE`, `CDP_URL`, `CHROME_PATH`, `CHROME_USER_DATA_DIR`, `BROWSER_HEADLESS` | Chrome/Playwright configuration                           |
+| **COM timing** | `COM_MIN_INTERVAL_MS`                                                                                | Minimum ms between COM calls (desktop, prevents overload) |
+| **GitHub**     | `GITHUB_PAT`, `GITHUB_USER`, `GITHUB_REPO`, `ABAPGIT_PAT`                                            | Feedback issue creation, abapGit operations               |
+| **Logging**    | `PAPERTRAIL_HOST`, `PAPERTRAIL_PORT`                                                                 | Remote syslog (optional)                                  |
 
 See `.env.example` for a complete template with descriptions.
