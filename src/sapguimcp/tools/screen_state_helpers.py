@@ -101,7 +101,7 @@ def _verify_state(
             continue  # only verify selected radios
         radio_val = actual_after.radios.get(label)
         if radio_val is not None and radio_val != desired:
-            diff.mismatches.append(f"Radio '{label}': expected selected, still unselected")
+            diff.mismatches.append(f"Radio '{label}': expected selected, still unselected")  # lang-ok: our own message
 
     for label, desired_val in target.fields.items():
         field_val = actual_after.fields.get(label)

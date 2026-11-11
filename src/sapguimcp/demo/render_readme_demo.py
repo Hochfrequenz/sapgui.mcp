@@ -253,7 +253,7 @@ def render_composites(transcript_path: Path, frames_dir: Path, out_dir: Path, *,
         # ffmpeg concat demuxer: `duration` must be its own line AFTER `file`,
         # and ffmpeg drops the last duration unless the last file is repeated.
         concat_lines.append(f"file '{composite_name}'")
-        concat_lines.append(f"duration {_beat_seconds(beat)}")
+        concat_lines.append(f"duration {_beat_seconds(beat)}")  # lang-ok: our own message
 
     if last_composite_name is not None:
         concat_lines.append(f"file '{last_composite_name}'")

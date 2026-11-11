@@ -1268,7 +1268,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             Check active_window to see which window was operated on (wnd[0] or wnd[1]).
         """
         if not fields:
-            return FillFormResult.failure("fields cannot be empty")
+            return FillFormResult.failure("fields cannot be empty")  # lang-ok: own message
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_fill_form")
@@ -1346,7 +1346,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             For dropdown errors, includes available_options.
         """
         if not label:
-            return SetFieldResult.failure("label cannot be empty", label="", value=value)
+            return SetFieldResult.failure("label cannot be empty", label="", value=value)  # lang-ok: own message
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_set_field")
@@ -1399,7 +1399,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     ) -> SetFieldResult:
         """Set a SAP checkbox to checked or unchecked."""
         if not label:
-            return SetFieldResult.failure("label cannot be empty", label="", value=str(checked))
+            return SetFieldResult.failure("label cannot be empty", label="", value=str(checked))  # lang-ok: own message
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_set_checkbox")
@@ -1443,7 +1443,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     ) -> SetFieldResult:
         """Select a SAP radio button."""
         if not label:
-            return SetFieldResult.failure("label cannot be empty", label="", value="")
+            return SetFieldResult.failure("label cannot be empty", label="", value="")  # lang-ok: own message
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_set_radio_button")
@@ -1494,7 +1494,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     ) -> ClickButtonResult:
         """Click a button by label text on the current SAP screen."""
         if not label:
-            return ClickButtonResult.failure("label cannot be empty", label="")
+            return ClickButtonResult.failure("label cannot be empty", label="")  # lang-ok: own message
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_click_button")
@@ -1538,7 +1538,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     ) -> SelectTabResult:
         """Select a tab by label text on the current SAP screen."""
         if not label:
-            return SelectTabResult.failure("label cannot be empty", label="")
+            return SelectTabResult.failure("label cannot be empty", label="")  # lang-ok: own message
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_select_tab")
@@ -1587,7 +1587,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     ) -> SelectDropdownResult:
         """Select a value from a dropdown field."""
         if not label:
-            return SelectDropdownResult.failure("label cannot be empty", label="", value=value)
+            return SelectDropdownResult.failure("label cannot be empty", label="", value=value)  # lang-ok: own message
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_select_dropdown")

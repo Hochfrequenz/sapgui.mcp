@@ -860,7 +860,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
     async def fill_form(self, fields: dict[str, str]) -> FillFormResult:
         """Fill multiple SAP form fields in a single call."""
         if not fields:
-            return FillFormResult.failure("fields cannot be empty")
+            return FillFormResult.failure("fields cannot be empty")  # lang-ok: our own message
 
         try:
             result = await self._page.evaluate(

@@ -111,7 +111,7 @@ def _listing_backend(table: Any, session: Any) -> Any:
 
 @pytest.mark.anyio
 async def test_a_classic_job_list_is_read_when_there_is_no_alv_grid() -> None:
-    """SAP ERP 6.0 shows the job overview as labels: the German column titles map onto the job fields and the status is the canonical one."""
+    """SAP ERP 6.0 lists the jobs as labels: the German titles map onto the job fields, the status is canonical."""
     usr_prefix = "/app/con[0]/ses[0]/wnd[0]/usr"
 
     def _label(column: int, row: int, text: str) -> Any:
