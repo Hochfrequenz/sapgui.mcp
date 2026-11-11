@@ -16,18 +16,12 @@ ST22 structure (DE/EN):
 
 import logging
 import re
+from collections.abc import Iterable
 
 from sapguimcp.backend.webgui.types import AriaSnapshot
-from sapguimcp.lang import (
-    ST22_ERROR_ANALYSIS_DE,
-    ST22_ERROR_ANALYSIS_EN,
-    ST22_HOW_TO_CORRECT_DE,
-    ST22_HOW_TO_CORRECT_EN,
-    ST22_NO_DUMPS_DE,
-    ST22_NO_DUMPS_EN,
-    ST22_WHAT_HAPPENED_DE,
-    ST22_WHAT_HAPPENED_EN,
-)
+from sapguimcp.lang import LanguagePack
+from sapguimcp.lang.schema import DumpSection
+from sapguimcp.lang.text import compiled
 from sapguimcp.models.st22_models import ST22Dump, ST22DumpDetail
 
 logger = logging.getLogger(__name__)
@@ -46,46 +40,46 @@ _MAX_RAW_TEXT_LENGTH = 10240
 # Initial Screen Parsing
 # =============================================================================
 
-# Pattern for dump count on initial screen: button "N Laufzeitfehler" or "N Runtime Errors"
-_DUMP_COUNT_PATTERN = re.compile(r'button "(\d+)\s+(?:Laufzeitfehler|Runtime Errors?)"')
+
+def _dump_count_pattern(t: LanguagePack) -> re.Pattern[str]:
+    """Dump count on the initial screen: button "N Runtime Errors"."""
+    return compiled(rf'button "(\d+)\s+{t.st22.runtime_errors.alt}"')
 
 
-def parse_st22_initial_screen(snapshot: AriaSnapshot) -> dict[str, int]:
+def parse_st22_initial_screen(snapshot: AriaSnapshot, t: LanguagePack) -> dict[str, int]:
     """Parse the ST22 initial screen to extract dump counts.
 
     Returns dict with keys "today" and "yesterday" mapping to dump counts.
     Returns 0 for missing counts.
     """
     counts: dict[str, int] = {"today": 0, "yesterday": 0}
+    count_pattern = _dump_count_pattern(t)
+    today_buttons = tuple(f'- button "{label}"' for label in t.st22.today)
+    yesterday_buttons = tuple(f'- button "{label}"' for label in t.st22.yesterday)
 
     lines = snapshot.split("\n")
-    # Find "Heute"/"Today" and "Gestern"/"Yesterday" buttons
+    # Find the Today and Yesterday buttons
     # The count button follows immediately after each
     for i, line in enumerate(lines):
         stripped = line.strip()
-        if stripped.startswith('- button "Heute"') or stripped.startswith('- button "Today"'):
+        if stripped.startswith(today_buttons):
             # Look for count button on the next line
             if i + 1 < len(lines):
-                match = _DUMP_COUNT_PATTERN.search(lines[i + 1])
+                match = count_pattern.search(lines[i + 1])
                 if match:
                     counts["today"] = int(match.group(1))
-        elif stripped.startswith('- button "Gestern"') or stripped.startswith('- button "Yesterday"'):
+        elif stripped.startswith(yesterday_buttons):
             if i + 1 < len(lines):
-                match = _DUMP_COUNT_PATTERN.search(lines[i + 1])
+                match = count_pattern.search(lines[i + 1])
                 if match:
                     counts["yesterday"] = int(match.group(1))
 
     return counts
 
 
-def is_no_dumps_message(snapshot: AriaSnapshot) -> bool:
+def is_no_dumps_message(snapshot: AriaSnapshot, t: LanguagePack) -> bool:
     """Check if the snapshot contains a 'no dumps found' status message."""
-    return (
-        ST22_NO_DUMPS_DE.lower() in snapshot.lower()
-        or ST22_NO_DUMPS_EN.lower() in snapshot.lower()
-        or "keine kurzdumps" in snapshot.lower()
-        or "no short dumps" in snapshot.lower()
-    )
+    return t.st22.no_dumps.contains(snapshot)
 
 
 # =============================================================================
@@ -117,27 +111,27 @@ def _identify_columns(snapshot: str) -> list[str]:
     return headers
 
 
-def _map_column_to_field(col_name: str) -> str | None:  # pylint: disable=too-many-return-statements
+def _map_column_to_field(col_name: str, t: LanguagePack) -> str | None:  # pylint: disable=too-many-return-statements
     """Map a column header name to a field name."""
-    col_lower = col_name.lower().strip()
+    col = col_name.strip()
 
     # Time column
-    if col_lower in ("zeit", "time"):
+    if t.st22.col_time.equals(col):
         return "time"
     # Program column
-    if col_lower in ("programm", "program", "abgebrochenes programm", "terminated program"):
+    if t.st22.col_program.equals(col):
         return "program"  # lang-ok: code keys of the parsed row
     # Include column
-    if col_lower == "include":
+    if col.lower() == "include":
         return "include"
     # Error type column
-    if col_lower in ("laufzeitfehler", "runtime errors", "runtime error", "fehler", "error"):
+    if t.st22.col_error_type.equals(col):
         return "error_type"
     # Short text column
-    if col_lower in ("kurztext", "short text"):
+    if t.st22.col_short_text.equals(col):
         return "short_text"
     # User column
-    if col_lower in ("benutzer", "user"):
+    if t.common.user.equals(col):
         return "user"  # lang-ok: code keys of the parsed row
 
     return None
@@ -214,7 +208,7 @@ def _flush_row(
         )
 
 
-def parse_st22_dump_list(snapshot: AriaSnapshot) -> list[ST22Dump]:  # pylint: disable=too-many-branches,too-many-locals
+def parse_st22_dump_list(snapshot: AriaSnapshot, t: LanguagePack) -> list[ST22Dump]:  # pylint: disable=too-many-branches,too-many-locals
     """Parse the ST22 dump list from an ARIA snapshot.
 
     Handles multiple formats:
@@ -227,7 +221,7 @@ def parse_st22_dump_list(snapshot: AriaSnapshot) -> list[ST22Dump]:  # pylint: d
     """
     dumps: list[ST22Dump] = []
 
-    if is_no_dumps_message(snapshot):
+    if is_no_dumps_message(snapshot, t):
         return dumps
 
     lines = snapshot.split("\n")
@@ -237,7 +231,7 @@ def parse_st22_dump_list(snapshot: AriaSnapshot) -> list[ST22Dump]:  # pylint: d
     if headers:
         column_mapping: dict[int, str] = {}
         for i, header in enumerate(headers):
-            field = _map_column_to_field(header)
+            field = _map_column_to_field(header, t)
             if field:
                 column_mapping[i] = field
 
@@ -324,7 +318,7 @@ def _extract_text_content(snapshot: str) -> str:
     return "\n".join(text_parts)
 
 
-def _extract_section(text: str, start_markers: list[str], end_markers: list[str]) -> str:
+def _extract_section(text: str, start_markers: Iterable[str], end_markers: Iterable[str]) -> str:
     """Extract text between section markers (best-effort)."""
     text_lower = text.lower()
     start_pos = -1
@@ -347,15 +341,16 @@ def _extract_section(text: str, start_markers: list[str], end_markers: list[str]
     return text[start_pos:end_pos].strip()
 
 
-def _extract_error_type(text: str) -> str:
+def _extract_error_type(text: str, t: LanguagePack) -> str:
     """Extract error type from dump detail text."""
     # Pattern: "Laufzeitfehler: RABAX_STATE" or "Runtime Error: MESSAGE_TYPE_X"
     # The error type contains underscores and is ALL CAPS
+    label = t.st22.runtime_errors.alt
     patterns = [
         # "Laufzeitfehler: RABAX_STATE" / "Runtime Error: MESSAGE_TYPE_X"
-        re.compile(r"(?:Runtime Error|Laufzeitfehler)\s*[:]\s*([A-Z][A-Z_0-9]+)"),
+        compiled(rf"{label}\s*[:]\s*([A-Z][A-Z_0-9]+)"),
         # Error name on its own line after a header
-        re.compile(r"(?:Laufzeitfehler|Runtime Errors?)\s*\n\s*([A-Z][A-Z_0-9]{2,})"),
+        compiled(rf"{label}\s*\n\s*([A-Z][A-Z_0-9]{{2,}})"),
         # Standalone error name with underscore (highly likely to be an error type)
         re.compile(r"\b([A-Z][A-Z_0-9]*_[A-Z_0-9]+)\b"),
     ]
@@ -370,13 +365,13 @@ def _extract_error_type(text: str) -> str:
     return ""
 
 
-def _extract_program(text: str) -> str:
+def _extract_program(text: str, t: LanguagePack) -> str:
     """Extract program name from dump detail text."""
     patterns = [
         # "Programm: ZTEST_PROGRAM" or "Program: SAPMV45A" (case-sensitive value)
-        re.compile(r"(?:Program|Programm)\s*[:]\s*([A-Z][A-Z0-9_/]+)"),
+        compiled(rf"{t.common.program.alt}\s*[:]\s*([A-Z][A-Z0-9_/]+)"),
         # "Source Code of ZPROG" / "Quelltext des Programms ZPROG"
-        re.compile(r"(?:Source Code of|Quelltext des? Programm(?:s|es)?)\s+([A-Z][A-Z0-9_/]+)"),
+        compiled(rf"{t.st22.source_code_of.alt}\s+([A-Z][A-Z0-9_/]+)"),
     ]
     for pattern in patterns:
         match = pattern.search(text)
@@ -385,11 +380,11 @@ def _extract_program(text: str) -> str:
     return ""
 
 
-def _extract_line_number(text: str) -> int | None:
+def _extract_line_number(text: str, t: LanguagePack) -> int | None:
     """Extract source line number from dump detail text."""
     patterns = [
-        re.compile(r"(?:Source Code Line|Zeile im Quelltext)[:\s]+(\d+)", re.IGNORECASE),
-        re.compile(r"(?:Line|Zeile)\s+(\d+)\s+", re.IGNORECASE),
+        compiled(rf"{t.st22.source_line.alt}[:\s]+(\d+)"),
+        compiled(rf"{t.st22.line.alt}\s+(\d+)\s+"),
     ]
     for pattern in patterns:
         match = pattern.search(text)
@@ -398,13 +393,12 @@ def _extract_line_number(text: str) -> int | None:
     return None
 
 
-def _extract_call_stack(text: str) -> list[str]:
+def _extract_call_stack(text: str, t: LanguagePack) -> list[str]:
     """Extract call stack entries from dump detail text (best-effort)."""
-    stack_markers = ["active calls", "aktive aufrufe", "call stack", "aufrufhierarchie"]
     text_lower = text.lower()
     start_pos = -1
-    for marker in stack_markers:
-        pos = text_lower.find(marker)
+    for marker in t.st22.call_stack_heading:
+        pos = text_lower.find(marker.lower())
         if pos >= 0:
             start_pos = pos
             break
@@ -431,7 +425,7 @@ def _extract_call_stack(text: str) -> list[str]:
     return stack[:50]  # Cap at 50 entries
 
 
-def parse_st22_dump_detail(snapshot: AriaSnapshot) -> ST22DumpDetail:
+def parse_st22_dump_detail(snapshot: AriaSnapshot, t: LanguagePack) -> ST22DumpDetail:
     """Parse ST22 dump detail from an ARIA snapshot.
 
     Best-effort parsing: extracts known sections when possible,
@@ -439,6 +433,7 @@ def parse_st22_dump_detail(snapshot: AriaSnapshot) -> ST22DumpDetail:
 
     Args:
         snapshot: YAML accessibility snapshot from the ST22 dump detail screen
+        t: Language pack of the session
 
     Returns:
         ST22DumpDetail with extracted data and raw_text fallback
@@ -449,26 +444,27 @@ def parse_st22_dump_detail(snapshot: AriaSnapshot) -> ST22DumpDetail:
         raw_text = raw_text[:_MAX_RAW_TEXT_LENGTH] + "\n... [truncated]"
 
     # Best-effort section extraction
+    sections = t.st22.section
     what_happened = _extract_section(
         raw_text,
-        [ST22_WHAT_HAPPENED_DE, ST22_WHAT_HAPPENED_EN],
-        [ST22_HOW_TO_CORRECT_DE, ST22_HOW_TO_CORRECT_EN, ST22_ERROR_ANALYSIS_DE, ST22_ERROR_ANALYSIS_EN],
+        sections[DumpSection.WHAT_HAPPENED],
+        [*sections[DumpSection.HOW_TO_CORRECT], *sections[DumpSection.ERROR_ANALYSIS]],
     )
 
     how_to_correct = _extract_section(
         raw_text,
-        [ST22_HOW_TO_CORRECT_DE, ST22_HOW_TO_CORRECT_EN],
-        [ST22_ERROR_ANALYSIS_DE, ST22_ERROR_ANALYSIS_EN, "Source Code", "Quelltext"],
+        sections[DumpSection.HOW_TO_CORRECT],
+        [*sections[DumpSection.ERROR_ANALYSIS], *t.st22.other_headings],
     )
 
     return ST22DumpDetail(
-        error_type=_extract_error_type(raw_text),
+        error_type=_extract_error_type(raw_text, t),
         short_text="",  # Populated from list data by caller
         what_happened=what_happened,
         how_to_correct=how_to_correct,
-        program=_extract_program(raw_text),
+        program=_extract_program(raw_text, t),
         include=None,
-        line=_extract_line_number(raw_text),
-        call_stack=_extract_call_stack(raw_text),
+        line=_extract_line_number(raw_text, t),
+        call_stack=_extract_call_stack(raw_text, t),
         raw_text=raw_text,
     )
