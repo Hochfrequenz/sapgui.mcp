@@ -1,4 +1,7 @@
-"""English language pack (SAP logon language EN); the fallback merged into every session view."""
+"""English language pack (SAP logon language EN); the fallback merged into every session view.
+
+A new language starts as a copy of this module; follow ``ADDING_A_LANGUAGE.md`` in this package.
+"""
 
 from sapguimcp.lang.schema import (
     AbapgitSection,

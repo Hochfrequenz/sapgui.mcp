@@ -12,6 +12,8 @@ Public API:
 - :func:`language_for_html_lang` - the SAP language key for a page's ``<html lang>``.
 - ``_register_for_tests`` - registers an extra pack inside a ``with`` block (tests only).
 
+Adding a login language: see ``ADDING_A_LANGUAGE.md`` in this package (procedure and pitfalls).
+
 This package must not import ``sapguimcp.models.config``: the config imports
 :func:`supported_languages` from here.
 """
