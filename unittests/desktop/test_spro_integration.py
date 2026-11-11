@@ -14,13 +14,14 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_spro_search_finanzwesen(backend):
-    """SPRO: search for 'Finanzwesen' returns results from the IMG tree."""
-    result = await _search_img_desktop(backend, "Finanzwesen")
+async def test_spro_search_finanzwesen(backend, pack):
+    """SPRO: searching for the IMG area "Financial Accounting" (language of the logon) returns results."""
+    term = {"DE": "Finanzwesen", "EN": "Financial Accounting"}[pack.code]
+    result = await _search_img_desktop(backend, term)
     assert isinstance(result, SPROSearchResult)
     assert result.success, f"SPRO search failed: {result.error}"
-    assert result.activity_count >= 1, "Should find at least one match for 'Finanzwesen'"
-    assert result.query == "Finanzwesen"
+    assert result.activity_count >= 1, f"Should find at least one match for {term!r}"
+    assert result.query == term
     await go_home(backend)
 
 
