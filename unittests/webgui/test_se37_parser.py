@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.backend.webgui.parsers.se37_parser import (
     SE37TabSnapshots,
     parse_se37_exceptions_snapshot,
@@ -137,6 +138,23 @@ class TestExceptionsParsing:
         table_not_avail = next((e for e in exceptions if e.name == "TABLE_NOT_AVAILABLE"), None)
         assert table_not_avail is not None
         assert "Dictionary" in table_not_avail.description or "nicht" in table_not_avail.description
+
+    @pytest.mark.parametrize(("header", "pack"), [("Ausnahme", "DE"), ("Exception", "EN")])
+    def test_header_row_is_not_an_exception(self, header: str, pack: str) -> None:
+        """The grid header row looks like a row; it must not become an exception (#1044)."""
+        snapshot = "\n".join(
+            [
+                f'- row "{header} Kurztext Langtext":',
+                '- row "TABLE_NOT_AVAILABLE Tabelle nicht vorhanden":',
+                f'- row "{header.upper()} An exception named like the column":',
+            ]
+        )
+        with lang.use(pack):
+            exceptions = parse_se37_exceptions_snapshot(snapshot, lang.current("test"))
+        names = [e.name for e in exceptions]
+        assert header not in names
+        assert "TABLE_NOT_AVAILABLE" in names
+        assert header.upper() in names
 
 
 class TestFullParsing:

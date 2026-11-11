@@ -1,4 +1,7 @@
-"""English language pack (SAP logon language EN); the fallback merged into every session view."""
+"""English language pack (SAP logon language EN); the fallback merged into every session view.
+
+A new language starts as a copy of this module; follow ``ADDING_A_LANGUAGE.md`` in this package.
+"""
 
 from sapguimcp.lang.schema import (
     AbapgitSection,
@@ -240,7 +243,7 @@ EN = LanguagePack(
     ),
     sm30=Sm30Section(
         initial_screen=Text(("Table View Maintenance",)),
-        maintain=Text(("Maintain",)),
+        maintain=Text(("Maintain", "Edit")),
         table_view=Text(("Table/View",)),
         display_view=Text(("View",)),
         view_not_found=Text(("is not in the Dictionary", "does not exist", "not found")),

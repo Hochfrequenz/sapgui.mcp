@@ -6,9 +6,10 @@ uses to match, click, search or ship it to JavaScript (``contains`` / ``equals``
 ``pattern`` / ``for_js`` / ``format``), and the session view of the pseudo language must hold only
 markers plus the EN fallback.
 
-Scope note: the spec also describes rewriting the DE parser fixtures with markers and running every
-parser test against the pseudo pack. That harness is a follow-up (another PR will add it); this unit
-test covers the pack and helper side only.
+Scope note: the spec also describes rewriting the parser fixtures and running the parsers against
+a pseudo pack. That harness lives in ``test_pseudo_locale_parsers.py`` (ARIA parsers) and
+``test_pseudo_locale_scripts.py`` (page scripts), on top of ``pseudo_fixtures.py``; this unit test
+covers the pack and helper side only.
 """
 
 import dataclasses
