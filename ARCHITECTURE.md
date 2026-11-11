@@ -183,7 +183,7 @@ case sensitivity, short fragments), is
    language next to the existing `*_<lang>.html` snapshots.
 4. Verify the texts against SAP's own text tables:
    `uv run python scripts/harvest_lang_texts.py <XX> --verify` (see `lang/sources.py`, `SOURCES`;
-   draft mode is not implemented yet). Fix every drift or mark the field `Manual` with a reason.
+   `--draft` writes the starting `<xx>.py` for a new language). Fix every drift or mark the field `Manual` with a reason.
 5. Run `uv run --group tests pytest unittests/lang unittests/test_no_ui_literals.py` (completeness,
    pseudo-locale, no-literal guards), then the live tests logged on in the new language.
 6. Known limitation: `tools/breakpoint_tools.py` stays DE/EN.

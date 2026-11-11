@@ -27,20 +27,26 @@ verification. Design and rationale: `docs/superpowers/specs/2026-11-10-language-
 
 ## Procedure
 
-1. **Create the pack.** Copy `en.py` to `<xx>.py` (the SAP language key in lower case, e.g.
-   `it.py`). Set `code` (`"IT"`), `html_lang` (the ISO code the WebGUI page reports in
+1. **Draft the pack.** Run
+   `uv run python scripts/harvest_lang_texts.py IT --draft [--system "<key>"] --out src/sapguimcp/lang/it.py`
+   on a system that has the language installed with its texts (`T002`, and texts in `DD04T`; a
+   system that only lists the language yields no SAP text). The draft is a copy of `en.py`:
+   sourced `Text` fields hold SAP's text; `Manual`, fragment and `Template` / `RegexText` fields
+   keep the EN value with a `# TODO` comment, and flags and kinds stay those of EN. It never
+   registers the pack. Without direct access (OAuth2 systems), collect the texts as in step 3 and
+   pass `--sap-texts <file>`. Then set `html_lang` (the ISO code the WebGUI page reports in
    `<html lang>`, e.g. `"it"`), `logon_dropdown` (the language's name in the WebGUI logon
-   dropdown) and `date_format`.
-2. **Register the pack** in `__init__.py` (`_PACKS`). Do this before translating: the harvest
-   script and the config accept only registered codes. The code is then accepted as `language` in
-   `systems.json`, because the config takes its list from `supported_languages()`.
-3. **Translate every field from SAP, not from a dictionary.** Look each text up in SAP. The
-   source of most fields is recorded in `sources.py`, so the lookup is a query:
-   `uv run python scripts/harvest_lang_texts.py IT --print-sql` prints the SQL for every sourced
-   field. Run it through ADT (`run_query`; these tables are development metadata). For `Manual`
-   fields, log on in the new language and read the screen (window titles, WebGUI framework
-   texts). Fields that are deliberately identical to EN go into `same_as_en`; the
-   untranslated-field test rejects any other value equal to EN.
+   dropdown) and `date_format`, and run `ruff format` on the file.
+2. **Register the pack** in `__init__.py` (`_PACKS`). Do this before verifying: `--verify` and the
+   config accept only registered codes (`--draft` and `--print-sql` accept any code of `T002`). The
+   code is then accepted as `language` in `systems.json`, because the config takes its list from
+   `supported_languages()`.
+3. **Settle every `TODO` from SAP, not from a dictionary.** The source of most fields is recorded
+   in `sources.py`, so the lookup is a query: `--print-sql` prints the SQL for every sourced field.
+   Run it through ADT (`run_query`; these tables are development metadata). For `Manual` fields,
+   log on in the new language and read the screen (window titles, WebGUI framework texts). Fields
+   that are deliberately identical to EN go into `same_as_en`; the untranslated-field test rejects
+   any other value equal to EN. Remove each `TODO` comment once settled.
 4. **Verify against SAP** on every release you support:
    `uv run python scripts/harvest_lang_texts.py IT --verify --system "<key>"`. If a system is not
    reachable directly, use `--sap-texts <file>` with the results of `--print-sql`. Fix every
