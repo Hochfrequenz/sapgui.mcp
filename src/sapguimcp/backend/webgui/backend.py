@@ -8,6 +8,7 @@ Each ``WebGuiBackend`` instance wraps a single Playwright ``Page``
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import re
 import time
@@ -57,6 +58,14 @@ if TYPE_CHECKING:
     from sapguimcp.backend.webgui.models.session_registry import SessionRegistry
 
 logger = logging.getLogger(__name__)
+
+_EXPOSE_GRID_CELL_VALUES_JS = """() => {
+  for (const td of document.querySelectorAll('[role="gridcell"]')) {
+    const box = td.querySelector('span[role="textbox"]');
+    const text = box ? (box.textContent || '').trim() : '';
+    if (text && !box.hasAttribute('value')) { td.setAttribute('aria-label', text); }
+  }
+}"""
 
 # ---------------------------------------------------------------------------
 # Helpers private to WebGuiBackend
@@ -1176,6 +1185,11 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
     async def get_snapshot(self) -> AriaSnapshot:
         """Get the ARIA accessibility tree snapshot."""
+        # Current SAP WebGUI renders read-only table cell values as the text of a ``span[role=textbox]`` whose
+        # accessible name is the column header, so the value would be missing from the ARIA tree. Expose it as
+        # the cell's own label, which gives ``gridcell "VALUE"`` like the captured fixtures.
+        with contextlib.suppress(Exception):
+            await self._page.evaluate(_EXPOSE_GRID_CELL_VALUES_JS)
         raw = await self._page.locator("body").aria_snapshot()
         return AriaSnapshot(raw)
 
