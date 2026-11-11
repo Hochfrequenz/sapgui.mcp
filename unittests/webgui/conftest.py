@@ -252,6 +252,10 @@ async def sap_mcp_client() -> AsyncGenerator[ClientSession, None]:
     runs fixture setup and teardown in the same task, which is required for
     proper cancel scope handling.
     """
+    # Put back the systems.json the run was started with before .env is reloaded, so a different
+    # SAP_CONFIG_FILE in .env cannot win over it; a value a test set itself is kept.
+    if SESSION_SAP_CONFIG_FILE and "SAP_CONFIG_FILE" not in os.environ:
+        os.environ["SAP_CONFIG_FILE"] = SESSION_SAP_CONFIG_FILE
     # Reload .env after clean_environment fixture has cleared env vars
     # Use override=False so command-line env vars (like SAP_LANGUAGE=EN) take precedence
     load_dotenv(override=False)
@@ -263,9 +267,8 @@ async def sap_mcp_client() -> AsyncGenerator[ClientSession, None]:
     # This works regardless of whether the entry point script is installed,
     # making tests runnable from any Python environment (PyCharm, tox, etc.)
     #
-    # We pass SAP_CONFIG_FILE so the subprocess uses the systems.json the run was started with,
-    # even after clean_environment cleared the variable.
-    config_file = os.environ.get("SAP_CONFIG_FILE", "") or SESSION_SAP_CONFIG_FILE
+    # We pass SAP_CONFIG_FILE (restored above) so the subprocess uses the same systems.json.
+    config_file = os.environ.get("SAP_CONFIG_FILE", "")
     server_env = {
         **os.environ,  # Inherit current environment
         "SAP_URL": os.environ.get("SAP_URL", ""),
