@@ -8,6 +8,7 @@ import pytest
 from sapguimcp.models.spro_models import SPROSearchResult
 from sapguimcp.tools.spro_tools import _search_img_desktop
 from unittests.desktop.conftest import go_home, skip_no_sap
+from unittests.webgui.testdata.lang_test import UI_TEST_PACKS
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
@@ -16,7 +17,7 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 @pytest.mark.anyio
 async def test_spro_search_finanzwesen(backend, pack):
     """SPRO: searching for the IMG area "Financial Accounting" (language of the logon) returns results."""
-    term = {"DE": "Finanzwesen", "EN": "Financial Accounting"}[pack.code]
+    term = next(iter(UI_TEST_PACKS[pack.code].spro.img_area_search))
     result = await _search_img_desktop(backend, term)
     assert isinstance(result, SPROSearchResult)
     assert result.success, f"SPRO search failed: {result.error}"
