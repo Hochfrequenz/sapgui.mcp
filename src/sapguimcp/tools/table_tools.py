@@ -126,7 +126,7 @@ def register_table_tools(mcp: FastMCP) -> None:
 
         hint = None
         if not results:
-            hint = f"No tables found for '{query}'. Try broader keywords or check spelling."
+            hint = f"No tables found for '{query}'. Try broader keywords or check spelling."  # lang-ok: our own message
 
         return TableSearchResponse(
             success=True,

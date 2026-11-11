@@ -70,7 +70,7 @@ def search_function_modules(  # pylint: disable=too-many-locals,too-many-branche
         # FM description matching
         elif query_upper in desc_upper:
             score = 50
-            match_reason = "description contains"
+            match_reason = "description contains"  # lang-ok: our own search-mode name
 
         # Parameter matching (only if include_params and no FM-level match yet)
         if include_params and score == 0:
@@ -85,7 +85,7 @@ def search_function_modules(  # pylint: disable=too-many-locals,too-many-branche
                     break
                 if query_upper in param_desc_upper:
                     score = 30
-                    match_reason = f"param {param.name} description"
+                    match_reason = f"param {param.name} description"  # lang-ok: our own search-mode name
                     break
                 if query_upper in param_ref_upper:
                     score = 20
@@ -97,7 +97,7 @@ def search_function_modules(  # pylint: disable=too-many-locals,too-many-branche
             fuzzy_score = fuzz.WRatio(query, fm.description, score_cutoff=50)
             if fuzzy_score:
                 score = 5.0 + (fuzzy_score - 50) * 9.0 / 50.0
-                match_reason = "fuzzy description"
+                match_reason = "fuzzy description"  # lang-ok: our own search-mode name
 
         if score > 0:
             results.append(FMSearchResult(fm=fm, score=score, match_reason=match_reason))

@@ -119,7 +119,7 @@ SAFE_BUILTINS: dict[str, Any] = {
     "getattr": getattr,
     "hasattr": hasattr,
     # Exceptions — scripts may raise or catch these
-    "Exception": Exception,
+    "Exception": Exception,  # lang-ok: Python builtin name
     "ValueError": ValueError,
     "KeyError": KeyError,
     "TypeError": TypeError,

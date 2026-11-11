@@ -65,14 +65,14 @@ def search_classes(
         # Class description matching
         elif query_upper in desc_upper:
             score = 50
-            match_reason = "description contains"
+            match_reason = "description contains"  # lang-ok: our own search-mode name
 
         # Fuzzy match on description
         if score == 0 and cls.description:
             fuzzy_score = fuzz.WRatio(query, cls.description, score_cutoff=50)
             if fuzzy_score:
                 score = 5.0 + (fuzzy_score - 50) * 9.0 / 50.0
-                match_reason = "fuzzy description"
+                match_reason = "fuzzy description"  # lang-ok: our own search-mode name
 
         if score > 0:
             results.append(ClassSearchResult(cls=cls, score=score, match_reason=match_reason))
