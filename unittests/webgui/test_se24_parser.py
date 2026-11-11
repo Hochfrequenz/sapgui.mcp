@@ -14,6 +14,7 @@ from sapguimcp.backend.webgui.parsers.se24_parser import (
     parse_se24_methods_snapshot,
     parse_se24_snapshot,
 )
+from sapguimcp.lang import LanguagePack
 from sapguimcp.models.se24_models import SE24Entry, SE24Error
 
 SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "se24_exploration"
@@ -35,10 +36,10 @@ def _load_snapshot(name: str) -> str:
 class TestParseMethodsSnapshot:
     """Tests for parsing SE24 Methods tab snapshots."""
 
-    def test_cl_abap_char_utilities_has_methods(self) -> None:
+    def test_cl_abap_char_utilities_has_methods(self, lang_de: LanguagePack) -> None:
         """CL_ABAP_CHAR_UTILITIES methods tab should yield methods."""
         snapshot = _load_snapshot("se24_cl_abap_char_utilities_methods")
-        methods = parse_se24_methods_snapshot(snapshot)
+        methods = parse_se24_methods_snapshot(snapshot, lang_de)
 
         assert len(methods) >= 3
         names = {m.name for m in methods}
@@ -46,26 +47,26 @@ class TestParseMethodsSnapshot:
         assert "NUMBER_FORMAT_TO_ENDIAN" in names
         assert "GET_SIMPLE_SPACES_FOR_CUR_CP" in names
 
-    def test_cl_abap_char_utilities_methods_are_static(self) -> None:
+    def test_cl_abap_char_utilities_methods_are_static(self, lang_de: LanguagePack) -> None:
         """All CL_ABAP_CHAR_UTILITIES methods are static."""
         snapshot = _load_snapshot("se24_cl_abap_char_utilities_methods")
-        methods = parse_se24_methods_snapshot(snapshot)
+        methods = parse_se24_methods_snapshot(snapshot, lang_de)
 
         for m in methods:
             assert m.is_static, f"Method {m.name} should be static"
 
-    def test_cl_abap_char_utilities_methods_are_public(self) -> None:
+    def test_cl_abap_char_utilities_methods_are_public(self, lang_de: LanguagePack) -> None:
         """All CL_ABAP_CHAR_UTILITIES methods are public."""
         snapshot = _load_snapshot("se24_cl_abap_char_utilities_methods")
-        methods = parse_se24_methods_snapshot(snapshot)
+        methods = parse_se24_methods_snapshot(snapshot, lang_de)
 
         for m in methods:
             assert m.visibility == "public", f"Method {m.name} should be public"
 
-    def test_cl_salv_table_has_methods(self) -> None:
+    def test_cl_salv_table_has_methods(self, lang_de: LanguagePack) -> None:
         """CL_SALV_TABLE methods tab should yield interface methods."""
         snapshot = _load_snapshot("se24_cl_salv_table_methods")
-        methods = parse_se24_methods_snapshot(snapshot)
+        methods = parse_se24_methods_snapshot(snapshot, lang_de)
 
         assert len(methods) >= 10
         names = {m.name for m in methods}
@@ -74,26 +75,26 @@ class TestParseMethodsSnapshot:
         assert "IF_SALV_GUI_OM_TABLE_ACTION~DISPLAY" in names
         assert "IF_SALV_GUI_OM_TABLE_ACTION~REFRESH" in names
 
-    def test_cl_salv_table_methods_visibility(self) -> None:
+    def test_cl_salv_table_methods_visibility(self, lang_de: LanguagePack) -> None:
         """CL_SALV_TABLE methods should have correct visibility."""
         snapshot = _load_snapshot("se24_cl_salv_table_methods")
-        methods = parse_se24_methods_snapshot(snapshot)
+        methods = parse_se24_methods_snapshot(snapshot, lang_de)
 
         for m in methods:
             assert m.visibility == "public", f"Method {m.name} should be public"
 
-    def test_cl_salv_table_methods_are_instance(self) -> None:
+    def test_cl_salv_table_methods_are_instance(self, lang_de: LanguagePack) -> None:
         """CL_SALV_TABLE visible methods are instance methods."""
         snapshot = _load_snapshot("se24_cl_salv_table_methods")
-        methods = parse_se24_methods_snapshot(snapshot)
+        methods = parse_se24_methods_snapshot(snapshot, lang_de)
 
         for m in methods:
             assert not m.is_static, f"Method {m.name} should be instance (not static)"
 
-    def test_cl_salv_table_method_descriptions(self) -> None:
+    def test_cl_salv_table_method_descriptions(self, lang_de: LanguagePack) -> None:
         """CL_SALV_TABLE methods should have descriptions."""
         snapshot = _load_snapshot("se24_cl_salv_table_methods")
-        methods = parse_se24_methods_snapshot(snapshot)
+        methods = parse_se24_methods_snapshot(snapshot, lang_de)
 
         display_method = next(m for m in methods if m.name == "IF_SALV_GUI_OM_TABLE_ACTION~DISPLAY")
         assert display_method.description == "Output table"
@@ -101,13 +102,13 @@ class TestParseMethodsSnapshot:
         close_method = next(m for m in methods if m.name == "IF_SALV_GUI_OM_TABLE_ACTION~CLOSE_SCREEN")
         assert close_method.description == "Close Window"
 
-    def test_empty_snapshot_returns_empty(self) -> None:
+    def test_empty_snapshot_returns_empty(self, lang_de: LanguagePack) -> None:
         """Empty or non-grid snapshot returns no methods."""
         snapshot = '- heading "Something"'
-        methods = parse_se24_methods_snapshot(snapshot)
+        methods = parse_se24_methods_snapshot(snapshot, lang_de)
         assert methods == []
 
-    def test_synthetic_static_method(self) -> None:
+    def test_synthetic_static_method(self, lang_de: LanguagePack) -> None:
         """Parse a synthetic Static Method row."""
         snapshot = """- grid:
   - rowgroup:
@@ -125,14 +126,14 @@ class TestParseMethodsSnapshot:
       - gridcell "Does something":
         - textbox
 """
-        methods = parse_se24_methods_snapshot(snapshot)
+        methods = parse_se24_methods_snapshot(snapshot, lang_de)
         assert len(methods) == 1
         assert methods[0].name == "MY_METHOD"
         assert methods[0].is_static is True
         assert methods[0].visibility == "public"
         assert methods[0].description == "Does something"
 
-    def test_synthetic_interface_method(self) -> None:
+    def test_synthetic_interface_method(self, lang_de: LanguagePack) -> None:
         """Parse a synthetic interface method row (with ~)."""
         snapshot = """- grid:
   - rowgroup:
@@ -149,14 +150,14 @@ class TestParseMethodsSnapshot:
       - gridcell "Action":
         - textbox
 """
-        methods = parse_se24_methods_snapshot(snapshot)
+        methods = parse_se24_methods_snapshot(snapshot, lang_de)
         assert len(methods) == 1
         assert methods[0].name == "IF_MY_INTERFACE~DO_THING"
         assert methods[0].is_static is False
         assert methods[0].visibility == "protected"
         assert methods[0].description == "Action"
 
-    def test_constructor_detection(self) -> None:
+    def test_constructor_detection(self, lang_de: LanguagePack) -> None:
         """CONSTRUCTOR should be flagged as constructor."""
         snapshot = """- grid:
   - rowgroup:
@@ -173,11 +174,11 @@ class TestParseMethodsSnapshot:
       - gridcell "Constructor":
         - textbox
 """
-        methods = parse_se24_methods_snapshot(snapshot)
+        methods = parse_se24_methods_snapshot(snapshot, lang_de)
         assert len(methods) == 1
         assert methods[0].is_constructor is True
 
-    def test_synthetic_abstract_method(self) -> None:
+    def test_synthetic_abstract_method(self, lang_de: LanguagePack) -> None:
         """Parse a synthetic Abstract Method row."""
         snapshot = """- grid:
   - rowgroup:
@@ -194,13 +195,13 @@ class TestParseMethodsSnapshot:
       - gridcell "Does something":
         - textbox
 """
-        methods = parse_se24_methods_snapshot(snapshot)
+        methods = parse_se24_methods_snapshot(snapshot, lang_de)
         assert len(methods) == 1
         assert methods[0].name == "MY_METHOD"
         assert methods[0].is_abstract is True
         assert methods[0].is_static is False
 
-    def test_synthetic_abstract_method_german(self) -> None:
+    def test_synthetic_abstract_method_german(self, lang_de: LanguagePack) -> None:
         """Parse a synthetic Abstrakte Methode row (German)."""
         snapshot = """- grid:
   - rowgroup:
@@ -217,12 +218,12 @@ class TestParseMethodsSnapshot:
       - gridcell "Tut etwas":
         - textbox
 """
-        methods = parse_se24_methods_snapshot(snapshot)
+        methods = parse_se24_methods_snapshot(snapshot, lang_de)
         assert len(methods) == 1
         assert methods[0].is_abstract is True
         assert methods[0].is_static is False
 
-    def test_method_without_description(self) -> None:
+    def test_method_without_description(self, lang_de: LanguagePack) -> None:
         """Method with empty description gridcell."""
         snapshot = """- grid:
   - rowgroup:
@@ -239,7 +240,7 @@ class TestParseMethodsSnapshot:
       - gridcell:
         - textbox
 """
-        methods = parse_se24_methods_snapshot(snapshot)
+        methods = parse_se24_methods_snapshot(snapshot, lang_de)
         assert len(methods) == 1
         assert methods[0].description == ""
 
@@ -252,10 +253,10 @@ class TestParseMethodsSnapshot:
 class TestParseAttributesSnapshot:
     """Tests for parsing SE24 Attributes tab snapshots."""
 
-    def test_cl_abap_char_utilities_has_attributes(self) -> None:
+    def test_cl_abap_char_utilities_has_attributes(self, lang_de: LanguagePack) -> None:
         """CL_ABAP_CHAR_UTILITIES attributes tab should yield constants."""
         snapshot = _load_snapshot("se24_cl_abap_char_utilities_attributes")
-        attributes = parse_se24_attributes_snapshot(snapshot)
+        attributes = parse_se24_attributes_snapshot(snapshot, lang_de)
 
         assert len(attributes) >= 10
         names = {a.name for a in attributes}
@@ -265,10 +266,10 @@ class TestParseAttributesSnapshot:
         assert "CHARSIZE" in names
         assert "ENDIAN" in names
 
-    def test_cl_abap_char_utilities_constants(self) -> None:
+    def test_cl_abap_char_utilities_constants(self, lang_de: LanguagePack) -> None:
         """Most CL_ABAP_CHAR_UTILITIES attributes are constants."""
         snapshot = _load_snapshot("se24_cl_abap_char_utilities_attributes")
-        attributes = parse_se24_attributes_snapshot(snapshot)
+        attributes = parse_se24_attributes_snapshot(snapshot, lang_de)
 
         constants = [a for a in attributes if a.is_constant]
         assert len(constants) >= 10
@@ -279,10 +280,10 @@ class TestParseAttributesSnapshot:
         assert ht.visibility == "public"
         assert ht.type_ref == "ABAP_CHAR1"
 
-    def test_cl_abap_char_utilities_private_attr(self) -> None:
+    def test_cl_abap_char_utilities_private_attr(self, lang_de: LanguagePack) -> None:
         """SPACE_STR is a private static attribute."""
         snapshot = _load_snapshot("se24_cl_abap_char_utilities_attributes")
-        attributes = parse_se24_attributes_snapshot(snapshot)
+        attributes = parse_se24_attributes_snapshot(snapshot, lang_de)
 
         space_str = next((a for a in attributes if a.name == "SPACE_STR"), None)
         assert space_str is not None
@@ -291,10 +292,10 @@ class TestParseAttributesSnapshot:
         assert not space_str.is_constant
         assert space_str.type_ref == "STRING"
 
-    def test_attribute_type_refs(self) -> None:
+    def test_attribute_type_refs(self, lang_de: LanguagePack) -> None:
         """Attributes should have correct type references."""
         snapshot = _load_snapshot("se24_cl_abap_char_utilities_attributes")
-        attributes = parse_se24_attributes_snapshot(snapshot)
+        attributes = parse_se24_attributes_snapshot(snapshot, lang_de)
 
         charsize = next(a for a in attributes if a.name == "CHARSIZE")
         assert charsize.type_ref == "I"
@@ -302,13 +303,13 @@ class TestParseAttributesSnapshot:
         bom_little = next(a for a in attributes if a.name == "BYTE_ORDER_MARK_LITTLE")
         assert bom_little.type_ref == "ABAP_BYTE_ORDER_MARK"
 
-    def test_empty_snapshot_returns_empty(self) -> None:
+    def test_empty_snapshot_returns_empty(self, lang_de: LanguagePack) -> None:
         """Empty or non-grid snapshot returns no attributes."""
         snapshot = '- heading "Something"'
-        attributes = parse_se24_attributes_snapshot(snapshot)
+        attributes = parse_se24_attributes_snapshot(snapshot, lang_de)
         assert attributes == []
 
-    def test_synthetic_attribute(self) -> None:
+    def test_synthetic_attribute(self, lang_de: LanguagePack) -> None:
         """Parse a synthetic attribute row."""
         snapshot = """- grid:
   - rowgroup:
@@ -334,7 +335,7 @@ class TestParseAttributesSnapshot:
       - gridcell "'hello'":
         - textbox
 """
-        attributes = parse_se24_attributes_snapshot(snapshot)
+        attributes = parse_se24_attributes_snapshot(snapshot, lang_de)
         assert len(attributes) == 1
         assert attributes[0].name == "MY_ATTR"
         assert attributes[0].is_constant is True
@@ -352,7 +353,7 @@ class TestParseAttributesSnapshot:
 class TestParseFullSnapshot:
     """Tests for parse_se24_snapshot with tab snapshots."""
 
-    def test_cl_salv_table_full_parse(self) -> None:
+    def test_cl_salv_table_full_parse(self, lang_de: LanguagePack) -> None:
         """Full parse of CL_SALV_TABLE should return entry with methods."""
         main = _load_snapshot("se24_cl_salv_table_main")
         methods = _load_snapshot("se24_cl_salv_table_methods")
@@ -360,6 +361,7 @@ class TestParseFullSnapshot:
         result = parse_se24_snapshot(
             snapshot=main,
             class_name="CL_SALV_TABLE",
+            t=lang_de,
             tab_snapshots=SE24TabSnapshots(methods_tab=methods),
         )
 
@@ -367,7 +369,7 @@ class TestParseFullSnapshot:
         assert result.class_name == "CL_SALV_TABLE"
         assert len(result.methods) >= 10
 
-    def test_cl_abap_char_utilities_full_parse(self) -> None:
+    def test_cl_abap_char_utilities_full_parse(self, lang_de: LanguagePack) -> None:
         """Full parse of CL_ABAP_CHAR_UTILITIES should return entry with methods and attributes."""
         main = _load_snapshot("se24_cl_abap_char_utilities_main")
         methods = _load_snapshot("se24_cl_abap_char_utilities_methods")
@@ -376,6 +378,7 @@ class TestParseFullSnapshot:
         result = parse_se24_snapshot(
             snapshot=main,
             class_name="CL_ABAP_CHAR_UTILITIES",
+            t=lang_de,
             tab_snapshots=SE24TabSnapshots(methods_tab=methods, attributes_tab=attributes),
         )
 
@@ -385,22 +388,23 @@ class TestParseFullSnapshot:
         assert len(result.methods) >= 3
         assert len(result.attributes) >= 10
 
-    def test_not_found_class(self) -> None:
+    def test_not_found_class(self, lang_de: LanguagePack) -> None:
         """Snapshot with 'not found' should return SE24Error."""
         snapshot = _load_snapshot("se24_not_found")
 
         result = parse_se24_snapshot(
             snapshot=snapshot,
             class_name="ZZZNOTEXIST_CLASS_99",
+            t=lang_de,
         )
 
         assert isinstance(result, SE24Error)
         assert "not found" in result.error.lower() or "initial screen" in result.error.lower()
 
-    def test_no_tab_snapshots(self) -> None:
+    def test_no_tab_snapshots(self, lang_de: LanguagePack) -> None:
         """Without tab snapshots, methods and attributes are empty."""
         main = _load_snapshot("se24_cl_salv_table_main")
-        result = parse_se24_snapshot(snapshot=main, class_name="CL_SALV_TABLE")
+        result = parse_se24_snapshot(snapshot=main, class_name="CL_SALV_TABLE", t=lang_de)
 
         assert isinstance(result, SE24Entry)
         assert result.methods == []

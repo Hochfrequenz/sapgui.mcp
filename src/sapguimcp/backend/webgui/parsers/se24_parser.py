@@ -14,28 +14,9 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sapguimcp.backend.webgui.types import AriaSnapshot
-from sapguimcp.lang import (
-    SE24_CLASS_BUILDER_DE,
-    SE24_CLASS_BUILDER_EN,
-    SE24_CLASS_DE,
-    SE24_CLASS_EN,
-    SE24_DISPLAY_PREFIX_EN,
-    SE24_DISPLAY_SUFFIX_DE,
-    SE24_INITIAL_SCREEN_DE,
-    SE24_INITIAL_SCREEN_EN,
-    SE24_INTERFACE_DE,
-    SE24_INTERFACE_EN,
-    SE24_NOT_EXIST_DE,
-    SE24_NOT_EXIST_EN,
-    SE24_NOT_FOUND_DE,
-    SE24_OBJECT_TYPE_DE,
-    SE24_OBJECT_TYPE_EN,
-    SE24_PRIVATE_DE,
-    SE24_PRIVATE_EN,
-    SE24_PROTECTED_DE,
-    SE24_PROTECTED_EN,
-    bilingual_pattern,
-)
+from sapguimcp.lang import alt_of
+from sapguimcp.lang.schema import LanguagePack, Visibility
+from sapguimcp.lang.text import compiled
 from sapguimcp.models.se24_models import (
     SE24Attribute,
     SE24Entry,
@@ -48,6 +29,7 @@ from sapguimcp.models.se24_models import (
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "map_visibility",
     "parse_se24_snapshot",
     "parse_se24_methods_snapshot",
     "parse_se24_attributes_snapshot",
@@ -58,24 +40,16 @@ __all__ = [
 # Regex Patterns
 # =============================================================================
 
-# Class/Interface name from heading
-# Uses explicit constants: SE24_CLASS_BUILDER_DE/EN, SE24_DISPLAY_SUFFIX_DE, SE24_DISPLAY_PREFIX_EN
-# German: "Klassenpflege: CL_SALV_TABLE anzeigen"
-# English: "Class Builder: Display CL_SALV_TABLE"
-_CLASS_HEADING_PATTERN = re.compile(
-    rf'heading "{bilingual_pattern(SE24_CLASS_BUILDER_DE, SE24_CLASS_BUILDER_EN)}:\s*'
-    rf"(?:(?P<name_de>[A-Z0-9_/]+)\\s+{SE24_DISPLAY_SUFFIX_DE}|{SE24_DISPLAY_PREFIX_EN}\\s+(?P<name_en>[A-Z0-9_/]+))\"",
-    re.IGNORECASE,
-)
+_NAME_CHARS = r"[A-Za-z0-9_/ ]+"
+"""Heading name group: the object name, possibly preceded by its type word ("Klasse CL_X", "Class CL_X")."""
 
-# Determine if class or interface from screen content
-# Uses explicit constants: SE24_OBJECT_TYPE_DE/EN, SE24_CLASS_DE/EN, SE24_INTERFACE_DE/EN
-_OBJECT_TYPE_LABEL = bilingual_pattern(SE24_OBJECT_TYPE_DE, SE24_OBJECT_TYPE_EN)
-_CLASS_OR_INTERFACE = f"{SE24_CLASS_EN}|{SE24_CLASS_DE}|{SE24_INTERFACE_EN}"
-_OBJECT_TYPE_PATTERN = re.compile(
-    rf'{_OBJECT_TYPE_LABEL}[^"]*"(?P<type>{_CLASS_OR_INTERFACE})"',
-    re.IGNORECASE,
-)
+
+def _object_type_pattern(t: LanguagePack) -> re.Pattern[str]:
+    """Object type value after its label: ``Object Type ... "Class"`` / ``"Interface"``."""
+    return compiled(
+        rf'(?i){t.se24.object_type.alt}[^"]*"(?P<type>{alt_of(t.se24.class_label, t.se24.interface_label)})"'
+    )
+
 
 # Gridcell value extraction: matches gridcells with a quoted text value.
 # Empty gridcells (checkboxes, buttons without text) are skipped.
@@ -116,62 +90,56 @@ def _extract_gridcell_rows(snapshot: str) -> list[list[str]]:
     return rows
 
 
-def _map_visibility(visibility_str: str | None) -> SE24Visibility:
-    """Map German/English visibility to standard value."""
-    # Uses explicit constants: SE24_PRIVATE_DE/EN, SE24_PROTECTED_DE/EN
-    if not visibility_str:
+_VISIBILITY_LITERALS: dict[Visibility, SE24Visibility] = {
+    Visibility.PUBLIC: "public",
+    Visibility.PROTECTED: "protected",
+    Visibility.PRIVATE: "private",
+}
+
+
+def map_visibility(t: LanguagePack, raw: str | None, *, exact: bool = True) -> SE24Visibility:
+    """Map a visibility text in any pack language to the canonical value; unknown or empty is public.
+
+    ``exact`` compares the whole text (the WebGUI grid cell); otherwise a text that merely contains the
+    visibility word counts (the desktop table control cell).
+    """
+    if not raw:
         return "public"
-    visibility_lower = visibility_str.lower()
-    if visibility_lower in (SE24_PRIVATE_EN.lower(), SE24_PRIVATE_DE.lower()):
-        return "private"
-    if visibility_lower in (SE24_PROTECTED_EN.lower(), SE24_PROTECTED_DE.lower()):
-        return "protected"
+    for member in (Visibility.PRIVATE, Visibility.PROTECTED):
+        text = t.se24.visibility[member]
+        if text.equals(raw) if exact else text.contains(raw):
+            return _VISIBILITY_LITERALS[member]
     return "public"
 
 
-def _extract_class_name(snapshot: str) -> str | None:
-    """Extract class/interface name from heading."""
-    match = _CLASS_HEADING_PATTERN.search(snapshot)
-    if match:
-        return match.group("name_de") or match.group("name_en")
-    return None
+def _extract_class_name(snapshot: str, t: LanguagePack) -> str | None:
+    """Extract class/interface name from the heading (``Class Builder: Display Class CL_X``)."""
+    match = t.se24.display_title.search(snapshot, name=_NAME_CHARS)
+    if match is None:
+        return None
+    if snapshot[max(0, match.start() - 9) : match.start()] != 'heading "':
+        return None
+    tokens = match.group("name").split()
+    return tokens[-1].upper() if tokens else None
 
 
-def _determine_object_type(snapshot: str) -> SE24ObjectType:
+def _determine_object_type(snapshot: str, t: LanguagePack) -> SE24ObjectType:
     """Determine if this is a class or interface."""
-    # Uses explicit constants: SE24_INTERFACE_DE/EN
-    match = _OBJECT_TYPE_PATTERN.search(snapshot)
-    if match:
-        type_str = match.group("type").lower()
-        if type_str in (SE24_INTERFACE_EN.lower(), SE24_INTERFACE_DE.lower()):
-            return "interface"
+    match = _object_type_pattern(t).search(snapshot)
+    if match and t.se24.interface_label.equals(match.group("type")):
+        return "interface"
     return "class"
 
 
-def _is_initial_se24_screen(snapshot: str) -> bool:
+def _is_initial_se24_screen(snapshot: str, t: LanguagePack) -> bool:
     """Check if we're on the initial SE24 screen (no class displayed)."""
-    # Uses explicit constants: SE24_INITIAL_SCREEN_DE, SE24_INITIAL_SCREEN_EN
     header_section = "\\n".join(snapshot.split("\\n")[:10])
-    has_initial_heading = (
-        f'heading "{SE24_INITIAL_SCREEN_EN}"' in header_section
-        or f'heading "{SE24_INITIAL_SCREEN_DE}"' in header_section
-    )
-    return has_initial_heading
+    return any(f'heading "{variant}"' in header_section for variant in t.se24.initial_screen)
 
 
-def _is_class_not_found(snapshot: str, class_name: str) -> bool:
+def _is_class_not_found(snapshot: str, t: LanguagePack) -> bool:
     """Check if class/interface was not found (status bar message)."""
-    # Uses explicit constants: SE24_NOT_EXIST_DE/EN, SE24_NOT_FOUND_DE/EN
-    not_found_patterns = [
-        f"{class_name} {SE24_NOT_EXIST_EN}",
-        f"{class_name} {SE24_NOT_FOUND_DE}",
-        f"{class_name} {SE24_NOT_EXIST_DE}",
-        SE24_NOT_EXIST_EN,
-        SE24_NOT_FOUND_DE,
-        SE24_NOT_EXIST_DE,
-    ]
-    snapshot_lower = snapshot.lower()
-    return any(pattern.lower() in snapshot_lower for pattern in not_found_patterns)
+    return t.common.does_not_exist.contains(snapshot)
 
 
 # =============================================================================
@@ -179,7 +147,7 @@ def _is_class_not_found(snapshot: str, class_name: str) -> bool:
 # =============================================================================
 
 
-def _parse_method_rows(snapshot: str) -> list[SE24Method]:
+def _parse_method_rows(snapshot: str, t: LanguagePack) -> list[SE24Method]:
     """Parse method rows from Methods tab grid using gridcell values.
 
     Grid columns (quoted gridcells only, empty cells skipped):
@@ -202,14 +170,12 @@ def _parse_method_rows(snapshot: str) -> list[SE24Method]:
         if not name or not name[0].isalpha():
             continue
         method_kind = cells[1] if len(cells) > 1 else ""
-        visibility = _map_visibility(cells[2] if len(cells) > 2 else None)
+        visibility = map_visibility(t, cells[2] if len(cells) > 2 else None)
         # cells[3] is method type ("Leer"), skip
         desc = cells[4] if len(cells) > 4 else ""
 
-        is_static = "static" in method_kind.lower()
-        # EN: "Abstract Method", DE: "Abstrakte Methode" — the German
-        # root "abstrakt" differs from English "abstract" (k vs c).
-        is_abstract = "abstract" in method_kind.lower() or "abstrakt" in method_kind.lower()
+        is_static = t.se24.static.contains(method_kind)
+        is_abstract = t.se24.abstract.contains(method_kind)
         is_constructor = name.upper() in ("CONSTRUCTOR", "CLASS_CONSTRUCTOR")
 
         methods.append(
@@ -226,7 +192,7 @@ def _parse_method_rows(snapshot: str) -> list[SE24Method]:
     return methods
 
 
-def _parse_attribute_rows(snapshot: str) -> list[SE24Attribute]:
+def _parse_attribute_rows(snapshot: str, t: LanguagePack) -> list[SE24Attribute]:
     """Parse attribute rows from Attributes tab grid using gridcell values.
 
     Grid columns (quoted gridcells only, empty cells skipped):
@@ -249,7 +215,7 @@ def _parse_attribute_rows(snapshot: str) -> list[SE24Attribute]:
         if not name or not name[0].isalpha():
             continue
         attr_kind = cells[1] if len(cells) > 1 else ""
-        visibility = _map_visibility(cells[2] if len(cells) > 2 else None)
+        visibility = map_visibility(t, cells[2] if len(cells) > 2 else None)
         # cells[3] is the typing keyword ("Type" / "Like") — skipped
         # because _GRIDCELL_VALUE_RE only captures quoted text values and
         # the typing column always has a quoted value, so it occupies a
@@ -257,8 +223,8 @@ def _parse_attribute_rows(snapshot: str) -> list[SE24Attribute]:
         type_ref = cells[4] if len(cells) > 4 else ""
         desc = cells[5] if len(cells) > 5 else ""
 
-        is_constant = "constant" in attr_kind.lower()
-        is_static = is_constant or "static" in attr_kind.lower()
+        is_constant = t.se24.constant.contains(attr_kind)
+        is_static = is_constant or t.se24.static.contains(attr_kind)
 
         attributes.append(
             SE24Attribute(
@@ -274,30 +240,32 @@ def _parse_attribute_rows(snapshot: str) -> list[SE24Attribute]:
     return attributes
 
 
-def parse_se24_methods_snapshot(snapshot: AriaSnapshot) -> list[SE24Method]:
+def parse_se24_methods_snapshot(snapshot: AriaSnapshot, t: LanguagePack) -> list[SE24Method]:
     """
     Parse methods from a SE24 Methods tab snapshot.
 
     Args:
         snapshot: YAML accessibility snapshot from the Methods tab
+        t: Language pack of the session
 
     Returns:
         List of parsed methods
     """
-    return _parse_method_rows(snapshot)
+    return _parse_method_rows(snapshot, t)
 
 
-def parse_se24_attributes_snapshot(snapshot: AriaSnapshot) -> list[SE24Attribute]:
+def parse_se24_attributes_snapshot(snapshot: AriaSnapshot, t: LanguagePack) -> list[SE24Attribute]:
     """
     Parse attributes from a SE24 Attributes tab snapshot.
 
     Args:
         snapshot: YAML accessibility snapshot from the Attributes tab
+        t: Language pack of the session
 
     Returns:
         List of parsed attributes
     """
-    return _parse_attribute_rows(snapshot)
+    return _parse_attribute_rows(snapshot, t)
 
 
 @dataclass
@@ -312,6 +280,7 @@ class SE24TabSnapshots:
 def parse_se24_snapshot(
     snapshot: AriaSnapshot,
     class_name: str,
+    t: LanguagePack,
     tab_snapshots: SE24TabSnapshots | None = None,
 ) -> SE24Entry | SE24Error:
     """
@@ -320,6 +289,7 @@ def parse_se24_snapshot(
     Args:
         snapshot: The main YAML accessibility snapshot from browser_snapshot
         class_name: The class/interface name being looked up
+        t: Language pack of the session
         tab_snapshots: Optional container with snapshots from each tab
 
     Returns:
@@ -328,7 +298,7 @@ def parse_se24_snapshot(
     now = datetime.now(UTC)
 
     # Check if we're on initial screen
-    if _is_initial_se24_screen(snapshot):
+    if _is_initial_se24_screen(snapshot, t):
         return SE24Error(
             class_name=class_name,
             error=f"Class/interface '{class_name}' not found - still on initial screen",
@@ -336,7 +306,7 @@ def parse_se24_snapshot(
         )
 
     # Check for not found message
-    if _is_class_not_found(snapshot, class_name):
+    if _is_class_not_found(snapshot, t):
         return SE24Error(
             class_name=class_name,
             error=f"Class/interface '{class_name}' not found",
@@ -344,18 +314,18 @@ def parse_se24_snapshot(
         )
 
     # Extract class name from heading
-    found_name = _extract_class_name(snapshot)
+    found_name = _extract_class_name(snapshot, t)
     if not found_name:
         # Try to use provided name if we can't extract from heading
         found_name = class_name.upper()
 
     # Determine object type
-    object_type = _determine_object_type(snapshot)
+    object_type = _determine_object_type(snapshot, t)
 
     # Parse tabs if provided
     tabs = tab_snapshots or SE24TabSnapshots()
-    methods = parse_se24_methods_snapshot(tabs.methods_tab) if tabs.methods_tab else []
-    attributes = parse_se24_attributes_snapshot(tabs.attributes_tab) if tabs.attributes_tab else []
+    methods = parse_se24_methods_snapshot(tabs.methods_tab, t) if tabs.methods_tab else []
+    attributes = parse_se24_attributes_snapshot(tabs.attributes_tab, t) if tabs.attributes_tab else []
 
     return SE24Entry(
         class_name=found_name,

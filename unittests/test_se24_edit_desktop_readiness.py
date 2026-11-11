@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -15,6 +15,9 @@ from sapguimcp.tools.se24_edit_tools import (
     _open_class_in_change_mode_desktop,
     _select_method_and_open_source_desktop,
 )
+
+if TYPE_CHECKING:
+    from sapguimcp.lang import LanguagePack
 
 
 def _backend(*, titles: list[str], popup: PopupInfo | None = None) -> Any:
@@ -46,9 +49,9 @@ def _backend(*, titles: list[str], popup: PopupInfo | None = None) -> Any:
 
 
 @pytest.mark.anyio
-async def test_open_class_waits_for_state_changes_not_fixed_times() -> None:
-    backend = _backend(titles=["Class Builder: Einstieg", "Class Builder: Klasse CL_X anzeigen"])
-    assert await _open_class_in_change_mode_desktop(backend, "cl_x") is None
+async def test_open_class_waits_for_state_changes_not_fixed_times(lang_de: LanguagePack) -> None:
+    backend = _backend(titles=["Klassenpflege: Einstieg", "Klassenpflege: Klasse CL_X anzeigen"])
+    assert await _open_class_in_change_mode_desktop(backend, "cl_x", lang_de) is None
     backend.wait.assert_not_awaited()
     # F7 (display) and Ctrl+F1 (change mode) are each followed by a wait for a state change
     assert [call.args[0] for call in backend.press_key.await_args_list] == ["F7", "Ctrl+F1"]
@@ -57,14 +60,14 @@ async def test_open_class_waits_for_state_changes_not_fixed_times() -> None:
 
 
 @pytest.mark.anyio
-async def test_open_class_presses_enter_only_when_a_popup_is_open() -> None:
-    backend = _backend(titles=["Class Builder: Einstieg", "Class Builder: Klasse CL_X anzeigen"])
-    await _open_class_in_change_mode_desktop(backend, "CL_X")
+async def test_open_class_presses_enter_only_when_a_popup_is_open(lang_de: LanguagePack) -> None:
+    backend = _backend(titles=["Klassenpflege: Einstieg", "Klassenpflege: Klasse CL_X anzeigen"])
+    await _open_class_in_change_mode_desktop(backend, "CL_X", lang_de)
     backend.dismiss_language_dialog.assert_not_awaited()
 
     popup = PopupInfo(title="Language", text="Different original and logon languages", buttons=[])
-    backend = _backend(titles=["Class Builder: Einstieg", "Class Builder: Klasse CL_X anzeigen"], popup=popup)
-    await _open_class_in_change_mode_desktop(backend, "CL_X")
+    backend = _backend(titles=["Klassenpflege: Einstieg", "Klassenpflege: Klasse CL_X anzeigen"], popup=popup)
+    await _open_class_in_change_mode_desktop(backend, "CL_X", lang_de)
     backend.dismiss_language_dialog.assert_awaited_once()
     assert [call.args[0] for call in backend.press_key.await_args_list] == ["F7", "Ctrl+F1"]
     # F7, popup gone after the dismissal, Ctrl+F1
@@ -72,29 +75,29 @@ async def test_open_class_presses_enter_only_when_a_popup_is_open() -> None:
 
 
 @pytest.mark.anyio
-async def test_open_class_leaves_an_unrelated_popup_alone_and_reports_it() -> None:
+async def test_open_class_leaves_an_unrelated_popup_alone_and_reports_it(lang_de: LanguagePack) -> None:
     popup = PopupInfo(message="Object is locked by another user", buttons=[])
-    backend = _backend(titles=["Class Builder: Einstieg", "Class Builder: Klasse CL_X anzeigen"], popup=popup)
+    backend = _backend(titles=["Klassenpflege: Einstieg", "Klassenpflege: Klasse CL_X anzeigen"], popup=popup)
     # dismiss_language_dialog only confirms the language dialog: for any other popup it does nothing
     backend.dismiss_language_dialog = AsyncMock()
     backend.check_popup = AsyncMock(return_value=popup)
-    error = await _open_class_in_change_mode_desktop(backend, "CL_X")
+    error = await _open_class_in_change_mode_desktop(backend, "CL_X", lang_de)
     assert error == "Unexpected popup while displaying class 'CL_X': Object is locked by another user"
     assert "Ctrl+F1" not in [call.args[0] for call in backend.press_key.await_args_list]
     assert "Enter" not in [call.args[0] for call in backend.press_key.await_args_list]
 
 
 @pytest.mark.anyio
-async def test_open_class_that_stays_on_the_initial_screen_reports_the_status_text() -> None:
-    backend = _backend(titles=["Class Builder: Einstieg"])
+async def test_open_class_that_stays_on_the_initial_screen_reports_the_status_text(lang_de: LanguagePack) -> None:
+    backend = _backend(titles=["Klassenpflege: Einstieg"])
     backend.get_status_bar = AsyncMock(return_value=StatusBarInfo(type="E", message="Class CL_X does not exist"))
-    assert await _open_class_in_change_mode_desktop(backend, "CL_X") == "Class CL_X does not exist"
+    assert await _open_class_in_change_mode_desktop(backend, "CL_X", lang_de) == "Class CL_X does not exist"
     assert "Ctrl+F1" not in [call.args[0] for call in backend.press_key.await_args_list]
 
 
 @pytest.mark.anyio
-async def test_open_class_needs_a_desktop_backend() -> None:
-    assert await _open_class_in_change_mode_desktop(MagicMock(), "CL_X") == "Requires DesktopBackend"
+async def test_open_class_needs_a_desktop_backend(lang_de: LanguagePack) -> None:
+    assert await _open_class_in_change_mode_desktop(MagicMock(), "CL_X", lang_de) == "Requires DesktopBackend"
 
 
 def _method_table_session(method_names: list[str]) -> Any:
@@ -142,10 +145,10 @@ def _method_backend(session: Any) -> Any:
 
 
 @pytest.mark.anyio
-async def test_select_method_waits_for_the_editor_instead_of_a_fixed_time() -> None:
+async def test_select_method_waits_for_the_editor_instead_of_a_fixed_time(lang_de: LanguagePack) -> None:
     session = _method_table_session(["OTHER", "DO_SOMETHING"])
     backend = _method_backend(session)
-    assert await _select_method_and_open_source_desktop(backend, "CL_X", "do_something") is None
+    assert await _select_method_and_open_source_desktop(backend, "CL_X", "do_something", lang_de) is None
     backend.wait.assert_not_awaited()
     assert session.raw.focused == [1]
     backend.click_button.assert_awaited_once_with("Quelltext")
@@ -155,26 +158,26 @@ async def test_select_method_waits_for_the_editor_instead_of_a_fixed_time() -> N
 
 
 @pytest.mark.anyio
-async def test_select_method_fails_when_the_editor_does_not_appear() -> None:
+async def test_select_method_fails_when_the_editor_does_not_appear(lang_de: LanguagePack) -> None:
     backend = _method_backend(_method_table_session(["DO_SOMETHING"]))
     backend.wait_for_condition = AsyncMock(side_effect=[True, False])
-    error = await _select_method_and_open_source_desktop(backend, "CL_X", "DO_SOMETHING")
+    error = await _select_method_and_open_source_desktop(backend, "CL_X", "DO_SOMETHING", lang_de)
     assert error == "The source editor of method 'DO_SOMETHING' did not open within 10 s"
 
 
 @pytest.mark.anyio
-async def test_a_failing_wait_after_the_click_does_not_click_the_next_button() -> None:
+async def test_a_failing_wait_after_the_click_does_not_click_the_next_button(lang_de: LanguagePack) -> None:
     backend = _method_backend(_method_table_session(["DO_SOMETHING"]))
     backend.wait_for_condition = AsyncMock(side_effect=[True, RuntimeError("connection lost")])
     with pytest.raises(RuntimeError, match="connection lost"):
-        await _select_method_and_open_source_desktop(backend, "CL_X", "DO_SOMETHING")
+        await _select_method_and_open_source_desktop(backend, "CL_X", "DO_SOMETHING", lang_de)
     backend.click_button.assert_awaited_once_with("Quelltext")
 
 
 @pytest.mark.anyio
-async def test_select_method_reports_a_method_that_is_not_in_the_table() -> None:
+async def test_select_method_reports_a_method_that_is_not_in_the_table(lang_de: LanguagePack) -> None:
     backend = _method_backend(_method_table_session(["OTHER"]))
-    error = await _select_method_and_open_source_desktop(backend, "CL_X", "DO_SOMETHING")
+    error = await _select_method_and_open_source_desktop(backend, "CL_X", "DO_SOMETHING", lang_de)
     assert error == "Method 'DO_SOMETHING' not found in class 'CL_X' methods table"
     backend.click_button.assert_not_awaited()
 

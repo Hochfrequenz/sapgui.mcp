@@ -16,9 +16,10 @@ from typing import TYPE_CHECKING, Any
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapguimcp import lang
 from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RERAISE_COM_ERRORS, _get_com_error_code
 from sapguimcp.backend.manager import get_backend
-from sapguimcp.backend.webgui.parsers.se24_parser import SE24TabSnapshots, parse_se24_snapshot
+from sapguimcp.backend.webgui.parsers.se24_parser import SE24TabSnapshots, map_visibility, parse_se24_snapshot
 from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.models import (
     SE24Entry,
@@ -26,7 +27,7 @@ from sapguimcp.models import (
     SE24FileSummary,
     SE24Result,
 )
-from sapguimcp.models.se24_models import SE24Attribute, SE24Method, SE24ObjectType, SE24Visibility
+from sapguimcp.models.se24_models import SE24Attribute, SE24Method, SE24ObjectType
 from sapguimcp.tools.desktop_wait_predicates import (
     named_text_field_present,
     popup_closed_and_screen_changed,
@@ -39,6 +40,8 @@ from sapguimcp.tools.table_helpers import read_table_control_all_rows
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
+    from sapguimcp.lang.schema import LanguagePack
+    from sapguimcp.lang.text import Text
 
 
 logger = logging.getLogger(__name__)
@@ -54,62 +57,42 @@ MAX_INLINE_OBJECTS = 5
 # =============================================================================
 
 
-# DE/EN label variants for the class/interface input field.
-_CLASS_FIELD_LABELS = [
-    "Objekttyp",
-    "Object type",
-    "Object Type",
-    "Klasse/Interface",
-    "Class/Interface",
-]
-
-
-def _parse_visibility(raw: str) -> SE24Visibility:
-    """Parse visibility string to typed literal."""
-    lower = raw.lower()
-    if "protected" in lower:
-        return "protected"
-    if "private" in lower:
-        return "private"
-    return "public"
-
-
-def _parse_methods(rows: list[dict[str, str]]) -> list[SE24Method]:
+def _parse_methods(rows: list[dict[str, str]], t: LanguagePack) -> list[SE24Method]:
     """Parse methods table rows into SE24Method models."""
     methods: list[SE24Method] = []
     for row in rows:
-        name = row.get("Methode", row.get("Method", ""))
+        name = t.se24.method_column.first_key(row) or ""
         if not name:
             continue
-        kind = row.get("Art", row.get("Level", "")).lower()
+        kind = t.se24.kind_column.first_key(row) or ""
         methods.append(
             SE24Method(
                 name=name,
-                visibility=_parse_visibility(row.get("Sichtbarkeit", row.get("Visibility", ""))),
-                is_static="static" in kind,
-                description=row.get("Beschreibung", row.get("Description", "")),
+                visibility=map_visibility(t, t.se24.visibility_column.first_key(row), exact=False),
+                is_static=t.se24.static.contains(kind),
+                description=t.se24.description_column.first_key(row) or "",
             )
         )
     return methods
 
 
-def _parse_attributes(rows: list[dict[str, str]]) -> list[SE24Attribute]:
+def _parse_attributes(rows: list[dict[str, str]], t: LanguagePack) -> list[SE24Attribute]:
     """Parse attributes table rows into SE24Attribute models."""
     attributes: list[SE24Attribute] = []
     for row in rows:
-        name = row.get("Attribut", row.get("Attribute", ""))
+        name = t.se24.attribute_column.first_key(row) or ""
         if not name:
             continue
-        kind = row.get("Art", row.get("Level", "")).lower()
+        kind = t.se24.kind_column.first_key(row) or ""
         attributes.append(
             SE24Attribute(
                 name=name,
-                visibility=_parse_visibility(row.get("Sichtbarkeit", row.get("Visibility", ""))),
-                is_static="static" in kind,
-                is_constant="constant" in kind or "konstante" in kind,
-                type_ref=row.get("Bezugstyp", row.get("Assoc.Type", "")),
-                default_value=row.get("Initialer Wert", row.get("Initial Value", None)) or None,
-                description=row.get("Beschreibung", row.get("Description", "")),
+                visibility=map_visibility(t, t.se24.visibility_column.first_key(row), exact=False),
+                is_static=t.se24.static.contains(kind),
+                is_constant=t.se24.constant.contains(kind),
+                type_ref=t.se24.type_ref_column.first_key(row) or "",
+                default_value=t.se24.initial_value_column.first_key(row) or None,
+                description=t.se24.description_column.first_key(row) or "",
             )
         )
     return attributes
@@ -120,20 +103,20 @@ def _parse_attributes(rows: list[dict[str, str]]) -> list[SE24Attribute]:
 _SE24_SCREEN_WAIT_MS = 3000
 
 
-async def _click_tab_bilingual(backend: DesktopBackend, de_label: str, en_label: str) -> str | None:
-    """Click a tab trying DE then EN label. Returns the label that matched, or None when neither did."""
-    for label in [de_label, en_label]:
+async def _click_tab(backend: DesktopBackend, tab: Text) -> str | None:
+    """Click a tab trying each label of the pack text. Returns the label that matched, or None when none did."""
+    for label in tab:
         try:
             await backend.click_tab(label)
             await backend.wait_for_ready()
             return label
         except Exception:  # pylint: disable=broad-exception-caught
             continue
-    logger.warning("Tab not found: %s / %s", de_label, en_label)
+    logger.warning("Tab not found: %s", " / ".join(tab))
     return None
 
 
-# The header data of a class or interface is on its properties tab ('Eigenschaften' / 'Properties'), read by field name:
+# The header data of a class or interface is on its properties tab, read by field name:
 # the description and package of a class and of an interface have different names
 _HEADER_TEXT_FIELDS = {
     "VSEOCLASS-DESCRIPT": "description",
@@ -142,12 +125,12 @@ _HEADER_TEXT_FIELDS = {
     "DY_0153-DEVCLASS": "package",
     "DY_0152-SUPERCLASS": "superclass",
 }
-_HEADER_DESCRIPTION_FIELDS = ("VSEOCLASS-DESCRIPT", "VSEOINTERF-DESCRIPT")
+_HEADER_INTERFACE_DESCRIPTION = "VSEOINTERF-DESCRIPT"
+_HEADER_DESCRIPTION_FIELDS = ("VSEOCLASS-DESCRIPT", _HEADER_INTERFACE_DESCRIPTION)
 _HEADER_FINAL = "VSEOCLASS-CLSFINAL"  # checkbox
 _HEADER_INSTANTIATION = "SEOX-CREATABLE"  # combo box: public / protected / private / abstract
 # The key of 'abstract' in the instantiation combo box (private is '0'): the same in every logon language
 _ABSTRACT_INSTANTIATION_KEY = "3"
-_ABSTRACT_INSTANTIATION_TEXTS = ("abstrakt", "abstract")  # the text, if the key cannot be read
 _TYPE_TEXT_FIELDS = (31, 32)  # GuiTextField, GuiCTextField
 _TYPE_COMBO_BOX = 34
 _TYPE_CHECK_BOX = 42
@@ -160,20 +143,21 @@ def _reraise_if_transient(exc: Exception) -> None:
         raise exc
 
 
-def _is_abstract_instantiation(session: Any, elem: Any) -> bool:
+def _is_abstract_instantiation(session: Any, elem: Any, t: LanguagePack) -> bool:
     """Whether the instantiation combo box says abstract: by its key, by its text if the key cannot be read."""
     try:
         return str(session.find_by_id(elem.id).key).strip() == _ABSTRACT_INSTANTIATION_KEY
     except Exception as exc:  # pylint: disable=broad-exception-caught
         _reraise_if_transient(exc)
         logger.debug("SE24 instantiation key not readable, using the text", exc_info=True)
-        return str(elem.text).strip().lower() in _ABSTRACT_INSTANTIATION_TEXTS
+        return t.se24.abstract.equals(str(elem.text).strip())
 
 
-def _read_se24_header(session: Any, flatten_fn: Any) -> dict[str, str | bool]:
+def _read_se24_header(session: Any, flatten_fn: Any, t: LanguagePack) -> dict[str, str | bool]:
     """The header data of the class or interface from the active properties tab (COM thread), by field name.
 
-    Keys: ``description``, ``package``, ``superclass`` (only a subclass shows it), ``is_final`` and ``is_abstract``.
+    Keys: ``description``, ``package``, ``superclass`` (only a subclass shows it), ``object_type`` (``interface`` if
+    the interface description field is there, else ``class``), ``is_final`` and ``is_abstract``.
     A value that cannot be read is left out and logged; the others are still read.
     """
     values: dict[str, str | bool] = {}
@@ -190,10 +174,14 @@ def _read_se24_header(session: Any, flatten_fn: Any) -> dict[str, str | bool]:
         try:
             if name in _HEADER_TEXT_FIELDS and kind in _TYPE_TEXT_FIELDS:
                 values[_HEADER_TEXT_FIELDS[name]] = str(elem.text).strip()
+                if name in _HEADER_DESCRIPTION_FIELDS:
+                    values["object_type"] = (
+                        "interface" if name == _HEADER_INTERFACE_DESCRIPTION else "class"
+                    )  # lang-ok: model value
             elif name == _HEADER_FINAL and kind == _TYPE_CHECK_BOX:
                 values["is_final"] = bool(session.find_by_id(elem.id).selected)
             elif name == _HEADER_INSTANTIATION and kind == _TYPE_COMBO_BOX:
-                values["is_abstract"] = _is_abstract_instantiation(session, elem)
+                values["is_abstract"] = _is_abstract_instantiation(session, elem, t)
         except Exception as exc:  # pylint: disable=broad-exception-caught
             _reraise_if_transient(exc)
             logger.warning("SE24 header field %s could not be read", name, exc_info=True)
@@ -201,7 +189,7 @@ def _read_se24_header(session: Any, flatten_fn: Any) -> dict[str, str | bool]:
 
 
 async def _read_tab_rows(
-    backend: DesktopBackend, de_label: str, en_label: str, previous_rows: list[dict[str, str]]
+    backend: DesktopBackend, tab: Text, previous_rows: list[dict[str, str]]
 ) -> list[dict[str, str]]:
     """Select a tab and read its table control (#928).
 
@@ -218,7 +206,7 @@ async def _read_tab_rows(
     def _read_tc() -> list[dict[str, str]]:
         return read_table_control_all_rows(session, _flatten)
 
-    label = await _click_tab_bilingual(backend, de_label, en_label)
+    label = await _click_tab(backend, tab)
     rows = await com.run(_read_tc, retry_server_fault=True)
     if label is not None and (not rows or rows == previous_rows):
         if not await backend.wait_for_condition(tab_table_control_loaded(label), timeout_ms=3000, poll_ms=250):
@@ -228,7 +216,7 @@ async def _read_tab_rows(
 
 
 async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-statements
-    backend: WebGuiBackend | DesktopBackend, class_name: str
+    backend: WebGuiBackend | DesktopBackend, class_name: str, t: LanguagePack
 ) -> SE24Entry | SE24Error:
     """Desktop-specific SE24 lookup using tab navigation and table control reading."""
     from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
@@ -241,7 +229,7 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
 
     # Fill class name field
     filled = False
-    for label in _CLASS_FIELD_LABELS:
+    for label in t.se24.class_field_label:
         try:
             await backend.fill_field(label, class_name.upper())
             filled = True
@@ -296,25 +284,22 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
     # exist in the widget tree until the tab is explicitly activated by a click.
     methods_raw = await com.run(_read_tc, retry_server_fault=True)
     if not methods_raw:
-        methods_raw = await _read_tab_rows(backend, "Methoden", "Methods", previous_rows=[])
-    attrs_raw = await _read_tab_rows(backend, "Attribute", "Attributes", previous_rows=methods_raw)
-    intfs_raw = await _read_tab_rows(backend, "Schnittstellen", "Interfaces", previous_rows=attrs_raw)
+        methods_raw = await _read_tab_rows(backend, t.se24.methods_tab, previous_rows=[])
+    attrs_raw = await _read_tab_rows(backend, t.se24.attributes_tab, previous_rows=methods_raw)
+    intfs_raw = await _read_tab_rows(backend, t.se24.interfaces_tab, previous_rows=attrs_raw)
 
     # The header data (description, package, superclass, final, abstract) is on the properties tab. It is read last:
     # that tab has a table control of its own (type groups) that must not be taken for the methods of the class.
-    await _click_tab_bilingual(backend, "Eigenschaften", "Properties")
+    await _click_tab(backend, t.se24.properties_tab)
     # SAP instantiates the subscreen lazily and idle does not prove that it is there: wait for its description field
     if not await backend.wait_for_condition(
         named_text_field_present(_HEADER_DESCRIPTION_FIELDS), timeout_ms=3000, poll_ms=250
     ):
         logger.warning("SE24 properties tab: the description field did not appear within 3 s")
-    header = await com.run(lambda: _read_se24_header(session, _flatten), retry_server_fault=True)
+    header = await com.run(lambda: _read_se24_header(session, _flatten, t), retry_server_fault=True)
 
-    # Detect interface vs class from screen title
-    # DE: "Class Builder: Interface IF_XXX anzeigen" / "Klasse CL_XXX anzeigen"
-    # EN: "Class Builder: Display Interface IF_XXX" / "Display Class CL_XXX"
-    title_lower = (screen.title or "").lower()
-    object_type: SE24ObjectType = "interface" if "interface" in title_lower else "class"
+    # Class or interface: by which description field the properties tab shows (language independent)
+    object_type: SE24ObjectType = "interface" if header.get("object_type") == "interface" else "class"  # lang-ok: value
 
     return SE24Entry(
         class_name=class_name.upper(),
@@ -324,29 +309,21 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
         superclass=str(header.get("superclass") or "") or None,
         is_abstract=bool(header.get("is_abstract")),
         is_final=bool(header.get("is_final")),
-        methods=_parse_methods(methods_raw),
-        attributes=_parse_attributes(attrs_raw),
-        interfaces=[row.get("Interface", "") for row in intfs_raw if row.get("Interface")],
+        methods=_parse_methods(methods_raw, t),
+        attributes=_parse_attributes(attrs_raw, t),
+        interfaces=[name for row in intfs_raw if (name := t.se24.interface_label.first_key(row))],
         retrieved_at=now,
     )
 
 
-async def _capture_tab_snapshot(backend: WebGuiBackend | DesktopBackend, tab_name: str) -> str | None:
+async def _capture_tab_snapshot(backend: WebGuiBackend | DesktopBackend, tab: Text) -> str | None:
     """Click a tab and capture its snapshot. Returns snapshot or None.
 
     After clicking, verifies the tab is actually ``[selected]`` in the ARIA
     snapshot.  SAP WebGUI sometimes needs an extra ``wait_for_ready`` before
     the tab content is rendered.
     """
-    # Try German and English tab names
-    tab_names = {
-        "methods": ["Methoden", "Methods"],
-        "attributes": ["Attribute", "Attributes"],
-        "interfaces": ["Interfaces", "Schnittstellen"],
-    }
-
-    names_to_try = tab_names.get(tab_name, [tab_name])
-    for name in names_to_try:
+    for name in tab:
         try:
             await backend.click_tab(name)
             await backend.wait_for_ready()
@@ -366,17 +343,24 @@ async def _capture_tab_snapshot(backend: WebGuiBackend | DesktopBackend, tab_nam
             logger.debug("Tab '%s' click failed, trying next variant", name, exc_info=True)
             continue
 
-    logger.warning("Could not activate tab '%s' with any label variant", tab_name)
+    logger.warning("Could not activate tab '%s' with any label variant", " / ".join(tab))
     return None
 
 
-async def _fill_and_display(backend: WebGuiBackend | DesktopBackend, class_name: str) -> SE24Error | None:
+async def _fill_and_display(
+    backend: WebGuiBackend | DesktopBackend, class_name: str, t: LanguagePack
+) -> SE24Error | None:
     """Fill the class field and press F7 (Display). Returns error or None.
 
     Delegates to the shared ``fill_and_display`` helper which uses real
     keyboard events and polls for page navigation.
     """
-    error_msg = await fill_and_display(backend, _CLASS_FIELD_LABELS, class_name, tcode_label="class/interface")
+    error_msg = await fill_and_display(
+        backend,
+        list(t.se24.class_field_label),
+        class_name,
+        tcode_label="class/interface",  # lang-ok: our own message
+    )
     if error_msg:
         return SE24Error(
             class_name=class_name,
@@ -387,7 +371,7 @@ async def _fill_and_display(backend: WebGuiBackend | DesktopBackend, class_name:
 
 
 async def _lookup_class_on_initial_screen(
-    backend: WebGuiBackend | DesktopBackend, class_name: str
+    backend: WebGuiBackend | DesktopBackend, class_name: str, t: LanguagePack
 ) -> SE24Entry | SE24Error:
     """Look up a class assuming we're already on the SE24 initial screen.
 
@@ -398,7 +382,7 @@ async def _lookup_class_on_initial_screen(
     await backend.wait_for_ready()
 
     # Fill class name, press F7, and verify we left the initial screen.
-    error = await _fill_and_display(backend, class_name)
+    error = await _fill_and_display(backend, class_name, t)
     if error:
         return error
 
@@ -407,9 +391,9 @@ async def _lookup_class_on_initial_screen(
     logger.debug("Got main snapshot", extra={"object": class_name, "length": len(str(main_snapshot))})
 
     # Capture each tab
-    methods_raw = await _capture_tab_snapshot(backend, "methods")
-    attributes_raw = await _capture_tab_snapshot(backend, "attributes")
-    interfaces_raw = await _capture_tab_snapshot(backend, "interfaces")
+    methods_raw = await _capture_tab_snapshot(backend, t.se24.methods_tab)
+    attributes_raw = await _capture_tab_snapshot(backend, t.se24.attributes_tab)
+    interfaces_raw = await _capture_tab_snapshot(backend, t.se24.interfaces_tab)
     tab_snapshots = SE24TabSnapshots(
         methods_tab=AriaSnapshot(methods_raw) if methods_raw is not None else None,
         attributes_tab=AriaSnapshot(attributes_raw) if attributes_raw is not None else None,
@@ -420,11 +404,14 @@ async def _lookup_class_on_initial_screen(
     return parse_se24_snapshot(
         snapshot=main_snapshot,
         class_name=class_name,
+        t=t,
         tab_snapshots=tab_snapshots,
     )
 
 
-async def _lookup_batch_se24_webgui(backend: WebGuiBackend | DesktopBackend, class_list: list[str]) -> SE24Result:
+async def _lookup_batch_se24_webgui(
+    backend: WebGuiBackend | DesktopBackend, class_list: list[str], t: LanguagePack
+) -> SE24Result:
     """Run SE24 lookups for a batch of classes on the WebGUI backend."""
     entries: list[SE24Entry] = []
     errors: list[SE24Error] = []
@@ -444,7 +431,7 @@ async def _lookup_batch_se24_webgui(backend: WebGuiBackend | DesktopBackend, cla
             continue
         await backend.wait_for_ready()
         try:
-            result = await _lookup_class_on_initial_screen(backend, class_name)
+            result = await _lookup_class_on_initial_screen(backend, class_name, t)
             if isinstance(result, SE24Entry):
                 entries.append(result)
             else:
@@ -462,7 +449,9 @@ async def _lookup_batch_se24_webgui(backend: WebGuiBackend | DesktopBackend, cla
     return SE24Result.failure(error=f"All {len(errors)} lookups failed", entries=[], errors=errors)
 
 
-async def _lookup_batch_se24_desktop(backend: WebGuiBackend | DesktopBackend, class_list: list[str]) -> SE24Result:
+async def _lookup_batch_se24_desktop(
+    backend: WebGuiBackend | DesktopBackend, class_list: list[str], t: LanguagePack
+) -> SE24Result:
     """Run SE24 lookups for a batch of classes on the desktop backend."""
     entries: list[SE24Entry] = []
     errors: list[SE24Error] = []
@@ -482,7 +471,7 @@ async def _lookup_batch_se24_desktop(backend: WebGuiBackend | DesktopBackend, cl
             continue
         await backend.wait_for_ready()
         try:
-            result = await _lookup_class_desktop(backend, class_name)
+            result = await _lookup_class_desktop(backend, class_name, t)
             if isinstance(result, SE24Entry):
                 entries.append(result)
             else:
@@ -549,11 +538,14 @@ def register_se24_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return SE24Result.failure(f"Session error: {e}")
 
+        # Resolved once, outside the per-class error handling: an unsupported language must not become an entry error
+        t = lang.current("sap_se24_lookup")
+
         # Route to desktop or WebGUI batch lookup
         if backend.backend_type == "desktop":
-            final_result = await _lookup_batch_se24_desktop(backend, class_list)
+            final_result = await _lookup_batch_se24_desktop(backend, class_list, t)
         else:
-            final_result = await _lookup_batch_se24_webgui(backend, class_list)
+            final_result = await _lookup_batch_se24_webgui(backend, class_list, t)
 
         # Write to file if requested
         if output_file:
