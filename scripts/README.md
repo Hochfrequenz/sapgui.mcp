@@ -35,8 +35,10 @@ uv run python scripts/harvest_lang_texts.py DE --print-sql
 `--verify` reports every sourced pack field whose text no longer matches SAP (exit code 1). OAuth2
 systems are not supported by the built-in client: `--print-sql` lists one query per field, run each
 through the sap-adt MCP `run_query` tool (purpose `development_metadata`), save `{path: [text, ...]}`
-as JSON and pass it with `--sap-texts`. `--draft` (writing a new language pack) is specified in spec
-section 9 but not implemented yet.
+as JSON and pass it with `--sap-texts`. `--draft` writes the source of a draft pack for a new
+(unregistered) language: a copy of the EN pack where sourced fields hold SAP's text and everything
+else keeps the EN value with a `# TODO` comment (`--out <file>` or stdout; it never registers the
+pack and never overwrites a file).
 
 ## Transaction Catalog Building
 

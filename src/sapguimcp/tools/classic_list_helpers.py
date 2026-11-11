@@ -85,8 +85,9 @@ def read_classic_list_table(session: Any, header_titles: tuple[str, ...], max_ro
     """Read the classic list on screen as a table (run on the COM thread). Empty if the screen has no such list.
 
     ``header_titles`` are titles the header line is recognised by (compared ignoring case). Entries are the lines
-    below the header that start with a checkbox. A list taller than the window is read page by page with the vertical
-    scrollbar (a line's absolute row is the scroll position plus its screen row); the scrollbar is reset afterwards.
+    below the header that start with a checkbox. The header must be on the first page. A list taller than the
+    window is read page by page with the vertical scrollbar (a line's absolute row is the scroll position plus its
+    screen row); the scrollbar is reset afterwards.
     """
     usr = session.find_by_id("wnd[0]/usr")
     scrollbar = getattr(usr, "vertical_scrollbar", None)
@@ -109,7 +110,7 @@ def read_classic_list_table(session: Any, header_titles: tuple[str, ...], max_ro
             if titles is None:
                 header = _header(labels, header_titles)
                 if header is None:
-                    continue
+                    break  # the header is on the first page; a list without one is not scanned page by page
                 header_row, titles = header
                 header_line = offset + header_row
                 logger.debug("Classic list header at row %d: %s", header_row, titles)

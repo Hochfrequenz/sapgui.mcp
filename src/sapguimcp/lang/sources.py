@@ -100,7 +100,9 @@ SOURCES: Mapping[str, Source] = MappingProxyType(
         "popup.abapgit_no_task": Manual("abapGit UI text"),
         "popup.abapgit_button_labels": Manual("abapGit UI text"),
         "popup.abapgit_inactive_objects": Manual("abapGit UI text"),
-        "abapgit.se38_initial_title": Manual("abapGit UI text; EN title not yet read live (#1044)"),
+        "abapgit.se38_initial_title": Manual(
+            "abapGit UI text; title of the SE38 initial screen, read live in DE and EN"
+        ),
         "catalog.screen_header": Manual(
             "SE16 column header of the TSTC screen number (DYPNO); EN seen in a WebGUI capture"
         ),

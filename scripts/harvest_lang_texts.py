@@ -5,6 +5,7 @@ Usage::
     uv run python scripts/harvest_lang_texts.py DE --verify [--system <key>]
     uv run python scripts/harvest_lang_texts.py DE --verify --sap-texts texts.json
     uv run python scripts/harvest_lang_texts.py DE --print-sql
+    uv run python scripts/harvest_lang_texts.py IT --draft [--system <key>] [--sap-texts texts.json] [--out it.py]
 
 ``--verify`` reads every non-``Manual`` source of ``sapguimcp.lang.sources.SOURCES`` for the
 language and reports each pack field whose text no longer matches SAP ("drift"). It reads only
@@ -15,18 +16,27 @@ not supported here. For them, ``--print-sql`` lists one query per field: run eac
 sap-adt MCP ``run_query`` tool (purpose ``development_metadata``), save ``{path: [text, ...]}`` as
 JSON and pass it with ``--sap-texts``.
 
-Draft mode (``--draft``, writing a new ``<lang>.py``) is specified in spec section 9 and not
-implemented yet. Exit code: 0 without drift, 1 with drift, 2 on usage errors.
+``--draft`` writes the source of a draft ``<lang>.py`` for a language that is not registered yet
+(any 2-character SAP language key of T002; ``--print-sql`` accepts such a key too). The draft has the
+structure of the EN pack. Fields with a SAP source hold SAP's text; ``Manual`` fields, ``fragment``
+fields and ``Template`` / ``RegexText`` fields keep the EN value with a ``# TODO`` comment, as do
+``html_lang``, ``logon_dropdown`` and ``date_format``. Flags and kinds stay those of EN. It never
+registers the pack. Output goes to stdout or ``--out`` (an existing file is not overwritten).
+
+Exit code: 0 without drift, 1 with drift, 2 on usage errors.
 """
 
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import re
 import sys
 import xml.etree.ElementTree as ET
+from collections.abc import Mapping
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -34,7 +44,7 @@ import httpx
 from sap_mcp_config import load_default
 
 from sapguimcp.lang import pack_for, supported_languages
-from sapguimcp.lang.schema import Leaf, iter_leaves
+from sapguimcp.lang.schema import Leaf, iter_leaves, sections
 from sapguimcp.lang.sources import (
     SOURCES,
     DataElement,
@@ -46,10 +56,10 @@ from sapguimcp.lang.sources import (
     Source,
     Transaction,
 )
-from sapguimcp.lang.text import RegexText, Template
+from sapguimcp.lang.text import RegexText, Template, Text
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping, Sequence
+    from collections.abc import Callable, Sequence
 
     from sap_mcp_config.models import SAPSystem
 
@@ -197,6 +207,109 @@ def verify(language: str, fetch: Callable[[str, Source], Sequence[str]]) -> dict
     return findings
 
 
+def _q(value: str) -> str:
+    """A Python string literal in double quotes (the formatter would normalise it anyway)."""
+    return json.dumps(value, ensure_ascii=False)
+
+
+def _one_line(value: str) -> str:
+    return " ".join(value.split())
+
+
+def _flags(leaf: Leaf) -> str:
+    out = "" if leaf.fold else ", fold=False"
+    if isinstance(leaf, Text) and leaf.word:
+        out += ", word=True"
+    return out
+
+
+def _tuple(values: Sequence[str], quote: Callable[[str], str]) -> str:
+    return "(" + ", ".join(quote(value) for value in values) + ("," if len(values) == 1 else "") + ")"
+
+
+def _leaf_code(leaf: Leaf, variants: Sequence[str] | None = None) -> str:
+    """Constructor call with ``leaf``'s kind and flags; ``variants`` replace its own (``None``: keep)."""
+    if isinstance(leaf, RegexText):
+        return f"RegexText({_tuple(leaf.patterns, repr)}{_flags(leaf)})"
+    return f"{type(leaf).__name__}({_tuple(leaf.variants if variants is None else variants, _q)}{_flags(leaf)})"
+
+
+def _draft_leaf(leaf: Leaf, source: Source, sap_texts: Sequence[str]) -> tuple[str, str | None]:
+    """``(code, comment)`` of one field: SAP's text where it can be taken over safely."""
+    if isinstance(source, Manual):
+        return _leaf_code(leaf), f"TODO translate (Manual: {_one_line(source.reason)})"
+    texts = list(dict.fromkeys(text.strip() for text in sap_texts if text.strip()))
+    if not texts:
+        return _leaf_code(leaf), "TODO translate (SAP has no text in this language)"
+    shown = _one_line(" | ".join(texts))
+    if source.relation == "fragment":
+        return _leaf_code(leaf), f"TODO fragment of: {shown}"
+    if isinstance(leaf, Text):
+        return _leaf_code(leaf, texts), None
+    return _leaf_code(leaf), f"TODO derive from SAP text: {shown}"  # Template / RegexText: placeholders, regex
+
+
+def _entry_name(key: object) -> str:
+    return f"{type(key).__name__}.{key.name}" if isinstance(key, Enum) else repr(key)
+
+
+def draft(language: str, fetch: Callable[[str, Source], Sequence[str]]) -> str:
+    """Source of a draft ``<language>.py`` shaped like the EN pack (see the module docstring)."""
+    if not _LANGUAGE_KEY.match(language):
+        raise ValueError(f"not an SAP language key: {language!r}")
+    en = pack_for("EN")
+    imports: dict[str, set[str]] = {"sapguimcp.lang.schema": {"LanguagePack"}, "sapguimcp.lang.text": set()}
+    body: list[str] = []
+
+    def emit(indent: int, text: str, comment: str | None = None) -> None:
+        body.append(" " * indent + text + (f"  # {comment}" if comment else ""))
+
+    def leaf_line(indent: int, prefix: str, path: str, leaf: Leaf) -> None:
+        source = SOURCES[path]
+        code, comment = _draft_leaf(leaf, source, () if isinstance(source, Manual) else fetch(path, source))
+        imports["sapguimcp.lang.text"].add(type(leaf).__name__)
+        emit(indent, f"{prefix}{code},", comment)
+
+    # The module constant must be a Python identifier; SAP keys such as "1Q" start with a digit.
+    constant = language if language.isidentifier() else f"PACK_{language}"
+    emit(0, f"{constant} = LanguagePack(")
+    emit(4, f"code={_q(language)},")
+    emit(4, f"html_lang={_q(en.html_lang)},", f"TODO ISO code of <html lang> in the WebGUI for {language}")
+    emit(4, f"logon_dropdown={_q(en.logon_dropdown)},", "TODO language name in the WebGUI logon dropdown")
+    emit(4, f"date_format={_q(en.date_format)},", "TODO strftime pattern of the default date input format")
+    emit(4, "same_as_en=frozenset(),", "TODO field paths that deliberately equal EN")
+    for section_name, section in sections(en):
+        section_class = type(section).__name__
+        imports["sapguimcp.lang.schema"].add(section_class)
+        emit(4, f"{section_name}={section_class}(")
+        for field in dataclasses.fields(section):
+            value = getattr(section, field.name)
+            path = f"{section_name}.{field.name}"
+            if not isinstance(value, Mapping):
+                leaf_line(8, f"{field.name}=", path, value)
+                continue
+            imports["sapguimcp.lang.schema"].add("canonical")
+            emit(8, f"{field.name}=canonical(")
+            emit(12, "{")
+            for key, leaf in value.items():
+                imports["sapguimcp.lang.schema"].add(type(key).__name__)
+                leaf_line(16, f"{_entry_name(key)}: ", f"{path}[{key}]", leaf)
+            emit(12, "}")
+            emit(8, "),")
+        emit(4, "),")
+    emit(0, ")")
+    lines = [
+        f'"""{language} language pack: DRAFT from scripts/harvest_lang_texts.py --draft (#1044).',
+        "",
+        "Every ``TODO`` comment marks a field a person has to settle; remove it afterwards. Not registered:",
+        "follow ``ADDING_A_LANGUAGE.md`` (format with ruff, then register in ``__init__.py``).",
+        '"""',
+        "",
+    ]
+    lines.extend(f"from {module} import {', '.join(sorted(names))}" for module, names in sorted(imports.items()))
+    return "\n".join([*lines, "", *body, ""])
+
+
 def _fetch_from_file(texts: Mapping[str, Sequence[str]]) -> Callable[[str, Source], Sequence[str]]:
     return lambda path, _source: texts.get(path, ())
 
@@ -210,16 +323,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     mode.add_argument("--draft", action="store_true")
     parser.add_argument("--system", help="systems.json key (default: default_system)")
     parser.add_argument("--sap-texts", type=Path, help="JSON {path: [text, ...]} collected via run_query")
+    parser.add_argument("--out", type=Path, help="--draft: write the draft module here instead of stdout")
     args = parser.parse_args(argv)
-    if args.draft:
-        parser.error("--draft is not implemented yet (spec section 9)")
-    if args.language not in supported_languages():
+    if not _LANGUAGE_KEY.match(args.language):
+        parser.error(f"not a 2-character SAP language key: {args.language!r}")
+    if args.out is not None and not args.draft:
+        parser.error("--out belongs to --draft")
+    if not (args.draft or args.print_sql) and args.language not in supported_languages():
         parser.error(f"unsupported language {args.language!r}; supported: {', '.join(sorted(supported_languages()))}")
     if args.print_sql:
         for path, source in SOURCES.items():
             if not isinstance(source, Manual):
                 print(f"{path}\t{sql_for(source, args.language)}")
         return 0
+    preview: AdtPreview | None = None
     if args.sap_texts is not None:
         fetch = _fetch_from_file(json.loads(args.sap_texts.read_text(encoding="utf-8")))
     else:  # only the direct ADT mode needs systems.json and credentials
@@ -227,8 +344,24 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.system is not None and args.system not in config.systems:
             parser.error(f"unknown --system {args.system!r}; known: {', '.join(sorted(config.systems))}")
         preview = AdtPreview.for_system(config.systems[args.system or config.default_system])
-        fetch = lambda _path, source: preview.query(sql_for(source, args.language))  # noqa: E731
+        client = preview
+        fetch = lambda _path, source: client.query(sql_for(source, args.language))  # noqa: E731
     try:
+        if args.draft:
+            if preview is not None and not preview.query(f"SELECT LAISO FROM T002 WHERE LAISO = '{args.language}'"):
+                print(f"error: {args.language} is not a language of T002 on this system", file=sys.stderr)
+                return 2
+            source_text = draft(args.language, fetch)
+            if args.out is None:
+                sys.stdout.write(source_text)
+            else:
+                try:
+                    with args.out.open("x", encoding="utf-8", newline="\n") as handle:
+                        handle.write(source_text)
+                except OSError as exc:  # includes FileExistsError: the draft never overwrites a file
+                    parser.error(f"cannot write {args.out}: {type(exc).__name__}")
+                print(f"{args.language}: draft written to {args.out}", file=sys.stderr)
+            return 0
         findings = verify(args.language, fetch)
     except httpx.HTTPStatusError as exc:
         print(f"error: SAP request failed with HTTP status {exc.response.status_code}", file=sys.stderr)
