@@ -16,11 +16,13 @@ from urllib.parse import urlparse
 
 from playwright.async_api import Error as PlaywrightError
 
+from sapguimcp import lang
 from sapguimcp.backend.webgui.browser import get_browser_manager
 from sapguimcp.backend.webgui.js_helpers import load_js, load_js_with_field_utils, script_arg
 from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.backend.webgui.utils import escape_css_selector, is_sap_shortcut
-from sapguimcp.lang import UnsupportedLanguageError, language_for_html_lang, pack_for
+from sapguimcp.lang import UnsupportedLanguageError, alt_of, language_for_html_lang, pack_for
+from sapguimcp.lang.text import compiled
 from sapguimcp.middleware.logging import set_sap_identity
 from sapguimcp.models.alv_models import AlvCellInfo, AlvMetadata, TableCellClickResult
 from sapguimcp.models.base import CheckActivateResult, PopupButton, PopupInfo
@@ -60,43 +62,39 @@ logger = logging.getLogger(__name__)
 # Helpers private to WebGuiBackend
 # ---------------------------------------------------------------------------
 
-# Success/error prefixes used in SAP toolbar notes.
-_SUCCESS_PREFIXES = ("Erfolgreich ", "Success ")
-_ERROR_PREFIXES = ("Fehler ", "Error ")
-_PREFIX_STRIP = re.compile(
-    r"^(Erfolgreich|Success|Fehler|Error)\s+(Meldungsleiste|Message Bar)\s+",
-)
-_SUCCESS_PATTERNS = re.compile(
-    r"keine Syntaxfehler|No syntax errors|"
-    r"Aktives Objekt wurde generiert|Objekt wurde aktiviert|Object activated|"
-    r"generated successfully",
-    re.IGNORECASE,
-)
-_ERROR_PATTERNS = re.compile(
-    r"Syntaxfehler|syntax error",
-    re.IGNORECASE,
-)
-
 
 def _parse_toolbar_note(snapshot_text: str) -> tuple[bool, str]:
-    """Parse toolbar note from an ARIA snapshot to determine success/failure."""
+    """Parse toolbar note from an ARIA snapshot to determine success/failure.
+
+    The note reads ``<type> <message bar label> <message>`` (``Erfolgreich Meldungsleiste ...``); the
+    type word decides, else the message text (syntax check / activation fragments). Every registered
+    language is matched (``lang.universal()``), so this works on any session.
+    """
     match = re.search(r'note\s+"([^"]+)"', snapshot_text)
     if not match:
         return False, "No status message found in toolbar"  # lang-ok: own message
 
+    st = lang.universal().status_type
     full_note = match.group(1)
-    message = _PREFIX_STRIP.sub("", full_note).strip() or full_note
+    prefix = compiled(rf"^{alt_of(st.success_prefix, st.error_prefix)}\s+{st.message_bar.alt}\s+")
+    message = prefix.sub("", full_note).strip() or full_note
 
-    if full_note.startswith(_SUCCESS_PREFIXES):
+    if any(full_note.startswith(f"{word} ") for word in st.success_prefix):
         return True, message
-    if full_note.startswith(_ERROR_PREFIXES):
+    if any(full_note.startswith(f"{word} ") for word in st.error_prefix):
         return False, message
 
-    if _SUCCESS_PATTERNS.search(full_note):
+    if st.check_success.contains(full_note):
         return True, message
-    if _ERROR_PATTERNS.search(full_note):
+    if st.check_error.contains(full_note):
         return False, message
     return False, message
+
+
+def _status_bar_arg() -> dict[str, object]:
+    """The argument of ``extract_status_bar.js``: noise and type keywords of every language."""
+    st = lang.universal().status_type
+    return script_arg({"noise": st.noise, "error": st.error, "warning": st.warning, "success": st.success})
 
 
 # ---------------------------------------------------------------------------
@@ -164,10 +162,11 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
     async def _enable_okcode_field(self) -> tuple[bool, str]:
         """Attempt to enable the OK-Code field via SAP settings menu."""
+        pages = lang.universal().session_pages
         try:
+            # [lsdata*='SETTINGS'] matches no captured snapshot, so the localized titles stay first (#1044).
             settings_selectors = [
-                "span[title*='Einstellungen']",
-                "span[title*='Settings']",
+                *(f"span[title*='{title}']" for title in pages.settings_menu),
                 "[lsdata*='SETTINGS']",
                 "span.urBtnEmph[title]",
             ]
@@ -176,35 +175,31 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                 if element and await element.is_visible():
                     await element.click()
                     await self._page.wait_for_timeout(500)
-                    for option_selector in [
-                        "text=OK-Code",
-                        "text=Transaktionsfeld",
-                        "text=Transaction Field",
-                    ]:
-                        option = await self._page.query_selector(option_selector)
+                    for option_text in pages.okcode_option:
+                        option = await self._page.query_selector(f"text={option_text}")
                         if option and await option.is_visible():
                             await option.click()
                             await self._page.wait_for_timeout(300)
-                            return True, "Enabled OK-Code field via settings menu"
-            return False, "Could not find settings menu or OK-Code option"
+                            return True, "Enabled OK-Code field via settings menu"  # lang-ok: our own message
+            return False, "Could not find settings menu or OK-Code option"  # lang-ok: our own message
         except Exception as e:  # pylint: disable=broad-exception-caught
-            return False, f"Error enabling OK-Code field: {e}"
+            return False, f"Error enabling OK-Code field: {e}"  # lang-ok: our own message
 
     async def dismiss_language_dialog(self) -> None:
         """Handle SAP's 'Different original and logon languages' popup."""
+        popup = lang.universal().popup
         snap = await self._page.locator("body").aria_snapshot()
-        if "Different original and logon languages" not in snap and "Originalsprache und Anmeldesprache" not in snap:
+        if not any(title in snap for title in popup.original_language_title):  # case-sensitive, as before
             return
         logger.info("Detected language mismatch dialog, confirming maintenance in original language")
-        maint_btn = self._page.get_by_role("button", name="Maint. in orig. lang.")
-        if not await maint_btn.is_visible(timeout=2000):
-            maint_btn = self._page.get_by_role("button", name="Pflege in Originalsprache")
-        if await maint_btn.is_visible(timeout=2000):
-            await maint_btn.click()
-            await self._page.wait_for_timeout(1000)
-            await self._page.wait_for_load_state("networkidle")
-        else:
-            logger.warning("Language dialog detected but maintenance button not found")
+        for label in popup.maintain_in_original:
+            maint_btn = self._page.get_by_role("button", name=label)
+            if await maint_btn.is_visible(timeout=2000):
+                await maint_btn.click()
+                await self._page.wait_for_timeout(1000)
+                await self._page.wait_for_load_state("networkidle")
+                return
+        logger.warning("Language dialog detected but maintenance button not found")
 
     # ===================================================================
     # SapNavigation
@@ -341,10 +336,11 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                 return LoginResult(url=url, user=username, guidance=guidance_msg)
             except Exception:  # pylint: disable=broad-exception-caught
                 page_content = await self._page.content()
-                if "already logged" in page_content.lower() or "bereits angemeldet" in page_content.lower():
+                pages = lang.universal().session_pages
+                if pages.already_logged_on.contains(page_content):
                     try:
                         await self._page.click(
-                            'button:has-text("Continue"), button:has-text("Weiter"), button:has-text("Fortfahren")',
+                            ", ".join(f'button:has-text("{label}")' for label in pages.continue_button),
                             timeout=5000,
                         )
                         await self._page.wait_for_selector("#ToolbarOkCode", timeout=10000, state="visible")
@@ -718,15 +714,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                 )
 
             page_content = await page.content()
-            timeout_indicators = [
-                "session timeout",
-                "sitzung abgelaufen",
-                "session expired",
-                "zeitüberschreitung",
-                "logged off",
-                "abgemeldet",
-            ]
-            if any(indicator in page_content.lower() for indicator in timeout_indicators):
+            if lang.universal().session_pages.timed_out.contains(page_content):
                 return SessionStatus(
                     status="timed_out",
                     message="Session has timed out. Please use sap_login to reconnect.",
@@ -985,7 +973,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
             if is_sap_shortcut(key):
                 try:
-                    status_info = await self._page.evaluate(load_js("extract_status_bar.js"))
+                    status_info = await self._page.evaluate(load_js("extract_status_bar.js"), _status_bar_arg())
                     return KeyboardResult(
                         key=key,
                         page_title=title,
@@ -1036,7 +1024,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
     async def select_dropdown(self, label: str, option: str) -> DropdownFillResult:
         """Select a dropdown option by label and option text."""
         # First check the field type to get the element ID
-        field_check = await self._page.evaluate(load_js("check_field_type.js"), label)
+        field_check = await self._page.evaluate(load_js("check_field_type.js"), script_arg(key=label))
 
         if not field_check.get("found"):
             return DropdownFillResult(
@@ -1079,7 +1067,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
     async def get_status_bar(self) -> StatusBarInfo:
         """Read the current message from SAP's status bar."""
         try:
-            status_info = await self._page.evaluate(load_js("extract_status_bar.js"))
+            status_info = await self._page.evaluate(load_js("extract_status_bar.js"), _status_bar_arg())
             return StatusBarInfo(
                 type=status_info.get("type", "none"),
                 message=status_info.get("message", ""),
@@ -1303,14 +1291,14 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
     async def get_dropdown_options(self, label: str) -> list[str]:
         """Get available options for a dropdown field by label."""
-        field_check = await self._page.evaluate(load_js("check_field_type.js"), label)
+        field_check = await self._page.evaluate(load_js("check_field_type.js"), script_arg(key=label))
         if not field_check.get("found") or not field_check.get("isDropdown"):
             return []
         element_id = field_check.get("elementId")
         if not element_id:
             return []
         try:
-            result = await self._page.evaluate(load_js("get_dropdown_options.js"), element_id)
+            result = await self._page.evaluate(load_js("get_dropdown_options.js"), script_arg(elementId=element_id))
             if result.get("success"):
                 return list(result.get("options", []))
         except Exception:  # pylint: disable=broad-exception-caught
@@ -1328,7 +1316,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             if not element_id:
                 continue
             try:
-                result = await self._page.evaluate(load_js("get_dropdown_options.js"), element_id)
+                result = await self._page.evaluate(load_js("get_dropdown_options.js"), script_arg(elementId=element_id))
                 if result.get("success"):
                     dropdowns.append(
                         DropdownInfo(
@@ -1392,8 +1380,8 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
         snapshot = await self._page.locator("body").aria_snapshot()
 
-        # Handle "Inaktive Objekte" / "Inactive Objects" popup
-        if "Inaktive Objekte" in snapshot or "Inactive Objects" in snapshot:
+        # Handle the "Inactive Objects" popup (case-sensitive in the snapshot, as before)
+        if any(title in snapshot for title in lang.universal().popup.inactive_objects):
             logger.info("Detected inactive objects popup, confirming with Enter")
             await self._page.keyboard.press("Enter")
             await self._page.wait_for_timeout(2000)
@@ -1411,7 +1399,10 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
     async def check_popup(self) -> PopupInfo | None:
         """Fast check for blocking popup dialog."""
-        result = await self._page.evaluate(load_js("check_popup.js"))
+        popup = lang.universal().popup
+        result = await self._page.evaluate(
+            load_js("check_popup.js"), script_arg({"buttonLabels": popup.button_labels, "close": popup.close})
+        )
         if result is None:
             return None
 
@@ -1439,12 +1430,12 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         try:
             popup = await self.check_popup()
             if popup is None:
-                return ClosePopupResult.failure("No popup to close")
+                return ClosePopupResult.failure("No popup to close")  # lang-ok: our own message
 
             clicked_label: str
             if use_close_button:
                 if not popup.has_close_button:
-                    return ClosePopupResult.failure("No close button available")
+                    return ClosePopupResult.failure("No close button available")  # lang-ok: our own message
                 await self._page.click(escape_css_selector(f"#{popup.close_button_id}"))
                 clicked_label = "[X]"
             elif not button_label:
@@ -1478,7 +1469,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             await self._page.wait_for_timeout(500)
             popup_after = await self.check_popup()
 
-            status_info = await self._page.evaluate(load_js("extract_status_bar.js"))
+            status_info = await self._page.evaluate(load_js("extract_status_bar.js"), _status_bar_arg())
 
             return ClosePopupResult(
                 button_clicked=clicked_label,
@@ -1598,7 +1589,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
                 if bound:
                     killed_agents.append(bound)
             else:
-                errors.append(f"{sid}: close returned False")
+                errors.append(f"{sid}: close returned False")  # lang-ok: our own message
         remaining = registry.list_sessions()
         logger.info(
             "reset_to_primary",

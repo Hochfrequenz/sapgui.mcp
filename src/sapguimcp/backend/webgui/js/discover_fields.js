@@ -73,8 +73,8 @@
             return;
         }
 
-        // Skip readonly dropdowns (combo boxes)
-        if (el.readOnly && el.getAttribute('aria-roledescription') === 'Dropdown-Listenfeld') {
+        // Skip readonly dropdowns (combo boxes): ct=CB, the same attribute check_field_type.js reads
+        if (el.readOnly && el.getAttribute('ct') === 'CB') {
             return;
         }
 
