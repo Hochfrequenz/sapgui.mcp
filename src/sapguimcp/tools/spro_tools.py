@@ -415,8 +415,6 @@ def register_spro_tools(mcp: FastMCP) -> None:
                 retrieved_at=now,
             )
 
-        t = lang.current("sap_spro_search")
-
         # Desktop backend: use tree control reading instead of ARIA parsing
         if backend.backend_type == "desktop":
             try:
@@ -431,6 +429,9 @@ def register_spro_tools(mcp: FastMCP) -> None:
                     retrieved_at=now,
                 )
         else:
+            # Resolved outside the try: an unsupported session language must reach the caller (the desktop search
+            # reads the tree control and needs no texts).
+            t = lang.current("sap_spro_search")
             try:
                 result = await _search_img(cast("WebGuiBackend", backend), t, query)
             except Exception as e:  # pylint: disable=broad-exception-caught
