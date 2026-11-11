@@ -16,15 +16,23 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, _get_com_error_code
 
 logger = logging.getLogger(__name__)
 
+ColumnKeys = Literal["title", "name"]
+"""Which column property keys the row dicts: the displayed ``Title`` (language-dependent, falls back to the
+``Name`` when a column has no title) or the technical ``Name`` (``DD03D-FIELDNAME``, language-independent)."""
 
-def _find_table_control_info(session: Any, flatten_fn: Any) -> tuple[str, list[str], int, int] | None:
+
+def _find_table_control_info(
+    session: Any, flatten_fn: Any, column_keys: ColumnKeys = "title"
+) -> tuple[str, list[str], int, int] | None:
     """Locate the first GuiTableControl (type 80) and return its metadata.
+
+    ``column_keys`` selects the column keys, see :data:`ColumnKeys`.
 
     Returns ``(element_id, column_titles, row_count, visible_row_count)``
     or ``None`` if no table control is found.
@@ -38,7 +46,10 @@ def _find_table_control_info(session: Any, flatten_fn: Any) -> tuple[str, list[s
             continue
         tc = session.find_by_id(elem.id)
         raw: Any = getattr(tc, "com", getattr(tc, "_com", tc))
-        col_titles = [raw.Columns(c).Title or raw.Columns(c).Name for c in range(raw.Columns.Count)]
+        if column_keys == "name":
+            col_titles = [raw.Columns(c).Name for c in range(raw.Columns.Count)]
+        else:
+            col_titles = [raw.Columns(c).Title or raw.Columns(c).Name for c in range(raw.Columns.Count)]
         return elem.id, col_titles, raw.RowCount, raw.VisibleRowCount
     return None
 
@@ -114,13 +125,13 @@ def _read_visible_page(
     return rows
 
 
-def read_table_control(session: Any, flatten_fn: Any) -> list[dict[str, str]]:
+def read_table_control(session: Any, flatten_fn: Any, column_keys: ColumnKeys = "title") -> list[dict[str, str]]:
     """Read the first GuiTableControl's visible page (no scrolling).
 
     For tables that fit on one page this returns all rows.  For larger
     tables only the currently visible rows are returned.
     """
-    info = _find_table_control_info(session, flatten_fn)
+    info = _find_table_control_info(session, flatten_fn, column_keys)
     if info is None:
         return []
     element_id, col_titles, total, visible = info
@@ -132,8 +143,13 @@ def read_table_control(session: Any, flatten_fn: Any) -> list[dict[str, str]]:
     return _read_visible_page(raw, col_titles, readable)
 
 
-def read_table_control_all_rows(session: Any, flatten_fn: Any, read_checkboxes: bool = False) -> list[dict[str, str]]:
+def read_table_control_all_rows(
+    session: Any, flatten_fn: Any, read_checkboxes: bool = False, column_keys: ColumnKeys = "title"
+) -> list[dict[str, str]]:
     """Read ALL rows from the first GuiTableControl, scrolling as needed.
+
+    ``column_keys="name"`` keys the rows by the technical column ``Name`` instead of the language-dependent
+    ``Title`` (default).
 
     With ``read_checkboxes``, checkbox cells (e.g. the key flag of an SE11 field list) hold ``"X"`` when checked.
 
@@ -142,7 +158,7 @@ def read_table_control_all_rows(session: Any, flatten_fn: Any, read_checkboxes: 
     This is the SAP-recommended pattern and avoids the
     ``RPC_E_SERVERFAULT`` (0x80010105) crash.  See #387.
     """
-    info = _find_table_control_info(session, flatten_fn)
+    info = _find_table_control_info(session, flatten_fn, column_keys)
     if info is None:
         return []
     element_id, col_titles, total, visible = info

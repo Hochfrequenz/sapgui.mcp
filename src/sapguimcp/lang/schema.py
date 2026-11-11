@@ -153,7 +153,8 @@ class Se11Section:
     structure: Text
     short_description: Text
     row_select_full: RegexText
-    dictionary_type: RegexText
+    data_type_name_label: Text
+    """``title`` of the WebGUI input for the data type name (SE11 initial screen)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,6 +163,18 @@ class Se16Section:
     hit_count_label: Text
     column_selection: Text
     no_values_found: Text
+    table_label: Text
+    """Label of the table-name input (WebGUI)."""
+    max_hits_label: Text
+    """Label of the max-hits input (WebGUI)."""
+    empty_cell: Text
+    """Placeholder text of the empty padding rows of the selection grid (WebGUI)."""
+    table_not_found: Text
+    """Fragment of the "table does not exist" message; narrow on purpose, it scans a whole snapshot."""
+    selection_columns: Text
+    """Column headers that only the selection screen grid has (WebGUI)."""
+    results_title: Text
+    """Title fragments of the SE16N result list (desktop)."""
 
 
 @dataclass(frozen=True, slots=True)

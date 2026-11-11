@@ -10,6 +10,7 @@ from sapguimcp.backend.webgui.parsers.se16_parser import (
     parse_se16_rows,
     parse_se16_snapshot,
 )
+from sapguimcp.lang.schema import LanguagePack
 
 # Test data directory
 TESTDATA_DIR = Path(__file__).parent / "testdata" / "se16_exploration"
@@ -18,38 +19,38 @@ TESTDATA_DIR = Path(__file__).parent / "testdata" / "se16_exploration"
 class TestParseHitCount:
     """Tests for parse_se16_hit_count function."""
 
-    def test_parse_simple_number(self) -> None:
+    def test_parse_simple_number(self, lang_de: LanguagePack) -> None:
         """Test parsing a simple number like '500'."""
         snapshot = 'textbox "Number of Hits": "500"'
-        assert parse_se16_hit_count(snapshot) == 500
+        assert parse_se16_hit_count(snapshot, lang_de) == 500
 
-    def test_parse_german_locale_thousands(self) -> None:
+    def test_parse_german_locale_thousands(self, lang_de: LanguagePack) -> None:
         """Test parsing German locale with dot as thousands separator."""
         snapshot = 'textbox "Number of Hits": "5.000"'
-        assert parse_se16_hit_count(snapshot) == 5000
+        assert parse_se16_hit_count(snapshot, lang_de) == 5000
 
-    def test_parse_large_number(self) -> None:
+    def test_parse_large_number(self, lang_de: LanguagePack) -> None:
         """Test parsing larger numbers with German locale."""
         snapshot = 'textbox "Number of Hits": "50.000"'
-        assert parse_se16_hit_count(snapshot) == 50000
+        assert parse_se16_hit_count(snapshot, lang_de) == 50000
 
-    def test_no_hit_count_field(self) -> None:
+    def test_no_hit_count_field(self, lang_de: LanguagePack) -> None:
         """Test returns 0 when field is not found."""
         snapshot = "some other content without hit count"
-        assert parse_se16_hit_count(snapshot) == 0
+        assert parse_se16_hit_count(snapshot, lang_de) == 0
 
-    def test_parse_from_real_snapshot(self) -> None:
+    def test_parse_from_real_snapshot(self, lang_de: LanguagePack) -> None:
         """Test parsing hit count from real SE16N snapshot."""
         snapshot_file = TESTDATA_DIR / "se16n_5000_debug.yaml"
         if snapshot_file.exists():
             snapshot = snapshot_file.read_text(encoding="utf-8")
-            assert parse_se16_hit_count(snapshot) == 5000
+            assert parse_se16_hit_count(snapshot, lang_de) == 5000
 
 
 class TestParseColumns:
     """Tests for parse_se16_columns function."""
 
-    def test_parse_columns_from_header_row(self) -> None:
+    def test_parse_columns_from_header_row(self, lang_de: LanguagePack) -> None:
         """Test extracting column names from header row."""
         snapshot = """
       - row "Column for row selection Transaction Code Program":
@@ -57,10 +58,10 @@ class TestParseColumns:
         - columnheader "Transaction Code"
         - columnheader "Program"
         """
-        columns = parse_se16_columns(snapshot)
+        columns = parse_se16_columns(snapshot, lang_de)
         assert columns == ["Transaction Code", "Program"]
 
-    def test_skips_selection_column(self) -> None:
+    def test_skips_selection_column(self, lang_de: LanguagePack) -> None:
         """Test that the row selection column is skipped."""
         snapshot = """
       - row "Column for row selection Field1 Field2":
@@ -68,16 +69,16 @@ class TestParseColumns:
         - columnheader "Field1"
         - columnheader "Field2"
         """
-        columns = parse_se16_columns(snapshot)
+        columns = parse_se16_columns(snapshot, lang_de)
         assert "Column for row selection" not in columns
         assert columns == ["Field1", "Field2"]
 
-    def test_parse_from_real_snapshot(self) -> None:
+    def test_parse_from_real_snapshot(self, lang_de: LanguagePack) -> None:
         """Test parsing columns from real SE16N snapshot."""
         snapshot_file = TESTDATA_DIR / "se16n_5000_debug.yaml"
         if snapshot_file.exists():
             snapshot = snapshot_file.read_text(encoding="utf-8")
-            columns = parse_se16_columns(snapshot)
+            columns = parse_se16_columns(snapshot, lang_de)
             # TSTC table has these columns
             assert "Transaction Code" in columns
             assert "Program" in columns
@@ -88,7 +89,7 @@ class TestParseColumns:
 class TestParseRows:
     """Tests for parse_se16_rows function."""
 
-    def test_parse_simple_row(self) -> None:
+    def test_parse_simple_row(self, lang_de: LanguagePack) -> None:
         """Test parsing a simple data row."""
         snapshot = """
       - row "Column for row selection Code Name":
@@ -103,12 +104,12 @@ class TestParseRows:
           - textbox
     - rowgroup
         """
-        rows = parse_se16_rows(snapshot)
+        rows = parse_se16_rows(snapshot, lang_de)
         assert len(rows) == 1
         assert rows[0]["Code"] == "ABC"
         assert rows[0]["Name"] == "Test"
 
-    def test_parse_numeric_values_coerced(self) -> None:
+    def test_parse_numeric_values_coerced(self, lang_de: LanguagePack) -> None:
         """Test that numeric values are coerced to int/float."""
         snapshot = """
       - row "Column for row selection ID Value":
@@ -123,14 +124,14 @@ class TestParseRows:
           - textbox
     - rowgroup
         """
-        rows = parse_se16_rows(snapshot)
+        rows = parse_se16_rows(snapshot, lang_de)
         assert len(rows) == 1
         assert rows[0]["ID"] == 123
         assert isinstance(rows[0]["ID"], int)
         assert rows[0]["Value"] == 45.67
         assert isinstance(rows[0]["Value"], float)
 
-    def test_parse_empty_cells(self) -> None:
+    def test_parse_empty_cells(self, lang_de: LanguagePack) -> None:
         """Test handling of empty cells."""
         snapshot = """
       - row "Column for row selection A B C":
@@ -148,13 +149,13 @@ class TestParseRows:
           - textbox
     - rowgroup
         """
-        rows = parse_se16_rows(snapshot)
+        rows = parse_se16_rows(snapshot, lang_de)
         assert len(rows) == 1
         assert rows[0]["A"] == "Val1"
         assert rows[0]["B"] == ""
         assert rows[0]["C"] == "Val3"
 
-    def test_parse_quoted_row_with_colons(self) -> None:
+    def test_parse_quoted_row_with_colons(self, lang_de: LanguagePack) -> None:
         """Test parsing rows that are YAML-quoted due to colons in values."""
         snapshot = """
       - row "Column for row selection Code Text":
@@ -169,17 +170,17 @@ class TestParseRows:
           - textbox
     - rowgroup
         """
-        rows = parse_se16_rows(snapshot)
+        rows = parse_se16_rows(snapshot, lang_de)
         assert len(rows) == 1
         assert rows[0]["Code"] == "ABC"
         assert rows[0]["Text"] == "Activity: Test"
 
-    def test_parse_from_quoted_row_snapshot(self) -> None:
+    def test_parse_from_quoted_row_snapshot(self, lang_de: LanguagePack) -> None:
         """Test parsing from snapshot with YAML-quoted rows (has colons)."""
         snapshot_file = TESTDATA_DIR / "se16n_norows_page69.yaml"
         if snapshot_file.exists():
             snapshot = snapshot_file.read_text(encoding="utf-8")
-            rows = parse_se16_rows(snapshot)
+            rows = parse_se16_rows(snapshot, lang_de)
             # This snapshot has rows with colons in transaction text
             assert len(rows) > 0
             # First row should have a transaction code starting with /ISDFPS/
@@ -191,19 +192,19 @@ class TestParseRows:
 class TestParseSe16Snapshot:
     """Tests for the main parse_se16_snapshot function."""
 
-    def test_parse_complete_snapshot(self) -> None:
+    def test_parse_complete_snapshot(self, lang_de: LanguagePack) -> None:
         """Test parsing a complete SE16N result snapshot."""
         snapshot_file = TESTDATA_DIR / "se16n_5000_debug.yaml"
         if snapshot_file.exists():
             snapshot = snapshot_file.read_text(encoding="utf-8")
-            result = parse_se16_snapshot(snapshot)
+            result = parse_se16_snapshot(snapshot, lang_de)
 
             assert len(result.columns) == 7
             assert "Transaction Code" in result.columns
             # Should have ~13 rows visible in first page
             assert len(result.rows) >= 10
 
-    def test_parse_t000_small_table(self) -> None:
+    def test_parse_t000_small_table(self, lang_de: LanguagePack) -> None:
         """Test parsing T000 results (small table with 6 rows)."""
         import json
 
@@ -217,7 +218,7 @@ class TestParseSe16Snapshot:
             else:
                 snapshot = content
 
-            result = parse_se16_snapshot(snapshot)
+            result = parse_se16_snapshot(snapshot, lang_de)
 
             # T000 has columns like Client, Name, City, etc.
             assert len(result.columns) > 0
@@ -229,7 +230,7 @@ class TestParseSe16Snapshot:
 class TestTypeCoercion:
     """Tests for value type coercion."""
 
-    def test_integer_coercion(self) -> None:
+    def test_integer_coercion(self, lang_de: LanguagePack) -> None:
         """Test that integer strings become int."""
         snapshot = """
       - row "Column for row selection Val":
@@ -241,11 +242,11 @@ class TestTypeCoercion:
           - textbox
     - rowgroup
         """
-        rows = parse_se16_rows(snapshot)
+        rows = parse_se16_rows(snapshot, lang_de)
         assert rows[0]["Val"] == 42
         assert isinstance(rows[0]["Val"], int)
 
-    def test_negative_integer(self) -> None:
+    def test_negative_integer(self, lang_de: LanguagePack) -> None:
         """Test negative integer coercion."""
         snapshot = """
       - row "Column for row selection Val":
@@ -257,10 +258,10 @@ class TestTypeCoercion:
           - textbox
     - rowgroup
         """
-        rows = parse_se16_rows(snapshot)
+        rows = parse_se16_rows(snapshot, lang_de)
         assert rows[0]["Val"] == -123
 
-    def test_float_coercion(self) -> None:
+    def test_float_coercion(self, lang_de: LanguagePack) -> None:
         """Test that decimal strings become float."""
         snapshot = """
       - row "Column for row selection Val":
@@ -272,11 +273,11 @@ class TestTypeCoercion:
           - textbox
     - rowgroup
         """
-        rows = parse_se16_rows(snapshot)
+        rows = parse_se16_rows(snapshot, lang_de)
         assert rows[0]["Val"] == 3.14
         assert isinstance(rows[0]["Val"], float)
 
-    def test_string_preserved(self) -> None:
+    def test_string_preserved(self, lang_de: LanguagePack) -> None:
         """Test that non-numeric strings stay as strings."""
         snapshot = """
       - row "Column for row selection Val":
@@ -288,11 +289,11 @@ class TestTypeCoercion:
           - textbox
     - rowgroup
         """
-        rows = parse_se16_rows(snapshot)
+        rows = parse_se16_rows(snapshot, lang_de)
         assert rows[0]["Val"] == "ABC123"
         assert isinstance(rows[0]["Val"], str)
 
-    def test_date_string_not_parsed(self) -> None:
+    def test_date_string_not_parsed(self, lang_de: LanguagePack) -> None:
         """Test that date strings remain as strings (no date parsing)."""
         snapshot = """
       - row "Column for row selection Val":
@@ -304,7 +305,7 @@ class TestTypeCoercion:
           - textbox
     - rowgroup
         """
-        rows = parse_se16_rows(snapshot)
+        rows = parse_se16_rows(snapshot, lang_de)
         assert rows[0]["Val"] == "2024-01-15"
         assert isinstance(rows[0]["Val"], str)
 
@@ -312,7 +313,7 @@ class TestTypeCoercion:
 class TestLargeSnapshotParsing:
     """Tests for parsing large snapshots (5000+ rows simulation)."""
 
-    def test_parse_multiple_pages_combined(self) -> None:
+    def test_parse_multiple_pages_combined(self, lang_de: LanguagePack) -> None:
         """Test parsing when multiple page snapshots are combined."""
         # This simulates what the tool does when collecting rows
         snapshot_files = [
@@ -336,9 +337,9 @@ class TestLargeSnapshotParsing:
                     snapshot = content
 
                 if columns is None:
-                    columns = parse_se16_columns(snapshot)
+                    columns = parse_se16_columns(snapshot, lang_de)
 
-                rows = parse_se16_rows(snapshot, columns)
+                rows = parse_se16_rows(snapshot, lang_de, columns)
                 all_rows.extend(rows)
 
         if columns:

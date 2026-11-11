@@ -23,30 +23,13 @@
     const sidPattern = /GS_SELFIELDS-(SCRTEXT_M|FIELDNAME|LOW)\[(\d+),(\d+)\]/;
     const technicalName = /^[A-Za-z0-9_\/]+$/;
 
-    // Find the selection criteria grid: by (DE/EN) column headers, else by SELFIELDS cells.
+    // Find the selection criteria grid by its SELFIELDS cells (language-independent).
     const grids = document.querySelectorAll('[role="grid"]');
     let selectionGrid = null;
     for (const grid of grids) {
-        const gridText = grid.textContent || '';
-        if (
-            gridText.includes('Feldname') ||
-            gridText.includes('Field Name') ||
-            gridText.includes('Von-Wert') ||
-            gridText.includes('From Value') ||
-            gridText.includes('From-Value') ||
-            gridText.includes('Selektionskriterien') ||
-            gridText.includes('Selection Criteria')
-        ) {
+        if (grid.querySelector('[lsdata*="GS_SELFIELDS-"]')) {
             selectionGrid = grid;
             break;
-        }
-    }
-    if (!selectionGrid) {
-        for (const grid of grids) {
-            if (grid.querySelector('[lsdata*="GS_SELFIELDS-"]')) {
-                selectionGrid = grid;
-                break;
-            }
         }
     }
     if (!selectionGrid) {

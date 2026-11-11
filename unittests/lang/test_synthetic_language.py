@@ -202,7 +202,7 @@ def test_a_flag_that_differs_fails_the_merge_of_every_language() -> None:
 
 
 def test_a_kind_that_differs_fails_the_session_merge() -> None:
-    broken = dataclasses.replace(XX, se11=dataclasses.replace(XX.se11, dictionary_type=Text(("Typ",))))
+    broken = dataclasses.replace(XX, se11=dataclasses.replace(XX.se11, row_select_full=Text(("Typ",))))
     with _register_for_tests(broken), pytest.raises(TypeError, match="cannot merge"):
         lang.view_for(CODE)
 

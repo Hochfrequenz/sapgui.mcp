@@ -5,7 +5,10 @@ Extracts structured row data from SE16N result grids, handling:
 - Column headers from grid header row
 - Data rows with pagination (YAML-quoted and unquoted formats)
 - Type coercion for numeric values (int, float)
-- German locale number formatting (dot as thousands separator)
+- Locale number formatting of the hit count (any group separator)
+
+Every function that matches screen text takes the language pack ``t`` of the session as a parameter;
+the caller resolves it once per tool call (``lang.current("<tool>")``).
 """
 
 import logging
@@ -14,15 +17,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from sapguimcp.backend.webgui.types import AriaSnapshot
-from sapguimcp.lang import (
-    SE16_COLUMN_SELECTION_DE,
-    SE16_COLUMN_SELECTION_EN,
-    SE16_HIT_COUNT_LABEL_DE,
-    SE16_HIT_COUNT_LABEL_EN,
-    SE16_ROW_SELECT_HINT_DE,
-    SE16_ROW_SELECT_HINT_EN,
-    bilingual_pattern,
-)
+from sapguimcp.lang.schema import LanguagePack
+from sapguimcp.lang.text import compiled
 
 logger = logging.getLogger(__name__)
 
@@ -30,18 +26,25 @@ logger = logging.getLogger(__name__)
 # Regex Patterns (compiled once for efficiency)
 # =============================================================================
 
-# Match "Number of Hits" field - handles both English and German labels
-# German locale uses dot as thousands separator (e.g., "5.000" = 5000)
-# Uses explicit constants: SE16_HIT_COUNT_LABEL_DE, SE16_HIT_COUNT_LABEL_EN
-_HIT_COUNT_PATTERN = re.compile(
-    rf'textbox "{bilingual_pattern(SE16_HIT_COUNT_LABEL_DE, SE16_HIT_COUNT_LABEL_EN)}": "(?P<count>[0-9.]+)"'
-)
 
-# Match data rows - handles BOTH formats:
-# - row "To select a row..."  (no colons in row text)
-# - 'row "To select a row..."':  (has colons, YAML quotes the whole line)
-# Uses explicit constants: SE16_ROW_SELECT_HINT_DE, SE16_ROW_SELECT_HINT_EN
-_ROW_START_PATTERN = re.compile(rf"- '?row \"{bilingual_pattern(SE16_ROW_SELECT_HINT_DE, SE16_ROW_SELECT_HINT_EN)}")
+def _hit_count_pattern(t: LanguagePack) -> re.Pattern[str]:
+    """Match the "Number of Hits" field in either language.
+
+    The group separator follows the user's number format: "5.000", "5,000", "5 000" (space, NBSP or
+    thin space) or "5'000".
+    """
+    count = r"(?P<count>\d[\d.,\s']*)"  # \s also covers NBSP and the thin space
+    return compiled(rf'textbox "{t.se16.hit_count_label.alt}": "' + count + '"')
+
+
+def _row_start_pattern(t: LanguagePack) -> re.Pattern[str]:
+    """Match the start of a data row, in both YAML formats.
+
+    - row "To select a row..."  (no colons in row text)
+    - 'row "To select a row..."':  (has colons, YAML quotes the whole line)
+    """
+    return compiled(rf"- '?row \"{t.common.row_select_hint.alt}")
+
 
 # Extract gridcell values - matches both "gridcell "value"" and "gridcell:"
 _GRIDCELL_WITH_VALUE_PATTERN = re.compile(r'gridcell "(?P<value>[^"]*)"')
@@ -123,29 +126,29 @@ def _coerce_value(value: str) -> Any:
 # =============================================================================
 
 
-def parse_se16_hit_count(snapshot: AriaSnapshot) -> int:
+def parse_se16_hit_count(snapshot: AriaSnapshot, t: LanguagePack) -> int:
     """
     Extract the "Number of Hits" value from SE16N results screen.
 
-    Handles German locale where dot is used as thousands separator:
+    Handles every group separator of the user's number format:
     - "500" -> 500
-    - "5.000" -> 5000
-    - "50.000" -> 50000
+    - "5.000", "5,000", "5 000", "5'000" -> 5000
 
     Args:
         snapshot: ARIA snapshot YAML content
+        t: Language pack of the session
 
     Returns:
         Integer hit count, or 0 if not found
     """
-    match = _HIT_COUNT_PATTERN.search(snapshot)
+    match = _hit_count_pattern(t).search(snapshot)
     if match:
-        # Remove dots (German thousands separator) and convert to int
-        return int(match.group("count").replace(".", ""))
+        # A hit count is an integer: every non-digit is a group separator
+        return int(re.sub(r"\D", "", match.group("count")))
     return 0
 
 
-def parse_se16_columns(snapshot: AriaSnapshot) -> list[str]:
+def parse_se16_columns(snapshot: AriaSnapshot, t: LanguagePack) -> list[str]:
     """
     Extract column names from the SE16N grid header row.
 
@@ -154,6 +157,7 @@ def parse_se16_columns(snapshot: AriaSnapshot) -> list[str]:
 
     Args:
         snapshot: ARIA snapshot YAML content
+        t: Language pack of the session
 
     Returns:
         List of column names in order
@@ -174,16 +178,9 @@ def parse_se16_columns(snapshot: AriaSnapshot) -> list[str]:
             logger.warning("No grid found in snapshot")
             return columns
 
-        # Find the first data row using explicit constants
-        # SE16_ROW_SELECT_HINT_EN = "To select a row"
-        # SE16_ROW_SELECT_HINT_DE = "Zum Auswählen einer Zeile"
-        first_row = snapshot.find(f'row "{SE16_ROW_SELECT_HINT_EN}', grid_start)
-        if first_row == -1:
-            first_row = snapshot.find(f"'row \"{SE16_ROW_SELECT_HINT_EN}", grid_start)
-        if first_row == -1:
-            first_row = snapshot.find(f'row "{SE16_ROW_SELECT_HINT_DE}', grid_start)
-        if first_row == -1:
-            first_row = snapshot.find(f"'row \"{SE16_ROW_SELECT_HINT_DE}", grid_start)
+        # Find the first data row
+        first_match = _row_start_pattern(t).search(snapshot, grid_start)
+        first_row = first_match.start() if first_match else -1
 
         if first_row == -1:
             # No data rows, use everything after grid
@@ -195,8 +192,7 @@ def parse_se16_columns(snapshot: AriaSnapshot) -> list[str]:
     for match in _COLUMNHEADER_PATTERN.finditer(header_section):
         col_name = match.group("name")
         # Skip the row selection column
-        # Uses explicit constants: SE16_COLUMN_SELECTION_DE, SE16_COLUMN_SELECTION_EN
-        if col_name not in (SE16_COLUMN_SELECTION_EN, SE16_COLUMN_SELECTION_DE):
+        if not t.se16.column_selection.equals(col_name):
             columns.append(col_name)
 
     return columns
@@ -224,7 +220,7 @@ def _extract_gridcell_value(line: str) -> str | None:
     return None
 
 
-def parse_se16_rows(snapshot: AriaSnapshot, columns: list[str] | None = None) -> list[dict[str, Any]]:
+def parse_se16_rows(snapshot: AriaSnapshot, t: LanguagePack, columns: list[str] | None = None) -> list[dict[str, Any]]:
     """
     Extract data rows from SE16N grid snapshot.
 
@@ -233,13 +229,14 @@ def parse_se16_rows(snapshot: AriaSnapshot, columns: list[str] | None = None) ->
 
     Args:
         snapshot: ARIA snapshot YAML content
+        t: Language pack of the session
         columns: Column names (if None, will be extracted from snapshot)
 
     Returns:
         List of row dicts, each mapping column_name -> coerced_value
     """
     if columns is None:
-        columns = parse_se16_columns(snapshot)
+        columns = parse_se16_columns(snapshot, t)
 
     if not columns:
         logger.warning("No columns found, cannot parse rows")
@@ -249,10 +246,11 @@ def parse_se16_rows(snapshot: AriaSnapshot, columns: list[str] | None = None) ->
     lines = snapshot.split("\n")
     in_data_row = False
     current_cells: list[str] = []
+    row_start = _row_start_pattern(t)
 
     for line in lines:
         # Check for start of a data row
-        if _ROW_START_PATTERN.search(line):
+        if row_start.search(line):
             _save_row_if_valid(current_cells, columns, rows)
             current_cells = []
             in_data_row = True
@@ -292,7 +290,7 @@ def _cells_to_row_dict(cells: list[str], columns: list[str]) -> dict[str, Any]:
     return row_dict
 
 
-def parse_se16_snapshot(snapshot: AriaSnapshot) -> SE16ParseResult:
+def parse_se16_snapshot(snapshot: AriaSnapshot, t: LanguagePack) -> SE16ParseResult:
     """
     Parse a complete SE16N snapshot into columns and rows.
 
@@ -300,11 +298,12 @@ def parse_se16_snapshot(snapshot: AriaSnapshot) -> SE16ParseResult:
 
     Args:
         snapshot: ARIA snapshot YAML content
+        t: Language pack of the session
 
     Returns:
         SE16ParseResult with columns and rows
     """
-    columns = parse_se16_columns(snapshot)
-    rows = parse_se16_rows(snapshot, columns)
+    columns = parse_se16_columns(snapshot, t)
+    rows = parse_se16_rows(snapshot, t, columns)
 
     return SE16ParseResult(columns=columns, rows=rows)

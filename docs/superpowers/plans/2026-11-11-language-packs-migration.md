@@ -47,6 +47,14 @@ pilot area; the short sections of Part 3 name what differs per area.
       dynpro (`ScreenInfo.program` / `.dynpro`), T100 message IDs (`StatusBarInfo.message_id` /
       `.message_number`, as `sap_tools._TRANSACTION_NOT_FOUND_MESSAGE` does). Apply the area's rows
       of the spec §7 table.
+- [ ] `ScreenInfo.program` / `.dynpro` are filled on the desktop only (`session.info`); the WebGUI
+      `extract_screen_info.js` leaves them empty. A check that must work on both backends cannot rest
+      on them; a desktop-only check can (the SE11 initial screen is `SAPLSD_ENTRY` / `1000` on both
+      releases, so it needs no pack field).
+- [ ] A message ID replaces a text only if it is the same on both systems **for every case the code
+      handles**. SE11 "does not exist" is `E2` / `503` for a table on the S/4HANA system but `E2` / `007`
+      on the ECC system (a structure: `E2` / `007` on both), so SE11 keeps the pack text. SE16N "No values
+      found" is `WUSL` / `002` on both.
 - [ ] A §7 deletion that the spec marks "needs a live check" is gated: read the technical value on
       **both** systems first (`sap_com_evaluate` on the desktop, a snapshot on WebGUI), write the
       observed values into the PR description, then code. If the values differ between releases or
@@ -65,6 +73,19 @@ pilot area; the short sections of Part 3 name what differs per area.
       `DataElement`, `ScreenText`, `GuiFunction`, or `Manual("<reason>")`). Look texts up with the
       phase-2c recipe (ADT `run_query` on `T100`, `DD04T`, `D021T`, `RSMPTEXTS`, `DD07T`,
       `TSTCT` — development metadata only). Fix drifted texts the lookup reveals.
+- [ ] Right after adding the pack values run `uv run --group tests pytest unittests/test_no_ui_literals.py -q`.
+      The value rule flags literals of **other** files that contain a new variant of five or more
+      characters as a whole word (short values like `Table`, `Empty`, `entries` hit own messages such as
+      `"label cannot be empty"`). Fix those hits right away: `# lang-ok: our own message` on the line of
+      the literal (a trailing comment after the closing parenthesis of a wrapped call is moved there by
+      `ruff format`; put it on the literal's own line), or, where the file is off-limits or the literal is
+      real UI text of a later area, one baseline entry with a sentence in the PR.
+- [ ] A pack field that no call site uses any more is deleted together with its `SOURCES` entry, its
+      legacy constants in `_legacy.py` and the `LEGACY_PATHS` row of `unittests/lang/test_legacy_shim.py`
+      (tests that used it as an arbitrary `RegexText` take another field).
+- [ ] A screen label that the lookup shows with different texts per dynpro (SE16N `TEXTMAX`: `Max. Number of
+Hits` on dynpro 0120/0220, `Maximum no. of hits` on dynpro 0100, which the ECC system shows) gets
+      every variant into the pack; source: the field on the dynpro both releases have.
 - [ ] Changed or added non-`Manual` fields must verify:
       `uv run python scripts/harvest_lang_texts.py DE --verify` and `... EN --verify` on both
       systems; paste the summary lines into the PR.
@@ -74,10 +95,19 @@ pilot area; the short sections of Part 3 name what differs per area.
 - [ ] Resolve the pack once per tool call in the caller: `t = lang.current("<tool name>")`, then
       use `t.<section>.<field>`. Never call `lang.current()` inside a COM worker closure; close
       over `t` (spec §5 convention).
+- [ ] Thread `t` as an explicit parameter into every function that matches screen text, public parser
+      functions included (`parse_se16_*`, `_parse_se11_*`), and update all callers, also those in other
+      packages (`tables/scraper.py`). Resolve `t` **before** any `try` / `except Exception` that wraps the
+      call (batch loops, best-effort helpers): `UnsupportedLanguageError` must reach the caller, not
+      become a per-item error. Desktop paths that no longer match any text need no `t` at all.
 - [ ] Popup, status-type, session-page and key-name checks use `lang.universal()` (session-free,
       works before login and on unsupported languages).
 - [ ] Module-level compiled patterns that embed a text move into a function taking `t` and use
       `text.compiled(source)` (cached by source string).
+- [ ] Inline JS that embeds a pack regex source groups the alternation:
+      `'^(?:(?:' + params.texts.empty.source + ')\\\\s*)+$'` (a source with several variants is `a|b`;
+      without the inner group the anchors bind to the first and last variant only). In a non-raw Python
+      string `\\\\s` reaches JS as `\\s`, which the JS string turns into the regex `\s`.
 - [ ] Replacement table (spec "Today's ways"):
 
     | Today                                            | After                                                           |
@@ -106,6 +136,14 @@ pilot area; the short sections of Part 3 name what differs per area.
       the intended behaviour, not a bug to work around.
 - [ ] Parametrize parser/snapshot tests over both languages where DE and EN fixtures exist.
 - [ ] Add a test per fixed single-language bug (written first, failing on `main`).
+- [ ] Inline JS held in a Python string is tested without a browser: `unittests/lang/node_runner.run_node`
+      with a fake `document` (grids and rows as plain objects with `querySelector` / `textContent`); see
+      `test_grid_padding_rows_are_not_data_rows` in `unittests/lang/test_se11_se16_pack.py`.
+- [ ] Fixtures named `*_en.yaml` are not always EN twins of the DE ones (`se11_t000_fields_en.yaml` is the
+      initial screen). Check before parametrizing; otherwise relabel the DE snapshot in the test.
+- [ ] Write non-ASCII separators in test data as `\u00a0` / `\u202f` escapes (ruff `RUF001`), and let a
+      test that needs both languages take `lang_de` **and** `lang_en` (the EN session does not match DE
+      texts: only the DE session merges EN in).
 - [ ] Test-only texts go into the test pack (`UiTestPack`), DE and EN at once. Live tests touched
       by the area that still branch on `os.environ["SAP_LANGUAGE"]` move their texts there.
 
@@ -116,7 +154,10 @@ pilot area; the short sections of Part 3 name what differs per area.
       except lines marked `# lang-ok: <reason>` (only for non-UI strings such as tool parameter
       values; never on a line that still holds screen text).
 - [ ] The one allowed baseline addition: new pack variants make the value rule flag a literal in a
-      file outside the area. Move it too, or add that single entry with a sentence in the PR.
+      file outside the area. Prefer `# lang-ok: our own message` (R2); move the literal if it is UI text;
+      add that single entry with a sentence in the PR only for off-limits files and real UI text of a later
+      area. Pilot: 2 entries (`breakpoint_tools.py`, the SM37 job log heading); the baseline went from
+      491 / 636 to 446 / 576 (distinct / occurrences).
       Any other growth is a review finding.
 
 ### R6. Verify
@@ -150,7 +191,7 @@ occurrences.
 
 | #   | Area                                                       | Files on baseline                                                                                                                                                                                         | Entries   | Implement | Review |
 | --- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------- | ------ |
-| 1   | SE11/SE16 (pilot)                                          | `se11_tools.py` 24/29, `se16_tools.py` 16/26, `read_se16n_selection_rows.js` 7/7 (+ `se16_parser.py`, legacy imports only)                                                                                | 47 / 62   | sonnet    | opus   |
+| 1   | SE11/SE16 (pilot, done: see Part 2)                        | `se11_tools.py` 24/29, `se16_tools.py` 16/26, `read_se16n_selection_rows.js` 7/7 (+ `se16_parser.py`, legacy imports only)                                                                                | 47 / 62   | sonnet    | opus   |
 | 2   | status bar / popups / session pages / keys (backends + JS) | `desktop/__init__.py` 27/28, `_com_thread.py` 2/2, `webgui/backend.py` 24/24, `check_popup.js` 9/9, `discover_fields.js` 1/1, `extract_status_bar.js` 18/20, `field_helpers.py` 10/10, `sap_tools.py` 1/1 | 92 / 95   | opus      | fable  |
 | 3   | SE24/SE37/SE38 (+ edit tools)                              | `se24_tools.py` 32/46, `se24_edit_tools.py` 15/21, `se37_tools.py` 17/19, `se37_edit_tools.py` 2/3, `se38_edit_tools.py` 9/14, `se24_parser.py` 4/5, `se37_parser.py` 2/2                                 | 81 / 110  | sonnet    | opus   |
 | 4   | SE09/SE93                                                  | `se09_tools.py` 16/37, `se93_tools.py` 3/3, `se09_parser.py` 7/9, `se93_parser.py` 2/2                                                                                                                    | 28 / 51   | sonnet    | sonnet |
@@ -267,6 +308,24 @@ baseline because they are imports, but phase 4 can only delete `lang.py` once no
 
 ### Task 1: Live lookups for the §7 deletions (sonnet, before any code)
 
+**Result of the pilot (S/4HANA system = SAP S/4HANA 2025, ECC system = SAP ERP 6.0 EHP8):**
+
+| Lookup                                      | S/4HANA system                                                                                                                                                                | ECC system                                     | Decision                                        |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------- |
+| SE11 initial screen, `session.info`         | `SAPLSD_ENTRY` / `1000`                                                                                                                                                       | `SAPLSD_ENTRY` / `1000`                        | technical value; no `initial_screen`            |
+| SE11 display screen                         | `SAPLSD41` / `2200`                                                                                                                                                           | `SAPLSD41` / `2200`                            | (not needed)                                    |
+| WebGUI `get_screen_info()` program / dynpro | empty (`extract_screen_info.js`)                                                                                                                                              | empty                                          | desktop-only check                              |
+| SE11 field list `Columns(c).Name`           | `DD03D-FIELDNAME`, `DD03P-KEYFLAG`, `DD03D-DATATYPE`, `DD03P-LENG`, `DD03P-DECIMALS`, `DD03P-DDTEXT` (+ `DD03P-NOTNULL`, `DD03D-ROLLNAME`, `DD03P-SRS_ID`, `DD03P-GROUPNAME`) | the same six (no `SRS_ID`)                     | technical names, `column_keys="name"`           |
+| SE11 not found after F7, table              | `E2` / `503`, type S                                                                                                                                                          | `E2` / `007`, type S                           | differs: keep the pack text                     |
+| SE11 not found after F7, structure          | `E2` / `007`                                                                                                                                                                  | `E2` / `007`                                   | (same text path as the table)                   |
+| SE16N no hits after F8                      | `WUSL` / `002`, type E                                                                                                                                                        | `WUSL` / `002`, type E                         | message ID                                      |
+| SE16N selection grid `Columns(c).Name`      | `GS_SELFIELDS-SCRTEXT_M`, `OPTION`, `GS_SELFIELDS-LOW`, `GS_SELFIELDS-HIGH`, `PUSH`, `GS_SELFIELDS-MARK`, `GS_SELFIELDS-FIELDNAME`                                            | the same                                       | (WebGUI detection stays text-based, see Task 5) |
+| SE16N program / dynpro                      | `SAPLSE16N` / `0120` (table at `subTAB_SUB:SAPLSE16N:0121`)                                                                                                                   | `SAPLSE16N` / `0100` (table directly in `usr`) | differs; not used                               |
+| SE16N label fields in `D021T`               | `SEARCHTAB`, `TEXTMAX` on 0100 and 0120                                                                                                                                       | `SEARCHTAB`, `TEXTMAX` on 0100                 | source `ScreenText(.., "0100", ..)`             |
+| SE11 data-type name input `title` (WebGUI)  | `Name des Dictionary Typs` / `Name of Dictionary Type` (snapshots)                                                                                                            | confirmed by the live tests                    | `se11.data_type_name_label`                     |
+
+`GD-TAB` is not a `D021T` label: the table label is `SEARCHTAB`, the max-hits label `TEXTMAX`.
+
 Read on **both** systems, desktop, and note the values for the PR:
 
 - [ ] SE11 data-type name input on WebGUI: its exact `title` attribute (see Task 4,
@@ -318,19 +377,27 @@ class Se16Section:
 Fallback fields, added only if Task 1 shows the technical value is not usable:
 `Se11Section.columns: Mapping[Se11Column, Text]` with a new `Se11Column` StrEnum
 (`FIELD_NAME`, `DATA_TYPE`, `LENGTH`, `DECIMALS`, `SHORT_DESCRIPTION`, `KEY`) filled with
-today's tuples.
+today's tuples. **Not needed in the pilot** (Task 1: the column names are identical).
+
+**What the pilot actually added** (the schema block above is the plan's first draft; the review
+corrected it): `se11.data_type_name_label`; `se16.table_label`, `max_hits_label`, `empty_cell`
+(EN `Empty`, see Task 5), `table_not_found` (narrow: the check scans a whole snapshot, so it must
+not use `common.does_not_exist`), `selection_columns` (the four headers only the selection grid has;
+a language-free detection does not exist on the ARIA snapshot), `results_title`. **Not added:**
+`se11.initial_screen` (program and dynpro are usable), `se16.no_entries_status` (message ID), and
+`se11.dictionary_type` is deleted (unused).
 
 - [ ] Fill `de.py` / `en.py` with today's literals — no new spellings except where SAP lookup
       proves one:
 
-| Field                    | DE                                        | EN                                                                                            | Source (Task 2 lookup)                                                           |
-| ------------------------ | ----------------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `se11.initial_screen`    | `Text(("Einstieg",))`                     | `Text(("Initial",))`                                                                          | title of SAPLSD_ENTRY (`RSMPTEXTS` title) or `Manual("composed title fragment")` |
-| `se16.table_label`       | `Text(("Tabelle",))`                      | `Text(("Table",))`                                                                            | `DataElement` of `GD-TAB` (`D021T`/`DD04T`)                                      |
-| `se16.max_hits_label`    | `Text(("Maximale Trefferzahl",))`         | `Text(("Max. Number of Hits",))`                                                              | `ScreenText` of `GD-MAX_LINES`                                                   |
-| `se16.empty_cell`        | `Text(("Leer",))`                         | from an EN WebGUI snapshot; if EN shows none, `Text(("Empty",))` only after live confirmation | `Manual("WebGUI framework text")`                                                |
-| `se16.no_entries_status` | `Text(("keine werte", "keine einträge"))` | `Text(("no values", "no entries"))`                                                           | `Message(<class>, <no>, relation="fragment")` from Task 1                        |
-| `se16.results_title`     | `Text(("Treffer",))`                      | `Text(("hits", "entries"))`                                                                   | `Manual("composed title fragment")`                                              |
+| Field                    | DE                                        | EN                                                                                     | Source (Task 2 lookup)                                                           |
+| ------------------------ | ----------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `se11.initial_screen`    | `Text(("Einstieg",))`                     | `Text(("Initial",))`                                                                   | title of SAPLSD_ENTRY (`RSMPTEXTS` title) or `Manual("composed title fragment")` |
+| `se16.table_label`       | `Text(("Tabelle",))`                      | `Text(("Table",))`                                                                     | `ScreenText("SAPLSE16N", "0100", "SEARCHTAB")`                                   |
+| `se16.max_hits_label`    | `Text(("Maximale Trefferzahl",))`         | `Text(("Max. Number of Hits", "Maximum no. of hits"))` (dynpro 0100 of the ECC system) | `ScreenText("SAPLSE16N", "0100", "TEXTMAX")`                                     |
+| `se16.empty_cell`        | `Text(("Leer",))`                         | `Text(("Empty",))` (`se16n_initial_en.yaml` shows `row "Empty Empty"`)                 | `Manual("WebGUI framework text")`                                                |
+| `se16.no_entries_status` | `Text(("keine werte", "keine einträge"))` | `Text(("no values", "no entries"))`                                                    | `Message(<class>, <no>, relation="fragment")` from Task 1                        |
+| `se16.results_title`     | `Text(("Treffer",))`                      | `Text(("hits", "entries"))`                                                            | `Manual("composed title fragment")`                                              |
 
 Reused, not duplicated: `common.display` (SE11 Display button), `common.does_not_exist` and
 `common.not_found` (SE11/SE16 not-found), `common.row_select_hint` (SE11 row split prefix and
@@ -345,7 +412,7 @@ EN pack value already — delete it).
 
 ### Task 3: §7 deletions (sonnet, review opus)
 
-- [ ] **SE16N desktop label fallbacks** (`_execute_se16_query_desktop`): delete `"Table"`,
+- [ ] **SE16N desktop label fallbacks** (`_execute_se16_query_desktop`, done): delete `"Table"`,
       `"Tabelle"`, `"Max. Number of Hits"`, `"Maximale Trefferzahl"` from the `focus_and_type`
       loops and the `fill_field` last-resort block; only `GD-TAB` and `GD-MAX_LINES` remain.
       If `GD-TAB` fails, return the existing "could not fill" failure.
@@ -370,8 +437,10 @@ The backend-neutral post-F7 check (`screen = await backend.get_screen_info()`) u
 `t.se11.initial_screen.contains(screen.title)` (WebGUI).
 
 - [ ] **SE11 desktop column titles → `Columns(c).Name`** (live-gated by Task 1): add a keyword
-      `column_keys: Literal["title", "name"] = "title"` to `read_table_control_all_rows` and its
-      two page readers in `tools/table_helpers.py`; SE24 keeps `"title"` (area 3 decides there).
+      `column_keys: Literal["title", "name"] = "title"` in `table_helpers._find_table_control_info`
+      (that is where the column keys are built), threaded through `read_table_control` and
+      `read_table_control_all_rows` (the page readers take the already built keys); SE24 keeps
+      `"title"` (area 3 decides there).
       SE11 passes `"name"` and maps the technical names recorded in Task 1:
 
 ```python
@@ -391,9 +460,14 @@ def _parse_se11_table_rows(rows: list[dict[str, str]]) -> list[SE11Field]:
 If Task 1 shows differing names, use the fallback `t.se11.columns[Se11Column.X].first_key(row)`
 instead and keep `column_keys="title"`.
 
-- [ ] **SE11 not-found / SE16N no-entries on the desktop:** if Task 1 found stable message IDs,
-      check `(sbar.message_id, sbar.message_number)` first, as `sap_tools.py` does, and keep the
-      pack text as the WebGUI path (WebGUI status bars carry no message ID).
+- [ ] **SE11 not-found / SE16N no-entries on the desktop:** only SE16N has a stable ID
+      (`WUSL` / `002`); SE11 keeps the pack text (Task 1). The SE16N check
+      `(sbar.message_id, sbar.message_number) == ("WUSL", "002")` stays in the branch after the
+      `sbar.type == "E"` check, which is where the old keyword check sat. **Open point for review:** the
+      message is of type `E` on both systems, so that branch never fires for it and a query without
+      hits returns "SE16N error: ..." instead of an empty result, as before the migration. Reordering
+      is a behaviour change and was left out of the pilot; it is a candidate follow-up. The old
+      keywords `no entries` / `keine einträge` are covered by `common.no_entries`.
 
 ### Task 4: SE11 call sites (sonnet)
 
@@ -452,23 +526,25 @@ These were substring checks before, so `.contains` keeps semantics.
 - [ ] `_fill_structure_name_field` — **latent bug found while planning:** it passes the regex
       sources `Dictionary.*Typ` / `Dictionary.*type` as labels, but `fill_field_with_keyboard`
       compares the input's `title` attribute exactly (`!== label`), so these labels can never
-      match. Task 1 records the real `title` of the data-type name input on WebGUI (both systems);
-      add `se11.data_type_name_label: Text` with those titles (source: `ScreenText` of the field)
-      and pass `list(t.se11.data_type_name_label)`. `se11.dictionary_type` (`RegexText`) stays for
-      snapshot matching if anything still uses it, else it is deleted from the schema, packs and
-      `SOURCES`. `field_helpers.py` belongs to area 2: do not change its signature here.
+      match and the call always fell back to "first usable input". Add `se11.data_type_name_label:
+Text` (`Name des Dictionary Typs` / `Name of Dictionary Type`, from the snapshots, `Manual`
+      source) and pass `list(t.se11.data_type_name_label)`; `se11.dictionary_type` was unused and is
+      deleted. **Behaviour change:** the structure name is now filled by title match, the "first usable
+      input" fallback only remains as the safety net. (`_fill_table_name_field` keeps working through
+      that fallback: the real title is `Tabellenname, 16-stellig`, the label `Tabellenname`.)
+      `field_helpers.py` belongs to area 2: do not change its signature here.
 - [ ] `_click_display_button`: `for label in t.common.display:` (merged DE view yields
       `Anzeigen`, `Display` — same order as today).
 - [ ] `_check_object_not_found`: message-ID check from Task 3 if available, then
       `t.common.does_not_exist.contains(status_text) or t.common.not_found.contains(status_text)`.
       Widening: DE `does_not_exist` also holds "ist noch nicht vorhanden" / "nicht vorhanden";
       list in the PR.
-- [ ] `_SE11_TABLE_FIELD_LABELS` / `_SE11_STRUCTURE_FIELD_LABELS` module constants become reads
-      of `t` at their use site.
+- [ ] `_SE11_TABLE_FIELD_LABELS` / `_SE11_STRUCTURE_FIELD_LABELS` were unused: deleted.
 
 ### Task 5: SE16 call sites (sonnet)
 
-- [ ] `se16_parser.py`, including the **thousands-separator fix**:
+- [ ] `se16_parser.py` (public functions take `t: LanguagePack` after the snapshot), including the
+      **thousands-separator fix**:
 
 ```python
 def _hit_count_pattern(t: LanguagePack) -> re.Pattern[str]:
@@ -486,7 +562,9 @@ if match:
 ```
 
 The four `snapshot.find(...)` calls for the first data row become one
-`_row_start_pattern(t).search(snapshot, grid_start)`; `col_name not in (...)` becomes
+`_row_start_pattern(t).search(snapshot, grid_start)` (**widening:** `common.row_select_hint` also holds
+the prefixes `Zum Auswählen` / `To select`, the old `find` calls only knew the full hints; the
+`unittests/webgui/testdata/se16_exploration` fixtures parse to the same rows); `col_name not in (...)` becomes
 `not t.se16.column_selection.equals(col_name)` (it was an exact comparison).
 A hit count is an integer, so stripping every non-digit is safe; the test covers
 `5.000`, `5,000`, `5 000`, `5 000`, `5'000` in both languages.
@@ -509,7 +587,7 @@ clicked = await backend.click_element(selector)
 ```python
 _GRID_HAS_ROWS_JS = """
 (params) => {
-    const empty = new RegExp('^(?:' + params.texts.empty.source + '\\\\s*)+$', params.texts.empty.flags);
+    const empty = new RegExp('^(?:(?:' + params.texts.empty.source + ')\\\\s*)+$', params.texts.empty.flags);
     for (const grid of document.querySelectorAll('[role="grid"]')) {
         for (const row of grid.querySelectorAll('[role="row"]')) {
             if (row.querySelector('[role="columnheader"]')) continue;
@@ -528,7 +606,13 @@ result = await backend.evaluate_javascript(_GRID_HAS_ROWS_JS, script_arg({"empty
       the escaping of `\s` (the Python string holds `\\\\s`, JS receives `'\\s'`, the regex sees
       `\s`) against the Node guard from phase 2c.
 
-    - `_check_table_not_found`: `t.common.does_not_exist.contains(snapshot)` (widening as above).
+    - `_check_table_not_found`: `t.se16.table_not_found.contains(snapshot)`. **Not**
+      `common.does_not_exist`: this check scans the whole snapshot, and the DE variant `nicht
+      vorhanden` of the common text would hit result data.
+    - `_check_selection_screen_columns`: `sum(t.se16.selection_columns.equals(c) for c in columns) >= 2`
+      (no language-free detection exists on the ARIA snapshot).
+    - `_fill_se16n_max_hits`, `_collect_rows_with_pagination`, `_get_field_order_from_se11` take `t`;
+      `_execute_se16_query` resolves it once at its start (both backends).
     - `_check_no_entries_found`: `t.se16.no_values_found.contains(snapshot)`.
 
 - [ ] `se16_tools.py`, desktop path: `_SE16N_NO_ENTRIES_KEYWORDS` →
@@ -569,9 +653,25 @@ result = await backend.evaluate_javascript(_GRID_HAS_ROWS_JS, script_arg({"empty
 
 - [ ] Update Part 1 of this plan with whatever the pilot taught (recipe gaps, scanner false
       positives, fixture patterns) in the same PR.
-- [ ] R7. Behaviour changes for this PR: `common.does_not_exist` widening in SE11/SE16;
-      SE16N desktop no longer tries localized labels after `GD-TAB` / `GD-MAX_LINES`; SE11 internal
-      row keys (if switched); SE16 hit count accepts every group separator.
+- [ ] R7. Behaviour changes for this PR: `common.does_not_exist` / `not_found` widening in SE11
+      (DE `ist noch nicht vorhanden`, `nicht vorhanden`); `common.row_select_hint` widening for the SE16
+      row start and the SE11 row split; SE16N desktop no longer tries localized labels after `GD-TAB` /
+      `GD-MAX_LINES`; SE16N grid detection by SELFIELDS cells only; SE11 desktop initial-screen check by
+      program and dynpro; SE11 internal row keys (`Columns(c).Name`); SE11 structure name filled by
+      title match; a DE session no longer needs a DE-only code path for EN texts; SE16 hit count
+      accepts every group separator; EN `max_hits_label` also knows `Maximum no. of hits`.
+- [ ] **Bugs fixed in the pilot** (each with a test): SE16 hit count with `,` / space / NBSP / `'`
+      separators; EN SE16N grid wait ended at once on padding rows (`Leer` was the only placeholder
+      text, EN shows `Empty`); `_fill_structure_name_field` could never match by title.
+- [ ] **Review corrections folded into this plan** (from the pilot review): the grouped alternation in
+      `_GRID_HAS_ROWS_JS` plus a Node test (`Leer Leer`, `Empty Empty`, data row); the
+      `_check_selection_screen_columns` and `_check_table_not_found` call sites the first draft
+      missed; threading `t` through the public parser functions and all callers; the `except Exception`
+      in `_get_field_order_from_se11` and the batch loop of `sap_se11_lookup` (`t` resolved before them);
+      `tables/scraper.py` as a second caller of `_lookup_object_on_initial_screen`; running the literal
+      guard right after adding the pack values; `column_keys` in `_find_table_control_info`;
+      `SelectionScreenState` from `sapguimcp.models.screen_state`; the readiness-test fakes need
+      `session.info`.
 
 ---
 

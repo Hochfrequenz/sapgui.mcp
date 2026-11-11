@@ -77,7 +77,7 @@ def search_tables(  # pylint: disable=too-many-branches
         # Table description matching
         elif query_upper in desc_upper:
             score = 50
-            match_reason = "table description contains"
+            match_reason = "table description contains"  # lang-ok: our own message
 
         # Field matching (only if include_fields and no table-level match yet)
         if include_fields and score == 0:

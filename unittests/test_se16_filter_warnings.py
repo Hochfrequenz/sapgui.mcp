@@ -9,7 +9,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastmcp import Client, FastMCP
 
+from sapguimcp import lang
 from sapguimcp.backend.desktop import DesktopBackend
+from sapguimcp.lang.schema import LanguagePack
 from sapguimcp.models import ScreenInfo, StatusBarInfo, TableData, TableRow, TransactionResult
 from sapguimcp.models.se16_models import SE16Result, SE16Row
 from sapguimcp.tools.se16_tools import (
@@ -91,13 +93,17 @@ async def _run_desktop_query_with_fill(
     fill: _FilterFillResult, backend: AsyncMock | None = None
 ) -> tuple[SE16Result, AsyncMock]:
     backend = backend or _make_desktop_backend()
-    with patch("sapguimcp.tools.se16_tools._fill_se16n_filters_desktop", new=AsyncMock(return_value=fill)):
+    with (
+        lang.use("DE"),
+        patch("sapguimcp.tools.se16_tools._fill_se16n_filters_desktop", new=AsyncMock(return_value=fill)),
+    ):
         result = await _execute_se16_query_desktop(
             backend,
             table="TSTC",
             filters={"ZZZFAKE": "X", "TCODE": "SE16"},
             max_hits=10,
             now=datetime.now(UTC),
+            t=lang.current(),
         )
     return result, backend
 
@@ -536,7 +542,7 @@ def _is_pred(fn: Any, factory_name: str) -> bool:
 
 
 @pytest.mark.anyio
-async def test_execute_se16_query_desktop_waits_for_expected_conditions() -> None:
+async def test_execute_se16_query_desktop_waits_for_expected_conditions(lang_de: LanguagePack) -> None:
     template = _make_desktop_backend()
     backend = MagicMock(spec=DesktopBackend)
     for name in (
@@ -556,7 +562,7 @@ async def test_execute_se16_query_desktop_waits_for_expected_conditions() -> Non
     fill = _FilterFillResult(unapplied_fields=[], other_errors=[])
     with patch("sapguimcp.tools.se16_tools._fill_se16n_filters_desktop", new=AsyncMock(return_value=fill)):
         await _execute_se16_query_desktop(
-            backend, table="TSTC", filters={"TCODE": "SE16"}, max_hits=10, now=datetime.now(UTC)
+            backend, table="TSTC", filters={"TCODE": "SE16"}, max_hits=10, now=datetime.now(UTC), t=lang_de
         )
         awaited = [c.args[0] for c in backend.wait_for_condition.await_args_list]
         assert awaited[0] is _se16n_initial_screen_ready
@@ -565,7 +571,9 @@ async def test_execute_se16_query_desktop_waits_for_expected_conditions() -> Non
         assert _is_pred(awaited[2], "_se16n_result_displayed")
 
         backend.wait_for_condition.reset_mock()
-        await _execute_se16_query_desktop(backend, table="TSTC", filters=None, max_hits=10, now=datetime.now(UTC))
+        await _execute_se16_query_desktop(
+            backend, table="TSTC", filters=None, max_hits=10, now=datetime.now(UTC), t=lang_de
+        )
         awaited = [c.args[0] for c in backend.wait_for_condition.await_args_list]
         assert awaited[0] is _se16n_initial_screen_ready
         assert len(awaited) == 2

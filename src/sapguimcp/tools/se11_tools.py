@@ -19,34 +19,9 @@ from typing import TYPE_CHECKING, Any
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
-from sapguimcp.lang import (
-    SE11_DATA_TYPE_DE,
-    SE11_DATA_TYPE_EN,
-    SE11_DATABASE_TABLE_DE,
-    SE11_DATABASE_TABLE_EN,
-    SE11_DICTIONARY_TYPE_DE,
-    SE11_DICTIONARY_TYPE_EN,
-    SE11_DISPLAY_BUTTON_DE,
-    SE11_DISPLAY_BUTTON_EN,
-    SE11_NOT_EXIST_DE,
-    SE11_NOT_EXIST_EN,
-    SE11_NOT_FOUND_DE,
-    SE11_NOT_FOUND_EN,
-    SE11_ROW_SELECT_FULL_DE,
-    SE11_ROW_SELECT_FULL_EN,
-    SE11_ROW_SELECT_PREFIX_DE,
-    SE11_ROW_SELECT_PREFIX_EN,
-    SE11_SHORT_DESC_DE,
-    SE11_SHORT_DESC_EN,
-    SE11_STRUCTURE_DE,
-    SE11_STRUCTURE_EN,
-    SE11_TABLE_NAME_DE,
-    SE11_TABLE_NAME_EN,
-    SE11_TRANSPARENT_TABLE_DE,
-    SE11_TRANSPARENT_TABLE_EN,
-    bilingual_pattern,
-)
+from sapguimcp.lang.text import compiled
 from sapguimcp.models import (
     SE11Entry,
     SE11Error,
@@ -55,8 +30,9 @@ from sapguimcp.models import (
     SE11ObjectType,
     SE11Result,
 )
+from sapguimcp.models.screen_state import SelectionScreenState
 from sapguimcp.tools.field_helpers import fill_field_with_keyboard
-from sapguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
+from sapguimcp.tools.screen_state_helpers import ensure_screen_state
 from sapguimcp.tools.table_helpers import read_table_control_all_rows
 
 if TYPE_CHECKING:
@@ -64,6 +40,7 @@ if TYPE_CHECKING:
 
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
+    from sapguimcp.lang.schema import LanguagePack
 
 
 logger = logging.getLogger(__name__)
@@ -71,18 +48,28 @@ logger = logging.getLogger(__name__)
 # Threshold for writing to file instead of returning inline
 MAX_INLINE_OBJECTS = 10
 
-# Regex patterns for parsing - compiled once for efficiency
-# Uses explicit constants: SE11_ROW_SELECT_PREFIX_DE, SE11_ROW_SELECT_PREFIX_EN
-_ROW_SPLIT_PATTERN = re.compile(
-    rf'(?=- row "{bilingual_pattern(SE11_ROW_SELECT_PREFIX_DE, SE11_ROW_SELECT_PREFIX_EN)})'
-)
-# Uses explicit constants: SE11_ROW_SELECT_FULL_DE, SE11_ROW_SELECT_FULL_EN (regex patterns)
-_ROW_SELECT_FULL = bilingual_pattern(SE11_ROW_SELECT_FULL_DE, SE11_ROW_SELECT_FULL_EN, escape=False)
-_FIELD_NAME_PATTERN = re.compile(rf'row "{_ROW_SELECT_FULL}\s+(?P<field_name>[A-Z_0-9/]+)')
-_ROW_DATA_PATTERN = re.compile(
-    rf'row "{_ROW_SELECT_FULL}\s+(?P<row_data>[^"]+)"',
-    re.MULTILINE,
-)
+# SE11 initial screen: program and dynpro, language-independent (read on both releases)
+_SE11_INITIAL_SCREEN = ("SAPLSD_ENTRY", "1000")
+
+# Column names (``Columns(c).Name``) of the SE11 field list table control, identical on both releases
+_COL_FIELD_NAME = "DD03D-FIELDNAME"
+_COL_DATA_TYPE = "DD03D-DATATYPE"
+_COL_LENGTH = "DD03P-LENG"
+_COL_DECIMALS = "DD03P-DECIMALS"
+_COL_SHORT_DESC = "DD03P-DDTEXT"
+_COL_KEY = "DD03P-KEYFLAG"  # the key flag: a checkbox column (read with ``read_checkboxes``)
+
+
+def _row_split_pattern(t: LanguagePack) -> re.Pattern[str]:
+    return compiled(rf'(?=- row "{t.common.row_select_hint.alt})')
+
+
+def _field_name_pattern(t: LanguagePack) -> re.Pattern[str]:
+    return compiled(rf'row "{t.se11.row_select_full.alt}\s+(?P<field_name>[A-Z_0-9/]+)')
+
+
+def _row_data_pattern(t: LanguagePack) -> re.Pattern[str]:
+    return compiled(rf'(?m)row "{t.se11.row_select_full.alt}\s+(?P<row_data>[^"]+)"')
 
 
 # =============================================================================
@@ -90,32 +77,24 @@ _ROW_DATA_PATTERN = re.compile(
 # =============================================================================
 
 
-def _parse_se11_yaml(yaml_content: str, object_type: SE11ObjectType) -> SE11Entry | SE11Error:
+def _parse_se11_yaml(yaml_content: str, object_type: SE11ObjectType, t: LanguagePack) -> SE11Entry | SE11Error:
     """
     Parse SE11 display YAML snapshot into structured data.
 
     Args:
         yaml_content: The YAML accessibility snapshot from browser_snapshot
         object_type: Whether this is a 'table' or 'structure'
+        t: Language pack of the session
 
     Returns:
         SE11Entry on success, SE11Error on parse failure
     """
     now = datetime.now(UTC)
 
-    # Extract table/structure name
-    # Uses explicit constants: SE11_TRANSPARENT_TABLE_DE/EN, SE11_STRUCTURE_DE/EN
-    de_pattern = bilingual_pattern(SE11_TRANSPARENT_TABLE_DE, SE11_STRUCTURE_DE)
-    en_pattern = bilingual_pattern(SE11_TRANSPARENT_TABLE_EN, SE11_STRUCTURE_EN)
-    name_match = re.search(
-        rf'textbox "{de_pattern}":\s*(?P<name>\S+)',  # lang-ok: code regex around pack constants
-        yaml_content,
-    )
-    if not name_match:
-        name_match = re.search(
-            rf'textbox "{en_pattern}":\s*(?P<name>\S+)',  # lang-ok: code regex around pack constants
-            yaml_content,
-        )
+    # Extract table/structure name (the merged pack view holds DE and EN, one search covers both)
+    name_match = compiled(
+        rf'textbox "{lang.alt_of(t.se11.transparent_table, t.se11.structure)}":\s*(?P<name>\S+)'
+    ).search(yaml_content)
 
     if not name_match:
         return SE11Error(
@@ -128,15 +107,15 @@ def _parse_se11_yaml(yaml_content: str, object_type: SE11ObjectType) -> SE11Entr
     name = name_match.group("name").strip()
 
     # Extract description
-    # Uses explicit constants: SE11_SHORT_DESC_DE, SE11_SHORT_DESC_EN
-    desc_match = re.search(
-        rf'textbox "{bilingual_pattern(SE11_SHORT_DESC_DE, SE11_SHORT_DESC_EN)}":\s*(?P<description>.+?)(?:\n|$)',  # lang-ok: code regex around pack constants  # noqa: E501
-        yaml_content,
+    desc_match = compiled(
+        rf'textbox "{t.se11.short_description.alt}":\s*(?P<description>.+?)(?:\n|$)'
+    ).search(  # lang-ok: regex group name
+        yaml_content
     )
     description = desc_match.group("description").strip() if desc_match else ""
 
     # Parse fields from the grid
-    fields = _parse_se11_fields(yaml_content)
+    fields = _parse_se11_fields(yaml_content, t)
 
     if not fields:
         return SE11Error(
@@ -155,16 +134,17 @@ def _parse_se11_yaml(yaml_content: str, object_type: SE11ObjectType) -> SE11Entr
     )
 
 
-def _find_key_fields(yaml_content: str) -> set[str]:
+def _find_key_fields(yaml_content: str, t: LanguagePack) -> set[str]:
     """Find which fields are marked as key fields in the SE11 grid."""
     key_fields: set[str] = set()
-    row_blocks = _ROW_SPLIT_PATTERN.split(yaml_content)
+    row_blocks = _row_split_pattern(t).split(yaml_content)
+    field_name_pattern = _field_name_pattern(t)
 
     for block in row_blocks:
         if not block.strip():
             continue
 
-        row_match = _FIELD_NAME_PATTERN.search(block)
+        row_match = field_name_pattern.search(block)
         if not row_match:
             continue
 
@@ -221,12 +201,12 @@ def _parse_field_row(parts: list[str], key_fields: set[str]) -> SE11Field | None
     )
 
 
-def _parse_se11_fields(yaml_content: str) -> list[SE11Field]:
+def _parse_se11_fields(yaml_content: str, t: LanguagePack) -> list[SE11Field]:
     """Parse field rows from SE11 grid."""
-    key_fields = _find_key_fields(yaml_content)
+    key_fields = _find_key_fields(yaml_content, t)
     fields: list[SE11Field] = []
 
-    for match in _ROW_DATA_PATTERN.finditer(yaml_content):
+    for match in _row_data_pattern(t).finditer(yaml_content):
         row_data = match.group("row_data")
 
         # Filter out checkbox Unicode chars (Private Use Area U+E000-U+F8FF)
@@ -244,86 +224,78 @@ def _parse_se11_fields(yaml_content: str) -> list[SE11Field]:
 # =============================================================================
 
 
-async def _wait_for_se11_table_screen(backend: WebGuiBackend | DesktopBackend, name: str) -> SE11Error | None:
+async def _wait_for_se11_table_screen(
+    backend: WebGuiBackend | DesktopBackend, name: str, t: LanguagePack
+) -> SE11Error | None:
     """Wait for SE11 table screen and select the table radio. Returns error or None."""
     now = datetime.now(UTC)
 
     # Wait for the screen to load by checking snapshot for radio presence
     for _ in range(20):  # 20 * 500ms = 10s max
         snapshot = await backend.get_snapshot()
-        if "Datenbanktabelle" in snapshot or "Database table" in snapshot:
+        if t.se11.database_table.contains(snapshot):
             break
         await asyncio.sleep(0.5)
     else:
         return SE11Error(
             name=name,
             object_type="table",
-            error=(
-                "SE11 screen did not load. "
-                "Could not find 'Database table' / 'Datenbanktabelle' radio button. "
-                "This tool currently supports German (DE) and English (EN) SAP languages."
-            ),
+            error="SE11 screen did not load. Could not find the database-table radio button.",
             retrieved_at=now,
         )
 
     # Select the table radio via ensure_screen_state (with verification)
-    target = bilingual_target(
-        radios_de={SE11_DATABASE_TABLE_DE: True},
-        radios_en={SE11_DATABASE_TABLE_EN: True},
-    )
+    target = SelectionScreenState(radios=dict.fromkeys(t.se11.database_table, True))
     result = await ensure_screen_state(backend, target)
     if not result.success:
         return SE11Error(
             name=name,
             object_type="table",
-            error=f"Could not select 'Database table' / 'Datenbanktabelle' radio: {result.error}",
+            error=f"Could not select the database-table radio: {result.error}",
             retrieved_at=now,
         )
     return None
 
 
-async def _wait_for_se11_structure_screen(backend: WebGuiBackend | DesktopBackend, name: str) -> SE11Error | None:
+async def _wait_for_se11_structure_screen(
+    backend: WebGuiBackend | DesktopBackend, name: str, t: LanguagePack
+) -> SE11Error | None:
     """Wait for SE11 structure screen and select the data type radio. Returns error or None."""
     now = datetime.now(UTC)
 
     # Wait for the screen to load by checking snapshot for radio presence
     for _ in range(20):  # 20 * 500ms = 10s max
         snapshot = await backend.get_snapshot()
-        if "Datentyp" in snapshot or "Data type" in snapshot:
+        if t.se11.data_type.contains(snapshot):
             break
         await asyncio.sleep(0.5)
     else:
         return SE11Error(
             name=name,
             object_type="structure",
-            error=(
-                "SE11 screen did not load. "
-                "Could not find 'Data type' / 'Datentyp' radio button. "
-                "This tool currently supports German (DE) and English (EN) SAP languages."
-            ),
+            error="SE11 screen did not load. Could not find the data-type radio button.",
             retrieved_at=now,
         )
 
     # Select the data type radio via ensure_screen_state (with verification)
-    target = bilingual_target(
-        radios_de={SE11_DATA_TYPE_DE: True},
-        radios_en={SE11_DATA_TYPE_EN: True},
-    )
+    target = SelectionScreenState(radios=dict.fromkeys(t.se11.data_type, True))
     result = await ensure_screen_state(backend, target)
     if not result.success:
         return SE11Error(
             name=name,
             object_type="structure",
-            error=f"Could not select 'Data type' / 'Datentyp' radio: {result.error}",
+            error=f"Could not select the data-type radio: {result.error}",
             retrieved_at=now,
         )
     return None
 
 
-async def _fill_table_name_field(backend: WebGuiBackend | DesktopBackend, name: str) -> SE11Error | None:
+async def _fill_table_name_field(
+    backend: WebGuiBackend | DesktopBackend, name: str, t: LanguagePack
+) -> SE11Error | None:
     """Fill the table name field in SE11 using real keyboard events. Returns error or None."""
     now = datetime.now(UTC)
-    labels = [SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN, "Table name"]
+    labels = list(t.se11.table_name)
 
     if await fill_field_with_keyboard(backend, labels, name.upper()):
         return None
@@ -336,10 +308,12 @@ async def _fill_table_name_field(backend: WebGuiBackend | DesktopBackend, name: 
     )
 
 
-async def _fill_structure_name_field(backend: WebGuiBackend | DesktopBackend, name: str) -> SE11Error | None:
+async def _fill_structure_name_field(
+    backend: WebGuiBackend | DesktopBackend, name: str, t: LanguagePack
+) -> SE11Error | None:
     """Fill the structure/data type name field in SE11 using real keyboard events. Returns error or None."""
     now = datetime.now(UTC)
-    labels = [SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN]
+    labels = list(t.se11.data_type_name_label)
 
     if await fill_field_with_keyboard(backend, labels, name.upper()):
         return None
@@ -352,10 +326,10 @@ async def _fill_structure_name_field(backend: WebGuiBackend | DesktopBackend, na
     )
 
 
-async def _click_display_button(backend: WebGuiBackend | DesktopBackend, name: str) -> None:
+async def _click_display_button(backend: WebGuiBackend | DesktopBackend, name: str, t: LanguagePack) -> None:
     """Click the Display button or fall back to F7."""
-    # Try DE and EN display button labels
-    for label in [SE11_DISPLAY_BUTTON_DE, SE11_DISPLAY_BUTTON_EN]:
+    # Try the display button label of every language of the merged view
+    for label in t.common.display:
         try:
             await backend.click_button(label)
             await backend.wait_for_ready()
@@ -370,16 +344,14 @@ async def _click_display_button(backend: WebGuiBackend | DesktopBackend, name: s
 
 
 async def _check_object_not_found(
-    backend: WebGuiBackend | DesktopBackend, name: str, object_type: SE11ObjectType
+    backend: WebGuiBackend | DesktopBackend, name: str, object_type: SE11ObjectType, t: LanguagePack
 ) -> SE11Error | None:
     """Check if the status bar shows 'object not found'. Returns error or None."""
     now = datetime.now(UTC)
     status = await backend.get_status_bar()
     status_text = status.message or ""
 
-    # Uses explicit constants: SE11_NOT_EXIST_DE/EN, SE11_NOT_FOUND_DE/EN
-    not_found_msgs = {SE11_NOT_EXIST_DE, SE11_NOT_EXIST_EN, SE11_NOT_FOUND_DE, SE11_NOT_FOUND_EN}
-    if status_text and any(msg in status_text.lower() for msg in not_found_msgs):
+    if status_text and (t.common.does_not_exist.contains(status_text) or t.common.not_found.contains(status_text)):
         await backend.press_key("F3")
         await backend.wait_for_ready()
         return SE11Error(
@@ -393,35 +365,37 @@ async def _check_object_not_found(
 
 
 async def _lookup_object_on_initial_screen(  # pylint: disable=too-many-return-statements
-    backend: WebGuiBackend | DesktopBackend, name: str, object_type: SE11ObjectType
+    backend: WebGuiBackend | DesktopBackend, name: str, object_type: SE11ObjectType, t: LanguagePack
 ) -> SE11Entry | SE11Error:
     """Look up a table or structure assuming we're already on the SE11 initial screen.
 
     The caller handles navigation (``enter_transaction``) and state reset
-    (``/n`` between lookups) to prevent state bleeding in batch mode.
+    (``/n`` between lookups) to prevent state bleeding in batch mode. ``t`` is the language pack of the
+    session, resolved once by the caller (``lang.current(...)``) outside any ``try`` that would swallow an
+    ``UnsupportedLanguageError``.
     """
     now = datetime.now(UTC)
 
     # Wait for screen and select object type
     if object_type == "table":
-        error = await _wait_for_se11_table_screen(backend, name)
+        error = await _wait_for_se11_table_screen(backend, name, t)
         if error:
             return error
-        error = await _fill_table_name_field(backend, name)
+        error = await _fill_table_name_field(backend, name, t)
         if error:
             return error
     else:
-        error = await _wait_for_se11_structure_screen(backend, name)
+        error = await _wait_for_se11_structure_screen(backend, name, t)
         if error:
             return error
-        error = await _fill_structure_name_field(backend, name)
+        error = await _fill_structure_name_field(backend, name, t)
         if error:
             return error
 
     # Click display and check for errors
-    await _click_display_button(backend, name)
+    await _click_display_button(backend, name, t)
 
-    error = await _check_object_not_found(backend, name, object_type)
+    error = await _check_object_not_found(backend, name, object_type, t)
     if error:
         return error
 
@@ -430,7 +404,7 @@ async def _lookup_object_on_initial_screen(  # pylint: disable=too-many-return-s
     snapshot_str = str(snapshot)
     logger.debug("Got snapshot", extra={"object": name, "length": len(snapshot_str)})
 
-    parse_result = _parse_se11_yaml(snapshot_str, object_type)
+    parse_result = _parse_se11_yaml(snapshot_str, object_type, t)
 
     # Handle parse failure - save debug snapshot
     if isinstance(parse_result, SE11Error):
@@ -456,49 +430,35 @@ async def _lookup_object_on_initial_screen(  # pylint: disable=too-many-return-s
 # Desktop Backend (COM) Path
 # =============================================================================
 
-# DE/EN label variants for the SE11 input fields.
-_SE11_TABLE_FIELD_LABELS = [SE11_TABLE_NAME_DE, SE11_TABLE_NAME_EN, "Table name"]
-_SE11_STRUCTURE_FIELD_LABELS = [SE11_DICTIONARY_TYPE_DE, SE11_DICTIONARY_TYPE_EN]
 
-# DE/EN column headers in the SE11 fields table control.
-_COL_FIELD_NAME = ("Feld", "Feldname", "Field", "Field Name", "Field name")
-_COL_DATA_TYPE = ("Datentyp", "Data Type", "Data type")
-_COL_LENGTH = ("Länge", "Length")
-_COL_DECIMALS = ("DezStellen", "Dez.St.", "Decimal Places", "Decimals", "Dec.Pl.")
-_COL_SHORT_DESC = ("Kurzbeschreibung", "Short Description", "Short text")
-_COL_KEY = ("Key",)  # the key flag: a checkbox column (read with ``read_checkboxes``)
-
-
-def _get_col(row: dict[str, str], candidates: tuple[str, ...]) -> str:
-    """Get a column value trying multiple DE/EN header names."""
-    for c in candidates:
-        if c in row:
-            return row[c]
-    return ""
+def _on_se11_initial_screen(session: Any) -> bool:
+    """True while the session shows the SE11 initial screen (program and dynpro, language-independent)."""
+    info = session.info
+    return (str(info.program), str(info.screen_number)) == _SE11_INITIAL_SCREEN
 
 
 def _parse_se11_table_rows(rows: list[dict[str, str]]) -> list[SE11Field]:
-    """Parse table control rows into SE11Field models."""
+    """Parse table control rows (keyed by column name) into SE11Field models."""
     fields: list[SE11Field] = []
     for row in rows:
-        name = _get_col(row, _COL_FIELD_NAME)
+        name = row.get(_COL_FIELD_NAME, "")
         if not name:
             continue
-        datatype = _get_col(row, _COL_DATA_TYPE)
+        datatype = row.get(_COL_DATA_TYPE, "")
         if not datatype:
             continue
         try:
-            length = int(_get_col(row, _COL_LENGTH) or "0")
+            length = int(row.get(_COL_LENGTH, "") or "0")
         except ValueError:
             length = 0
         try:
-            dec_raw = int(_get_col(row, _COL_DECIMALS) or "0")
+            dec_raw = int(row.get(_COL_DECIMALS, "") or "0")
             decimals = dec_raw if dec_raw > 0 else None
         except ValueError:
             decimals = None
         # The key column is a checkbox column: its cell holds "X" when the field is part of the key
-        is_key = bool(_get_col(row, _COL_KEY))
-        description = _get_col(row, _COL_SHORT_DESC)
+        is_key = bool(row.get(_COL_KEY, ""))
+        description = row.get(_COL_SHORT_DESC, "")
         fields.append(
             SE11Field(
                 name=name,
@@ -523,8 +483,7 @@ def _se11_display_screen_reached(before_status: str) -> Callable[[Any], bool]:
     def _predicate(session: Any) -> bool:
         if session.find_by_id("wnd[1]", raise_error=False) is not None:
             return True
-        title = str(session.find_by_id("wnd[0]").text).lower()
-        if "einstieg" not in title and "initial" not in title:
+        if not _on_se11_initial_screen(session):
             return True
         sbar = session.find_by_id("wnd[0]/sbar", raise_error=False)
         if sbar is None:
@@ -610,12 +569,10 @@ async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-retu
             name=name, object_type=object_type, error=sbar.message or f"'{name}' not found", retrieved_at=now
         )
 
-    # Verify we left the initial screen — SE11 display title is
-    # "Dictionary: Tabelle anzeigen" (DE) / "Dictionary: Display Table" (EN),
-    # NOT containing the object name. Check we're no longer on "Einstieg"/"Initial".
+    # Verify we left the initial screen (the display title does not contain the object name; program and
+    # dynpro are language-independent)
     screen = await backend.get_screen_info()
-    title = (screen.title or "").lower()
-    if "einstieg" in title or "initial" in title:
+    if (screen.program, screen.dynpro) == _SE11_INITIAL_SCREEN:
         return SE11Error(
             name=name,
             object_type=object_type,
@@ -625,7 +582,8 @@ async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-retu
 
     # Read the fields table control (SE11 shows fields on the main screen, no tabs)
     rows = await com.run(
-        lambda: read_table_control_all_rows(session, _flatten, read_checkboxes=True), retry_server_fault=True
+        lambda: read_table_control_all_rows(session, _flatten, read_checkboxes=True, column_keys="name"),
+        retry_server_fault=True,
     )
 
     # Extract description from screen fields (DD02D-DDTEXT on the display screen)
@@ -777,6 +735,8 @@ def register_se11_tools(mcp: FastMCP) -> None:
         if backend.backend_type == "desktop":
             final_result = await _lookup_batch_se11_desktop(backend, name_list, object_type)
         else:
+            # Resolved once, before the per-name try: an UnsupportedLanguageError must not become a lookup error
+            t = lang.current("sap_se11_lookup")
             entries: list[SE11Entry] = []
             errors: list[SE11Error] = []
 
@@ -800,7 +760,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
                 await backend.wait_for_ready()
 
                 try:
-                    result = await _lookup_object_on_initial_screen(backend, name, object_type)
+                    result = await _lookup_object_on_initial_screen(backend, name, object_type, t)
                     if isinstance(result, SE11Entry):
                         entries.append(result)
                     else:
