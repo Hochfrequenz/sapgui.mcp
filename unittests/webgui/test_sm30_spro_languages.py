@@ -68,7 +68,7 @@ def test_sm30_view_parses_in_both_languages(code: str, snapshot: str, descriptio
         ),
         (
             "DE",
-            '- main "Tabellensicht-Pflege":\n  - note "Fehler Meldungsleiste Tabelle/View ZZZ ist nicht im Dictionary vorhanden"',
+            '- main "Tabellensicht-Pflege":\n  - note "Fehler Meldungsleiste ZZZ ist nicht im Dictionary vorhanden"',
         ),
     ],
 )
