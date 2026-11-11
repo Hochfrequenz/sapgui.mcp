@@ -860,7 +860,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
     async def fill_form(self, fields: dict[str, str]) -> FillFormResult:
         """Fill multiple SAP form fields in a single call."""
         if not fields:
-            return FillFormResult.failure("fields cannot be empty")
+            return FillFormResult.failure("fields cannot be empty")  # lang-ok: our own message
 
         try:
             result = await self._page.evaluate(
@@ -1254,7 +1254,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Reading table")
-            return TableData.failure(f"Error reading table: {e}")
+            return TableData.failure(f"Error reading table: {e}")  # lang-ok: our own message
 
     async def click_table_cell(self, row: int, column: int | str, action: str = "click") -> TableCellClickResult:
         """Click a cell in the current ALV grid table."""
@@ -1295,7 +1295,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Clicking table cell")
             return TableCellClickResult.failure(
-                f"Error clicking table cell: {e}",
+                f"Error clicking table cell: {e}",  # lang-ok: our own message
                 row=row,
                 column=column,
                 selector_used="",

@@ -269,7 +269,7 @@ def test_guard_rejects_a_flag_that_differs_from_en() -> None:
 
 
 def test_guard_rejects_a_text_kind_that_differs_from_en() -> None:
-    changed = dataclasses.replace(DE.se11, dictionary_type=Text(("Dictionary-Typ",)))
+    changed = dataclasses.replace(DE.se11, row_select_full=Text(("Dictionary-Typ",)))
     with pytest.raises(AssertionError):
         _check_same_shape_as(_broken(se11=changed), EN)
 
