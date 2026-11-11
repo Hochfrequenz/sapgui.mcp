@@ -472,7 +472,7 @@ class ShortcutInfo(BaseModel):
     """Single keyboard shortcut discovered on the current screen."""
 
     action: str = Field(description="Action/button text (e.g., 'Person anlegen', 'Ausführen')")
-    shortcut: str = Field(description="Keyboard shortcut (e.g., 'F5', 'Strg+F5', 'Umschalt+F3')")
+    shortcut: str = Field(description="Keyboard shortcut with English key names (e.g., 'F5', 'Ctrl+F5', 'Shift+F3')")
 
 
 class ShortcutsResult(ToolResult):

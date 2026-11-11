@@ -1,4 +1,10 @@
-() => {
+(params) => {
+    // Texts come from the language packs, merged over every language (#1044):
+    // texts.noise - message-bar control texts (its label, buttons) that are not part of the message
+    // texts.error / texts.warning / texts.success - keywords that infer the message type
+    const { texts } = params;
+    const matches = (text, message) => new RegExp(text.source, text.flags).test(message);
+
     // Various SAP Web GUI status bar selectors - ordered from most to least specific
     const statusSelectors = [
         '#LSMSG_AREA', // Classic status area (most reliable)
@@ -11,17 +17,21 @@
     let statusElement = null;
     let message = '';
 
-    // Helper function to clean up status bar text by removing toolbar/button garbage
-    const cleanStatusText = (text) => {
+    // The dedicated message-text elements hold the message only; their text is never noise-filtered,
+    // so message words such as "Executed" or "Ausführen" stay intact.
+    const MESSAGE_TEXT = '.lsMsgText, .urMsgText, [class*="msgtext" i]';
+
+    // Helper function to clean up status bar text by removing toolbar/button garbage.
+    // stripNoise: the text is a container's or a generic span's textContent, which can hold the
+    // message bar's own label and buttons ("Message Bar", "View Details", "Execute", ...).
+    const cleanStatusText = (text, stripNoise) => {
         if (!text) return '';
 
         // Remove common toolbar button labels and UI garbage
         // These appear when the selector captures the whole status bar container
         const garbagePatterns = [
-            /Meldungsleiste/gi, // "Status bar" label in German
-            /Details anzeigen/gi, // "Show details" button
-            /Ausführen/gi, // "Execute" button
-            /Hervorgehoben/gi, // "Highlighted" button state
+            // case-sensitive noise of the message bar, only outside the message-text elements
+            ...(stripNoise ? [new RegExp(texts.noise.source, texts.noise.flags + 'g')] : []),
             /\s*x\s*$/gi, // Close button "x" at end
             /[\ufffd]/g, // Replacement character (encoding issue)
         ];
@@ -51,10 +61,10 @@
                 '.lsMsgText, .urMsgText, span:not([class*="btn"]):not([class*="Btn"])'
             );
             if (textSpan) {
-                message = cleanStatusText(textSpan.textContent);
+                message = cleanStatusText(textSpan.textContent, !textSpan.matches(MESSAGE_TEXT));
             } else {
                 // Fall back to the container's text content and clean it up
-                message = cleanStatusText(statusElement.textContent);
+                message = cleanStatusText(statusElement.textContent, true);
             }
 
             if (message && message.length > 0) {
@@ -71,15 +81,13 @@
             statusElement = document.querySelector(selector);
             if (statusElement) {
                 // Look for the actual message text element within
-                const msgText = statusElement.querySelector(
-                    '.lsMsgText, .urMsgText, [class*="msgtext" i]'
-                );
+                const msgText = statusElement.querySelector(MESSAGE_TEXT);
                 if (msgText) {
-                    message = cleanStatusText(msgText.textContent);
+                    message = cleanStatusText(msgText.textContent, false);
                     if (message) break;
                 } else {
                     // Try the whole container and clean it
-                    message = cleanStatusText(statusElement.textContent);
+                    message = cleanStatusText(statusElement.textContent, true);
                     if (message) break;
                 }
             }
@@ -99,10 +107,9 @@
         (statusElement.parentElement?.className || '')
     ).toLowerCase();
 
-    // Check for error indicators
+    // Check for error indicators (CSS class names are English in every logon language)
     if (
         parentClasses.includes('error') || // lang-ok: CSS class name
-        parentClasses.includes('fehler') ||
         statusElement.querySelector('[class*="error" i], .sapMsgError')
     ) {
         type = 'E';
@@ -110,7 +117,6 @@
     // Check for warning indicators
     else if (
         parentClasses.includes('warning') || // lang-ok: CSS class name
-        parentClasses.includes('warnung') ||
         statusElement.querySelector('[class*="warning" i], .sapMsgWarning')
     ) {
         type = 'W';
@@ -118,35 +124,19 @@
     // Check for success indicators
     else if (
         parentClasses.includes('success') || // lang-ok: CSS class name
-        parentClasses.includes('erfolg') ||
         statusElement.querySelector('[class*="success" i], .sapMsgSuccess')
     ) {
         type = 'S';
     }
 
-    // Also check message content for common patterns
-    const msgLower = message.toLowerCase();
+    // Also check message content for common patterns (case-insensitive substrings)
     if (type === 'I') {
         // Only override if not already detected
-        if (
-            msgLower.includes('fehler') ||
-            msgLower.includes('error') ||
-            msgLower.includes('nicht gefunden') ||
-            msgLower.includes('not found') ||
-            msgLower.includes('ungültig') ||
-            msgLower.includes('invalid')
-        ) {
+        if (matches(texts.error, message)) {
             type = 'E';
-        } else if (msgLower.includes('warnung') || msgLower.includes('warning')) {
+        } else if (matches(texts.warning, message)) {
             type = 'W';
-        } else if (
-            msgLower.includes('gesichert') ||
-            msgLower.includes('saved') ||
-            msgLower.includes('angelegt') ||
-            msgLower.includes('created') ||
-            msgLower.includes('erfolgreich') ||
-            msgLower.includes('successful')
-        ) {
+        } else if (matches(texts.success, message)) {
             type = 'S';
         }
     }

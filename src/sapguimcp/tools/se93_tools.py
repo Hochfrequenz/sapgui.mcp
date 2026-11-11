@@ -168,7 +168,7 @@ async def _lookup_tcode_on_initial_screen(
     await backend.wait_for_ready()
 
     # Fill field with real keyboard events, press F7, and verify navigation.
-    error_msg = await fill_and_display(backend, list(t.se93.transaction_code), tcode, tcode_label="transaction")
+    error_msg = await fill_and_display(backend, list(t.se93.transaction_code), tcode, t, tcode_label="transaction")
     if error_msg:
         return SE93Error(
             tcode=tcode,

@@ -5,10 +5,11 @@
  * The listbox ID is stored in the input's lsdata["3"] or aria-controls attribute.
  * Options have data-itemkey (code) and data-itemvalue2 (description) attributes.
  *
- * @param {string} elementId - The ID of the dropdown input element
+ * @param {Object} params - { elementId: string }: the ID of the dropdown input element
  * @returns {Object} - { success: boolean, options: string[], error?: string }
  */
-(elementId) => {
+(params) => {
+    const { elementId } = params;
     const element = document.getElementById(elementId);
     if (!element) {
         return { success: false, options: [], error: `Element not found: ${elementId}` };

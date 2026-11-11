@@ -78,7 +78,7 @@ async def _open_fm_in_change_mode(
 
     await backend.dismiss_language_dialog()
 
-    return await toggle_to_change_mode(backend)
+    return await toggle_to_change_mode(backend, t)
 
 
 async def _click_source_tab(backend: WebGuiBackend | DesktopBackend, t: LanguagePack) -> str | None:

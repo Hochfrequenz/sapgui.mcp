@@ -316,7 +316,7 @@ async def _lookup_fm_on_initial_screen(
     await backend.wait_for_ready()
 
     # Fill field with real keyboard events, press F7, and verify navigation.
-    error_msg = await fill_and_display(backend, list(t.se37.fm_field_label), fm_name, tcode_label="function module")
+    error_msg = await fill_and_display(backend, list(t.se37.fm_field_label), fm_name, t, tcode_label="function module")
     if error_msg:
         return SE37Error(
             function_module=fm_name,

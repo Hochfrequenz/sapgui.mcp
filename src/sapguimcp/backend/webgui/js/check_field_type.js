@@ -5,10 +5,11 @@
  * This function uses the same label lookup strategy as detect_form_fields.js
  * to ensure consistency when finding fields by label.
  *
- * @param {string} key - Field label text or CSS selector
+ * @param {Object} params - { key: string }: the field label text or CSS selector
  * @returns {Object} - { found: boolean, isDropdown?: boolean, elementId?: string }
  */
-(key) => {
+(params) => {
+    const { key } = params;
     let el;
 
     // Check if it's a CSS selector

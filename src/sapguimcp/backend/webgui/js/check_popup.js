@@ -1,4 +1,10 @@
-() => {
+(params) => {
+    // Texts come from the language packs, merged over every language (#1044):
+    // texts.buttonLabels - popup button labels that are never the popup's message
+    // texts.close - title (tooltip) of a popup's close control, matched case-sensitively
+    const { texts } = params;
+    const buttonLabels = texts.buttonLabels.variants.map((label) => label.toLowerCase());
+
     // Fast check for blocking popup layer
     // Check both by ID and by class for maximum compatibility
     const blockingLayer = document.querySelector('#urPopupWindowBlockLayer, .lsBlockLayer');
@@ -54,11 +60,7 @@
         const el = popup?.querySelector(sel) || document.querySelector(sel);
         const text = el?.textContent?.trim();
         // Skip if text is empty or looks like just button labels (short, common words)
-        if (
-            text &&
-            text.length > 3 &&
-            !['ja', 'nein', 'ok', 'cancel', 'abbrechen'].includes(text.toLowerCase())
-        ) {
+        if (text && text.length > 3 && !buttonLabels.includes(text.toLowerCase())) {
             message = text;
             break;
         }
@@ -136,13 +138,13 @@
 
     // Find close button (X in corner)
     let closeButtonId = null;
+    const closeTitles = (scope) =>
+        texts.close.variants.map((title) => `${scope} [title*=${JSON.stringify(title)}]`);
     const closeSelectors = [
         ".lsPWNew [class*='close']",
-        ".lsPWNew [title*='Close']",
-        ".lsPWNew [title*='Schlie']", // German "Schließen"
+        ...closeTitles('.lsPWNew'),
         "[class*='urPopup'] [class*='close']",
-        "[class*='urPopup'] [title*='Close']",
-        "[class*='urPopup'] [title*='Schlie']",
+        ...closeTitles("[class*='urPopup']"),
         '.urPopupClose',
         "button[id*='close' i]",
     ];

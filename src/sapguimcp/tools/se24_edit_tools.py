@@ -99,7 +99,7 @@ async def _open_class_in_change_mode(
 
     await backend.dismiss_language_dialog()
 
-    return await toggle_to_change_mode(backend)
+    return await toggle_to_change_mode(backend, t)
 
 
 async def _select_method_and_open_source(

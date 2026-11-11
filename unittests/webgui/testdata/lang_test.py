@@ -51,6 +51,14 @@ class Se38Texts:
 
 
 @dataclass(frozen=True, slots=True)
+class Se16Texts:
+    """SE16 (data browser) toolbar actions, as their button titles show them."""
+
+    online_manual_action: Text
+    table_contents_action: Text
+
+
+@dataclass(frozen=True, slots=True)
 class ButtonTexts:
     """Common popup and dialog buttons."""
 
@@ -69,6 +77,7 @@ class UiTestPack:
     bp: BpTexts
     sm30: Sm30Texts
     se38: Se38Texts
+    se16: Se16Texts
     buttons: ButtonTexts
 
 
@@ -93,6 +102,10 @@ TEST_DE = UiTestPack(
         create_button=Text(("Anlegen",)),
         continue_button=Text(("Weiter",)),
         long_doc_button=Text(("Langdokumentation",)),
+    ),
+    se16=Se16Texts(
+        online_manual_action=Text(("Online Handbuch",)),
+        table_contents_action=Text(("Tabelleninhalt",)),
     ),
     buttons=ButtonTexts(
         cancel=Text(("Abbrechen",)),
@@ -123,6 +136,10 @@ TEST_EN = UiTestPack(
         create_button=Text(("Create",)),
         continue_button=Text(("Continue",)),
         long_doc_button=Text(("Long text",)),
+    ),
+    se16=Se16Texts(
+        online_manual_action=Text(("Online Manual",)),
+        table_contents_action=Text(("Table Contents",)),
     ),
     buttons=ButtonTexts(
         cancel=Text(("Cancel",)),

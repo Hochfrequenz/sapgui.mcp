@@ -53,6 +53,8 @@ import time
 from contextvars import ContextVar, copy_context
 from typing import Any, Callable, NamedTuple, TypeVar
 
+from sapguimcp import lang
+
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
@@ -933,11 +935,12 @@ def _enable_call_cancellation() -> None:
         logger.warning("com_enable_call_cancellation_failed", exc_info=True)
 
 
-_DEBUGGER_WINDOW_TITLE_PREFIXES = ("ABAP Debugger", "ABAP-Debugger")
-
-
 def _debugger_window_open() -> bool:
-    """Look for an ABAP debugger among the top-level windows via ``EnumWindows``."""
+    """Look for an ABAP debugger among the top-level windows via ``EnumWindows``.
+
+    The window titles come from ``session_pages.debugger_window`` of every language pack.
+    """
+    title_prefixes = tuple(lang.universal().session_pages.debugger_window)
     try:
         user32 = ctypes.windll.user32  # type: ignore[attr-defined,unused-ignore]
     except AttributeError:  # not Windows
@@ -951,7 +954,7 @@ def _debugger_window_open() -> bool:
         if length:
             buffer = ctypes.create_unicode_buffer(length + 1)
             user32.GetWindowTextW(hwnd, buffer, length + 1)
-            if buffer.value.startswith(_DEBUGGER_WINDOW_TITLE_PREFIXES):
+            if buffer.value.startswith(title_prefixes):
                 found = True
                 return False  # stop enumerating
         return True

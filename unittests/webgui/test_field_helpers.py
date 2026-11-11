@@ -4,7 +4,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from sapguimcp.tools.field_helpers import fill_and_display, fill_field_with_keyboard
+from sapguimcp import lang
+from sapguimcp.lang import LanguagePack
+from sapguimcp.tools.field_helpers import fill_and_display, fill_field_with_keyboard, toggle_to_change_mode
 
 
 def _make_backend(
@@ -46,27 +48,30 @@ def _make_backend(
 
 
 @pytest.mark.anyio
-async def test_fill_and_display_navigates_away_from_initial_screen():
+async def test_fill_and_display_navigates_away_from_initial_screen(lang_en: LanguagePack):
     """fill_and_display returns None (success) when screen title changes."""
     backend = _make_backend(screen_titles=["Function Builder: Display FM"])
-    result = await fill_and_display(backend, ["Function Module"], "RFC_READ_TABLE")
+    result = await fill_and_display(backend, ["Function Module"], "RFC_READ_TABLE", lang_en)
     assert result is None
 
 
 @pytest.mark.anyio
-async def test_fill_and_display_detects_de_initial_screen():
+async def test_fill_and_display_detects_de_initial_screen(lang_de: LanguagePack):
     """fill_and_display detects DE initial screen via 'Einstieg' in title."""
     backend = _make_backend(screen_titles=["Function Builder: Einstiegsbild"] * 20)
-    result = await fill_and_display(backend, ["Funktionsbaustein"], "ZZZFAKE")
+    result = await fill_and_display(backend, ["Funktionsbaustein"], "ZZZFAKE", lang_de)
     assert result is not None
     assert "not found" in result.lower()
 
 
 @pytest.mark.anyio
-async def test_fill_and_display_detects_en_initial_screen():
-    """fill_and_display detects EN initial screen via 'Initial' in title."""
+@pytest.mark.parametrize("code", ["DE", "EN"])
+async def test_fill_and_display_detects_en_initial_screen(code: str):
+    """fill_and_display detects EN initial screen via 'Initial' in title (a DE session matches EN too)."""
+
     backend = _make_backend(screen_titles=["Function Builder: Initial Screen"] * 20)
-    result = await fill_and_display(backend, ["Function Module"], "ZZZFAKE")
+    with lang.use(code):
+        result = await fill_and_display(backend, ["Function Module"], "ZZZFAKE", lang.current())
     assert result is not None
     assert "not found" in result.lower()
 
@@ -111,12 +116,33 @@ async def test_fill_field_with_keyboard_desktop_returns_false_when_not_found():
 
 
 @pytest.mark.anyio
-async def test_fill_and_display_detects_not_found_status():
-    """fill_and_display returns error when status bar says 'does not exist'."""
-    backend = _make_backend(
-        status_message="Function module ZZZFAKE does not exist",
-        screen_titles=["Function Builder: Initial Screen"],
-    )
-    result = await fill_and_display(backend, ["Function Module"], "ZZZFAKE")
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Function module ZZZFAKE does not exist",
+        "Funktionsbaustein ZZZFAKE existiert nicht",
+        "Das Programm ZZZFAKE ist nicht vorhanden",
+        "Klasse ZZZFAKE nicht gefunden",
+        "Class ZZZFAKE not found",
+    ],
+)
+async def test_fill_and_display_detects_not_found_status(lang_de: LanguagePack, message: str):
+    """fill_and_display returns error when status bar says 'does not exist' (DE session: DE and EN)."""
+    backend = _make_backend(status_message=message, screen_titles=["Function Builder: Initial Screen"])
+    result = await fill_and_display(backend, ["Function Module"], "ZZZFAKE", lang_de)
     assert result is not None
     assert "not found" in result.lower()
+    assert backend.press_key.await_count == 1  # definitive: no retry
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(("code", "label"), [("DE", "Anzeigen <-> Ändern"), ("EN", "Display <-> Change")])
+async def test_toggle_to_change_mode_clicks_the_session_language_label_first(code: str, label: str):
+    """The toggle label comes from common.display_change_toggle, session language first."""
+
+    backend = AsyncMock()
+    with lang.use(code):
+        result = await toggle_to_change_mode(backend, lang.current())
+    assert result is None
+    backend.click_button.assert_awaited_once_with(label)
+    backend.dismiss_language_dialog.assert_awaited_once()
