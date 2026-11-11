@@ -156,6 +156,47 @@ async def test_a_classic_job_list_is_read_when_there_is_no_alv_grid() -> None:
 
 
 @pytest.mark.anyio
+async def test_a_classic_job_list_of_an_english_logon_is_read() -> None:
+    """The headers of the job overview, as read live with an EN logon (SAP S/4HANA, classic list)."""
+    usr_prefix = "/app/con[0]/ses[0]/wnd[0]/usr"
+
+    def _label(column: int, row: int, text: str) -> Any:
+        return SimpleNamespace(id=f"{usr_prefix}/lbl[{column},{row}]", text=text)
+
+    elements = [
+        _label(4, 11, "JobName"),
+        _label(51, 11, "Job CreatedB"),
+        _label(64, 11, "Status"),
+        _label(80, 11, "Start date"),
+        _label(91, 11, "Start Time"),
+        _label(102, 11, "Duration(sec.)"),
+        _label(130, 11, "Cli"),
+        SimpleNamespace(id=f"{usr_prefix}/chk[1,13]", text=""),
+        _label(4, 13, "MYJOB"),
+        _label(51, 13, "USER1"),
+        _label(64, 13, "Finished"),
+        _label(80, 13, "02.11.2026"),
+        _label(91, 13, "06:00:01"),
+        _label(102, 13, "            0"),
+        _label(130, 13, "100"),
+    ]
+    usr = SimpleNamespace(dump_tree=lambda: elements, vertical_scrollbar=None)
+    session = SimpleNamespace(find_by_id=lambda _element_id, **_: usr)
+    backend = _listing_backend(TableData(success=True, headers=[], rows=[]), session)
+    result = await _execute_sm37_lookup_desktop(backend, lang.view_for("EN"), "*", None, None, None, None)
+    assert result.success
+    job = result.jobs[0]
+    assert (job.job_name, job.status, job.user, job.start_time, job.duration, job.mandant) == (
+        "MYJOB",
+        "Finished",
+        "USER1",
+        "02.11.2026 06:00:01",
+        "0",
+        "100",
+    )
+
+
+@pytest.mark.anyio
 async def test_the_classic_reader_does_not_run_when_the_alv_grid_has_headers() -> None:
     table = TableData(success=True, headers=["Jobname", "Status"], rows=[])
     session = MagicMock()

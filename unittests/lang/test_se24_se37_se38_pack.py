@@ -279,3 +279,12 @@ async def test_a_session_without_a_language_pack_raises_instead_of_failing_quiet
         pytest.raises(lang.UnsupportedLanguageError),
     ):
         await fn(**args)
+
+
+@pytest.mark.parametrize(
+    ("code", "title"),
+    [("DE", "ABAP Editor: Einstieg"), ("EN", "ABAP Editor: Initial Screen")],
+)
+def test_the_se38_initial_screen_title_matches_in_both_languages(code: str, title: str) -> None:
+    """The window titles of the SE38 initial screen, as read live with a DE and an EN logon."""
+    assert lang.view_for(code).abapgit.se38_initial_title.contains(title)

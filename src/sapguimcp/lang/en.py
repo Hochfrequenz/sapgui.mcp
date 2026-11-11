@@ -105,9 +105,8 @@ EN = LanguagePack(
     abapgit=AbapgitSection(
         status_error=Text(("not found",)),
         screen_errors=Text(("transport required",)),
-        # LIVE CHECK NEEDED (#1044): the real EN title of the SE38 initial screen. "Entry" never matched it
-        # (a DE-only check in practice); kept until the title is read live.
-        se38_initial_title=Text(("Entry",)),
+        # Read live with an EN logon: the SE38 initial screen is titled "ABAP Editor: Initial Screen".
+        se38_initial_title=Text(("Initial Screen",)),
     ),
     catalog=CatalogSection(screen_header=Text(("Screen number",))),
     quick_report=QuickReportSection(
@@ -209,7 +208,9 @@ EN = LanguagePack(
         program_field_title=Text(("ABAP Program Name", "Program")),
     ),
     se93=Se93Section(
-        initial_screen=Text(("Transaction Maintenance", "Maintain Transaction")),  # EN title per the captured snapshots
+        initial_screen=Text(
+            ("Transaction Maintenance", "Maintain Transaction")
+        ),  # "Maintain Transaction" read live (EN logon)
         dialog_transaction=Text(("Dialog Transaction",)),
         report_transaction=Text(("Report Transaction",)),
         gui_html=Text(("SAP GUI for HTML",)),
@@ -263,7 +264,7 @@ EN = LanguagePack(
             }
         ),
         col_status=Text(("Status",)),
-        job_name=Text(("Job Name", "Job name"), fold=False),
+        job_name=Text(("Job Name", "Job name", "JobName"), fold=False),  # "JobName": header of the job list
         user_name=Text(("User Name", "User name"), fold=False),
         from_date=Text(("From Date",)),
         to_date=Text(("To Date",)),
@@ -279,8 +280,8 @@ EN = LanguagePack(
         col_start_date=Text(("Start Date",)),
         col_start_time=Text(("Start Time",)),
         col_duration=Text(("Duration", "Duration(sec.)")),
-        col_created_by=Text(("Created By", "Job Created By")),
-        col_client=Text(("Client",)),
+        col_created_by=Text(("Created By", "Job Created By", "Job CreatedB")),  # "Job CreatedB": truncated header
+        col_client=Text(("Client", "Cli")),
     ),
     spro=SproSection(
         initial_screen=Text(("Customizing: Execute Project",)),

@@ -109,7 +109,7 @@ def read_classic_list_table(session: Any, header_titles: tuple[str, ...], max_ro
             if titles is None:
                 header = _header(labels, header_titles)
                 if header is None:
-                    continue
+                    break  # the header is on the first page; a list without one is not scanned page by page
                 header_row, titles = header
                 header_line = offset + header_row
                 logger.debug("Classic list header at row %d: %s", header_row, titles)
