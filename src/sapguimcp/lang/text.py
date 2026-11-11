@@ -5,8 +5,11 @@ All three are frozen and slotted. Slotted dataclasses have no ``__dict__``, so d
 sources and compiled patterns come from module-level ``functools.cache`` builders keyed by the
 value's fields.
 
-Python only. The JavaScript builder (``for_js()``) arrives with the JS object-argument
-convention in phase 2c.
+``Text.for_js()`` and ``RegexText.for_js()`` build the JavaScript form (phase 2c): a plain
+source for ``new RegExp(source, flags)``, Unicode-aware word boundaries and the flags ``iu``.
+Python's ``re.escape`` output is not valid in JS ``u`` mode, JS ``\\b`` is ASCII-only and scoped
+``(?i:…)`` is not portable, so the JS form has its own escaper and builder. ``Template`` has no
+JS form.
 """
 
 from __future__ import annotations
@@ -14,7 +17,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from functools import cache
-from typing import TYPE_CHECKING, Protocol, TypeVar
+from typing import TYPE_CHECKING, Protocol, TypedDict, TypeVar
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
@@ -26,6 +29,26 @@ _NUMERIC_GROUP_REF = re.compile(r"\\[1-9]|\(\?\(\d")  # \1 … \9 and (?(1)…) 
 _DEFAULT_GROUP = r".+?"
 _TRAILING_GROUP = r'[^"\n]+'  # stops at an ARIA snapshot's closing quote
 """A placeholder that ends a variant captures the whole rest of the line, not a lazy fragment."""
+
+_JS_SYNTAX = re.compile(r"[\\^$.*+?()[\]{}|/]")
+"""Characters to escape in a JS ``u``-mode regex. Escaping anything else (space, ``-``, ``#``) is an error."""
+_JS_WORD = r"[\p{L}\p{N}_]"
+"""A JS word character. JS ``\\w`` and ``\\b`` are ASCII-only even with the ``u`` flag."""
+_JS_UNPORTABLE = re.compile(r"(?<!\\)(?:\\\\)*(?:\\[AZzbBwW]|\(\?[aiLmsux-]|\(\?P|\(\?#)")
+"""Python regex syntax that JS rejects or reads differently: anchors, ASCII-only classes, inline flags."""
+
+
+class JsPattern(TypedDict):
+    """The JS form of a pattern: ``new RegExp(source, flags)``."""
+
+    source: str
+    flags: str
+
+
+class JsText(JsPattern):
+    """The JS form of a :class:`Text`: the pattern plus the literal variants for clicking or filling."""
+
+    variants: list[str]
 
 
 class HasAlt(Protocol):
@@ -101,6 +124,31 @@ def regex_alt(patterns: tuple[str, ...], fold: bool) -> str:
 def compiled(source: str) -> re.Pattern[str]:
     """Compile and cache a regex source."""
     return re.compile(source)
+
+
+def _js_flags(fold: bool) -> str:
+    return "iu" if fold else "u"
+
+
+@cache
+def js_literal_source(variants: tuple[str, ...], fold: bool, word: bool) -> str:
+    """JS regex source of literal variants: same order as :func:`literal_alt`, no case group."""
+    ordered = sorted(_unique(variants, fold), key=len, reverse=True)
+    body = "|".join(_JS_SYNTAX.sub(r"\\\g<0>", variant) for variant in ordered)
+    if word:
+        return f"(?<!{_JS_WORD})(?:{body})(?!{_JS_WORD})"
+    return body
+
+
+@cache
+def js_regex_source(patterns: tuple[str, ...]) -> str:
+    """JS regex source of raw patterns; ``ValueError`` for Python-only syntax."""
+    for pattern in patterns:
+        if _JS_UNPORTABLE.search(pattern):
+            raise ValueError(
+                f"pattern is not portable to JavaScript (\\b, \\w, \\A, \\Z, inline flags, (?P, (?#): {pattern!r}"
+            )
+    return "|".join(f"(?:{pattern})" for pattern in _unique(patterns, fold=False))
 
 
 def _literal_source(literal: str, fold: bool) -> str:
@@ -201,6 +249,14 @@ class Text:
         """Compiled :attr:`alt`."""
         return compiled(self.alt)
 
+    def for_js(self) -> JsText:
+        """JS form for a script's ``texts`` argument: ``new RegExp(t.source, t.flags)``, ``t.variants``."""
+        return {
+            "source": js_literal_source(self.variants, self.fold, self.word),
+            "flags": _js_flags(self.fold),
+            "variants": list(self.variants),
+        }
+
 
 @dataclass(frozen=True, slots=True)
 class RegexText:
@@ -232,6 +288,10 @@ class RegexText:
     def pattern(self) -> re.Pattern[str]:
         """Compiled :attr:`alt`."""
         return compiled(self.alt)
+
+    def for_js(self) -> JsPattern:
+        """JS form for a script's ``texts`` argument; ``ValueError`` for Python-only syntax."""
+        return {"source": js_regex_source(self.patterns), "flags": _js_flags(self.fold)}
 
 
 @dataclass(frozen=True, slots=True)
