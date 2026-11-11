@@ -14,12 +14,8 @@ import re
 from datetime import UTC, datetime
 
 from sapguimcp.backend.webgui.types import AriaSnapshot
-from sapguimcp.lang import (
-    SM30_ROW_SELECT_HINT_DE,
-    SM30_ROW_SELECT_HINT_EN,
-    SPRO_RESULTS_DIALOG_DE,
-    SPRO_RESULTS_DIALOG_EN,
-)
+from sapguimcp.lang.schema import LanguagePack
+from sapguimcp.lang.text import compiled
 from sapguimcp.models.spro_models import SPROActivity, SPROSearchResult
 
 logger = logging.getLogger(__name__)
@@ -32,48 +28,42 @@ __all__ = [
 # Regex Patterns (based on real ARIA snapshots)
 # =============================================================================
 
-# Results dialog detection (DE/EN)
+
+# Results dialog detection
 # DE: dialog "Trefferliste zum Suchbegriff \"LAND\""
 # EN: dialog "Search Term \"COUNTRY\" Hit List"
 # Note: dialog titles contain escaped quotes (\") so we use .*? instead of [^"]*
-_RESULTS_DIALOG_PATTERN = re.compile(
-    rf'dialog ".*?(?:{re.escape(SPRO_RESULTS_DIALOG_DE)}|{re.escape(SPRO_RESULTS_DIALOG_EN)})',
-)
+def _results_dialog_pattern(t: LanguagePack) -> re.Pattern[str]:
+    return compiled(rf'dialog ".*?{t.spro.results_dialog.alt}')
+
 
 # Data row with selection hint prefix
-_DATA_ROW_PATTERN = re.compile(
-    rf'- row "(?:{re.escape(SM30_ROW_SELECT_HINT_DE)}|{re.escape(SM30_ROW_SELECT_HINT_EN)})',
-)
+def _data_row_pattern(t: LanguagePack) -> re.Pattern[str]:
+    return compiled(rf'- row "{t.common.row_select_hint.alt}')
+
 
 # Gridcell value extraction
 _GRIDCELL_WITH_VALUE_PATTERN = re.compile(r'gridcell "(?P<value>[^"]*)"')
 _GRIDCELL_EMPTY_PATTERN = re.compile(r"^\s*- gridcell:\s*$")
-
-# Selection cell text patterns to skip
-_SELECTION_CELL_PATTERNS = [
-    SM30_ROW_SELECT_HINT_DE,
-    SM30_ROW_SELECT_HINT_EN,
-]
-
 
 # =============================================================================
 # Parser
 # =============================================================================
 
 
-def _is_selection_cell(value: str) -> bool:
+def _is_selection_cell(value: str, t: LanguagePack) -> bool:
     """Check if a gridcell value is the row selection hint text."""
-    return any(pattern in value for pattern in _SELECTION_CELL_PATTERNS)
+    return any(value.startswith(hint) for hint in t.common.row_select_hint)  # case-sensitive, as before
 
 
-def _has_results_dialog(snapshot: str) -> bool:
+def _has_results_dialog(snapshot: str, t: LanguagePack) -> bool:
     """Check if the snapshot contains a SPRO search results dialog."""
-    return _RESULTS_DIALOG_PATTERN.search(snapshot) is not None
+    return _results_dialog_pattern(t).search(snapshot) is not None
 
 
-def _extract_results_section(snapshot: str) -> str:
+def _extract_results_section(snapshot: str, t: LanguagePack) -> str:
     """Extract the results dialog section from the snapshot."""
-    match = _RESULTS_DIALOG_PATTERN.search(snapshot)
+    match = _results_dialog_pattern(t).search(snapshot)
     if not match:
         return ""
     return snapshot[match.start() :]
@@ -82,6 +72,7 @@ def _extract_results_section(snapshot: str) -> str:
 def parse_spro_search_results(  # pylint: disable=too-many-branches
     snapshot: AriaSnapshot,
     query: str,
+    t: LanguagePack,
 ) -> SPROSearchResult:
     """
     Parse SPRO search results from ARIA snapshot.
@@ -94,6 +85,7 @@ def parse_spro_search_results(  # pylint: disable=too-many-branches
     Args:
         snapshot: YAML accessibility snapshot
         query: The search keyword that was used
+        t: The language pack of the session (``lang.current()``)
 
     Returns:
         SPROSearchResult with parsed activities
@@ -101,7 +93,7 @@ def parse_spro_search_results(  # pylint: disable=too-many-branches
     now = datetime.now(UTC)
 
     # Check for results dialog
-    if not _has_results_dialog(snapshot):
+    if not _has_results_dialog(snapshot, t):
         # Could be: no results, still loading, or search failed
         return SPROSearchResult(
             query=query,
@@ -111,7 +103,8 @@ def parse_spro_search_results(  # pylint: disable=too-many-branches
         )
 
     # Extract the results section
-    results_section = _extract_results_section(snapshot)
+    results_section = _extract_results_section(snapshot, t)
+    data_row_pattern = _data_row_pattern(t)
     activities: list[SPROActivity] = []
 
     lines = results_section.split("\n")
@@ -120,7 +113,7 @@ def parse_spro_search_results(  # pylint: disable=too-many-branches
 
     for line in lines:
         # Start of data row
-        if _DATA_ROW_PATTERN.search(line):
+        if data_row_pattern.search(line):
             if current_cells:
                 _save_activity(current_cells, activities)
             current_cells = []
@@ -146,7 +139,7 @@ def parse_spro_search_results(  # pylint: disable=too-many-branches
             match = _GRIDCELL_WITH_VALUE_PATTERN.search(line)
             if match:
                 value = match.group("value")
-                if not _is_selection_cell(value):
+                if not _is_selection_cell(value, t):
                     current_cells.append(value)
             elif _GRIDCELL_EMPTY_PATTERN.match(line):
                 current_cells.append("")

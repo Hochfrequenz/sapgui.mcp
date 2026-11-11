@@ -5,6 +5,7 @@ import sys
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.models.se09_models import TransportListResult
 from sapguimcp.tools.se09_tools import _lookup_transports_desktop
 from unittests.desktop.conftest import go_home, skip_no_sap
@@ -16,7 +17,9 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 @pytest.mark.anyio
 async def test_se09_default_lookup(backend):
     """SE09: default params returns TransportListResult (may be empty)."""
-    result = await _lookup_transports_desktop(backend, username=None, request_type="all", status="modifiable")
+    result = await _lookup_transports_desktop(
+        backend, lang.current(), username=None, request_type="all", status="modifiable"
+    )
     assert result is not None
     assert result.success, f"SE09 failed: {result.error}"
     assert isinstance(result.requests, list)
@@ -34,7 +37,9 @@ async def test_se09_default_lookup(backend):
 @pytest.mark.anyio
 async def test_se09_model_serializes(backend):
     """TransportListResult must JSON-serialize (roundtrip)."""
-    result = await _lookup_transports_desktop(backend, username=None, request_type="all", status="modifiable")
+    result = await _lookup_transports_desktop(
+        backend, lang.current(), username=None, request_type="all", status="modifiable"
+    )
     json_str = result.model_dump_json()
     parsed = json.loads(json_str)
     assert "success" in parsed
@@ -67,7 +72,9 @@ async def test_se09_screen_elements(backend):
 @pytest.mark.anyio
 async def test_se09_workbench_only(backend):
     """SE09: request_type='workbench' filters to workbench requests only."""
-    result = await _lookup_transports_desktop(backend, username=None, request_type="workbench", status="modifiable")
+    result = await _lookup_transports_desktop(
+        backend, lang.current(), username=None, request_type="workbench", status="modifiable"
+    )
     assert result.success, f"SE09 failed: {result.error}"
     assert isinstance(result.requests, list)
     await go_home(backend)
@@ -77,7 +84,9 @@ async def test_se09_workbench_only(backend):
 @pytest.mark.anyio
 async def test_se09_customizing_only(backend):
     """SE09: request_type='customizing' filters to customizing requests only."""
-    result = await _lookup_transports_desktop(backend, username=None, request_type="customizing", status="modifiable")
+    result = await _lookup_transports_desktop(
+        backend, lang.current(), username=None, request_type="customizing", status="modifiable"
+    )
     assert result.success, f"SE09 failed: {result.error}"
     assert isinstance(result.requests, list)
     await go_home(backend)
@@ -87,7 +96,9 @@ async def test_se09_customizing_only(backend):
 @pytest.mark.anyio
 async def test_se09_released_only(backend):
     """SE09: status='released' filters to released requests only."""
-    result = await _lookup_transports_desktop(backend, username=None, request_type="all", status="released")
+    result = await _lookup_transports_desktop(
+        backend, lang.current(), username=None, request_type="all", status="released"
+    )
     assert result.success, f"SE09 failed: {result.error}"
     assert isinstance(result.requests, list)
     await go_home(backend)
@@ -97,7 +108,7 @@ async def test_se09_released_only(backend):
 @pytest.mark.anyio
 async def test_se09_all_status(backend):
     """SE09: status='all' returns both modifiable and released requests."""
-    result = await _lookup_transports_desktop(backend, username=None, request_type="all", status="all")
+    result = await _lookup_transports_desktop(backend, lang.current(), username=None, request_type="all", status="all")
     assert result.success, f"SE09 failed: {result.error}"
     assert isinstance(result.requests, list)
     await go_home(backend)
@@ -107,7 +118,9 @@ async def test_se09_all_status(backend):
 @pytest.mark.anyio
 async def test_se09_no_results_fake_user(backend):
     """SE09: username='ZZZFAKEUSER' returns 0 requests."""
-    result = await _lookup_transports_desktop(backend, username="ZZZFAKEUSER", request_type="all", status="modifiable")
+    result = await _lookup_transports_desktop(
+        backend, lang.current(), username="ZZZFAKEUSER", request_type="all", status="modifiable"
+    )
     assert result.request_count == 0
     assert len(result.requests) == 0
     await go_home(backend)
@@ -123,7 +136,7 @@ async def test_se09_include_objects_desktop(backend):
     if the system has typical workbench activity.
     """
     result = await _lookup_transports_desktop(
-        backend, username=None, request_type="all", status="modifiable", include_objects=True
+        backend, lang.current(), username=None, request_type="all", status="modifiable", include_objects=True
     )
     assert result.success, f"SE09 failed: {result.error}"
     assert isinstance(result.requests, list)

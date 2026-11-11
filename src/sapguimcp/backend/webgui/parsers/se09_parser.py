@@ -25,12 +25,8 @@ import re
 from datetime import UTC, datetime
 
 from sapguimcp.backend.webgui.types import AriaSnapshot
-from sapguimcp.lang import (
-    SE09_MODIFIABLE_DE,
-    SE09_MODIFIABLE_EN,
-    SE09_RELEASED_DE,
-    SE09_RELEASED_EN,
-)
+from sapguimcp.lang.schema import LanguagePack
+from sapguimcp.lang.text import compiled
 from sapguimcp.models.se09_models import (
     TransportListResult,
     TransportRequest,
@@ -56,32 +52,30 @@ _TEXT_LINE_RE = re.compile(r'^\s*- text:\s*"?(?P<content>[^"]*)"?\s*$')
 # Target system line: "-> XXX ..."
 _TARGET_RE = re.compile(r"^->\s+(\S+)")
 
-# Status keywords (DE/EN) — values sourced from sapguimcp.lang constants
-_STATUS_KEYWORDS = {
-    SE09_MODIFIABLE_DE: "Modifiable",
-    SE09_MODIFIABLE_EN: "Modifiable",
-    SE09_RELEASED_DE: "Released",
-    SE09_RELEASED_EN: "Released",
-}
-
-# Request type keywords (DE/EN)
+# Request type keywords (the same in every language)
 _REQUEST_TYPE_KEYWORDS = {
     "Workbench": "Workbench",
     "Customizing": "Customizing",
 }
 
-# Region marker
-_REGION_LISTE_RE = re.compile(r'region\s+"Liste"', re.IGNORECASE)
+
+def _status_of(line: str, t: LanguagePack) -> str | None:
+    """The normalised status a section header line names, or ``None`` if it is no status line."""
+    for status, text in t.se09.status.items():
+        if text.equals(line):
+            return str(status)
+    return None
 
 
-def _extract_text_lines(snapshot: str) -> list[str]:
-    """Extract all text content lines from the region 'Liste' section."""
+def _extract_text_lines(snapshot: str, t: LanguagePack) -> list[str]:
+    """Extract all text content lines from the list region of the snapshot."""
+    region_re = compiled(rf'region\s+"{t.se09.list_region.alt}"')
     lines = snapshot.split("\n")
     in_region = False
     text_lines: list[str] = []
 
     for line in lines:
-        if _REGION_LISTE_RE.search(line):
+        if region_re.search(line):
             in_region = True
             continue
 
@@ -118,6 +112,7 @@ def _extract_transport_number(text: str) -> str:
 
 def parse_se09_transport_list(
     snapshot: AriaSnapshot,
+    t: LanguagePack,
     *,
     include_objects: bool = False,  # pylint: disable=unused-argument  # reserved for future use
 ) -> TransportListResult:
@@ -130,6 +125,7 @@ def parse_se09_transport_list(
 
     Args:
         snapshot: YAML accessibility snapshot from the SE09 list view
+        t: The language pack of the session (``lang.current()``)
         include_objects: Reserved for future use (object list parsing).
 
     Returns:
@@ -137,14 +133,14 @@ def parse_se09_transport_list(
     """
     now = datetime.now(UTC)
 
-    if "Transport Organizer: Auftr" not in snapshot and "Transport Organizer: Requ" not in snapshot:
+    if not any(f"{title}:" in snapshot for title in t.se09.organizer_title):
         return TransportListResult(requests=[], request_count=0, retrieved_at=now)
 
-    text_lines = _extract_text_lines(snapshot)
+    text_lines = _extract_text_lines(snapshot, t)
     if not text_lines:
         return TransportListResult(requests=[], request_count=0, retrieved_at=now)
 
-    requests = _parse_transport_entries(text_lines)
+    requests = _parse_transport_entries(text_lines, t)
 
     return TransportListResult(
         requests=requests,
@@ -153,7 +149,7 @@ def parse_se09_transport_list(
     )
 
 
-def _parse_transport_entries(text_lines: list[str]) -> list[TransportRequest]:
+def _parse_transport_entries(text_lines: list[str], t: LanguagePack) -> list[TransportRequest]:
     """Parse transport entries from extracted text lines."""
     current_request_type = ""
     current_target = ""
@@ -164,13 +160,14 @@ def _parse_transport_entries(text_lines: list[str]) -> list[TransportRequest]:
     while i < len(text_lines):
         line = text_lines[i]
 
-        if line in _STATUS_KEYWORDS:
-            current_status = _STATUS_KEYWORDS[line]
+        line_status = _status_of(line, t)
+        if line_status is not None:
+            current_status = line_status
             i += 1
             continue
 
         for keyword, type_name in _REQUEST_TYPE_KEYWORDS.items():
-            if keyword in line and ("Auftrag" in line or "Aufträge" in line or "Request" in line):
+            if keyword in line and t.se09.request_word.contains(line):
                 current_request_type = type_name
                 break
 
@@ -185,7 +182,7 @@ def _parse_transport_entries(text_lines: list[str]) -> list[TransportRequest]:
             owner, description = "", ""
             if i + 1 < len(text_lines):
                 next_line = text_lines[i + 1]
-                if not _is_transport_number(next_line) and next_line not in _STATUS_KEYWORDS:
+                if not _is_transport_number(next_line) and _status_of(next_line, t) is None:
                     parts = next_line.split(None, 1)
                     if parts:
                         owner = parts[0]

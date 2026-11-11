@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.models import ScreenText, StatusBarInfo
 from sapguimcp.models.quick_report_models import ScreenClassification
 from sapguimcp.tools.quick_report_tools import classify_result_screen
@@ -35,7 +36,7 @@ class TestClassifyResultScreen:
             status_type="E",
             status_message="Werk XXXX existiert nicht",
         )
-        classification, status_bar = await classify_result_screen(backend)
+        classification, status_bar = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.ERROR
         assert status_bar.type == "E"
 
@@ -45,7 +46,7 @@ class TestClassifyResultScreen:
             status_type="I",
             status_message="Keine Daten gefunden",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.EMPTY
 
     async def test_empty_no_data_english(self) -> None:
@@ -54,7 +55,7 @@ class TestClassifyResultScreen:
             status_type="I",
             status_message="No data was found for the specified selection criteria",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.EMPTY
 
     async def test_empty_keine_werte(self) -> None:
@@ -63,7 +64,7 @@ class TestClassifyResultScreen:
             status_type="W",
             status_message="Es wurden keine Werte selektiert",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.EMPTY
 
     async def test_empty_no_entries(self) -> None:
@@ -72,7 +73,7 @@ class TestClassifyResultScreen:
             status_type="I",
             status_message="No entries found",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.EMPTY
 
     async def test_table_grid_detected(self) -> None:
@@ -82,7 +83,7 @@ class TestClassifyResultScreen:
             status_message="5 Einträge gelesen",
             snapshot="- document 'SAP'\n  - grid 'ALV Grid'\n    - row 'Header'",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.TABLE
 
     async def test_unknown_no_grid_no_error(self) -> None:
@@ -93,7 +94,7 @@ class TestClassifyResultScreen:
             snapshot="- document 'SAP'\n  - dialog 'Variantenauswahl'",
             screen_title="Variantenauswahl",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.UNKNOWN
 
     async def test_error_takes_priority_over_grid(self) -> None:
@@ -103,7 +104,7 @@ class TestClassifyResultScreen:
             status_message="Fehler aufgetreten",
             snapshot="- document 'SAP'\n  - grid 'ALV Grid'",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.ERROR
 
     async def test_empty_takes_priority_over_grid(self) -> None:
@@ -113,7 +114,7 @@ class TestClassifyResultScreen:
             status_message="Keine Daten gefunden",
             snapshot="- document 'SAP'\n  - grid 'Empty Grid'",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.EMPTY
 
     async def test_easy_access_classified_as_error(self) -> None:
@@ -124,7 +125,7 @@ class TestClassifyResultScreen:
             snapshot="- document 'SAP'\n  - grid 'SAP Menu'",
             screen_title="SAP Easy Access",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.ERROR
 
     async def test_easy_access_takes_priority_over_grid(self) -> None:
@@ -135,7 +136,7 @@ class TestClassifyResultScreen:
             snapshot="- document 'SAP'\n  - grid 'Tree'",
             screen_title="SAP Easy Access XYZ (100)",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.ERROR
 
     async def test_empty_kein_job(self) -> None:
@@ -144,7 +145,7 @@ class TestClassifyResultScreen:
             status_type="I",
             status_message="Kein Job entspricht den Selektionsbedingungen",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.EMPTY
 
     async def test_empty_no_documents(self) -> None:
@@ -153,7 +154,7 @@ class TestClassifyResultScreen:
             status_type="I",
             status_message="No documents found for the selection",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.EMPTY
 
     async def test_list_screen_detected(self) -> None:
@@ -164,7 +165,7 @@ class TestClassifyResultScreen:
             snapshot="- document 'SAP'\n  - list 'Report Output'\n    - listitem 'Row 1'",
             screen_title="Materialbelegliste",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.LIST
 
     async def test_grid_takes_priority_over_list(self) -> None:
@@ -175,7 +176,7 @@ class TestClassifyResultScreen:
             snapshot="- document 'SAP'\n  - grid 'ALV Grid'\n  - list 'Navigation'",
             screen_title="Report Output",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.TABLE
 
     async def test_warning_classified_as_error(self) -> None:
@@ -184,7 +185,7 @@ class TestClassifyResultScreen:
             status_type="W",
             status_message="Selektion wurde nicht eingeschränkt",
         )
-        classification, status_bar = await classify_result_screen(backend)
+        classification, status_bar = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.ERROR
         assert status_bar.type == "W"
 
@@ -194,7 +195,7 @@ class TestClassifyResultScreen:
             status_type="W",
             status_message="Es wurden keine Werte selektiert",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.EMPTY
 
     async def test_selection_screen_with_execute_detected_as_error(self) -> None:
@@ -210,7 +211,7 @@ class TestClassifyResultScreen:
             ),
             screen_title="Materialbelegliste",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.ERROR
 
     async def test_selection_screen_without_execute_detected_as_error(self) -> None:
@@ -226,5 +227,5 @@ class TestClassifyResultScreen:
             ),
             screen_title="Liste Fakturen",
         )
-        classification, _ = await classify_result_screen(backend)
+        classification, _ = await classify_result_screen(backend, lang.view_for("DE"))
         assert classification == ScreenClassification.ERROR

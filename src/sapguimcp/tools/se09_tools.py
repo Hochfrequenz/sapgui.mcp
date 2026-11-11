@@ -18,21 +18,22 @@ from typing import TYPE_CHECKING, Any, Literal
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
+from sapguimcp.backend.webgui.js_helpers import script_arg
 from sapguimcp.backend.webgui.parsers.se09_parser import parse_se09_transport_list
 from sapguimcp.backend.webgui.types import AriaSnapshot
-from sapguimcp.lang import (
-    SE09_DISPLAY_BUTTON_DE,
-    SE09_DISPLAY_BUTTON_EN,
-)
+from sapguimcp.lang.schema import LanguagePack, TransportStatus
+from sapguimcp.models.screen_state import SelectionScreenState
 from sapguimcp.models.se09_models import TransportListResult, TransportObject, TransportRequest, TransportTask
 from sapguimcp.tools.desktop_wait_predicates import screen_changed, usr_child_count_changed
-from sapguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
+from sapguimcp.tools.screen_state_helpers import ensure_screen_state
 from sapguimcp.utils import resolve_output_file_path, write_json_output_file
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
+    from sapguimcp.lang.text import Text
 
 
 logger = logging.getLogger(__name__)
@@ -45,19 +46,20 @@ __all__ = ["register_se09_tools"]
 # =============================================================================
 
 
-async def _click_display_button(backend: "WebGuiBackend") -> None:
-    """Click the Anzeigen/Display button to execute the search.
+async def _click_display_button(backend: "WebGuiBackend", t: LanguagePack) -> None:
+    """Click the Display button to execute the search.
 
     Uses JS to click the button by its element ID, which is more reliable
     than Playwright's click() for SAP WebGUI custom button controls.
     """
-    # Find the Anzeigen/Display button by text and click it via JS,
+    # Find the Display button by text and click it via JS,
     # dispatching a proper mousedown+mouseup+click sequence
-    js_click_display = """() => {
+    js_click_display = """({texts}) => {
+        const display = new RegExp('^(?:' + texts.display.source + ')$', texts.display.flags);
         const buttons = document.querySelectorAll('[role="button"]');
         for (const btn of buttons) {
             const text = btn.textContent?.trim() || '';
-            if (text === 'Anzeigen' || text === 'Display') {
+            if (display.test(text)) {
                 // SAP WebGUI needs mousedown+mouseup for proper event handling
                 btn.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true}));
                 btn.dispatchEvent(new MouseEvent('mouseup', {bubbles: true, cancelable: true}));
@@ -67,7 +69,7 @@ async def _click_display_button(backend: "WebGuiBackend") -> None:
         }
         return {clicked: null};
     }"""
-    result = await backend.evaluate_javascript(js_click_display)
+    result = await backend.evaluate_javascript(js_click_display, script_arg({"display": t.se09.display_button}))
     if isinstance(result, str):
         result = json.loads(result)
     if result and result.get("clicked"):
@@ -76,7 +78,7 @@ async def _click_display_button(backend: "WebGuiBackend") -> None:
         return
 
     # Fallback: try Playwright click
-    for label in [SE09_DISPLAY_BUTTON_DE, SE09_DISPLAY_BUTTON_EN]:
+    for label in t.se09.display_button:
         try:
             await backend.click_button(label)
             await backend.wait_for_ready()
@@ -84,7 +86,7 @@ async def _click_display_button(backend: "WebGuiBackend") -> None:
         except ValueError:
             continue
 
-    logger.warning("Anzeigen/Display button not found")
+    logger.warning("Display button not found")
 
 
 _JS_CLICK_NEXT_EXPAND = """(skip) => {
@@ -177,21 +179,20 @@ async def _extract_tree_text_lines(backend: "WebGuiBackend") -> list[str]:
     return [item["text"] for item in all_items if item["text"]]
 
 
-async def _set_checkbox_bilingual(
-    backend: "WebGuiBackend | DesktopBackend", de_label: str, en_label: str, checked: bool
-) -> None:
-    """Set a checkbox trying DE then EN label, warn if neither found."""
-    for label in [de_label, en_label]:
+async def _set_checkbox_by_labels(backend: "WebGuiBackend | DesktopBackend", labels: Text, checked: bool) -> None:
+    """Set a checkbox trying each label variant in turn, warn if none is found."""
+    for label in labels:
         try:
             await backend.set_checkbox(label, checked)
             return
         except ValueError:
             continue
-    logger.warning("SE09 desktop: checkbox not found for %s / %s", de_label, en_label)
+    logger.warning("SE09 desktop: checkbox not found for %s", " / ".join(labels))
 
 
 async def _set_se09_selection_screen(
     backend: "WebGuiBackend | DesktopBackend",
+    t: LanguagePack,
     username: str | None,
     request_type: str,
     status: str,
@@ -200,36 +201,27 @@ async def _set_se09_selection_screen(
 
     SE09 uses checkboxes (not radio buttons) for both request type and status.
     The username field is in a subscreen whose label/field names don't follow
-    the standard convention, so we fill it by trying both label and technical name.
+    the standard convention,.
     """
-    # Username field — SE09's user field is in a subscreen where label/field names
-    # don't match (lblSEL_USER vs ctxtUSERNAME), so fill_field by label fails.
-    # Fallback: focus_and_type with SAP technical name (uses FindByName strategy).
+    # Username field: SE09's user field sits in a subscreen whose label/field names don't
+    # match (lblSEL_USER vs ctxtUSERNAME). The technical name TRDYSE01CM-USERNAME exists on
+    # S/4 and ECC (live-checked), so no label lookup is needed.
     if username:
-        filled = False
-        for label in ["Benutzer", "User"]:
-            try:
-                await backend.fill_field(label, username.upper())
-                filled = True
-                break
-            except ValueError:
-                continue
-        if not filled:
-            filled = await backend.focus_and_type("TRDYSE01CM-USERNAME", username.upper())
+        filled = await backend.focus_and_type("TRDYSE01CM-USERNAME", username.upper())
         if not filled:
             logger.warning("SE09 desktop: could not fill username field, results may be unfiltered")
 
     # Request type checkboxes
     wb_checked = request_type in ("all", "workbench")  # lang-ok: tool parameter values
     cust_checked = request_type in ("all", "customizing")  # lang-ok: tool parameter values
-    await _set_checkbox_bilingual(backend, "Workbench-Auftr\u00e4ge", "Workbench Requests", wb_checked)
-    await _set_checkbox_bilingual(backend, "Customizing-Auftr\u00e4ge", "Customizing Requests", cust_checked)
+    await _set_checkbox_by_labels(backend, t.se09.workbench_requests, wb_checked)
+    await _set_checkbox_by_labels(backend, t.se09.customizing_requests, cust_checked)
 
     # Status checkboxes
     mod_checked = status in ("all", "modifiable")  # lang-ok: tool parameter values
     rel_checked = status in ("all", "released")  # lang-ok: tool parameter values
-    await _set_checkbox_bilingual(backend, "\u00c4nderbar", "Modifiable", mod_checked)
-    await _set_checkbox_bilingual(backend, "Freigegeben", "Released", rel_checked)
+    await _set_checkbox_by_labels(backend, t.se09.status[TransportStatus.MODIFIABLE], mod_checked)
+    await _set_checkbox_by_labels(backend, t.se09.status[TransportStatus.RELEASED], rel_checked)
 
 
 # A SAP user name: up to 12 upper-case letters, digits and a few symbols (the built-in user is SAP*), no blanks. A
@@ -279,7 +271,7 @@ def _parse_labels_to_requests(labels: list[str], default_owner: str) -> list[Tra
     return requests
 
 
-_SE09_EDIT_MENU_INDEX = 1  # menu bar entry "Bearbeiten" / "Edit"
+_SE09_EDIT_MENU_INDEX = 1  # the Edit menu of the menu bar
 
 
 def _select_edit_menu_item_for_label(
@@ -331,7 +323,9 @@ async def _wait_for_usr_tree_change(backend: "DesktopBackend", before_count: int
         logger.debug("SE09 list did not change within %d ms after the action on %s", _SE09_TREE_WAIT_MS, request_number)
 
 
-async def _expand_request_node_desktop(backend: "WebGuiBackend | DesktopBackend", request_number: str) -> bool:
+async def _expand_request_node_desktop(
+    backend: "WebGuiBackend | DesktopBackend", request_number: str, t: LanguagePack
+) -> bool:
     """Focus on a transport request label and expand it via Edit > Expand.
 
     Returns True if the expand was performed, False if the label wasn't found.
@@ -347,9 +341,7 @@ async def _expand_request_node_desktop(backend: "WebGuiBackend | DesktopBackend"
     def _focus_expand() -> bool:
         nonlocal before_count
         try:
-            performed, before_count = _select_edit_menu_item_for_label(
-                session, request_number, ("Expandieren", "Expand")
-            )
+            performed, before_count = _select_edit_menu_item_for_label(session, request_number, tuple(t.se09.expand))
             return performed
         except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.warning("SE09 expand failed for %s: %s", request_number, exc)
@@ -363,7 +355,9 @@ async def _expand_request_node_desktop(backend: "WebGuiBackend | DesktopBackend"
     return result
 
 
-async def _collapse_request_node_desktop(backend: "WebGuiBackend | DesktopBackend", request_number: str) -> None:
+async def _collapse_request_node_desktop(
+    backend: "WebGuiBackend | DesktopBackend", request_number: str, t: LanguagePack
+) -> None:
     """Focus on a transport request label and collapse it via Edit > Compress."""
     from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
@@ -376,9 +370,7 @@ async def _collapse_request_node_desktop(backend: "WebGuiBackend | DesktopBacken
     def _focus_collapse() -> bool:
         nonlocal before_count
         try:
-            performed, before_count = _select_edit_menu_item_for_label(
-                session, request_number, ("Komprimieren", "Compress")
-            )
+            performed, before_count = _select_edit_menu_item_for_label(session, request_number, tuple(t.se09.compress))
             return performed
         except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.warning("SE09 collapse failed for %s: %s", request_number, exc)
@@ -441,6 +433,7 @@ def _parse_tasks_from_expanded_labels(
 
 async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
     backend: "WebGuiBackend | DesktopBackend",
+    t: LanguagePack,
     username: str | None,
     request_type: str,
     status: str,
@@ -467,12 +460,12 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
     await backend.wait_for_ready()
 
     # Set selection screen: username, request type, status checkboxes
-    await _set_se09_selection_screen(backend, username, request_type, status)
+    await _set_se09_selection_screen(backend, t, username, request_type, status)
 
     # Click Display button
     before_title = (await backend.get_screen_info()).title or ""
     before_status = (await backend.get_status_bar()).message.strip()
-    for label in [SE09_DISPLAY_BUTTON_DE, SE09_DISPLAY_BUTTON_EN]:
+    for label in t.se09.display_button:
         try:
             await backend.click_button(label)
             await backend.wait_for_ready()
@@ -499,12 +492,12 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
     if include_objects:
         known_request_nums = {r.request_number for r in requests}
         for req in requests:
-            expanded = await _expand_request_node_desktop(backend, req.request_number)
+            expanded = await _expand_request_node_desktop(backend, req.request_number, t)
             if expanded:
                 expanded_text = await backend.get_screen_text(keep_duplicate_labels=True)
                 tasks = _parse_tasks_from_expanded_labels(expanded_text.labels, req.request_number, known_request_nums)
                 req.tasks = tasks
-                await _collapse_request_node_desktop(backend, req.request_number)
+                await _collapse_request_node_desktop(backend, req.request_number, t)
 
     return TransportListResult(
         requests=requests,
@@ -515,6 +508,7 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
 
 async def _lookup_transports(  # pylint: disable=too-many-locals
     backend: "WebGuiBackend | DesktopBackend",
+    t: LanguagePack,
     username: str | None,
     request_type: str,
     status: str,
@@ -525,7 +519,7 @@ async def _lookup_transports(  # pylint: disable=too-many-locals
 
     # Desktop backend: use label parsing instead of ARIA snapshot parsing
     if backend.backend_type == "desktop":
-        return await _lookup_transports_desktop(backend, username, request_type, status, include_objects)
+        return await _lookup_transports_desktop(backend, t, username, request_type, status, include_objects)
 
     from sapguimcp.backend.webgui.backend import WebGuiBackend as _WG  # pylint: disable=import-outside-toplevel
 
@@ -544,12 +538,10 @@ async def _lookup_transports(  # pylint: disable=too-many-locals
     await backend.wait_for_ready()
 
     # Verify SE09 selection screen loaded (not results screen).
-    # The selection screen has the "Anzeigen"/"Display" button; the results
-    # screen title contains a colon ("Transport Organizer: Aufträge").
+    # The selection screen has the Display button; the results
+    # screen title contains a colon ("Transport Organizer: ...").
     verify_snap = await backend.get_snapshot()
-    on_selection_screen = "Transport Organizer" in verify_snap and (
-        "Anzeigen" in verify_snap or "Display" in verify_snap
-    )
+    on_selection_screen = t.se09.organizer_title.contains(verify_snap) and t.se09.display_button.contains(verify_snap)
     if not on_selection_screen:
         logger.warning("SE09 selection screen not loaded, retrying")
         await backend.enter_transaction("SE09")
@@ -557,21 +549,18 @@ async def _lookup_transports(  # pylint: disable=too-many-locals
         await backend.wait_for_ready(timeout_ms=3000)
 
     # Build target state for selection screen
-    target = bilingual_target(
-        checkboxes_de={
-            "Workbench-Aufträge": request_type in ("all", "workbench"),
-            "Customizing-Aufträge": request_type in ("all", "customizing"),
-            "Änderbar": status in ("all", "modifiable"),
-            "Freigegeben": status in ("all", "released"),
+    wb_checked = request_type in ("all", "workbench")  # lang-ok: tool parameter values
+    cust_checked = request_type in ("all", "customizing")  # lang-ok: tool parameter values
+    mod_checked = status in ("all", "modifiable")  # lang-ok: tool parameter values
+    rel_checked = status in ("all", "released")  # lang-ok: tool parameter values
+    target = SelectionScreenState(
+        checkboxes={
+            **dict.fromkeys(t.se09.workbench_requests, wb_checked),
+            **dict.fromkeys(t.se09.customizing_requests, cust_checked),
+            **dict.fromkeys(t.se09.status[TransportStatus.MODIFIABLE], mod_checked),
+            **dict.fromkeys(t.se09.status[TransportStatus.RELEASED], rel_checked),
         },
-        checkboxes_en={
-            "Workbench Requests": request_type in ("all", "workbench"),
-            "Customizing Requests": request_type in ("all", "customizing"),
-            "Modifiable": status in ("all", "modifiable"),
-            "Released": status in ("all", "released"),
-        },
-        fields_de={"Benutzer": username.upper()} if username else {},
-        fields_en={"User": username.upper()} if username else {},
+        fields=dict.fromkeys(t.common.user, username.upper()) if username else {},
     )
     state_result = await ensure_screen_state(backend, target)
     if not state_result.success:
@@ -582,8 +571,8 @@ async def _lookup_transports(  # pylint: disable=too-many-locals
             retrieved_at=now,
         )
 
-    # Click Anzeigen/Display button
-    await _click_display_button(backend)
+    # Click the Display button
+    await _click_display_button(backend, t)
 
     # SE09 results may take a moment to render, especially with wildcard user.
     # The results screen title is "Transport Organizer: Aufträge" (DE) or
@@ -593,12 +582,12 @@ async def _lookup_transports(  # pylint: disable=too-many-locals
     snapshot = AriaSnapshot("")
     for attempt in range(5):
         snapshot = AriaSnapshot(await backend.get_snapshot())
-        if "Transport Organizer:" in str(snapshot):
+        if any(f"{title}:" in str(snapshot) for title in t.se09.organizer_title):
             break
         logger.info("SE09 results not yet loaded (attempt %d), waiting 2s", attempt + 1)
         await asyncio.sleep(2)
 
-    result = parse_se09_transport_list(snapshot)
+    result = parse_se09_transport_list(snapshot, t)
 
     if not include_objects or not result.requests:
         return result
@@ -738,9 +727,13 @@ def register_se09_tools(mcp: FastMCP) -> None:
                 retrieved_at=now,
             )
 
+        # Resolved outside the try: an unsupported session language must reach the caller, not become a failure result.
+        t = lang.current("sap_se09_lookup")
+
         try:
             result = await _lookup_transports(
                 backend=backend,
+                t=t,
                 username=username,
                 request_type=request_type,
                 status=status,

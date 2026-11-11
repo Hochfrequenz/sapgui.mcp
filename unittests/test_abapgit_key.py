@@ -19,6 +19,8 @@ from sapguimcp.tools.abapgit_tools import (
     _validate_key,
 )
 
+pytestmark = pytest.mark.usefixtures("lang_de")
+
 KEY = "000000000012"
 LABEL = f"key {KEY}"
 

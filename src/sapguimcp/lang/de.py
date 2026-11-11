@@ -1,6 +1,8 @@
 """German language pack (SAP logon language DE)."""
 
 from sapguimcp.lang.schema import (
+    AbapgitSection,
+    CatalogSection,
     CommonSection,
     DumpSection,
     JobStatus,
@@ -8,6 +10,7 @@ from sapguimcp.lang.schema import (
     KeysSection,
     LanguagePack,
     PopupSection,
+    QuickReportSection,
     Se09Section,
     Se11Section,
     Se16Section,
@@ -43,6 +46,7 @@ DE = LanguagePack(
             "se37.optional_column",
             "keys.names[Alt]",
             "keys.names[Escape]",
+            "se09.organizer_title",
         }
     ),
     common=CommonSection(
@@ -54,7 +58,13 @@ DE = LanguagePack(
         user=Text(("Benutzer",)),
         program=Text(("Programm",)),
     ),
-    popup=PopupSection(),
+    popup=PopupSection(
+        abapgit_error_keywords=Text(("nicht gefunden", "fehler", "fehlgeschlagen", "erforderlich")),
+        abapgit_button_labels=Text(("Abbrechen", "Ja", "Nein")),
+        abapgit_inactive_objects=Text(("Inaktive Objekte",)),
+        abapgit_transport_required=Text(("transport erforderlich", "transportauftrag")),
+        abapgit_no_task=Text(("keine modifizierbare aufgabe", "keine aufgabe")),
+    ),
     status_type=StatusTypeSection(),
     session_pages=SessionPagesSection(),
     keys=KeysSection(
@@ -69,6 +79,16 @@ DE = LanguagePack(
             }
         ),
     ),
+    abapgit=AbapgitSection(
+        status_error=Text(("nicht gefunden", "fehler")),
+        screen_errors=Text(("nicht gefunden", "transport erforderlich", "fehler bei")),
+        se38_initial_title=Text(("Einstieg",)),
+    ),
+    catalog=CatalogSection(screen_header=Text(("Dynpro",))),
+    quick_report=QuickReportSection(
+        empty_patterns=Text(("keine Daten", "keine Werte", "kein Job", "keine Belege")),
+        execute_button=Text(("Ausführen", "Ausführen Hervorgehoben")),
+    ),
     se09=Se09Section(
         status=canonical(
             {
@@ -76,6 +96,14 @@ DE = LanguagePack(
                 TransportStatus.RELEASED: Text(("Freigegeben",)),
             }
         ),
+        display_button=Text(("Anzeigen",), fold=False),
+        workbench_requests=Text(("Workbench-Aufträge",)),
+        customizing_requests=Text(("Customizing-Aufträge",)),
+        expand=Text(("Expandieren",)),
+        compress=Text(("Komprimieren",)),
+        list_region=Text(("Liste",)),
+        organizer_title=Text(("Transport Organizer",)),
+        request_word=Text(("Auftrag", "Aufträge")),
     ),
     se11=Se11Section(
         database_table=Text(("Datenbanktabelle",)),
@@ -194,6 +222,10 @@ DE = LanguagePack(
         maintain=Text(("Pflegen",)),
         table_view=Text(("Tabelle/Sicht",)),
         display_view=Text(("Sicht",)),
+        view_not_found=Text(("ist nicht im Dictionary vorhanden", "existiert nicht", "nicht vorhanden")),
+        no_maintenance_dialog=Text(("kein Pflegedialog",)),
+        view_title=Template(("Sicht {desc} anzeigen", "Sicht {desc} ändern")),
+        row_count=Template(("Eintrag {current} von {total}",)),
     ),
     sm37=Sm37Section(
         status=canonical(

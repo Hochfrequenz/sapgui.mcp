@@ -14,6 +14,7 @@ from types import SimpleNamespace
 import pytest
 from mcp import ClientSession
 
+from sapguimcp import lang
 from sapguimcp.models import AbapGitActionResult, LoginResult
 from sapguimcp.tools.abapgit_tools import (
     _analyze_pull_result,
@@ -257,7 +258,7 @@ class _EmptyStatusBackend:
 @pytest.mark.anyio
 async def test_pull_with_empty_status_bar_says_it_may_have_run() -> None:
     """'Status unknown' must not read like a failure that definitely did not pull."""
-    result = await _analyze_pull_result(_EmptyStatusBackend(), "some_repo")  # type: ignore[arg-type]
+    result = await _analyze_pull_result(_EmptyStatusBackend(), "some_repo", lang.view_for("DE"))  # type: ignore[arg-type]
     assert result.success is False
     assert result.error is not None
     assert "status unknown" in result.error.lower()

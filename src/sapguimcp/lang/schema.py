@@ -91,9 +91,14 @@ def canonical(entries: Mapping[S, Text]) -> Mapping[S, Text]:
 
 @dataclass(frozen=True, slots=True)
 class PopupSection:
-    """Popup texts. Empty until the popup migration (phase 3) moves them here."""
+    """Popup texts, matched in every language whatever the session language is."""
 
     MERGE: ClassVar[MergeMode] = "all"
+    abapgit_error_keywords: Text
+    abapgit_button_labels: Text
+    abapgit_inactive_objects: Text
+    abapgit_transport_required: Text
+    abapgit_no_task: Text
 
 
 @dataclass(frozen=True, slots=True)
@@ -141,6 +146,40 @@ class CommonSection:
 class Se09Section:
     MERGE: ClassVar[MergeMode] = "session_en"
     status: Mapping[TransportStatus, Text]
+    display_button: Text
+    """Case-sensitive on purpose: the WebGUI check scans a whole snapshot, so ``common.display`` is too broad."""
+    workbench_requests: Text
+    customizing_requests: Text
+    expand: Text
+    compress: Text
+    list_region: Text
+    organizer_title: Text
+    request_word: Text
+
+
+@dataclass(frozen=True, slots=True)
+class AbapgitSection:
+    """Texts of SAP messages and popups around the abapGit report; the report's own output is invariant."""
+
+    MERGE: ClassVar[MergeMode] = "session_en"
+    status_error: Text
+    screen_errors: Text
+    se38_initial_title: Text
+
+
+@dataclass(frozen=True, slots=True)
+class CatalogSection:
+    """Column headers of the TSTC read through SE16 on WebGUI, which keys rows by header text."""
+
+    MERGE: ClassVar[MergeMode] = "session_en"
+    screen_header: Text
+
+
+@dataclass(frozen=True, slots=True)
+class QuickReportSection:
+    MERGE: ClassVar[MergeMode] = "session_en"
+    empty_patterns: Text
+    execute_button: Text
 
 
 @dataclass(frozen=True, slots=True)
@@ -289,6 +328,10 @@ class Sm30Section:
     maintain: Text
     table_view: Text
     display_view: Text
+    view_not_found: Text
+    no_maintenance_dialog: Text
+    view_title: Template
+    row_count: Template
 
 
 @dataclass(frozen=True, slots=True)
@@ -386,6 +429,9 @@ class LanguagePack:
     status_type: StatusTypeSection
     session_pages: SessionPagesSection
     keys: KeysSection
+    abapgit: AbapgitSection
+    catalog: CatalogSection
+    quick_report: QuickReportSection
     se09: Se09Section
     se11: Se11Section
     se16: Se16Section

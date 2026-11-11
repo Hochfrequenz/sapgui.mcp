@@ -24,6 +24,8 @@ from sapguimcp.models.quick_report_models import (
 from sapguimcp.models.screen_state import ScreenStateDiff
 from sapguimcp.tools.quick_report_tools import _execute_quick_report
 
+pytestmark = pytest.mark.usefixtures("lang_de")
+
 
 def _make_backend(
     *,

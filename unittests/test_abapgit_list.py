@@ -19,6 +19,8 @@ from sapguimcp.tools.abapgit_tools import (
     parse_repo_list_total,
 )
 
+pytestmark = pytest.mark.usefixtures("lang_de")
+
 _WIDTH = 125  # characters a label shows (the window's horizontal page)
 _VISIBLE = 36  # list lines on screen (the window's vertical page)
 
