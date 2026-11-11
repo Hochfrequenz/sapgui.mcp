@@ -174,13 +174,14 @@ The full guide, including what to look out for (mixed-language screens, release 
 case sensitivity, short fragments), is
 [`src/sapguimcp/lang/ADDING_A_LANGUAGE.md`](src/sapguimcp/lang/ADDING_A_LANGUAGE.md). In short:
 
-1. Copy `en.py` to `src/sapguimcp/lang/<xx>.py` and set `code`, `html_lang`, `logon_dropdown` and
-   `date_format`.
-2. Register the pack in `src/sapguimcp/lang/__init__.py` (`_PACKS`) before translating; the harvest
-   script and the config accept only registered codes.
-3. Translate every text from SAP (`harvest_lang_texts.py <XX> --print-sql` lists the queries; mypy
-   and `unittests/lang/test_pack_completeness.py` list the gaps). Texts that are deliberately
-   identical to EN go into `same_as_en`.
+1. Draft the pack: `uv run python scripts/harvest_lang_texts.py <XX> --draft --out src/sapguimcp/lang/<xx>.py`
+   on a system that has the language installed. Sourced texts come from SAP; everything else keeps
+   the EN value with a `# TODO`. Set `html_lang`, `logon_dropdown` and `date_format`.
+2. Register the pack in `src/sapguimcp/lang/__init__.py` (`_PACKS`); `--verify` and the config
+   accept only registered codes.
+3. Settle every `TODO` from SAP (`--print-sql` lists the queries; mypy and
+   `unittests/lang/test_pack_completeness.py` list the gaps). Texts that are deliberately identical
+   to EN go into `same_as_en`.
 4. Verify against SAP's text tables on every release:
    `uv run python scripts/harvest_lang_texts.py <XX> --verify`. Fix every drift or mark the field
    `Manual` with a reason.
