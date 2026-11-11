@@ -215,9 +215,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error("--draft is not implemented yet (spec section 9)")
     if args.language not in supported_languages():
         parser.error(f"unsupported language {args.language!r}; supported: {', '.join(sorted(supported_languages()))}")
-    config = load_default(supported_languages=supported_languages())
-    if args.system is not None and args.system not in config.systems:
-        parser.error(f"unknown --system {args.system!r}; known: {', '.join(sorted(config.systems))}")
     if args.print_sql:
         for path, source in SOURCES.items():
             if not isinstance(source, Manual):
@@ -225,7 +222,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.sap_texts is not None:
         fetch = _fetch_from_file(json.loads(args.sap_texts.read_text(encoding="utf-8")))
-    else:
+    else:  # only the direct ADT mode needs systems.json and credentials
+        config = load_default(supported_languages=supported_languages())
+        if args.system is not None and args.system not in config.systems:
+            parser.error(f"unknown --system {args.system!r}; known: {', '.join(sorted(config.systems))}")
         preview = AdtPreview.for_system(config.systems[args.system or config.default_system])
         fetch = lambda _path, source: preview.query(sql_for(source, args.language))  # noqa: E731
     try:

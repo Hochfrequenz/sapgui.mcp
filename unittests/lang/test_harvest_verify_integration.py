@@ -8,6 +8,7 @@ Reads development-metadata text tables through ADT data preview (no SAP GUI sess
 import os
 
 import pytest
+from dotenv import load_dotenv
 from sap_mcp_config import load_default
 
 from sapguimcp.lang import supported_languages
@@ -18,6 +19,8 @@ pytestmark = pytest.mark.integration
 
 @pytest.mark.parametrize("language", ["DE", "EN"])
 def test_pack_matches_sap(language: str) -> None:
+    # The autouse clean_environment fixture drops SAP_CONFIG_FILE; restore it from .env.
+    load_dotenv(override=False)
     try:
         config = load_default(supported_languages=supported_languages())
     except Exception as exc:  # no systems.json on this machine

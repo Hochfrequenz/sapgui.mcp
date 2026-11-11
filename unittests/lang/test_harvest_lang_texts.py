@@ -1,5 +1,6 @@
 """``scripts/harvest_lang_texts.py`` without SAP: SQL, comparison, XML parsing (#1044, phase 2c)."""
 
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -126,3 +127,14 @@ def test_unknown_system_is_a_parser_error(capsys: pytest.CaptureFixture[str]) ->
         harvest.main(["EN", "--verify", "--system", "sysZ"])
     assert exit_info.value.code == 2
     assert "unknown --system" in capsys.readouterr().err
+
+
+def test_offline_modes_need_no_configuration(tmp_path: Path) -> None:
+    """--print-sql and --verify --sap-texts work without systems.json (Copilot review on #1053)."""
+    sap_texts = tmp_path / "texts.json"
+    sap_texts.write_text("{}", encoding="utf-8")
+    with patch.object(harvest, "load_default", side_effect=FileNotFoundError("no systems.json")) as load:
+        assert harvest.main(["EN", "--print-sql"]) == 0
+        # An empty texts file makes every sourced field drift (exit 1), but no configuration is read.
+        assert harvest.main(["EN", "--verify", "--sap-texts", str(sap_texts)]) in (0, 1)
+    load.assert_not_called()
