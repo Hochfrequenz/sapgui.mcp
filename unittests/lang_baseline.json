@@ -1,20 +1,4 @@
 {
-  "src/sapguimcp/classcatalog/search.py": {
-    "description contains": 1,
-    "fuzzy description": 1
-  },
-  "src/sapguimcp/fmcatalog/search.py": {
-    " description": 1,
-    "description contains": 1,
-    "fuzzy description": 1
-  },
-  "src/sapguimcp/tables/search.py": {
-    " description contains": 1,
-    "fuzzy description": 1
-  },
-  "src/sapguimcp/tools/abapgit_tools.py": {
-    "error": 5
-  },
   "src/sapguimcp/tools/breakpoint_tools.py": {
     "' methods table": 1,
     "' not found in class '": 1,
@@ -59,14 +43,5 @@
     "gelöscht": 1,
     "gesetzt": 1,
     "initial": 3
-  },
-  "src/sapguimcp/tools/script_tools.py": {
-    "Exception": 1
-  },
-  "src/sapguimcp/tools/se24_tools.py": {
-    "interface": 1
-  },
-  "src/sapguimcp/tools/table_tools.py": {
-    "No tables found for '": 1
   }
 }

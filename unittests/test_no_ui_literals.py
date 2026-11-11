@@ -23,7 +23,10 @@ are code (no letters, one character, ``snake_case``, ALL CAPS, only DOM/ARIA voc
 
 Exemptions are keyed by file and literal, never by line:
 
-- ``unittests/lang_baseline.json`` is shrink-only: ``{file: {literal: count}}``, where ``count`` is
+- ``unittests/lang_baseline.json`` holds only ``src/sapguimcp/tools/breakpoint_tools.py`` (#1025), the one
+  documented exception; that file is deliberately left unmigrated. Everything else is clean, so a new hit anywhere
+  else is fixed with a pack entry or ``# lang-ok``, never a baseline entry.
+  The file is shrink-only: ``{file: {literal: count}}``, where ``count`` is
   how many (not skipped, not ``lang-ok``) literals in that file have exactly that value, so the
   count includes every non-exempt occurrence of a baselined literal, flagged or not. A new hit
   fails, and so does an entry whose count no longer matches. Phase-3 migrations only delete or lower
@@ -325,7 +328,7 @@ def _call_sinks(node: ast.Call, flag: _Flag) -> None:
     if name in SINK_CALLS or (name and SINK_CALL_PATTERN.search(name)):
         for value in [*node.args, *(keyword.value for keyword in node.keywords)]:
             flag(_literals(value), "sink-call")
-            if isinstance(value, ast.Dict):  # fill_form({"Label": ...}), bilingual_target(fields_de={...})
+            if isinstance(value, ast.Dict):  # fill_form({"Label": ...})
                 flag([k for k in value.keys if isinstance(k, ast.Constant) and isinstance(k.value, str)], "sink-call")
     for keyword in node.keywords:
         if keyword.arg in SINK_KEYWORDS or (keyword.arg == "name" and name == "get_by_role"):

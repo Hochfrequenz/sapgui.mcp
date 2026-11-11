@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, call
 import pytest
 
 from sapguimcp.models.screen_state import SelectionScreenState
-from sapguimcp.tools.screen_state_helpers import bilingual_target, ensure_screen_state
+from sapguimcp.tools.screen_state_helpers import ensure_screen_state
 
 
 def _mock_backend(snapshot_before: str, snapshot_after: str) -> AsyncMock:
@@ -450,15 +450,19 @@ class TestEnsureScreenStateTransitions:
         assert "Benutzername" in diff.fields_changed
 
     @pytest.mark.anyio
-    async def test_bilingual_target_de_screen_ignores_en_labels(self) -> None:
+    async def test_both_label_variants_de_screen_ignores_en_labels(self) -> None:
         """On a DE screen, EN labels produce warnings but don't fail."""
         de_screen = (
             '- checkbox "Workbench-Aufträge" [checked]:  Workbench-Aufträge\n'
             '- checkbox "Customizing-Aufträge":  Customizing-Aufträge\n'
         )
-        target = bilingual_target(
-            checkboxes_de={"Workbench-Aufträge": True, "Customizing-Aufträge": True},
-            checkboxes_en={"Workbench Requests": True, "Customizing Requests": True},
+        target = SelectionScreenState(
+            checkboxes={
+                "Workbench-Aufträge": True,
+                "Customizing-Aufträge": True,
+                "Workbench Requests": True,
+                "Customizing Requests": True,
+            },
         )
         after = (
             '- checkbox "Workbench-Aufträge" [checked]:  Workbench-Aufträge\n'
@@ -478,15 +482,19 @@ class TestEnsureScreenStateTransitions:
         backend.set_checkbox.assert_called_once_with("Customizing-Aufträge", True)
 
     @pytest.mark.anyio
-    async def test_bilingual_target_en_screen_ignores_de_labels(self) -> None:
+    async def test_both_label_variants_en_screen_ignores_de_labels(self) -> None:
         """On an EN screen, DE labels produce warnings but don't fail."""
         en_screen = (
             '- checkbox "Workbench Requests" [checked]:  Workbench Requests\n'
             '- checkbox "Customizing Requests":  Customizing Requests\n'
         )
-        target = bilingual_target(
-            checkboxes_de={"Workbench-Aufträge": True, "Customizing-Aufträge": True},
-            checkboxes_en={"Workbench Requests": True, "Customizing Requests": True},
+        target = SelectionScreenState(
+            checkboxes={
+                "Workbench-Aufträge": True,
+                "Customizing-Aufträge": True,
+                "Workbench Requests": True,
+                "Customizing Requests": True,
+            },
         )
         after = (
             '- checkbox "Workbench Requests" [checked]:  Workbench Requests\n'
@@ -531,40 +539,3 @@ class TestEnsureScreenStateTransitions:
 
         assert diff.success is False
         assert any("Datenbankrelation" in m for m in diff.mismatches)
-
-
-class TestBilingualTarget:
-    """Test bilingual_target() merging logic."""
-
-    def test_merges_de_en_checkboxes(self) -> None:
-        target = bilingual_target(
-            checkboxes_de={"Werkbank": True},
-            checkboxes_en={"Workbench": True},
-        )
-        assert target.checkboxes == {"Werkbank": True, "Workbench": True}
-
-    def test_merges_de_en_radios(self) -> None:
-        target = bilingual_target(
-            radios_de={"Datenbanktabelle": True},
-            radios_en={"Database table": True},
-        )
-        assert target.radios == {"Datenbanktabelle": True, "Database table": True}
-
-    def test_merges_de_en_fields(self) -> None:
-        target = bilingual_target(
-            fields_de={"Benutzer": "TESTUSER"},
-            fields_en={"User": "TESTUSER"},
-        )
-        assert target.fields == {"Benutzer": "TESTUSER", "User": "TESTUSER"}
-
-    def test_none_inputs_produce_empty(self) -> None:
-        target = bilingual_target()
-        assert target.checkboxes == {}
-        assert target.radios == {}
-        assert target.fields == {}
-
-    def test_partial_inputs(self) -> None:
-        target = bilingual_target(checkboxes_de={"Foo": True})
-        assert target.checkboxes == {"Foo": True}
-        assert target.radios == {}
-        assert target.fields == {}

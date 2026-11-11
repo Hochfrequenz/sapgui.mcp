@@ -95,7 +95,7 @@ def search_tables(  # pylint: disable=too-many-branches
                     break
                 if query_upper in field_desc_upper:
                     score = 20
-                    match_reason = f"field {field.name} description contains"
+                    match_reason = f"field {field.name} description contains"  # lang-ok: our own search-mode name
                     break
 
         # Fuzzy match on table description only (not fields — too noisy)
@@ -103,7 +103,7 @@ def search_tables(  # pylint: disable=too-many-branches
             fuzzy_score = fuzz.WRatio(query, table.description, score_cutoff=50)
             if fuzzy_score:
                 score = 5.0 + (fuzzy_score - 50) * 9.0 / 50.0
-                match_reason = "fuzzy description"
+                match_reason = "fuzzy description"  # lang-ok: our own search-mode name
 
         if score > 0:
             results.append(TableSearchResult(table=table, score=score, match_reason=match_reason))

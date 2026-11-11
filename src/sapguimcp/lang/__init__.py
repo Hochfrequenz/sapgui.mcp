@@ -12,10 +12,6 @@ Public API:
 - :func:`language_for_html_lang` - the SAP language key for a page's ``<html lang>``.
 - ``_register_for_tests`` - registers an extra pack inside a ``with`` block (tests only).
 
-The ``X_DE`` / ``X_EN`` constants and ``bilingual_pattern`` of the former ``lang.py`` module are
-re-exported from :mod:`sapguimcp.lang._legacy` until the phase-3 migrations remove their last
-importer.
-
 This package must not import ``sapguimcp.models.config``: the config imports
 :func:`supported_languages` from here.
 """
@@ -27,8 +23,6 @@ import functools
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
-from sapguimcp.lang import _legacy
-from sapguimcp.lang._legacy import *  # noqa: F403  # re-export of the former lang.py constants
 from sapguimcp.lang.de import DE
 from sapguimcp.lang.en import EN
 from sapguimcp.lang.invariant import INVARIANT, Invariant
@@ -60,7 +54,6 @@ __all__ = [
     "use",
     "view_for",
 ]
-__all__ += _legacy.__all__
 
 FALLBACK_LANGUAGE = "EN"
 

@@ -3,9 +3,6 @@
 The core function ``ensure_screen_state()`` reads the current screen
 state from an ARIA snapshot, diffs it against a target state, applies
 only the necessary changes, and verifies the screen reached the target.
-
-``bilingual_target()`` is a convenience to merge DE/EN label variants
-into a single ``SelectionScreenState``.
 """
 
 from __future__ import annotations
@@ -26,7 +23,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["bilingual_target", "ensure_screen_state"]
+__all__ = ["ensure_screen_state"]
 
 
 async def _apply_changes(
@@ -153,25 +150,3 @@ async def ensure_screen_state(
         )
 
     return diff
-
-
-def bilingual_target(  # pylint: disable=too-many-arguments
-    *,
-    checkboxes_de: dict[str, bool] | None = None,
-    checkboxes_en: dict[str, bool] | None = None,
-    radios_de: dict[str, bool] | None = None,
-    radios_en: dict[str, bool] | None = None,
-    fields_de: dict[str, str] | None = None,
-    fields_en: dict[str, str] | None = None,
-) -> SelectionScreenState:
-    """Merge DE and EN label variants into one target state.
-
-    ``ensure_screen_state`` matches by label — if the screen is German,
-    German labels match; English labels produce a "not found" warning
-    (harmless).  Vice versa for English screens.
-    """
-    return SelectionScreenState(
-        checkboxes={**(checkboxes_de or {}), **(checkboxes_en or {})},
-        radios={**(radios_de or {}), **(radios_en or {})},
-        fields={**(fields_de or {}), **(fields_en or {})},
-    )
