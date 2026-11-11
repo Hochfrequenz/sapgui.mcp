@@ -107,12 +107,15 @@ class TestTransactionInfo:
         assert txn.area == "SD-Sales"
         assert txn.enriched is False
 
-    def test_from_tstc_row_german_names(self) -> None:
-        """Test creation from TSTC row with German display names."""
+    def test_from_tstc_row_reads_technical_names_only(self) -> None:
+        """Localized column headers are not a supported key (language-independent technical names only)."""
         row = {
-            "Transaktionscode": "ME21N",
-            "Programm": "SAPLMEGUI",
-            "Dynpro": "200",
+            "TCODE": "ME21N",
+            "PGMNA": "SAPLMEGUI",
+            "DESSION": "200",
+            "Transaktionscode": "XXXX",
+            "Programm": "OTHER",
+            "Dynpro": "999",
         }
         txn = TransactionInfo.from_tstc_row(row)
 

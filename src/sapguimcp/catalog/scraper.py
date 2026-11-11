@@ -118,14 +118,13 @@ async def scrape_tstc(
             "error": "Expected inline SE16Result, got file summary",
         }
 
-    # Extract transaction data (handle both technical and German column names)
+    # Extract transaction data (technical column names do not depend on the logon language)
     transactions = []
     for row in result.rows:
-        # Handle both TCODE (technical) and Transaktionscode (German display name)
-        tcode = row.data.get("TCODE") or row.data.get("Transaktionscode", "")
+        tcode = row.data.get("TCODE", "")
         if tcode:  # Skip empty transaction codes
-            program = row.data.get("PGMNA") or row.data.get("Programm", "")
-            screen = row.data.get("DESSION") or row.data.get("Dynpro")
+            program = row.data.get("PGMNA", "")
+            screen = row.data.get("DESSION")
             transactions.append(
                 {
                     "TCODE": str(tcode).strip(),

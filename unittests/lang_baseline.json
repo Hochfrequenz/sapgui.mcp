@@ -180,19 +180,6 @@
     "terminated program": 1,
     "user": 1
   },
-  "src/sapguimcp/catalog/models.py": {
-    "Dynpro": 1,
-    "Programm": 1,
-    "Transaktionscode": 1
-  },
-  "src/sapguimcp/catalog/scraper.py": {
-    "Dynpro": 1,
-    "Programm": 1,
-    "Transaktionscode": 1
-  },
-  "src/sapguimcp/tables/scraper.py": {
-    "Tabellenname": 1
-  },
   "src/sapguimcp/tools/abapgit_tools.py": {
     "Branch not found:": 1,
     "Einstieg": 2,

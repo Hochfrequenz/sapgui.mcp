@@ -155,15 +155,14 @@ class TransactionInfo(BaseModel):
     def from_tstc_row(cls, row_data: dict[str, object]) -> "TransactionInfo":
         """Create TransactionInfo from a TSTC table row.
 
-        TSTC columns can be in English technical names or German display names:
-        - TCODE / Transaktionscode: Transaction code
-        - PGMNA / Programm: Program name
-        - DESSION / Dynpro: Screen/session number
+        TSTC columns are read by their technical names, which do not depend on the logon language:
+        - TCODE: Transaction code
+        - PGMNA: Program name
+        - DESSION: Screen/session number
         """
-        # Handle both technical names and German display names
-        tcode = str(row_data.get("TCODE") or row_data.get("Transaktionscode", "")).strip()
-        program = str(row_data.get("PGMNA") or row_data.get("Programm", "")).strip()
-        screen = row_data.get("DESSION") or row_data.get("Dynpro")
+        tcode = str(row_data.get("TCODE", "")).strip()
+        program = str(row_data.get("PGMNA", "")).strip()
+        screen = row_data.get("DESSION")
 
         screen_number = None
         if screen is not None and screen != "":

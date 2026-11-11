@@ -84,7 +84,7 @@ async def get_table_list_from_dd02l(
 
         if result.success and hasattr(result, "rows"):
             for row in result.rows:
-                tabname = row.data.get("TABNAME") or row.data.get("Tabellenname", "")
+                tabname = row.data.get("TABNAME", "")
                 if tabname:
                     all_tables.add(str(tabname).strip().upper())
 
