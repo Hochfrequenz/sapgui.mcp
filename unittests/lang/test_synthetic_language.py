@@ -104,7 +104,9 @@ def test_synthetic_pack_passes_every_guard(xx: LanguagePack) -> None:
     _check_merge_modes(xx)
     _check_untranslated_declared(xx, EN)
     _check_same_as_en_entries(xx, EN)
-    assert len({lang.pack_for(code).html_lang for code in lang.supported_languages()}) == 3
+    assert len({lang.pack_for(code).html_lang for code in lang.supported_languages()}) == len(
+        lang.supported_languages()
+    )
 
 
 @pytest.mark.parametrize("code", ["DE", "EN", CODE])

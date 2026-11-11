@@ -675,6 +675,35 @@ def test_baseline_only_shrinks(scanned: tuple[list[Hit], dict[str, Counter[str]]
     assert not found, "\n".join(found)
 
 
+def test_generic_fields_copied_from_en_stay_exempt() -> None:
+    """A draft pack that still holds EN's generic words is exempt like EN; translated ones stay guarded."""
+    from sapguimcp.lang import _register_for_tests  # noqa: PLC0415
+    from unittests.lang.synthetic_pack import MARK, SAME_AS_EN, synthetic_pack  # noqa: PLC0415
+
+    en = dict(iter_leaves(lang.pack_for("EN")))
+
+    def long_variants(path: str) -> set[str]:
+        leaf = en[path]
+        return {v.casefold() for v in getattr(leaf, "variants", ()) if len(v.strip()) >= MIN_VALUE_LENGTH}
+
+    generic = [path for path in sorted(GENERIC_WORDS) if long_variants(path)]
+    copied, translated = generic[0], generic[1]
+    other = next(p for p, leaf in en.items() if p not in GENERIC_WORDS and isinstance(leaf, Text) and long_variants(p))
+    pack = synthetic_pack(same_as_en=SAME_AS_EN | {copied})
+    pack_variants.cache_clear()
+    _pack_pattern.cache_clear()
+    try:
+        with _register_for_tests(pack):
+            found = set(pack_variants())
+            de_copied = {v.casefold() for v in getattr(dict(iter_leaves(lang.pack_for("DE")))[copied], "variants", ())}
+            assert not (long_variants(copied) - de_copied) & found, "EN-identical generic field must stay exempt"
+            assert {(MARK + v).casefold() for v in getattr(en[translated], "variants", ())} & found
+            assert {(MARK + v).casefold() for v in getattr(en[other], "variants", ())} & found
+    finally:
+        pack_variants.cache_clear()
+        _pack_pattern.cache_clear()
+
+
 def test_baseline_is_canonical() -> None:
     assert BASELINE.read_text(encoding="utf-8") == canonical_json(load_baseline())
 
