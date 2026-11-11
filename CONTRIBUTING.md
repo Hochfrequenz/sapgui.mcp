@@ -216,7 +216,8 @@ To add a new login language: create `lang/<xx>.py` modelled on `en.py`, register
 `lang/__init__.py`, fill the test pack in `unittests/webgui/testdata/lang_test.py`, verify it with
 `uv run python scripts/harvest_lang_texts.py <XX> --verify`, and run
 `uv run --group tests pytest unittests/lang unittests/test_no_ui_literals.py` (the pseudo-locale test
-included). The full recipe is in [`ARCHITECTURE.md`](ARCHITECTURE.md#adding-a-login-language).
+included). The full guide, with the pitfalls found while migrating DE and EN, is
+[`src/sapguimcp/lang/ADDING_A_LANGUAGE.md`](src/sapguimcp/lang/ADDING_A_LANGUAGE.md).
 
 ## MCP Tool Guidelines
 

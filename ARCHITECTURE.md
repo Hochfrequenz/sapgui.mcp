@@ -170,6 +170,10 @@ Guards:
 
 ### Adding a login language
 
+The full guide, including what to look out for (mixed-language screens, release differences,
+case sensitivity, short fragments), is
+[`src/sapguimcp/lang/ADDING_A_LANGUAGE.md`](src/sapguimcp/lang/ADDING_A_LANGUAGE.md). In short:
+
 1. Create `src/sapguimcp/lang/<xx>.py` with a `LanguagePack` of the same shape as `en.py` (copy it,
    translate every text; mypy and `unittests/lang/test_pack_completeness.py` list the gaps). Texts
    that are deliberately identical to EN go into `same_as_en`.

@@ -1,4 +1,4 @@
-"""German language pack (SAP logon language DE)."""
+"""German language pack (SAP logon language DE). Adding a language: see ``ADDING_A_LANGUAGE.md``."""
 
 from sapguimcp.lang.schema import (
     AbapgitSection,
