@@ -6,7 +6,7 @@ import os
 import sys
 from collections.abc import AsyncGenerator
 from pathlib import Path
-from typing import Any, Literal, TypeVar
+from typing import Any, TypeVar
 
 import pytest
 from dotenv import load_dotenv
@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 from sapguimcp.models import LoginResult
 from unittests.conftest import has_sap_webgui_creds
+from unittests.webgui.testdata.lang_test import UI_TEST_PACKS, UiTestPack, resolve_sap_language
 
 
 def resolve_login_user(login: LoginResult) -> str:
@@ -41,67 +42,22 @@ def resolve_login_user(login: LoginResult) -> str:
 # LANGUAGE HANDLING
 # =============================================================================
 
-SapLanguage = Literal["DE", "EN"]
+
+@pytest.fixture
+def sap_language() -> str:
+    """SAP logon language of the WebGUI tests from ``SAP_LANGUAGE``: DE when unset or without a pack."""
+    return resolve_sap_language()
 
 
 @pytest.fixture
-def sap_language() -> SapLanguage:
-    """Get current SAP language from environment (default: DE)."""
-    lang = os.environ.get("SAP_LANGUAGE", "DE").upper()
-    if lang not in ("DE", "EN"):
-        return "DE"
-    return lang  # type: ignore[return-value]
-
-
-@pytest.fixture
-def lang_strings(sap_language: SapLanguage) -> dict[str, str]:
-    """
-    Get language-specific test strings based on SAP_LANGUAGE.
+def ui_texts(sap_language: str) -> UiTestPack:
+    """Test-only SAP texts for ``SAP_LANGUAGE`` (see ``unittests/webgui/testdata/lang_test.py``).
 
     Usage in tests:
-        def test_something(lang_strings):
-            assert lang_strings["yes"] in button_text
+        def test_something(ui_texts):
+            assert ui_texts.bp.yes_button.contains(button_text)
     """
-    from unittests.webgui.testdata.lang_test import (
-        BP_GP_ROLE_DEFAULT_DE,
-        BP_GP_ROLE_DEFAULT_EN,
-        BP_GP_ROLE_LABEL_DE,
-        BP_GP_ROLE_LABEL_EN,
-        BP_GROUPING_LABEL_DE,
-        BP_GROUPING_LABEL_EN,
-        BP_NO_BUTTON_DE,
-        BP_NO_BUTTON_EN,
-        BP_POSTAL_CODE_DE,
-        BP_POSTAL_CODE_EN,
-        BP_YES_BUTTON_DE,
-        BP_YES_BUTTON_EN,
-        SE38_CREATE_BUTTON_DE,
-        SE38_CREATE_BUTTON_EN,
-        SM30_MAINTAIN_BUTTON_DE,
-        SM30_MAINTAIN_BUTTON_EN,
-    )
-
-    if sap_language == "DE":
-        return {
-            "postal_code": BP_POSTAL_CODE_DE,
-            "yes": BP_YES_BUTTON_DE,
-            "no": BP_NO_BUTTON_DE,
-            "gp_role_label": BP_GP_ROLE_LABEL_DE,
-            "gp_role_default": BP_GP_ROLE_DEFAULT_DE,
-            "grouping_label": BP_GROUPING_LABEL_DE,
-            "create": SE38_CREATE_BUTTON_DE,
-            "maintain": SM30_MAINTAIN_BUTTON_DE,
-        }
-    return {
-        "postal_code": BP_POSTAL_CODE_EN,
-        "yes": BP_YES_BUTTON_EN,
-        "no": BP_NO_BUTTON_EN,
-        "gp_role_label": BP_GP_ROLE_LABEL_EN,
-        "gp_role_default": BP_GP_ROLE_DEFAULT_EN,
-        "grouping_label": BP_GROUPING_LABEL_EN,
-        "create": SE38_CREATE_BUTTON_EN,
-        "maintain": SM30_MAINTAIN_BUTTON_EN,
-    }
+    return UI_TEST_PACKS[sap_language]
 
 
 # Path to HTML snapshots directory for selector unit tests

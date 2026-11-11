@@ -42,7 +42,7 @@ function findInputByLabel(labelText) {
                 const sid = inputParsed['21']?.SID;
                 if (sid) {
                     // Extract field name from SID like ".../txtADDR2_DATA-POST_CODE1"
-                    const match = sid.match(/txt([A-Z0-9_-]+)$/);
+                    const match = sid.match(/txt([A-Z0-9_-]+)$/); // lang-ok: SID prefix
                     if (match) {
                         return match[1];
                     }

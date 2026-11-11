@@ -94,7 +94,10 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
                 if await locator.count() > 0:
                     snapshot = await locator.first.aria_snapshot()
                 else:
-                    return SnapshotResult.failure(f"Element not found: {selector}", selector=selector)
+                    return SnapshotResult.failure(
+                        f"Element not found: {selector}",  # lang-ok: our own message
+                        selector=selector,
+                    )
             else:
                 snapshot = await page.locator("body").aria_snapshot()
 
@@ -153,7 +156,7 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
                     screenshot = await element.screenshot()
                 else:
                     return ScreenshotResult.failure(
-                        f"Element not found: {selector}",
+                        f"Element not found: {selector}",  # lang-ok: our own message
                         full_page=full_page,
                         selector=selector,
                     )
@@ -463,7 +466,11 @@ def register_browser_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-st
                     else:
                         html = await element.evaluate("el => el.innerHTML")
                 else:
-                    return HtmlResult.failure(f"Element not found: {selector}", selector=selector, outer=outer)
+                    return HtmlResult.failure(
+                        f"Element not found: {selector}",  # lang-ok: our own message
+                        selector=selector,
+                        outer=outer,
+                    )
             else:
                 html = await page.content()
 

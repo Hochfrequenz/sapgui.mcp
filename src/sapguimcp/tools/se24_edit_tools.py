@@ -131,7 +131,7 @@ async def _select_method_and_open_source(
             class_name,
             str(snapshot)[:200],
         )
-        return f"Method '{method_name}' not found in class '{class_name}' methods grid"
+        return f"Method '{method_name}' not found in class '{class_name}' methods grid"  # lang-ok: our own message
     await backend.click_table_cell(row_index + 1, 0, "click")  # 1-based row index
     await backend.wait_for_ready()
 
@@ -187,14 +187,14 @@ async def _open_class_in_change_mode_desktop(backend: WebGuiBackend | DesktopBac
             pass
         popup = await backend.check_popup()
         if popup is not None:
-            return f"Unexpected popup while displaying class '{class_name}': {popup.message or popup.popup_type}"
+            return f"Unexpected popup while displaying class '{class_name}': {popup.message or popup.popup_type}"  # lang-ok: our own message  # noqa: E501
 
     # Verify we left the initial screen
     screen = await backend.get_screen_info()
     title = (screen.title or "").lower()
     if "einstieg" in title or "initial" in title:
         sbar = await backend.get_status_bar()
-        return sbar.message or f"Could not display class '{class_name}'"
+        return sbar.message or f"Could not display class '{class_name}'"  # lang-ok: our own message
 
     # Toggle to change mode: Ctrl+F1 (the toolbar button has no text on desktop,
     # so toggle_to_change_mode's label-based click_button won't find it).
@@ -264,7 +264,7 @@ async def _select_method_and_open_source_desktop(  # pylint: disable=too-many-re
                         return None
                 except Exception:  # pylint: disable=broad-exception-caught
                     continue
-            return f"Method '{method_name}' not found in class '{class_name}' methods table"
+            return f"Method '{method_name}' not found in class '{class_name}' methods table"  # lang-ok: our own message
         return "No table control found on SE24 screen"
 
     select_error = await com.run(_select_method_row)

@@ -437,7 +437,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                     status = await backend.get_status_bar()
                     if (status.message_id, status.message_number) == _TRANSACTION_NOT_FOUND_MESSAGE:
                         return TransactionResult.failure(
-                            status.message or f"Transaction {tcode} does not exist", tcode=tcode
+                            status.message or f"Transaction {tcode} does not exist",  # lang-ok: our own message
+                            tcode=tcode,
                         )
 
                 return result
@@ -990,7 +991,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             matches = [k for k in registry_data.keys() if not k.startswith("_") and tcode_upper in k]
             if matches:
                 return FieldLookupResult.failure(
-                    f"Transaction '{tcode_upper}' not found.",
+                    f"Transaction '{tcode_upper}' not found.",  # lang-ok: our own message
                     transaction=tcode_upper,
                     similar_transactions=matches,
                 )
@@ -1289,7 +1290,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             # In strict mode, fail if any field was not found
             if strict and result.not_found:
                 return FillFormResult.failure(
-                    f"Fields not found: {', '.join(result.not_found)}",
+                    f"Fields not found: {', '.join(result.not_found)}",  # lang-ok: our own message
                     filled=result.filled,
                     not_found=result.not_found,
                     errors=result.errors,

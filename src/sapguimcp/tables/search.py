@@ -67,13 +67,13 @@ def search_tables(  # pylint: disable=too-many-branches
         # Table name matching
         if table_name_upper == query_upper:
             score = 100
-            match_reason = "table name exact"
+            match_reason = "table name exact"  # lang-ok: match reason of our own search
         elif table_name_upper.startswith(query_upper):
             score = 80
-            match_reason = "table name prefix"
+            match_reason = "table name prefix"  # lang-ok: match reason of our own search
         elif query_upper in table_name_upper:
             score = 60
-            match_reason = "table name contains"
+            match_reason = "table name contains"  # lang-ok: match reason of our own search
         # Table description matching
         elif query_upper in desc_upper:
             score = 50

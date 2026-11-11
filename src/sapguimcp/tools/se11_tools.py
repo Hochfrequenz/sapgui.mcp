@@ -107,9 +107,15 @@ def _parse_se11_yaml(yaml_content: str, object_type: SE11ObjectType) -> SE11Entr
     # Uses explicit constants: SE11_TRANSPARENT_TABLE_DE/EN, SE11_STRUCTURE_DE/EN
     de_pattern = bilingual_pattern(SE11_TRANSPARENT_TABLE_DE, SE11_STRUCTURE_DE)
     en_pattern = bilingual_pattern(SE11_TRANSPARENT_TABLE_EN, SE11_STRUCTURE_EN)
-    name_match = re.search(rf'textbox "{de_pattern}":\s*(?P<name>\S+)', yaml_content)
+    name_match = re.search(
+        rf'textbox "{de_pattern}":\s*(?P<name>\S+)',  # lang-ok: code regex around pack constants
+        yaml_content,
+    )
     if not name_match:
-        name_match = re.search(rf'textbox "{en_pattern}":\s*(?P<name>\S+)', yaml_content)
+        name_match = re.search(
+            rf'textbox "{en_pattern}":\s*(?P<name>\S+)',  # lang-ok: code regex around pack constants
+            yaml_content,
+        )
 
     if not name_match:
         return SE11Error(
@@ -124,7 +130,7 @@ def _parse_se11_yaml(yaml_content: str, object_type: SE11ObjectType) -> SE11Entr
     # Extract description
     # Uses explicit constants: SE11_SHORT_DESC_DE, SE11_SHORT_DESC_EN
     desc_match = re.search(
-        rf'textbox "{bilingual_pattern(SE11_SHORT_DESC_DE, SE11_SHORT_DESC_EN)}":\s*(?P<description>.+?)(?:\n|$)',
+        rf'textbox "{bilingual_pattern(SE11_SHORT_DESC_DE, SE11_SHORT_DESC_EN)}":\s*(?P<description>.+?)(?:\n|$)',  # lang-ok: code regex around pack constants  # noqa: E501
         yaml_content,
     )
     description = desc_match.group("description").strip() if desc_match else ""
@@ -579,7 +585,7 @@ async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-retu
             return f"Could not select radio: {exc}"
         field = raw_session.FindById(field_id, False)
         if field is None:
-            return f"Field not found: {field_id}"
+            return f"Field not found: {field_id}"  # lang-ok: our own message
         try:
             field.Text = name.upper()
         except Exception as exc:  # pylint: disable=broad-exception-caught

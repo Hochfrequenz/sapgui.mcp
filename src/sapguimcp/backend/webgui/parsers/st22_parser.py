@@ -126,7 +126,7 @@ def _map_column_to_field(col_name: str) -> str | None:  # pylint: disable=too-ma
         return "time"
     # Program column
     if col_lower in ("programm", "program", "abgebrochenes programm", "terminated program"):
-        return "program"
+        return "program"  # lang-ok: code keys of the parsed row
     # Include column
     if col_lower == "include":
         return "include"
@@ -138,7 +138,7 @@ def _map_column_to_field(col_name: str) -> str | None:  # pylint: disable=too-ma
         return "short_text"
     # User column
     if col_lower in ("benutzer", "user"):
-        return "user"
+        return "user"  # lang-ok: code keys of the parsed row
 
     return None
 
@@ -164,23 +164,23 @@ def _try_heuristic_row(cells: list[str], dumps: list[ST22Dump]) -> None:
         elif re.match(r"[A-Z_/]{3,}", cell):
             if "error_type" not in row_data and "_" in cell:
                 row_data["error_type"] = cell
-            elif "program" not in row_data:
-                row_data["program"] = cell
+            elif "program" not in row_data:  # lang-ok: code keys of the parsed row
+                row_data["program"] = cell  # lang-ok: code keys of the parsed row
             elif "include" not in row_data:
                 row_data["include"] = cell
-            elif "user" not in row_data:
-                row_data["user"] = cell
+            elif "user" not in row_data:  # lang-ok: code keys of the parsed row
+                row_data["user"] = cell  # lang-ok: code keys of the parsed row
 
     if row_data.get("time"):
         dumps.append(
             ST22Dump(
                 index=len(dumps),
                 time=row_data.get("time", ""),
-                program=row_data.get("program", ""),
+                program=row_data.get("program", ""),  # lang-ok: code keys of the parsed row
                 include=row_data.get("include") or None,
                 error_type=row_data.get("error_type", ""),
                 short_text=row_data.get("short_text", ""),
-                user=row_data.get("user", ""),
+                user=row_data.get("user", ""),  # lang-ok: code keys of the parsed row
             )
         )
 
@@ -200,16 +200,16 @@ def _flush_row(
         if field:
             row_data[field] = value.strip()
 
-    if "error_type" in row_data or "program" in row_data:
+    if "error_type" in row_data or "program" in row_data:  # lang-ok: code keys of the parsed row
         dumps.append(
             ST22Dump(
                 index=len(dumps),
                 time=row_data.get("time", ""),
-                program=row_data.get("program", ""),
+                program=row_data.get("program", ""),  # lang-ok: code keys of the parsed row
                 include=row_data.get("include") or None,
                 error_type=row_data.get("error_type", ""),
                 short_text=row_data.get("short_text", ""),
-                user=row_data.get("user", ""),
+                user=row_data.get("user", ""),  # lang-ok: code keys of the parsed row
             )
         )
 

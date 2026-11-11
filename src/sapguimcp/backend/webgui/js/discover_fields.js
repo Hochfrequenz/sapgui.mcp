@@ -11,7 +11,7 @@
         if (!lsdata) return null;
         try {
             // Look for patterns like txtFIELD-NAME, ctxtFIELD-NAME, cmbFIELD-NAME
-            const match = lsdata.match(/(?:txt|ctxt|cmb|chk)([A-Z0-9_]+-[A-Z0-9_]+)/);
+            const match = lsdata.match(/(?:txt|ctxt|cmb|chk)([A-Z0-9_]+-[A-Z0-9_]+)/); // lang-ok: lsdata id prefixes
             if (match) return match[1];
 
             // Look for SID containing field identifiers

@@ -2180,7 +2180,7 @@ class DesktopBackend:
         if has_failures:
             parts = []
             if data["not_found"]:
-                parts.append(f"Fields not found: {', '.join(data['not_found'])}")
+                parts.append(f"Fields not found: {', '.join(data['not_found'])}")  # lang-ok: our own message
             if data["errors"]:
                 parts.append(f"Errors: {', '.join(e['field'] for e in data['errors'])}")
             error_msg = "; ".join(parts)
@@ -2278,7 +2278,7 @@ class DesktopBackend:
                 flat_tree = _dump_flat_tree(session, wnd_id)
                 cmb = find_field_by_label(session, label, flat_tree, wnd_id=wnd_id)
             if cmb is None:
-                return {"success": False, "error_message": f"Dropdown not found: {label}"}
+                return {"success": False, "error_message": f"Dropdown not found: {label}"}  # lang-ok: our own message
             try:
                 cast(Any, cmb).value = option
                 return {"success": True}

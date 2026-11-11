@@ -255,7 +255,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
             cdp_host = parsed_url.hostname if parsed_url else ""
 
             # Detect invalid URL format — no auto-launch possible
-            if "invalid url" in error_msg:
+            if "invalid url" in error_msg:  # lang-ok: browser error text, not SAP
                 raise RuntimeError(
                     f"Invalid CDP_URL format: '{settings.cdp_url}'\n\n"
                     f"Expected format: http://hostname:port (e.g., http://localhost:9222)\n\n"
@@ -338,12 +338,12 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
         if any(
             phrase in error_msg
             for phrase in [
-                "nodename nor servname",
-                "name or service not known",
-                "getaddrinfo",
-                "enotfound",
-                "temporary failure in name resolution",
-                "no such host",
+                "nodename nor servname",  # lang-ok: connection error text from the browser
+                "name or service not known",  # lang-ok: connection error text from the browser
+                "getaddrinfo",  # lang-ok: connection error text from the browser
+                "enotfound",  # lang-ok: connection error text from the browser
+                "temporary failure in name resolution",  # lang-ok: connection error text from the browser
+                "no such host",  # lang-ok: connection error text from the browser
             ]
         ):
             raise RuntimeError(
@@ -357,7 +357,14 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
                 f"Original error: {original_error}"
             ) from original_error
 
-        if any(phrase in error_msg for phrase in ["connection refused", "connect econnrefused", "actively refused"]):
+        if any(
+            phrase in error_msg
+            for phrase in [
+                "connection refused",  # lang-ok: connection error text from the browser
+                "connect econnrefused",  # lang-ok: connection error text from the browser
+                "actively refused",  # lang-ok: connection error text from the browser
+            ]
+        ):
             raise RuntimeError(
                 f"Connection refused by cdp-proxy at {cdp_url}.\n\n"
                 f"The CDP proxy container is not running. Start it with:\n"
@@ -422,7 +429,13 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
                 error_msg = str(e).lower()
                 # Reconnect on connection issues: closed context, no tabs, or target closed
                 is_connection_error = any(
-                    phrase in error_msg for phrase in ["closed", "no browser tabs", "target closed", "not connected"]
+                    phrase in error_msg
+                    for phrase in [
+                        "closed",  # lang-ok: connection error text from the browser
+                        "no browser tabs",  # lang-ok: connection error text from the browser
+                        "target closed",  # lang-ok: connection error text from the browser
+                        "not connected",  # lang-ok: connection error text from the browser
+                    ]
                 )
                 if attempt == 0 and is_connection_error:
                     logger.warning("Browser connection issue, attempting reconnect", extra={"error": str(e)})

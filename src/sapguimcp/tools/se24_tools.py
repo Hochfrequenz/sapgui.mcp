@@ -282,7 +282,7 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
     if class_name.upper() not in (screen.title or "").upper():
         # Always the generic text: the former unconditional Enter cleared SAP's own message ("<type> <name> does
         # not exist", which also reads wrong in German) before it was read, so callers never saw it.
-        error_msg = f"Class/interface '{class_name}' not found"
+        error_msg = f"Class/interface '{class_name}' not found"  # lang-ok: our own message
         return SE24Error(class_name=class_name, error=error_msg, retrieved_at=now)
 
     session = backend.require_session()

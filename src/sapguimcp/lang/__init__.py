@@ -9,6 +9,7 @@ Public API:
 - :data:`INVARIANT` - texts that are the same in every logon language (an :class:`Invariant`).
 - :func:`use` / :func:`set_session_language` - set the session language (tests, login).
 - :func:`pack_for`, :func:`supported_languages` - the registry.
+- ``_register_for_tests`` - registers an extra pack inside a ``with`` block (tests only).
 
 The ``X_DE`` / ``X_EN`` constants and ``bilingual_pattern`` of the former ``lang.py`` module are
 re-exported from :mod:`sapguimcp.lang._legacy` until the phase-3 migrations remove their last
@@ -148,3 +149,31 @@ def use(code: str | None) -> Iterator[None]:
     """Temporarily set the session language: ``with lang.use("DE"): lang.current()``."""
     with use_language(code):
         yield
+
+
+def _clear_caches() -> None:
+    """Forget every merged view; the next :func:`view_for` / :func:`universal` call rebuilds it."""
+    _views.clear()
+    universal.cache_clear()
+
+
+@contextmanager
+def _register_for_tests(pack: LanguagePack) -> Iterator[LanguagePack]:
+    """Register ``pack`` for the duration of a ``with`` block. Tests only (#1044, phase 2b).
+
+    Clears the merged-view caches on enter and on exit, so :func:`view_for`, :func:`current`,
+    :func:`universal` and :func:`supported_languages` see the pack inside the block and forget it
+    afterwards. Refuses a code that is already registered (replacing DE or EN would change what
+    other tests see) and a code that is not a normalized SAP language key.
+    """
+    if normalize_language(pack.code) != pack.code:
+        raise ValueError(f"pack code must be an upper-case SAP language key, got {pack.code!r}")
+    if pack.code in _PACKS:
+        raise ValueError(f"a pack for {pack.code} is already registered")
+    _PACKS[pack.code] = pack
+    _clear_caches()
+    try:
+        yield pack
+    finally:
+        del _PACKS[pack.code]
+        _clear_caches()

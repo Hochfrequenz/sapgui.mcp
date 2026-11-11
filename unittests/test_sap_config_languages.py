@@ -6,10 +6,10 @@ from typing import get_args
 
 import pytest
 
-from sapguimcp import lang
-from sapguimcp.lang import supported_languages
+from sapguimcp.lang import _register_for_tests, supported_languages
 from sapguimcp.models import config as config_module
 from sapguimcp.utils import SapLanguage
+from unittests.lang.synthetic_pack import synthetic_pack
 
 
 def _system(**overrides: str) -> dict[str, str]:
@@ -60,10 +60,8 @@ def test_config_accepts_every_registered_pack_language(monkeypatch: pytest.Monke
 
     monkeypatch.setattr(config_module, "_sap_config", None)
     monkeypatch.setattr(config_module, "load_sap_config", fake_load)
-    # Only the registry is patched: the loader reads supported_languages(), which does not touch
-    # the merged-view caches. Do not combine this with lang.current()/universal() (decision 13).
-    monkeypatch.setitem(lang._PACKS, "XX", lang.pack_for("EN"))  # pylint: disable=protected-access
-    config_module.get_sap_config()
+    with _register_for_tests(synthetic_pack()):
+        config_module.get_sap_config()
     assert seen == [("DE", "EN", "XX")]
 
 
