@@ -178,7 +178,7 @@ async def test_a_classic_job_list_of_an_english_logon_is_read() -> None:
         _label(80, 13, "02.11.2026"),
         _label(91, 13, "06:00:01"),
         _label(102, 13, "            0"),
-        _label(130, 13, "100"),
+        _label(130, 13, "000"),
     ]
     usr = SimpleNamespace(dump_tree=lambda: elements, vertical_scrollbar=None)
     session = SimpleNamespace(find_by_id=lambda _element_id, **_: usr)
@@ -192,7 +192,7 @@ async def test_a_classic_job_list_of_an_english_logon_is_read() -> None:
         "USER1",
         "02.11.2026 06:00:01",
         "0",
-        "100",
+        "000",
     )
 
 

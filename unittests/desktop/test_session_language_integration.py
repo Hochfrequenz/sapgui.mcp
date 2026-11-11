@@ -121,7 +121,8 @@ async def test_sm37_date_range_in_the_session_language(backend):
             )
     finally:
         _current_session_id.reset(token)
-    if not result.success and re.search(r"\d\d\.\d\d\.\d{4}", result.error or ""):
+    dotted_default = lang.view_for(backend.registry.language_of(sid)).date_format == "%d.%m.%Y"
+    if not result.success and not dotted_default and re.search(r"\d\d\.\d\d\.\d{4}", result.error or ""):
         # SAP's own example in its "Enter the date in format ..." message is in the user's date format.
         pytest.skip("the user's date format (SU3) differs from the logon language's default (#1043)")
     # An empty job list is still success=True; a date typed in the wrong format is not.
