@@ -213,7 +213,7 @@ SE11_SHORT_DESC_EN = "Short Description"
 SE11_ROW_SELECT_PREFIX_DE = "Zum Auswählen"
 SE11_ROW_SELECT_PREFIX_EN = "To select a row"
 
-SE11_ROW_SELECT_FULL_DE = r"Zum Auswählen[^\"]*Leertaste\."
+SE11_ROW_SELECT_FULL_DE = r'Zum Auswählen[^"]*Leertaste\.'
 SE11_ROW_SELECT_FULL_EN = r"To select a row, press the space bar\."
 
 SE11_DICTIONARY_TYPE_DE = "Dictionary.*Typ"
