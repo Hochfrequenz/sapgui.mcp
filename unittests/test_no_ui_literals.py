@@ -167,6 +167,16 @@ class Hit:
 
 
 @cache
+def _en_leaves() -> dict[str, object]:
+    return dict(iter_leaves(lang.pack_for("EN")))
+
+
+def _same_as_en(path: str, leaf: object) -> bool:
+    """A field still holding the EN value (an untranslated draft) gets the EN exemption, nothing more."""
+    return leaf == _en_leaves().get(path)
+
+
+@cache
 def pack_variants() -> tuple[str, ...]:
     """Case-folded variants of five or more characters from every registered pack (keys excluded)."""
     found: set[str] = set()
@@ -174,7 +184,7 @@ def pack_variants() -> tuple[str, ...]:
         for path, leaf in iter_leaves(lang.pack_for(code)):
             if path.startswith("keys."):
                 continue  # canonical key names (Enter, Delete) are the press_key API, not screen text
-            if path in GENERIC_WORDS and code == "EN":
+            if path in GENERIC_WORDS and (code == "EN" or _same_as_en(path, leaf)):
                 continue  # generic words (error, failed) of every own message, see GENERIC_WORDS
             if isinstance(leaf, Text):
                 found.update(leaf.variants)
@@ -663,6 +673,35 @@ def test_baseline_only_shrinks(scanned: tuple[list[Hit], dict[str, Counter[str]]
     _, counts = scanned
     found = stale_entries(counts, load_baseline())
     assert not found, "\n".join(found)
+
+
+def test_generic_fields_copied_from_en_stay_exempt() -> None:
+    """A draft pack that still holds EN's generic words is exempt like EN; translated ones stay guarded."""
+    from sapguimcp.lang import _register_for_tests  # noqa: PLC0415
+    from unittests.lang.synthetic_pack import MARK, SAME_AS_EN, synthetic_pack  # noqa: PLC0415
+
+    en = dict(iter_leaves(lang.pack_for("EN")))
+
+    def long_variants(path: str) -> set[str]:
+        leaf = en[path]
+        return {v.casefold() for v in getattr(leaf, "variants", ()) if len(v.strip()) >= MIN_VALUE_LENGTH}
+
+    generic = [path for path in sorted(GENERIC_WORDS) if long_variants(path)]
+    copied, translated = generic[0], generic[1]
+    other = next(p for p, leaf in en.items() if p not in GENERIC_WORDS and isinstance(leaf, Text) and long_variants(p))
+    pack = synthetic_pack(same_as_en=SAME_AS_EN | {copied})
+    pack_variants.cache_clear()
+    _pack_pattern.cache_clear()
+    try:
+        with _register_for_tests(pack):
+            found = set(pack_variants())
+            de_copied = {v.casefold() for v in getattr(dict(iter_leaves(lang.pack_for("DE")))[copied], "variants", ())}
+            assert not (long_variants(copied) - de_copied) & found, "EN-identical generic field must stay exempt"
+            assert {(MARK + v).casefold() for v in getattr(en[translated], "variants", ())} & found
+            assert {(MARK + v).casefold() for v in getattr(en[other], "variants", ())} & found
+    finally:
+        pack_variants.cache_clear()
+        _pack_pattern.cache_clear()
 
 
 def test_baseline_is_canonical() -> None:

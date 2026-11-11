@@ -11,9 +11,13 @@ from sapguimcp.lang.de import DE
 from sapguimcp.lang.schema import Key
 from sapguimcp.session_language import current_language
 
+UNKNOWN = "QQ"  # a language key no pack will ever use, so a new pack (e.g. IT) does not break these tests
+BASE = lang.supported_languages()
+BASE_TEXT = ", ".join(BASE)
+
 
 def test_supported_languages_in_registration_order() -> None:
-    assert lang.supported_languages() == ("DE", "EN")
+    assert lang.supported_languages()[:2] == ("DE", "EN")
 
 
 def test_pack_for_normalizes_the_code() -> None:
@@ -21,10 +25,10 @@ def test_pack_for_normalizes_the_code() -> None:
 
 
 def test_pack_for_an_unknown_language() -> None:
-    with pytest.raises(UnsupportedLanguageError, match="supported: DE, EN") as excinfo:
-        lang.pack_for("IT")
-    assert excinfo.value.language == "IT"
-    assert excinfo.value.supported == ("DE", "EN")
+    with pytest.raises(UnsupportedLanguageError, match=f"supported: {BASE_TEXT}") as excinfo:
+        lang.pack_for(UNKNOWN)
+    assert excinfo.value.language == UNKNOWN
+    assert excinfo.value.supported == BASE
 
 
 def test_use_sets_the_session_language() -> None:
@@ -62,7 +66,10 @@ def test_current_without_a_session_language() -> None:
 
 
 def test_current_for_a_language_without_a_pack() -> None:
-    with lang.use("IT"), pytest.raises(UnsupportedLanguageError, match="SE24 lookup needs a language pack for IT"):
+    with (
+        lang.use(UNKNOWN),
+        pytest.raises(UnsupportedLanguageError, match=f"SE24 lookup needs a language pack for {UNKNOWN}"),
+    ):
         lang.current("SE24 lookup")
 
 

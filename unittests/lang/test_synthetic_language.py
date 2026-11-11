@@ -30,6 +30,9 @@ from unittests.lang.test_pack_completeness import (
     _mappings,
 )
 
+BASE = lang.supported_languages()  # the real packs; a new pack (e.g. IT) must not break these tests
+BASE_TEXT = ", ".join(BASE)
+
 XX = synthetic_pack()
 
 
@@ -47,12 +50,12 @@ def xx() -> Iterator[LanguagePack]:
 def test_registration_is_scoped_to_the_block() -> None:
     before = lang.universal()  # primes the cache the helper has to clear
     with _register_for_tests(XX):
-        assert lang.supported_languages() == ("DE", "EN", CODE)
+        assert lang.supported_languages() == (*BASE, CODE)
         assert lang.pack_for("xx") is XX
         assert lang.universal() is not before
-    assert lang.supported_languages() == ("DE", "EN")
+    assert lang.supported_languages() == BASE
     assert lang.universal().keys.names[Key.CTRL].variants == ("Strg", "Ctrl")
-    with pytest.raises(UnsupportedLanguageError, match=r"supported: DE, EN$"):
+    with pytest.raises(UnsupportedLanguageError, match=rf"supported: {BASE_TEXT}$"):
         lang.pack_for(CODE)
 
 
@@ -74,13 +77,13 @@ def test_registration_refuses_a_registered_code() -> None:
 def test_registration_refuses_an_unnormalized_code() -> None:
     with pytest.raises(ValueError, match="upper-case"), _register_for_tests(dataclasses.replace(XX, code="xx")):
         pass
-    assert lang.supported_languages() == ("DE", "EN")
+    assert lang.supported_languages() == BASE
 
 
 def test_registration_is_undone_when_the_block_raises() -> None:
     with pytest.raises(RuntimeError, match="boom"), _register_for_tests(XX):
         raise RuntimeError("boom")
-    assert lang.supported_languages() == ("DE", "EN")
+    assert lang.supported_languages() == BASE
 
 
 # ---------------------------------------------------------------------------
@@ -101,7 +104,9 @@ def test_synthetic_pack_passes_every_guard(xx: LanguagePack) -> None:
     _check_merge_modes(xx)
     _check_untranslated_declared(xx, EN)
     _check_same_as_en_entries(xx, EN)
-    assert len({lang.pack_for(code).html_lang for code in lang.supported_languages()}) == 3
+    assert len({lang.pack_for(code).html_lang for code in lang.supported_languages()}) == len(
+        lang.supported_languages()
+    )
 
 
 @pytest.mark.parametrize("code", ["DE", "EN", CODE])
@@ -214,9 +219,9 @@ def test_a_kind_that_differs_fails_the_session_merge() -> None:
 
 @pytest.mark.usefixtures("xx")
 def test_current_names_the_third_language_while_it_is_registered() -> None:
-    with lang.use("IT"), pytest.raises(UnsupportedLanguageError, match="supported: DE, EN, XX") as excinfo:
+    with lang.use("QQ"), pytest.raises(UnsupportedLanguageError, match=f"supported: {BASE_TEXT}, XX") as excinfo:
         lang.current("SE24 lookup")
-    assert excinfo.value.supported == ("DE", "EN", CODE)
+    assert excinfo.value.supported == (*BASE, CODE)
 
 
 def test_current_fails_for_the_third_language_once_it_is_gone() -> None:
@@ -224,6 +229,6 @@ def test_current_fails_for_the_third_language_once_it_is_gone() -> None:
         assert lang.current().code == CODE
     with (
         lang.use(CODE),
-        pytest.raises(UnsupportedLanguageError, match=r"needs a language pack for XX; supported: DE, EN$"),
+        pytest.raises(UnsupportedLanguageError, match=rf"needs a language pack for XX; supported: {BASE_TEXT}$"),
     ):
         lang.current("SE24 lookup")
