@@ -1,5 +1,6 @@
 """``scripts/harvest_lang_texts.py`` without SAP: SQL, comparison, XML parsing (#1044, phase 2c)."""
 
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -110,3 +111,18 @@ def test_draft_is_not_implemented() -> None:
     with pytest.raises(SystemExit) as exit_info:
         harvest.main(["DE", "--draft"])
     assert exit_info.value.code == 2
+
+
+def test_unsupported_language_is_a_parser_error(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exit_info:
+        harvest.main(["XX", "--print-sql"])
+    assert exit_info.value.code == 2
+    assert "unsupported language" in capsys.readouterr().err
+
+
+def test_unknown_system_is_a_parser_error(capsys: pytest.CaptureFixture[str]) -> None:
+    fake_config = SimpleNamespace(systems={"sysA": object()}, default_system="sysA")
+    with patch.object(harvest, "load_default", return_value=fake_config), pytest.raises(SystemExit) as exit_info:
+        harvest.main(["EN", "--verify", "--system", "sysZ"])
+    assert exit_info.value.code == 2
+    assert "unknown --system" in capsys.readouterr().err

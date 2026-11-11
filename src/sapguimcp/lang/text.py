@@ -34,8 +34,11 @@ _JS_SYNTAX = re.compile(r"[\\^$.*+?()[\]{}|/]")
 """Characters to escape in a JS ``u``-mode regex. Escaping anything else (space, ``-``, ``#``) is an error."""
 _JS_WORD = r"[\p{L}\p{N}_]"
 """A JS word character. JS ``\\w`` and ``\\b`` are ASCII-only even with the ``u`` flag."""
-_JS_UNPORTABLE = re.compile(r"(?<!\\)(?:\\\\)*(?:\\[AZzbBwW]|\(\?[aiLmsux-]|\(\?P|\(\?#)")
-"""Python regex syntax that JS rejects or reads differently: anchors, ASCII-only classes, inline flags."""
+_JS_UNPORTABLE = re.compile(
+    r"(?<!\\)(?:\\\\)*(?:\\[AZzbBwW]|\\[^A-Za-z0-9\\^$.*+?()\[\]{}|/]|\(\?[aiLmsux-]|\(\?P|\(\?#)"
+)
+"""Python regex syntax that JS rejects or reads differently: anchors, ASCII-only classes, inline flags,
+and identity escapes such as ``\\-`` that JS ``u`` mode refuses."""
 
 
 class JsPattern(TypedDict):
@@ -142,11 +145,16 @@ def js_literal_source(variants: tuple[str, ...], fold: bool, word: bool) -> str:
 
 @cache
 def js_regex_source(patterns: tuple[str, ...]) -> str:
-    """JS regex source of raw patterns; ``ValueError`` for Python-only syntax."""
+    """JS regex source of raw patterns; ``ValueError`` for Python-only syntax.
+
+    Also rejects identity escapes JS ``u`` mode refuses (``\\-``, ``\\ ``, ``\\#``). Note that ``\\d`` and
+    ``\\s`` are Unicode-wide in Python but ASCII-only in JS, so they may match differently.
+    """
     for pattern in patterns:
         if _JS_UNPORTABLE.search(pattern):
             raise ValueError(
-                f"pattern is not portable to JavaScript (\\b, \\w, \\A, \\Z, inline flags, (?P, (?#): {pattern!r}"
+                f"pattern is not portable to JavaScript (\\b, \\w, \\A, \\Z, inline flags, (?P, (?#), "
+                f"identity escapes like \\-): {pattern!r}"
             )
     return "|".join(f"(?:{pattern})" for pattern in _unique(patterns, fold=False))
 

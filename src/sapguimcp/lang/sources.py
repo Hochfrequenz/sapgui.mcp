@@ -143,7 +143,10 @@ SOURCES: Mapping[str, Source] = MappingProxyType(
         "se93.gui_html": ScreenText("SAPLSRT2", "0700", "D700_TCODE_WEBGUI"),
         "se93.gui_java": ScreenText("SAPLSRT2", "0700", "D700_TCODE_PLATGUI"),
         "se93.gui_windows": ScreenText("SAPLSRT2", "0700", "D700_TCODE_WINGUI"),
-        "se93.screen_number": Manual("SAP text differs: EN screen text is 'Dynpro Number', pack has 'Screen number'"),
+        "se93.screen_number": Manual(
+            "SAP text differs: EN screen text is 'Dynpro Number' on the S/4HANA release "
+            "('Screen number' on the ECC release); pack has 'Screen number'"
+        ),
         "se93.selection_screen": ScreenText("SAPLSEUK", "0320", "TSTC-DYPNO"),
         "se93.start_with_variant": ScreenText("SAPLSEUK", "0320", "RSSTCD-REPO_VARI"),
         "se93.transaction_code": ScreenText("SAPLSEUK", "0310", "TSTC-TCODE"),

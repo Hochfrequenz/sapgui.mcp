@@ -49,6 +49,14 @@ class TestRegexTextForJs:
         with pytest.raises(ValueError, match="not portable to JavaScript"):
             RegexText((pattern,)).for_js()
 
+    def test_identity_escape_is_rejected(self) -> None:
+        with pytest.raises(ValueError, match="not portable to JavaScript"):
+            RegexText((r"\d+\-x",)).for_js()
+
+    @pytest.mark.parametrize("pattern", [r"a\.b", r"\\-"])
+    def test_syntax_escapes_and_escaped_backslash_are_portable(self, pattern: str) -> None:
+        RegexText((pattern,)).for_js()
+
     def test_an_escaped_backslash_before_b_is_portable(self) -> None:
         assert RegexText((r"C:\\bin",)).for_js()["source"] == r"(?:C:\\bin)"
 
@@ -71,7 +79,8 @@ class TestInNode:
             },
             {**Text(("ABC",), fold=False).for_js(), "path": "case", "matches": ["xABCx"], "rejects": ["abc"]},
             {
-                **RegexText((r"To select a row, press the space bar\.", r"Zum Auswählen[^\"]*Leertaste\.")).for_js(),
+                "source": r"(?:Zum Auswählen[^\"]*Leertaste\.)",
+                "flags": "iu",
                 "path": "regex with python identity escape",
             },
         ]

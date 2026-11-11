@@ -53,7 +53,7 @@ def run_node(script: str, payload: object) -> Any:
     """Run ``script`` with ``payload`` as JSON on stdin and return its JSON stdout."""
     node = node_executable()
     if node is None:
-        if os.environ.get("CI"):
+        if os.environ.get("CI", "").lower() in {"1", "true", "yes"}:
             pytest.fail("no Node.js runtime found; the JS guards must run in CI")
         pytest.skip("no Node.js runtime found")
     result = subprocess.run(  # noqa: S603  # fixed script, our own executable lookup
