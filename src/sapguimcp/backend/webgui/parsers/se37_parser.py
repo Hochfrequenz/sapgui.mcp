@@ -150,8 +150,9 @@ def _parse_exception_rows(snapshot: str, t: LanguagePack) -> list[SE37Exception]
             continue
 
         # Skip the header row ("Ausnahme Kurztext Langtext"): its first column title is one ASCII
-        # word and so looks like an exception name.
-        if t.se37.exception_column.equals(name):
+        # word and so looks like an exception name. Exception names are upper case, the column
+        # title is not, so an exception literally named EXCEPTION / AUSNAHME is kept.
+        if t.se37.exception_column.equals(name) and not name.isupper():
             continue
 
         exceptions.append(
