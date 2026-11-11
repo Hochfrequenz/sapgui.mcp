@@ -132,6 +132,7 @@ known-third-party = ["sap_mcp_config", "sapsucker"]
 "scripts/add_inline_results.py" = ["E402", "PTH123"] # module-import-not-at-top-of-file, builtin-open
 "scripts/consolidate_catalog.py" = ["E402", "PTH123"] # module-import-not-at-top-of-file, builtin-open
 "scripts/explore_issue_717.py" = ["F841", "S110"] # unused-variable, try-except-pass
+"scripts/harvest_lang_texts.py" = ["S608"] # hardcoded-sql-expression: every value is checked against a technical-ID regex first
 "scripts/probe_dcs_full_enum.py" = ["PLC0415", "S110", "SIM105"] # import-outside-top-level, try-except-pass, suppressible-exception
 "scripts/probe_tree_context_menu.py" = ["F401", "PLC0415", "RET504", "S110", "SIM105"] # unused-import, import-outside-top-level, unnecessary-assign, try-except-pass, suppressible-exception
 "scripts/validate_pr_629.py" = ["B007", "PLC0415", "PLW1510", "RUF100", "S101", "S603", "S607"] # unused-loop-control-variable, import-outside-top-level, subprocess-run-without-check, unused-noqa, assert, subprocess-without-shell-equals-true, start-process-with-partial-path

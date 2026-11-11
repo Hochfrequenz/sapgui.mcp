@@ -9,6 +9,7 @@ Public API:
 - :data:`INVARIANT` - texts that are the same in every logon language (an :class:`Invariant`).
 - :func:`use` / :func:`set_session_language` - set the session language (tests, login).
 - :func:`pack_for`, :func:`supported_languages` - the registry.
+- :func:`language_for_html_lang` - the SAP language key for a page's ``<html lang>``.
 - ``_register_for_tests`` - registers an extra pack inside a ``with`` block (tests only).
 
 The ``X_DE`` / ``X_EN`` constants and ``bilingual_pattern`` of the former ``lang.py`` module are
@@ -50,6 +51,7 @@ __all__ = [
     "UnsupportedLanguageError",
     "alt_of",
     "current",
+    "language_for_html_lang",
     "pack_for",
     "set_session_language",
     "supported_languages",
@@ -97,6 +99,22 @@ def pack_for(code: str) -> LanguagePack:
     if pack is None:
         raise UnsupportedLanguageError(normalized or repr(code), "this lookup")
     return pack
+
+
+def language_for_html_lang(tag: str) -> str | None:
+    """SAP language key for an HTML language tag (``"de-DE"`` -> ``"DE"``).
+
+    Matches the registered packs' ``html_lang``: the whole tag first (``zh-tw``), then the primary
+    subtag (``de``), case-insensitively, ``_`` read as ``-``. A tag without a pack falls back to
+    its upper-cased primary subtag, so an unsupported language is still reported by name; an empty
+    tag gives ``None``.
+    """
+    normalized = tag.strip().lower().replace("_", "-")
+    if not normalized:
+        return None
+    primary = normalized.split("-", 1)[0]
+    by_html_lang = {pack.html_lang.lower(): pack.code for pack in _PACKS.values()}
+    return by_html_lang.get(normalized) or by_html_lang.get(primary) or normalize_language(primary)
 
 
 def _build_view(code: str) -> LanguagePack:

@@ -72,7 +72,7 @@ DE = LanguagePack(
         transparent_table=Text(("Transp.Tabelle",)),
         structure=Text(("Struktur",)),
         short_description=Text(("Kurzbeschreibung",)),
-        row_select_full=RegexText((r"Zum Auswählen[^\"]*Leertaste\.",)),
+        row_select_full=RegexText((r'Zum Auswählen[^"]*Leertaste\.',)),
         dictionary_type=RegexText(("Dictionary.*Typ",)),
     ),
     se16=Se16Section(
