@@ -93,11 +93,13 @@ async def get_table_list_from_dd02l(
 
 async def _lookup_table_se11(table_name: str) -> TableInfo | str:
     """Look up a single table in SE11 and return TableInfo or error string."""
+    from sapguimcp import lang
     from sapguimcp.backend.manager import get_backend
     from sapguimcp.models.se11_models import SE11Entry
     from sapguimcp.tools.se11_tools import _lookup_object_on_initial_screen
 
     backend = await get_backend()
+    t = lang.current("table_catalog_scrape")
 
     # Navigate to SE11 with clean state
     await backend.enter_transaction("/n")
@@ -107,7 +109,7 @@ async def _lookup_table_se11(table_name: str) -> TableInfo | str:
         return f"Failed to navigate to SE11: {tx_result.error}"
     await backend.wait_for_ready()
 
-    result = await _lookup_object_on_initial_screen(backend, table_name, "table")
+    result = await _lookup_object_on_initial_screen(backend, table_name, "table", t)
 
     if isinstance(result, SE11Entry):
         fields = [
