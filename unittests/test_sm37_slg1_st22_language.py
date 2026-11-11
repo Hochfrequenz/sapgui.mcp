@@ -318,3 +318,26 @@ def test_the_webgui_dump_detail_reads_every_heading_of_the_desktop(
     detail = parse_st22_dump_detail(snapshot, lang.view_for(language))
     assert detail.what_happened == "the cause"
     assert detail.how_to_correct == "the remedy"
+
+
+def test_jobs_named_like_skipped_list_lines_are_kept() -> None:
+    """The skip block is case-sensitive: only the lower-case list lines are dropped, not jobs named like them."""
+    t = lang.view_for("DE")
+    snapshot = AriaSnapshot(
+        '- heading "Jobübersicht"\n'
+        "- text: SCHEDULED_CLEANUP USER1 freigegeben 0 0 100\n"
+        "- text: EVENT-DRIVEN_LOAD USER1 freigegeben 0 0 100\n"
+        "- text: scheduled something\n"
+        "- text: eventgesteuert irgendwas"
+    )
+    assert [job.job_name for job in parse_sm37_job_list(snapshot, t)] == ["SCHEDULED_CLEANUP", "EVENT-DRIVEN_LOAD"]
+
+
+@pytest.mark.parametrize(
+    ("language", "advice", "source"),
+    [("DE", "Was können Sie tun?", "Quelltextauszug"), ("EN", "What can you do?", "Source Code Extract")],
+)
+def test_the_advice_ends_at_the_source_code_heading(language: str, advice: str, source: str) -> None:
+    snapshot = AriaSnapshot(f'- text "{advice}"\n- text "the remedy"\n- text "{source}"\n- text "code"')
+    detail = parse_st22_dump_detail(snapshot, lang.view_for(language))
+    assert detail.how_to_correct == "the remedy"

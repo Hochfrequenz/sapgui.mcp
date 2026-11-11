@@ -219,6 +219,7 @@ SOURCES: Mapping[str, Source] = MappingProxyType(
         "st22.col_short_text": Manual("list column title of the dump list, not looked up"),
         "st22.call_stack_heading": Manual("heading of the dump detail text (spec section 9)"),
         "st22.other_headings": Manual("headings of the dump detail text (spec section 9)"),
+        "st22.source_code_start": Manual("heading of the dump detail text (spec section 9)"),
         "st22.source_code_of": Manual("text of the dump detail"),
         "st22.source_line": Manual("text of the dump detail"),
         "st22.line": Manual("text of the dump detail"),

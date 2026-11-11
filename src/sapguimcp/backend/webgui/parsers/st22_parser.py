@@ -318,7 +318,12 @@ def _extract_text_content(snapshot: str) -> str:
     return "\n".join(text_parts)
 
 
-def _extract_section(text: str, start_markers: Iterable[str], end_markers: Iterable[str]) -> str:
+def _extract_section(
+    text: str,
+    start_markers: Iterable[str],
+    end_markers: Iterable[str],
+    end_pattern: re.Pattern[str] | None = None,
+) -> str:
     """Extract text between section markers (best-effort)."""
     text_lower = text.lower()
     start_pos = -1
@@ -337,6 +342,11 @@ def _extract_section(text: str, start_markers: Iterable[str], end_markers: Itera
         pos = text_lower.find(marker.lower(), start_pos)
         if 0 < pos < end_pos:
             end_pos = pos
+
+    if end_pattern is not None:
+        match = end_pattern.search(text, start_pos, end_pos)
+        if match is not None and match.start() > 0:
+            end_pos = match.start()
 
     return text[start_pos:end_pos].strip()
 
@@ -455,6 +465,7 @@ def parse_st22_dump_detail(snapshot: AriaSnapshot, t: LanguagePack) -> ST22DumpD
         raw_text,
         sections[DumpSection.HOW_TO_CORRECT],
         [*sections[DumpSection.ERROR_ANALYSIS], *t.st22.other_headings],
+        end_pattern=t.st22.source_code_start.pattern,
     )
 
     return ST22DumpDetail(

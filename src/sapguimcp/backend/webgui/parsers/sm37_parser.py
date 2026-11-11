@@ -162,7 +162,8 @@ def parse_sm37_job_list(snapshot: AriaSnapshot, t: LanguagePack) -> list[SM37Job
     if not is_job_list_screen(snapshot, t):
         return []
 
-    scheduled = [variant.lower() for variant in t.sm37.status[JobStatus.SCHEDULED]]
+    # the list shows the status in lower case; "Sched." is only the checkbox text
+    scheduled = tuple(v.lower() for v in t.sm37.status[JobStatus.SCHEDULED] if not v.endswith("."))
 
     jobs: list[SM37Job] = []
     seen: set[tuple[str, str, str, str | None, str]] = set()
@@ -171,7 +172,7 @@ def parse_sm37_job_list(snapshot: AriaSnapshot, t: LanguagePack) -> list[SM37Job
         text = match.group(1).strip()
 
         # Skip non-job text lines
-        if text.startswith('"') or text.lower().startswith(tuple(scheduled)):
+        if text.startswith('"') or text.startswith(scheduled):
             continue
         if t.sm37.selected_hint.contains(text):
             continue

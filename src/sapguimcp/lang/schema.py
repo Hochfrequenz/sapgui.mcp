@@ -296,6 +296,8 @@ class St22Section:
     other_headings: Text
     """Headings that end a section of the dump detail (the ones in ``section`` and ``call_stack_heading`` do too)."""
     source_code_of: RegexText
+    source_code_start: RegexText
+    """Prefix of the source code headings; ends the advice section (a pattern: the plain words are too common)."""
     source_line: Text
     line: Text
 
