@@ -116,17 +116,6 @@
     "leer": 1,
     "row \".*Protokollnummer|row \".*Log Number": 1
   },
-  "src/sapguimcp/backend/webgui/parsers/sm30_parser.py": {
-    "button \"(?:Eintrag|Entry)\\s+\\d+\\s+(?:von|of)\\s+(?P<total>\\d+)\"": 1,
-    "heading \"(?:Display|Change) View \\\\?\"(?P<desc>[^\"\\\\]+)\\\\?\"": 1,
-    "heading \"Sicht \\\\?\"(?P<desc>[^\"\\\\]+)\\\\?\" (?:anzeigen|ändern)": 1,
-    "is not in the Dictionary": 1,
-    "ist nicht im Dictionary vorhanden": 1,
-    "kein Pflegedialog": 1,
-    "nicht vorhanden": 1,
-    "no maintenance dialog": 1,
-    "not found": 1
-  },
   "src/sapguimcp/backend/webgui/parsers/sm37_parser.py": {
     "ABAP Program": 1,
     "ABAP Programm": 1,

@@ -14,16 +14,8 @@ import re
 from datetime import UTC, datetime
 
 from sapguimcp.backend.webgui.types import AriaSnapshot
-from sapguimcp.lang import (
-    SE16_COLUMN_SELECTION_DE,
-    SE16_COLUMN_SELECTION_EN,
-    SM30_INITIAL_SCREEN_DE,
-    SM30_INITIAL_SCREEN_EN,
-    SM30_NOT_FOUND_DE,
-    SM30_NOT_FOUND_EN,
-    SM30_ROW_SELECT_HINT_DE,
-    SM30_ROW_SELECT_HINT_EN,
-)
+from sapguimcp.lang.schema import LanguagePack
+from sapguimcp.lang.text import compiled
 from sapguimcp.models.sm30_models import SM30Row, SM30ViewResult, SM30ViewType
 
 logger = logging.getLogger(__name__)
@@ -43,60 +35,21 @@ __all__ = [
 # Real format: - columnheader "Land/Reg."
 _COLUMNHEADER_PATTERN = re.compile(r'columnheader "(?P<name>[^"]+)"')
 
-# Data row detection - DE/EN variants
-# DE: row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AD Andorra":
-# EN: row "To select a row, press the space bar. AD Andorra":
-_DATA_ROW_PATTERN = re.compile(
-    rf'- row "(?:{re.escape(SM30_ROW_SELECT_HINT_DE)}|{re.escape(SM30_ROW_SELECT_HINT_EN)})',
-)
+
+# Data row start, e.g. ``- row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AD Andorra":``
+def _data_row_pattern(t: LanguagePack) -> re.Pattern[str]:
+    return compiled(rf'- row "{t.common.row_select_hint.alt}')
+
 
 # Gridcell value extraction
 # Real format: - gridcell "AD": (with value) or - gridcell: (empty)
 _GRIDCELL_WITH_VALUE_PATTERN = re.compile(r'gridcell "(?P<value>[^"]*)"')
 _GRIDCELL_EMPTY_PATTERN = re.compile(r"^\s*- gridcell:\s*$")
 
-# Row selection column names to skip (DE/EN)
-_SELECTION_COLUMN_NAMES = {
-    SE16_COLUMN_SELECTION_DE,
-    SE16_COLUMN_SELECTION_EN,
-}
-
-# Selection gridcell text patterns to skip
-_SELECTION_CELL_PATTERNS = [
-    SM30_ROW_SELECT_HINT_DE,
-    SM30_ROW_SELECT_HINT_EN,
-]
-
-# Not found detection
-# Real format: note "Fehler Meldungsleiste Tabelle/View ZZZNOTEXIST99 ist nicht im Dictionary vorhanden"
-_NOT_FOUND_PATTERNS = [
-    "ist nicht im Dictionary vorhanden",
-    "is not in the Dictionary",
-    SM30_NOT_FOUND_DE,
-    SM30_NOT_FOUND_EN,
-    "nicht vorhanden",
-    "not found",
-    "kein Pflegedialog",
-    "no maintenance dialog",
-]
-
-# View description from heading
-# DE: heading "Sicht \"Globale Parameter der Länder/Regionen\" anzeigen: Übersicht"
-# EN: heading "Display View \"Countries\": Overview"
-_VIEW_TITLE_DE_PATTERN = re.compile(
-    r'heading "Sicht \\?"(?P<desc>[^"\\]+)\\?" (?:anzeigen|ändern)',
-    re.IGNORECASE,
-)
-_VIEW_TITLE_EN_PATTERN = re.compile(
-    r'heading "(?:Display|Change) View \\?"(?P<desc>[^"\\]+)\\?"',
-    re.IGNORECASE,
-)
-
-# Row count from button
-# Real format: button "Eintrag 1 von 249" or button "Entry 1 of 249"
-_ROW_COUNT_PATTERN = re.compile(
-    r'button "(?:Eintrag|Entry)\s+\d+\s+(?:von|of)\s+(?P<total>\d+)"',
-)
+# Real format of a view title: heading "Sicht \"Globale Parameter der Länder/Regionen\" anzeigen: Übersicht"
+# (the title's quotes come escaped or plain). The captured group includes them.
+_VIEW_TITLE_QUOTED = r'\\?"[^"\\]+\\?"'
+_ROW_COUNT_NUMBER = r"\d+"
 
 
 # =============================================================================
@@ -104,7 +57,7 @@ _ROW_COUNT_PATTERN = re.compile(
 # =============================================================================
 
 
-def detect_sm30_view_type(snapshot: AriaSnapshot) -> SM30ViewType:
+def detect_sm30_view_type(snapshot: AriaSnapshot, t: LanguagePack) -> SM30ViewType:
     """
     Detect whether the SM30 snapshot shows a flat table or an unsupported view type.
 
@@ -112,7 +65,7 @@ def detect_sm30_view_type(snapshot: AriaSnapshot) -> SM30ViewType:
     Returns "unsupported" if still on initial screen, SM34 redirect, or no grid found.
     """
     # Check if still on initial screen (not found or navigation failed)
-    if _is_initial_screen(snapshot):
+    if _is_initial_screen(snapshot, t):
         return "unsupported"
 
     # Check for grid with column headers (indicates flat table)
@@ -122,36 +75,37 @@ def detect_sm30_view_type(snapshot: AriaSnapshot) -> SM30ViewType:
     return "unsupported"
 
 
-def _is_initial_screen(snapshot: str) -> bool:
+def _is_initial_screen(snapshot: str, t: LanguagePack) -> bool:
     """Check if we're still on the SM30 initial screen."""
     header_section = "\n".join(snapshot.split("\n")[:10])
-    return SM30_INITIAL_SCREEN_DE in header_section or SM30_INITIAL_SCREEN_EN in header_section
+    return t.sm30.initial_screen.contains(header_section)
 
 
-def _is_view_not_found(snapshot: str) -> bool:
+def _is_view_not_found(snapshot: str, t: LanguagePack) -> bool:
     """Check if the snapshot indicates the view was not found."""
-    snapshot_lower = snapshot.lower()
-    return any(pattern.lower() in snapshot_lower for pattern in _NOT_FOUND_PATTERNS)
+    return t.sm30.view_not_found.contains(snapshot) or t.sm30.no_maintenance_dialog.contains(snapshot)
 
 
-def _extract_view_description(snapshot: str) -> str:
+def _extract_view_description(snapshot: str, t: LanguagePack) -> str:
     """Extract the view description from the page heading."""
-    match = _VIEW_TITLE_DE_PATTERN.search(snapshot)
-    if match:
-        return match.group("desc").strip()
-
-    match = _VIEW_TITLE_EN_PATTERN.search(snapshot)
-    if match:
-        return match.group("desc").strip()
+    for line in snapshot.split("\n"):
+        if 'heading "' not in line:
+            continue
+        match = t.sm30.view_title.search(line, desc=_VIEW_TITLE_QUOTED)
+        if match:
+            return match.group("desc").strip('\\"').strip()
 
     return ""
 
 
-def _extract_total_row_count(snapshot: str) -> int | None:
-    """Extract total row count from the 'Eintrag X von Y' button."""
-    match = _ROW_COUNT_PATTERN.search(snapshot)
-    if match:
-        return int(match.group("total"))
+def _extract_total_row_count(snapshot: str, t: LanguagePack) -> int | None:
+    """Extract total row count from the button that reads "entry X of Y"."""
+    for line in snapshot.split("\n"):
+        if 'button "' not in line:
+            continue
+        match = t.sm30.row_count.search(line, current=_ROW_COUNT_NUMBER, total=_ROW_COUNT_NUMBER)
+        if match:
+            return int(match.group("total"))
     return None
 
 
@@ -160,7 +114,7 @@ def _extract_total_row_count(snapshot: str) -> int | None:
 # =============================================================================
 
 
-def parse_sm30_columns(snapshot: AriaSnapshot) -> list[str]:
+def parse_sm30_columns(snapshot: AriaSnapshot, t: LanguagePack) -> list[str]:
     """
     Extract column names from the SM30 grid header row.
 
@@ -169,6 +123,7 @@ def parse_sm30_columns(snapshot: AriaSnapshot) -> list[str]:
 
     Args:
         snapshot: ARIA snapshot YAML content
+        t: The language pack of the session (``lang.current()``)
 
     Returns:
         List of column names in order (excluding selection column)
@@ -184,7 +139,7 @@ def parse_sm30_columns(snapshot: AriaSnapshot) -> list[str]:
         return columns
 
     # Find the first data row to bound our search
-    first_data_row = _DATA_ROW_PATTERN.search(snapshot[grid_start:])
+    first_data_row = _data_row_pattern(t).search(snapshot[grid_start:])
     if first_data_row:
         header_section = snapshot[grid_start : grid_start + first_data_row.start()]
     else:
@@ -194,7 +149,7 @@ def parse_sm30_columns(snapshot: AriaSnapshot) -> list[str]:
     # Extract all columnheader values from header section
     for match in _COLUMNHEADER_PATTERN.finditer(header_section):
         col_name = match.group("name")
-        if col_name not in _SELECTION_COLUMN_NAMES:
+        if not t.se16.column_selection.equals(col_name):
             columns.append(col_name)
 
     return columns
@@ -205,13 +160,13 @@ def parse_sm30_columns(snapshot: AriaSnapshot) -> list[str]:
 # =============================================================================
 
 
-def _is_selection_cell(value: str) -> bool:
+def _is_selection_cell(value: str, t: LanguagePack) -> bool:
     """Check if a gridcell value is the row selection hint text."""
-    return any(pattern in value for pattern in _SELECTION_CELL_PATTERNS)
+    return t.common.row_select_hint.contains(value)
 
 
 def parse_sm30_rows(  # pylint: disable=too-many-branches
-    snapshot: AriaSnapshot, columns: list[str] | None = None
+    snapshot: AriaSnapshot, t: LanguagePack, columns: list[str] | None = None
 ) -> list[SM30Row]:
     """
     Extract data rows from SM30 display grid snapshot.
@@ -221,26 +176,28 @@ def parse_sm30_rows(  # pylint: disable=too-many-branches
 
     Args:
         snapshot: ARIA snapshot YAML content
+        t: The language pack of the session (``lang.current()``)
         columns: Column names (if None, will be extracted from snapshot)
 
     Returns:
         List of SM30Row instances
     """
     if columns is None:
-        columns = parse_sm30_columns(snapshot)
+        columns = parse_sm30_columns(snapshot, t)
 
     if not columns:
         logger.warning("No columns found, cannot parse SM30 rows")
         return []
 
     rows: list[SM30Row] = []
+    data_row_pattern = _data_row_pattern(t)
     lines = snapshot.split("\n")
     in_data_row = False
     current_cells: list[str] = []
 
     for line in lines:
         # Check for start of a data row
-        if _DATA_ROW_PATTERN.search(line):
+        if data_row_pattern.search(line):
             # Save previous row if valid
             if current_cells:
                 _save_row(current_cells, columns, rows)
@@ -267,7 +224,7 @@ def parse_sm30_rows(  # pylint: disable=too-many-branches
             if match:
                 value = match.group("value")
                 # Skip the selection hint cell
-                if not _is_selection_cell(value):
+                if not _is_selection_cell(value, t):
                     current_cells.append(value)
             elif _GRIDCELL_EMPTY_PATTERN.match(line):
                 current_cells.append("")
@@ -307,6 +264,7 @@ def _save_row(
 def parse_sm30_snapshot(
     snapshot: AriaSnapshot,
     view_name: str,
+    t: LanguagePack,
 ) -> SM30ViewResult:
     """
     Parse SM30 display snapshot into structured data.
@@ -319,6 +277,7 @@ def parse_sm30_snapshot(
     Args:
         snapshot: The YAML accessibility snapshot from browser_snapshot
         view_name: The view/table name being looked up
+        t: The language pack of the session (``lang.current()``)
 
     Returns:
         SM30ViewResult with parsed data or error
@@ -326,7 +285,7 @@ def parse_sm30_snapshot(
     now = datetime.now(UTC)
 
     # Check for view not found
-    if _is_view_not_found(snapshot) and _is_initial_screen(snapshot):
+    if _is_view_not_found(snapshot, t) and _is_initial_screen(snapshot, t):
         return SM30ViewResult.failure(
             error=f"View '{view_name}' not found",
             view_name=view_name,
@@ -339,7 +298,7 @@ def parse_sm30_snapshot(
         )
 
     # Detect view type
-    view_type = detect_sm30_view_type(snapshot)
+    view_type = detect_sm30_view_type(snapshot, t)
 
     if view_type == "unsupported":
         return SM30ViewResult.failure(
@@ -348,7 +307,7 @@ def parse_sm30_snapshot(
                 "(Extended Table Maintenance). Only flat table views are supported."
             ),
             view_name=view_name,
-            description=_extract_view_description(snapshot),
+            description=_extract_view_description(snapshot, t),
             view_type="unsupported",
             columns=[],
             rows=[],
@@ -357,10 +316,10 @@ def parse_sm30_snapshot(
         )
 
     # Parse flat table
-    description = _extract_view_description(snapshot)
-    columns = parse_sm30_columns(snapshot)
-    rows = parse_sm30_rows(snapshot, columns)
-    total_rows = _extract_total_row_count(snapshot)
+    description = _extract_view_description(snapshot, t)
+    columns = parse_sm30_columns(snapshot, t)
+    rows = parse_sm30_rows(snapshot, t, columns)
+    total_rows = _extract_total_row_count(snapshot, t)
 
     return SM30ViewResult(
         view_name=view_name,
