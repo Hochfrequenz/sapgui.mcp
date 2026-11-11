@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any, cast
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.backend.webgui.parsers.slg1_parser import (
     is_slg1_initial_screen,
@@ -24,27 +25,26 @@ from sapguimcp.backend.webgui.parsers.slg1_parser import (
     parse_slg1_log_list,
 )
 from sapguimcp.backend.webgui.types import AriaSnapshot
-from sapguimcp.lang import SLG1_NO_LOGS_FOUND_DE, SLG1_NO_LOGS_FOUND_EN, SLG1_NO_LOGS_FOUND_EN_LEGACY
 from sapguimcp.models import TableData
 from sapguimcp.models.slg1_models import (
     SLG1FileSummary,
     SLG1LogEntry,
     SLG1LogListResult,
 )
-from sapguimcp.session_language import session_sap_language
-from sapguimcp.utils import SapLanguage, format_sap_date
+from sapguimcp.utils import format_sap_date_as
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
+    from sapguimcp.lang import LanguagePack
+    from sapguimcp.lang.text import Text
 
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["register_slg1_tools"]
-
-# Column headers that identify a row of the SLG1 log list as a log (the grid of a selected log holds messages instead)
-_SLG1_LOG_NUMBER_HEADERS = ("Protokollnr.", "Log Number", "Log number")
 
 _MAX_LOGS = 50
 # Item columns of the log tree in SAP's standard layout (the node text itself is date, time and user): the number of
@@ -59,6 +59,16 @@ _TREE_COLUMN_LOG_NUMBER = "107"
 _TREE_NODE_TEXT = re.compile(
     r"^(?P<date>\S+)\s+(?P<time>\d{1,2}:\d{2}:\d{2}(?:\s*[AP]M)?)(?:\s+(?P<user>\S+))?$", re.IGNORECASE
 )
+
+
+async def _fill_by_label(backend: "WebGuiBackend | DesktopBackend", labels: Iterable[str], value: str) -> bool:
+    """Fill the field with the first of ``labels`` the screen shows. False if none is found or the value is refused."""
+    for label in labels:
+        result = await backend.fill_form({label: value})
+        if label in result.not_found:
+            continue
+        return not result.errors  # found: if it errored, the value was not accepted
+    return False
 
 
 def _safe_int(value: str | None) -> int:
@@ -125,6 +135,7 @@ def _read_log_tree(session: Any, max_logs: int) -> tuple[list[SLG1LogEntry], boo
 
 async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals,too-many-return-statements
     backend: "WebGuiBackend | DesktopBackend",
+    t: LanguagePack,
     object_name: str,
     subobject: str | None = None,
     external_id: str | None = None,
@@ -133,7 +144,6 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
 ) -> SLG1LogListResult:
     """Desktop-specific SLG1 lookup using read_table instead of ARIA parsing."""
     now = datetime.now(UTC)
-    language: SapLanguage = session_sap_language()
     logger.info("SLG1 desktop backend path", extra={"object": object_name})
 
     tx_result = await backend.enter_transaction("SLG1")
@@ -147,33 +157,23 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
         )
     await backend.wait_for_ready()
 
-    # Fill selection screen
-    fields: dict[str, str] = {}
-    if language == "DE":
-        fields["Objekt"] = object_name
-        if subobject:
-            fields["Unterobjekt"] = subobject
-        if external_id:
-            fields["Ext. Identif."] = external_id
-    else:
-        fields["Object"] = object_name
-        if subobject:
-            fields["Subobject"] = subobject
-        if external_id:
-            fields["External ID"] = external_id
-
     # A filter that cannot be applied fails the lookup: it would otherwise return the default selection (the logs of
     # today) as if it were the answer. The date fields are not found by their labels on the desktop, so they are filled
     # by their technical names (the 'to' field's name starts with a star).
     unapplied: list[str] = []
-    fill_result = await backend.fill_form(fields)
-    unapplied.extend(fill_result.not_found)
-    unapplied.extend(error.field for error in fill_result.errors)  # found, but the value was not accepted
+    if not await _fill_by_label(backend, t.slg1.log_object, object_name):
+        unapplied.append("object")
+    if subobject and not await _fill_by_label(backend, t.slg1.log_subobject, subobject):
+        unapplied.append("subobject")
+    if external_id and not await _fill_by_label(backend, t.slg1.external_id, external_id):
+        unapplied.append("external_id")
     for value, field_name, filter_name in (
         (from_date, "BALHDR-ALDATE", "from_date"),
         (to_date, "*BALHDR-ALDATE", "to_date"),
     ):
-        if value and not await backend.focus_and_type(field_name, format_sap_date(value, language), delay_ms=50):
+        if value and not await backend.focus_and_type(
+            field_name, format_sap_date_as(value, t.date_format), delay_ms=50
+        ):
             unapplied.append(filter_name)
     if unapplied:
         return SLG1LogListResult.failure(
@@ -201,17 +201,7 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
             retrieved_at=now,
         )
 
-    if sbar.message and any(
-        msg.lower() in sbar.message.lower()
-        for msg in [
-            "keine protokolle",
-            "no logs",
-            "no application log",
-            SLG1_NO_LOGS_FOUND_DE,
-            SLG1_NO_LOGS_FOUND_EN,
-            SLG1_NO_LOGS_FOUND_EN_LEGACY,
-        ]
-    ):
+    if sbar.message and t.slg1.no_logs_found.contains(sbar.message):
         return SLG1LogListResult(
             logs=[],
             log_count=0,
@@ -241,7 +231,7 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
     # No rows without a "no logs" status message is not an empty result, and neither are rows that are no logs: the
     # logs are listed in a tree next to a grid that stays empty until a log is selected (and then holds its messages),
     # so there is no log list to read here.
-    if not table_data.rows or not any(h in _SLG1_LOG_NUMBER_HEADERS for h in table_data.headers):
+    if not table_data.rows or not any(t.slg1.log_number.equals(h) for h in table_data.headers):
         return SLG1LogListResult.failure(
             "Could not read SLG1 log list: the desktop shows the logs in a tree, which cannot be read as a table",
             logs=[],
@@ -256,14 +246,14 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
         d = tr.data
         logs.append(
             SLG1LogEntry(
-                log_number=d.get("Protokollnr.", d.get("Log Number", d.get("Log number", ""))),
-                object=d.get("Objekt", d.get("Object", "")),
-                subobject=d.get("Unterobjekt", d.get("Subobject", "")),
-                external_id=d.get("Ext. Identif.", d.get("External ID", "")),
-                date=d.get("Datum", d.get("Date", "")),
-                time=d.get("Uhrzeit", d.get("Time", "")),
-                user=d.get("Benutzer", d.get("User", "")),
-                message_count=_safe_int(d.get("Anzahl Nachr.", d.get("No. Messages", "0"))),
+                log_number=t.slg1.log_number.first_key(d) or "",
+                object=t.slg1.log_object.first_key(d) or "",
+                subobject=t.slg1.log_subobject.first_key(d) or "",
+                external_id=t.slg1.external_id.first_key(d) or "",
+                date=t.slg1.col_date.first_key(d) or "",
+                time=t.slg1.col_time.first_key(d) or "",
+                user=t.common.user.first_key(d) or "",
+                message_count=_safe_int(t.slg1.col_messages.first_key(d)),
             )
         )
 
@@ -278,6 +268,7 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
 
 async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals
     backend: "WebGuiBackend | DesktopBackend",
+    t: LanguagePack,
     object_name: str,
     subobject: str | None = None,
     external_id: str | None = None,
@@ -289,9 +280,7 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
 
     # Desktop backend: use read_table instead of ARIA snapshot parsing
     if backend.backend_type == "desktop":
-        return await _slg1_lookup_desktop(backend, object_name, subobject, external_id, from_date, to_date)
-
-    language: SapLanguage = session_sap_language()
+        return await _slg1_lookup_desktop(backend, t, object_name, subobject, external_id, from_date, to_date)
 
     # Navigate to SLG1
     tx_result = await backend.enter_transaction("SLG1")
@@ -307,37 +296,19 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
     # Wait for SLG1 selection screen to fully load
     await backend.wait_for_ready()
 
-    # Build fields dict based on language
-    # Field labels from real ARIA snapshot:
-    # DE: "Objekt", "Unterobjekt", "Ext. Identif.", "von (Datum/Uhrzeit)", "bis (Datum/Uhrzeit)"
-    # EN: will need exploration - using reasonable guesses
-    fields: dict[str, str] = {}
-
-    if language == "DE":
-        fields["Objekt"] = object_name
-        if subobject:
-            fields["Unterobjekt"] = subobject
-        if external_id:
-            fields["Ext. Identif."] = external_id
-        if from_date:
-            fields["von (Datum/Uhrzeit)"] = format_sap_date(from_date, language)
-        if to_date:
-            fields["bis (Datum/Uhrzeit)"] = format_sap_date(to_date, language)
-    else:
-        fields["Object"] = object_name
-        if subobject:
-            fields["Subobject"] = subobject
-        if external_id:
-            fields["External ID"] = external_id
-        if from_date:
-            fields["From (Date/Time)"] = format_sap_date(from_date, language)
-        if to_date:
-            fields["To (Date/Time)"] = format_sap_date(to_date, language)
-
-    # Fill selection screen
-    fill_result = await backend.fill_form(fields)
-    if fill_result.not_found:
-        logger.warning("SLG1 fields not found: %r", fill_result.not_found)
+    # Fill the selection screen, one field at a time: each field is looked up by the labels of the session's view
+    fields: list[tuple[Text, str]] = [(t.slg1.log_object, object_name)]
+    if subobject:
+        fields.append((t.slg1.log_subobject, subobject))
+    if external_id:
+        fields.append((t.slg1.external_id, external_id))
+    if from_date:
+        fields.append((t.slg1.from_datetime, format_sap_date_as(from_date, t.date_format)))
+    if to_date:
+        fields.append((t.slg1.to_datetime, format_sap_date_as(to_date, t.date_format)))
+    for labels, value in fields:
+        if not await _fill_by_label(backend, labels, value):
+            logger.warning("SLG1 field not found labels=%r", list(labels))
 
     # Execute search (F8)
     await backend.press_key("F8")
@@ -347,7 +318,7 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
     snapshot = AriaSnapshot(await backend.get_snapshot())
 
     # Check for no results (explicit status bar message)
-    if is_slg1_no_results(snapshot):
+    if is_slg1_no_results(snapshot, t):
         return SLG1LogListResult(
             logs=[],
             log_count=0,
@@ -357,7 +328,7 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
         )
 
     # If still on initial screen after F8, read status bar for error details
-    if is_slg1_initial_screen(snapshot):
+    if is_slg1_initial_screen(snapshot, t):
         sb_info = await backend.get_status_bar()
         if sb_info.type in ("error", "warning", "E", "W"):
             return SLG1LogListResult.failure(
@@ -377,7 +348,7 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
         )
 
     # Parse the log list
-    result = parse_slg1_log_list(snapshot)
+    result = parse_slg1_log_list(snapshot, t)
     result.filters_applied = _build_filters(object_name, subobject, external_id, from_date, to_date)
     return result
 
@@ -464,9 +435,13 @@ def register_slg1_tools(mcp: FastMCP) -> None:
                 retrieved_at=datetime.now(UTC),
             )
 
+        # Outside the try below: a session language without a pack (UnsupportedLanguageError) fails the call.
+        t = lang.current("sap_slg1_lookup")
+
         try:
             result = await _slg1_lookup(
                 backend,
+                t,
                 object,
                 subobject,
                 external_id,

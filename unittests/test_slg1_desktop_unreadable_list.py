@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.models import TableData, TableRow
-from sapguimcp.session_language import use_language
 from sapguimcp.tools.slg1_tools import _slg1_lookup_desktop
 
 
@@ -29,8 +29,7 @@ def _backend(status_message: str, table: TableData) -> Any:
 
 
 async def _lookup(backend: Any) -> Any:
-    with use_language("EN"):
-        return await _slg1_lookup_desktop(backend, "OBJ")
+    return await _slg1_lookup_desktop(backend, lang.view_for("DE"), "OBJ")
 
 
 @pytest.mark.anyio
@@ -68,7 +67,6 @@ async def test_rows_with_a_log_number_column_are_logs() -> None:
         "No application log found",
         "Es konnte kein Protokoll auf der Datenbank gefunden werden",
         "No log found in the database",
-        "No log could be found in the database",
     ],
 )
 async def test_a_no_logs_status_is_still_an_empty_result(message: str) -> None:

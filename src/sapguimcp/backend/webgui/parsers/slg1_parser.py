@@ -28,15 +28,8 @@ import re
 from datetime import UTC, datetime
 
 from sapguimcp.backend.webgui.types import AriaSnapshot
-from sapguimcp.lang import (
-    SLG1_INITIAL_SCREEN_DE,
-    SLG1_INITIAL_SCREEN_EN,
-    SLG1_LOG_LIST_SCREEN_DE,
-    SLG1_LOG_LIST_SCREEN_EN,
-    SLG1_NO_LOGS_FOUND_DE,
-    SLG1_NO_LOGS_FOUND_EN,
-    SLG1_NO_LOGS_FOUND_EN_LEGACY,
-)
+from sapguimcp.lang import LanguagePack
+from sapguimcp.lang.text import compiled
 from sapguimcp.models.slg1_models import (
     SLG1LogEntry,
     SLG1LogListResult,
@@ -72,39 +65,37 @@ _GRIDCELL_EMPTY_PATTERN = re.compile(r"gridcell:")
 # EN: "02/23/2026 00:00:07 BATCH" or similar
 _DATE_TIME_USER_PATTERN = re.compile(r'button "(\d{2}[./]\d{2}[./]\d{4}\s+\d{2}:\d{2}:\d{2}\s+\S+)"')
 
-# Column header row detection
-_COLUMN_HEADER_PATTERN = re.compile(r'row ".*Protokollnummer|row ".*Log Number', re.IGNORECASE)
+
+def _column_header_pattern(t: LanguagePack) -> re.Pattern[str]:
+    """Column header row detection: the row that holds the log number title."""
+    return compiled(rf'row ".*{t.slg1.log_number.alt}')
 
 
-def is_slg1_initial_screen(snapshot: AriaSnapshot) -> bool:
+def is_slg1_initial_screen(snapshot: AriaSnapshot, t: LanguagePack) -> bool:
     """Check if we're on the SLG1 selection screen."""
     header = "\n".join(snapshot.split("\n")[:10])
-    return SLG1_INITIAL_SCREEN_DE.lower() in header.lower() or SLG1_INITIAL_SCREEN_EN.lower() in header.lower()
+    return t.slg1.initial_screen.contains(header)
 
 
-def is_slg1_log_list_screen(snapshot: AriaSnapshot) -> bool:
+def is_slg1_log_list_screen(snapshot: AriaSnapshot, t: LanguagePack) -> bool:
     """Check if we're on the SLG1 log list/display screen."""
     header = "\n".join(snapshot.split("\n")[:10])
-    return SLG1_LOG_LIST_SCREEN_DE.lower() in header.lower() or SLG1_LOG_LIST_SCREEN_EN.lower() in header.lower()
+    return t.slg1.log_list_screen.contains(header)
 
 
-def is_slg1_no_results(snapshot: AriaSnapshot) -> bool:
+def is_slg1_no_results(snapshot: AriaSnapshot, t: LanguagePack) -> bool:
     """Check if SLG1 returned no logs (status bar message or still on initial screen)."""
-    snapshot_lower = snapshot.lower()
-    return any(
-        text.lower() in snapshot_lower
-        for text in (SLG1_NO_LOGS_FOUND_DE, SLG1_NO_LOGS_FOUND_EN, SLG1_NO_LOGS_FOUND_EN_LEGACY)
-    )
+    return t.slg1.no_logs_found.contains(snapshot)
 
 
-def _clean_cell_value(value: str) -> str:
+def _clean_cell_value(value: str, t: LanguagePack) -> str:
     """Clean a cell value, converting 'Leer'/'Empty' to empty string."""
-    if value.lower() in ("leer", "empty"):
+    if t.slg1.empty_cell.equals(value):
         return ""
     return value.strip()
 
 
-def _parse_grid_rows(snapshot: str) -> list[SLG1LogEntry]:  # pylint: disable=too-many-branches
+def _parse_grid_rows(snapshot: str, t: LanguagePack) -> list[SLG1LogEntry]:  # pylint: disable=too-many-branches
     """
     Parse log entries from the SLG1 grid ARIA snapshot.
 
@@ -126,6 +117,7 @@ def _parse_grid_rows(snapshot: str) -> list[SLG1LogEntry]:  # pylint: disable=to
     in_grid = False
     past_header_row = False
     current_row_lines: list[str] = []
+    column_header = _column_header_pattern(t)
 
     for line in lines:
         # Detect grid start
@@ -141,13 +133,13 @@ def _parse_grid_rows(snapshot: str) -> list[SLG1LogEntry]:  # pylint: disable=to
         if in_grid and ("- separator " in line or ("- grid:" in line and past_header_row)):
             # Process any remaining row
             if current_row_lines and past_header_row:
-                entry = _parse_single_row(current_row_lines)
+                entry = _parse_single_row(current_row_lines, t)
                 if entry:
                     logs.append(entry)
             break
 
         # Detect header row (skip it)
-        if _COLUMN_HEADER_PATTERN.search(line):
+        if column_header.search(line):
             past_header_row = True
             continue
 
@@ -158,7 +150,7 @@ def _parse_grid_rows(snapshot: str) -> list[SLG1LogEntry]:  # pylint: disable=to
         if _ROW_LINE_PATTERN.match(line):
             # Process previous row
             if current_row_lines:
-                entry = _parse_single_row(current_row_lines)
+                entry = _parse_single_row(current_row_lines, t)
                 if entry:
                     logs.append(entry)
                 if len(logs) >= MAX_LOGS:
@@ -170,14 +162,14 @@ def _parse_grid_rows(snapshot: str) -> list[SLG1LogEntry]:  # pylint: disable=to
 
     # Process last row
     if current_row_lines and past_header_row and len(logs) < MAX_LOGS:
-        entry = _parse_single_row(current_row_lines)
+        entry = _parse_single_row(current_row_lines, t)
         if entry:
             logs.append(entry)
 
     return logs
 
 
-def _parse_single_row(row_lines: list[str]) -> SLG1LogEntry | None:  # pylint: disable=too-many-locals,too-many-branches
+def _parse_single_row(row_lines: list[str], t: LanguagePack) -> SLG1LogEntry | None:  # pylint: disable=too-many-locals,too-many-branches
     """Parse a single grid row into an SLG1LogEntry."""
     row_text = "\n".join(row_lines)
 
@@ -243,10 +235,10 @@ def _parse_single_row(row_lines: list[str]) -> SLG1LogEntry | None:  # pylint: d
         # gridcell_values[log_idx - 1] = mode (not used in model)
         # gridcell_values[log_idx - 2] = program (not used in model)
         # gridcell_values[log_idx - 3] = tcode (not used in model)
-        subobject = _clean_cell_value(gridcell_values[log_idx - 4])
-        obj = _clean_cell_value(gridcell_values[log_idx - 5])
-        ext_id = _clean_cell_value(gridcell_values[log_idx - 6])
-        count_str = _clean_cell_value(gridcell_values[log_idx - 7])
+        subobject = _clean_cell_value(gridcell_values[log_idx - 4], t)
+        obj = _clean_cell_value(gridcell_values[log_idx - 5], t)
+        ext_id = _clean_cell_value(gridcell_values[log_idx - 6], t)
+        count_str = _clean_cell_value(gridcell_values[log_idx - 7], t)
 
         if count_str and count_str.isdigit():
             message_count = int(count_str)
@@ -269,19 +261,20 @@ def _parse_single_row(row_lines: list[str]) -> SLG1LogEntry | None:  # pylint: d
         return None
 
 
-def parse_slg1_log_list(snapshot: AriaSnapshot) -> SLG1LogListResult:
+def parse_slg1_log_list(snapshot: AriaSnapshot, t: LanguagePack) -> SLG1LogListResult:
     """
     Parse the full SLG1 result into a SLG1LogListResult.
 
     Args:
         snapshot: ARIA snapshot of the log list screen
+        t: Language pack of the session
 
     Returns:
         SLG1LogListResult with parsed logs
     """
     now = datetime.now(UTC)
 
-    if is_slg1_no_results(snapshot) or is_slg1_initial_screen(snapshot):
+    if is_slg1_no_results(snapshot, t) or is_slg1_initial_screen(snapshot, t):
         return SLG1LogListResult(
             logs=[],
             log_count=0,
@@ -289,7 +282,7 @@ def parse_slg1_log_list(snapshot: AriaSnapshot) -> SLG1LogListResult:
             retrieved_at=now,
         )
 
-    logs = _parse_grid_rows(snapshot)
+    logs = _parse_grid_rows(snapshot, t)
     logs_truncated = len(logs) >= MAX_LOGS
 
     return SLG1LogListResult(
