@@ -77,7 +77,7 @@ _EXPOSE_GRID_CELL_VALUES_JS = r"""() => {
   // sortable column headers append a "press space to select the column" hint (``*-selectionlabel``) to their name
   for (const th of document.querySelectorAll('[role="columnheader"][aria-labelledby]')) {
     const ids = th.getAttribute('aria-labelledby').split(/\s+/);
-    const kept = ids.filter((id) => !id.endsWith('-selectionlabel'));
+    const kept = ids.filter((id) => !id.endsWith('-selectionlabel')); // lang-ok: DOM id suffix, not UI text
     if (kept.length && kept.length < ids.length) {
       undo.push([th, 'aria-labelledby', th.getAttribute('aria-labelledby')]);
       th.setAttribute('aria-labelledby', kept.join(' '));

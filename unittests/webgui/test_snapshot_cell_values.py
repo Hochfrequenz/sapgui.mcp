@@ -10,8 +10,12 @@ from sapguimcp.backend.webgui.backend import WebGuiBackend
 _HTML = """
 <div role="grid"><table><tbody>
   <tr role="row"><th role="columnheader" aria-labelledby="h1-ROOTCNT h1-selectionlabel"><span id="h1-ROOTCNT">Parameter</span></th>
-    <th role="columnheader" aria-labelledby="h2-ROOTCNT h2-selectionlabel"><span id="h2-ROOTCNT">Typing</span></th></tr>
-  <span hidden id="h1-selectionlabel">Press space to select the column.</span><span hidden id="h2-selectionlabel">Press space to select the column.</span>
+    
+    <th role="columnheader" aria-labelledby="h2-ROOTCNT h2-selectionlabel"><span id="h2-ROOTCNT">Typing</span></th>
+    </tr>
+  
+  <span hidden id="h1-selectionlabel">Press space to select the column.</span>
+  <span hidden id="h2-selectionlabel">Press space to select the column.</span>
   <tr role="row">
     <td role="gridcell"><span role="textbox" aria-label="Parameter">IV_NAME</span></td>
     <td role="gridcell"><span role="textbox" aria-label="Typing">TYPE</span></td>
