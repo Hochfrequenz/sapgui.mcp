@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -19,13 +19,16 @@ from sapguimcp.tools.desktop_wait_predicates import (
 )
 from sapguimcp.tools.se09_tools import _lookup_transports_desktop
 from sapguimcp.tools.se37_tools import (
-    _click_tab_bilingual,
+    _click_tab,
     _lookup_fm_desktop,
     _read_tab_rows,
     _se37_display_reached,
 )
 from sapguimcp.tools.se93_tools import _lookup_tcode_desktop
 from sapguimcp.tools.spro_tools import _SPRO_TREE_ID, _search_img_desktop, _spro_img_tree_loaded
+
+if TYPE_CHECKING:
+    from sapguimcp.lang import LanguagePack
 
 
 def _session(elements: dict[str, object]) -> MagicMock:
@@ -180,36 +183,38 @@ def _tab_backend(rows_by_read: list[list[dict[str, str]]]) -> MagicMock:
 
 
 @pytest.mark.anyio
-async def test_click_tab_bilingual_returns_label_and_only_waits_for_ready() -> None:
+async def test_click_tab_returns_label_and_only_waits_for_ready(lang_de: LanguagePack) -> None:
     backend = _tab_backend([])
-    assert await _click_tab_bilingual(backend, "Tabellen", "Tables") == "Tabellen"
+    assert await _click_tab(backend, lang_de.se37.tables_tab) == "Tabellen"
     backend.click_tab.assert_awaited_once_with("Tabellen")
     backend.wait_for_ready.assert_awaited_once()
     backend.wait_for_condition.assert_not_awaited()
 
 
 @pytest.mark.anyio
-async def test_click_tab_bilingual_falls_back_to_english_label_and_reports_missing() -> None:
+async def test_click_tab_falls_back_to_english_label_and_reports_missing(lang_de: LanguagePack) -> None:
     backend = _tab_backend([])
     backend.click_tab.side_effect = [ValueError("no"), None]
-    assert await _click_tab_bilingual(backend, "Tabellen", "Tables") == "Tables"
+    assert await _click_tab(backend, lang_de.se37.tables_tab) == "Tables"
     backend.click_tab.side_effect = ValueError("no")
-    assert await _click_tab_bilingual(backend, "Tabellen", "Tables") is None
+    assert await _click_tab(backend, lang_de.se37.tables_tab) is None
 
 
 @pytest.mark.anyio
-async def test_read_tab_rows_populated_tab_needs_no_extra_wait() -> None:
+async def test_read_tab_rows_populated_tab_needs_no_extra_wait(lang_de: LanguagePack) -> None:
     backend = _tab_backend([[{"Parametername": "B"}]])
-    rows = await _read_tab_rows(backend, "Export", "Export", [{"Parametername": "A"}])
+    rows = await _read_tab_rows(backend, lang_de.se37.export_tab, [{"Parametername": "A"}])
     assert rows == [{"Parametername": "B"}]
     backend.wait_for_condition.assert_not_awaited()
 
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("first_read", [[], [{"Parametername": "A"}]], ids=["empty", "same_as_previous_tab"])
-async def test_read_tab_rows_waits_for_tab_table_and_rereads(first_read: list[dict[str, str]]) -> None:
+async def test_read_tab_rows_waits_for_tab_table_and_rereads(
+    lang_de: LanguagePack, first_read: list[dict[str, str]]
+) -> None:
     backend = _tab_backend([first_read, [{"Parametername": "B"}]])
-    rows = await _read_tab_rows(backend, "Export", "Export", [{"Parametername": "A"}])
+    rows = await _read_tab_rows(backend, lang_de.se37.export_tab, [{"Parametername": "A"}])
     assert rows == [{"Parametername": "B"}]
     backend.wait_for_condition.assert_awaited_once()
     assert backend.wait_for_condition.await_args.args[0].__qualname__.startswith("tab_table_control_loaded.")
@@ -276,7 +281,7 @@ def _record(backend: MagicMock, events: list[str]) -> None:
 
 
 @pytest.mark.anyio
-async def test_lookup_fm_desktop_snapshots_title_and_status_and_waits_after_f7() -> None:
+async def test_lookup_fm_desktop_snapshots_title_and_status_and_waits_after_f7(lang_de: LanguagePack) -> None:
     backend = MagicMock(spec=DesktopBackend)
     backend.fill_field = AsyncMock()
     backend.press_key = AsyncMock()
@@ -294,7 +299,7 @@ async def test_lookup_fm_desktop_snapshots_title_and_status_and_waits_after_f7()
     events: list[str] = []
     _record(backend, events)
     with patch("sapguimcp.tools.se37_tools._read_tab_rows", new=AsyncMock(return_value=[])):
-        await _lookup_fm_desktop(backend, "ZFM")
+        await _lookup_fm_desktop(backend, "ZFM", lang_de)
     # initial wait_for_ready, then F7 followed by a ready wait and the display predicate
     assert events[:4] == ["wait_for_ready", "press_key", "wait_for_ready", "wait_for_condition"]
     backend.press_key.assert_awaited_once_with("F7")
@@ -372,7 +377,9 @@ def test_popup_closed_and_screen_changed_unchanged_screen_is_not_ready() -> None
 
 
 @pytest.mark.anyio
-async def test_lookup_fm_desktop_opens_the_attributes_tab_first_and_returns_its_header_data() -> None:
+async def test_lookup_fm_desktop_opens_the_attributes_tab_first_and_returns_its_header_data(
+    lang_de: LanguagePack,
+) -> None:
     backend = MagicMock(spec=DesktopBackend)
     backend.fill_field = AsyncMock()
     backend.press_key = AsyncMock()
@@ -389,7 +396,7 @@ async def test_lookup_fm_desktop_opens_the_attributes_tab_first_and_returns_its_
     clicked: list[str] = []
     backend.click_tab = AsyncMock(side_effect=clicked.append)
     with patch("sapguimcp.tools.se37_tools._read_tab_rows", new=AsyncMock(return_value=[])):
-        entry = await _lookup_fm_desktop(backend, "zfm")
+        entry = await _lookup_fm_desktop(backend, "zfm", lang_de)
     assert clicked[0] == "Eigenschaften"  # the attributes tab is opened before anything else is read
     # the last wait before the header is read is for the tab's own short text field, bounded
     predicate = backend.wait_for_condition.await_args_list[-1]
@@ -404,7 +411,7 @@ async def test_lookup_fm_desktop_opens_the_attributes_tab_first_and_returns_its_
 
 
 @pytest.mark.anyio
-async def test_lookup_fm_desktop_without_header_data_leaves_the_header_fields_empty() -> None:
+async def test_lookup_fm_desktop_without_header_data_leaves_the_header_fields_empty(lang_de: LanguagePack) -> None:
     backend = MagicMock(spec=DesktopBackend)
     backend.fill_field = AsyncMock()
     backend.press_key = AsyncMock()
@@ -419,5 +426,5 @@ async def test_lookup_fm_desktop_without_header_data_leaves_the_header_fields_em
     backend.com.run = AsyncMock(side_effect=[{}, *([[]] * 10)])
     backend.click_tab = AsyncMock(side_effect=ValueError("no such tab"))
     with patch("sapguimcp.tools.se37_tools._read_tab_rows", new=AsyncMock(return_value=[])):
-        entry = await _lookup_fm_desktop(backend, "zfm")
+        entry = await _lookup_fm_desktop(backend, "zfm", lang_de)
     assert (entry.function_group, entry.description, entry.package, entry.is_rfc_enabled) == (None, "", None, False)

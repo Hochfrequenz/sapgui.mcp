@@ -18,9 +18,9 @@ _TEST_METHOD = TEST_METHOD
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_se24_navigate_and_read_method_source(backend):
+async def test_se24_navigate_and_read_method_source(pack, backend):
     """SE24: navigate to class method and read source code via desktop backend."""
-    nav_error = await _navigate_to_method_editor_desktop(backend, _TEST_CLASS, _TEST_METHOD)
+    nav_error = await _navigate_to_method_editor_desktop(backend, _TEST_CLASS, _TEST_METHOD, pack)
     assert nav_error is None, f"Navigation failed: {nav_error}"
 
     source = await backend.read_editor_source()
@@ -31,9 +31,9 @@ async def test_se24_navigate_and_read_method_source(backend):
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_se24_replace_and_revert_method(backend):
+async def test_se24_replace_and_revert_method(pack, backend):
     """SE24: replace method source, verify, then revert to original."""
-    nav_error = await _navigate_to_method_editor_desktop(backend, _TEST_CLASS, _TEST_METHOD)
+    nav_error = await _navigate_to_method_editor_desktop(backend, _TEST_CLASS, _TEST_METHOD, pack)
     assert nav_error is None, f"Navigation failed: {nav_error}"
 
     # Read original source
@@ -62,17 +62,17 @@ async def test_se24_replace_and_revert_method(backend):
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_se24_full_edit_check_activate(backend):
+async def test_se24_full_edit_check_activate(pack, backend):
     """SE24: full _edit_check_activate_method workflow preserves working code."""
     # Read current source for reference
-    nav_error = await _navigate_to_method_editor_desktop(backend, _TEST_CLASS, _TEST_METHOD)
+    nav_error = await _navigate_to_method_editor_desktop(backend, _TEST_CLASS, _TEST_METHOD, pack)
     assert nav_error is None
     original = await backend.read_editor_source()
     assert original is not None
     await go_home(backend)
 
     # Run the full workflow with the SAME source (no-op edit)
-    result = await _edit_check_activate_method(backend, _TEST_CLASS, _TEST_METHOD, original)
+    result = await _edit_check_activate_method(backend, _TEST_CLASS, _TEST_METHOD, original, pack)
     assert result.success, f"Edit workflow failed: {result.error}"
     assert result.class_name == _TEST_CLASS
     assert result.method_name == _TEST_METHOD

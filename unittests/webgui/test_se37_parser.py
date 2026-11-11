@@ -14,6 +14,7 @@ from sapguimcp.backend.webgui.parsers.se37_parser import (
     parse_se37_parameters_snapshot,
     parse_se37_snapshot,
 )
+from sapguimcp.lang import LanguagePack
 from sapguimcp.models import SE37Entry, SE37Error
 
 # Path to captured YAML snapshots
@@ -31,18 +32,18 @@ def _load_snapshot(name: str) -> str:
 class TestFunctionModuleDetection:
     """Tests for detecting function module from heading."""
 
-    def test_detect_fm_from_heading(self) -> None:
+    def test_detect_fm_from_heading(self, lang_de: LanguagePack) -> None:
         """Function module name should be extracted from heading."""
         snapshot = _load_snapshot("se37_rfc_read_table_main")
-        result = parse_se37_snapshot(snapshot, "RFC_READ_TABLE")
+        result = parse_se37_snapshot(snapshot, "RFC_READ_TABLE", lang_de)
 
         assert isinstance(result, SE37Entry)
         assert result.function_module == "RFC_READ_TABLE"
 
-    def test_not_found_returns_error(self) -> None:
+    def test_not_found_returns_error(self, lang_de: LanguagePack) -> None:
         """Function module not found should return SE37Error."""
         snapshot = _load_snapshot("se37_not_found")
-        result = parse_se37_snapshot(snapshot, "ZZZNOTEXIST_FM_99")
+        result = parse_se37_snapshot(snapshot, "ZZZNOTEXIST_FM_99", lang_de)
 
         assert isinstance(result, SE37Error)
         assert "not found" in result.error.lower()
@@ -51,10 +52,10 @@ class TestFunctionModuleDetection:
 class TestImportParameterParsing:
     """Tests for parsing import parameters."""
 
-    def test_parse_import_parameters(self) -> None:
+    def test_parse_import_parameters(self, lang_de: LanguagePack) -> None:
         """Import parameters should be parsed correctly."""
         snapshot = _load_snapshot("se37_rfc_read_table_import")
-        params = parse_se37_parameters_snapshot(snapshot, "import")
+        params = parse_se37_parameters_snapshot(snapshot, "import", lang_de)
 
         assert len(params) >= 5  # RFC_READ_TABLE has multiple import params
 
@@ -65,20 +66,20 @@ class TestImportParameterParsing:
         assert query_table.typing == "LIKE"
         assert query_table.reference_type == "DD02L-TABNAME"
 
-    def test_import_optional_flag(self) -> None:
+    def test_import_optional_flag(self, lang_de: LanguagePack) -> None:
         """Optional flag should be parsed for import parameters."""
         snapshot = _load_snapshot("se37_rfc_read_table_import")
-        params = parse_se37_parameters_snapshot(snapshot, "import")
+        params = parse_se37_parameters_snapshot(snapshot, "import", lang_de)
 
         # DELIMITER has optional checked
         delimiter = next((p for p in params if p.name == "DELIMITER"), None)
         assert delimiter is not None
         assert delimiter.optional is True
 
-    def test_import_default_value(self) -> None:
+    def test_import_default_value(self, lang_de: LanguagePack) -> None:
         """Default value should be parsed for import parameters."""
         snapshot = _load_snapshot("se37_rfc_read_table_import")
-        params = parse_se37_parameters_snapshot(snapshot, "import")
+        params = parse_se37_parameters_snapshot(snapshot, "import", lang_de)
 
         # DELIMITER has default SPACE
         delimiter = next((p for p in params if p.name == "DELIMITER"), None)
@@ -89,10 +90,10 @@ class TestImportParameterParsing:
 class TestExportParameterParsing:
     """Tests for parsing export parameters."""
 
-    def test_parse_export_parameters(self) -> None:
+    def test_parse_export_parameters(self, lang_de: LanguagePack) -> None:
         """Export parameters should be parsed correctly."""
         snapshot = _load_snapshot("se37_rfc_read_table_export")
-        params = parse_se37_parameters_snapshot(snapshot, "export")
+        params = parse_se37_parameters_snapshot(snapshot, "export", lang_de)
 
         assert len(params) >= 1  # RFC_READ_TABLE has ET_DATA
 
@@ -107,10 +108,10 @@ class TestExportParameterParsing:
 class TestTablesParameterParsing:
     """Tests for parsing tables parameters."""
 
-    def test_parse_tables_parameters(self) -> None:
+    def test_parse_tables_parameters(self, lang_de: LanguagePack) -> None:
         """Tables parameters should be parsed correctly."""
         snapshot = _load_snapshot("se37_rfc_read_table_tables")
-        params = parse_se37_parameters_snapshot(snapshot, "tables")
+        params = parse_se37_parameters_snapshot(snapshot, "tables", lang_de)
 
         assert len(params) >= 2  # RFC_READ_TABLE has FIELDS, DATA (OPTIONS has quotes in desc)
 
@@ -125,10 +126,10 @@ class TestTablesParameterParsing:
 class TestExceptionsParsing:
     """Tests for parsing exceptions."""
 
-    def test_parse_exceptions(self) -> None:
+    def test_parse_exceptions(self, lang_de: LanguagePack) -> None:
         """Exceptions should be parsed correctly."""
         snapshot = _load_snapshot("se37_rfc_read_table_exceptions")
-        exceptions = parse_se37_exceptions_snapshot(snapshot)
+        exceptions = parse_se37_exceptions_snapshot(snapshot, lang_de)
 
         assert len(exceptions) >= 4  # RFC_READ_TABLE has multiple exceptions
 
@@ -141,7 +142,7 @@ class TestExceptionsParsing:
 class TestFullParsing:
     """Tests for full function module parsing with all tabs."""
 
-    def test_full_parse_rfc_read_table(self) -> None:
+    def test_full_parse_rfc_read_table(self, lang_de: LanguagePack) -> None:
         """RFC_READ_TABLE should be fully parsed with all tabs."""
         main_snapshot = _load_snapshot("se37_rfc_read_table_main")
 
@@ -152,7 +153,7 @@ class TestFullParsing:
             exceptions_tab=_load_snapshot("se37_rfc_read_table_exceptions"),
         )
 
-        result = parse_se37_snapshot(main_snapshot, "RFC_READ_TABLE", tab_snapshots)
+        result = parse_se37_snapshot(main_snapshot, "RFC_READ_TABLE", lang_de, tab_snapshots)
 
         assert isinstance(result, SE37Entry)
         assert result.function_module == "RFC_READ_TABLE"
@@ -161,10 +162,27 @@ class TestFullParsing:
         assert len(result.tables_parameters) >= 2  # Some params have quotes in desc
         assert len(result.exceptions) >= 4
 
-    def test_uppercase_fm_normalization(self) -> None:
+    def test_uppercase_fm_normalization(self, lang_de: LanguagePack) -> None:
         """Function module name should be normalized to uppercase."""
         main_snapshot = _load_snapshot("se37_rfc_read_table_main")
-        result = parse_se37_snapshot(main_snapshot, "rfc_read_table")
+        result = parse_se37_snapshot(main_snapshot, "rfc_read_table", lang_de)
 
         assert isinstance(result, SE37Entry)
         assert result.function_module == "RFC_READ_TABLE"
+
+
+class TestHeadingNameOnRealSnapshots:
+    """The name comes from the heading, not from the ``main`` landmark line above it."""
+
+    def test_german_heading(self, lang_de: LanguagePack) -> None:
+        snapshot = (SNAPSHOTS_DIR / "se37_bapi_user_get_detail_main_de.yaml").read_text(encoding="utf-8")
+        result = parse_se37_snapshot(snapshot, "x", lang_de)
+        assert isinstance(result, SE37Entry)
+        assert result.function_module == "BAPI_USER_GET_DETAIL"
+
+    def test_english_heading_with_an_english_session(self, lang_en: LanguagePack) -> None:
+        # the EN fixture of this module was captured on the initial screen, so the display heading is synthetic
+        snapshot = '- main "Function Builder: Display Z_FM":\n  - heading "Function Builder: Display Z_FM" [level=1]\n'
+        result = parse_se37_snapshot(snapshot, "x", lang_en)
+        assert isinstance(result, SE37Entry)
+        assert result.function_module == "Z_FM"

@@ -107,9 +107,9 @@ def _parse_se11_yaml(yaml_content: str, object_type: SE11ObjectType, t: Language
     name = name_match.group("name").strip()
 
     # Extract description
-    desc_match = compiled(rf'textbox "{t.se11.short_description.alt}":\s*(?P<description>.+?)(?:\n|$)').search(
-        yaml_content
-    )
+    desc_match = compiled(
+        rf'textbox "{t.se11.short_description.alt}":\s*(?P<description>.+?)(?:\n|$)'  # lang-ok: regex group name
+    ).search(yaml_content)
     description = desc_match.group("description").strip() if desc_match else ""
 
     # Parse fields from the grid

@@ -14,9 +14,9 @@ _TEST_REPORT = TEST_REPORT
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_se38_navigate_and_read_source(backend):
+async def test_se38_navigate_and_read_source(pack, backend):
     """SE38: navigate to report and read source code via desktop backend."""
-    nav_error = await _navigate_and_open_editor_desktop(backend, _TEST_REPORT)
+    nav_error = await _navigate_and_open_editor_desktop(backend, _TEST_REPORT, pack)
     assert nav_error is None, f"Navigation failed: {nav_error}"
 
     source = await backend.read_editor_source()
@@ -43,9 +43,9 @@ def _trim(text: str) -> list[str]:
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_se38_replace_and_revert(backend):
+async def test_se38_replace_and_revert(pack, backend):
     """SE38: replace source code, verify byte-for-byte, then revert to original."""
-    nav_error = await _navigate_and_open_editor_desktop(backend, _TEST_REPORT)
+    nav_error = await _navigate_and_open_editor_desktop(backend, _TEST_REPORT, pack)
     assert nav_error is None, f"Navigation failed: {nav_error}"
 
     # Read original source
@@ -77,14 +77,14 @@ async def test_se38_replace_and_revert(backend):
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_se38_edit_source_ending_in_closing_statement(backend):
+async def test_se38_edit_source_ending_in_closing_statement(pack, backend):
     """SE38: a source whose last line closes a block must not gain a stale copy (#859).
 
     The old code could not select the editor's last row, so it survived the
     clear and was appended after the new source — producing a duplicated
     ``ENDFORM.`` and a SYNTAX_ERROR at runtime.
     """
-    nav_error = await _navigate_and_open_editor_desktop(backend, _TEST_REPORT)
+    nav_error = await _navigate_and_open_editor_desktop(backend, _TEST_REPORT, pack)
     assert nav_error is None, f"Navigation failed: {nav_error}"
     original = await backend.read_editor_source()
     assert original, "Could not read original source"
@@ -103,12 +103,12 @@ async def test_se38_edit_source_ending_in_closing_statement(backend):
     )
 
     try:
-        result = await _edit_check_activate(backend, _TEST_REPORT, form_source)
+        result = await _edit_check_activate(backend, _TEST_REPORT, form_source, pack)
         assert result.success, f"Edit workflow failed: {result.error}"
         assert result.activated, f"Activation not confirmed: {result.check_messages}"
         assert _trim(result.backup_source) == _trim(original), "backup_source lost or gained a line"
 
-        nav_error = await _navigate_and_open_editor_desktop(backend, _TEST_REPORT)
+        nav_error = await _navigate_and_open_editor_desktop(backend, _TEST_REPORT, pack)
         assert nav_error is None, f"Navigation failed: {nav_error}"
         persisted = await backend.read_editor_source()
         assert persisted is not None
@@ -121,7 +121,7 @@ async def test_se38_edit_source_ending_in_closing_statement(backend):
         # and never let a cleanup failure mask the real assertion error.
         try:
             await go_home(backend)
-            await _edit_check_activate(backend, _TEST_REPORT, original)
+            await _edit_check_activate(backend, _TEST_REPORT, original, pack)
             await go_home(backend)
         except Exception as exc:  # pylint: disable=broad-except
             print(f"WARNING: could not restore {_TEST_REPORT}: {exc}")
@@ -129,17 +129,17 @@ async def test_se38_edit_source_ending_in_closing_statement(backend):
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_se38_full_edit_check_activate(backend):
+async def test_se38_full_edit_check_activate(pack, backend):
     """SE38: full _edit_check_activate workflow preserves working code."""
     # Read current source for reference
-    nav_error = await _navigate_and_open_editor_desktop(backend, _TEST_REPORT)
+    nav_error = await _navigate_and_open_editor_desktop(backend, _TEST_REPORT, pack)
     assert nav_error is None
     original = await backend.read_editor_source()
     assert original is not None
     await go_home(backend)
 
     # Run the full workflow with the SAME source (no-op edit)
-    result = await _edit_check_activate(backend, _TEST_REPORT, original)
+    result = await _edit_check_activate(backend, _TEST_REPORT, original, pack)
     assert result.success, f"Edit workflow failed: {result.error}"
     assert result.program_name == _TEST_REPORT
     assert result.backup_source, "Should have saved a backup"

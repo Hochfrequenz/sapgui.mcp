@@ -14,17 +14,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sapguimcp.backend.webgui.types import AriaSnapshot
-from sapguimcp.lang import (
-    SE37_DISPLAY_PREFIX_EN,
-    SE37_DISPLAY_SUFFIX_DE,
-    SE37_INITIAL_SCREEN_DE,
-    SE37_INITIAL_SCREEN_EN,
-    SE37_NOT_EXIST_DE,
-    SE37_NOT_EXIST_EN,
-    SE37_NOT_FOUND_DE,
-    SE37_NOT_FOUND_EN,
-    bilingual_pattern,
-)
+from sapguimcp.lang.schema import LanguagePack
+from sapguimcp.lang.text import compiled
 from sapguimcp.models.se37_models import (
     SE37Entry,
     SE37Error,
@@ -47,36 +38,26 @@ __all__ = [
 # Regex Patterns
 # =============================================================================
 
-# Function module name from heading
-# Uses explicit constants: SE37_DISPLAY_SUFFIX_DE, SE37_DISPLAY_PREFIX_EN
-# German: "Function Builder: RFC_READ_TABLE anzeigen"
-# English: "Function Builder: Display RFC_READ_TABLE"
-_FM_HEADING_PATTERN = re.compile(
-    rf'heading "Function Builder:\s*(?:(?P<fm_de>[A-Z0-9_/]+)\s+{SE37_DISPLAY_SUFFIX_DE}'
-    rf"|{SE37_DISPLAY_PREFIX_EN}\s+(?P<fm_en>[A-Z0-9_/]+))\"",
-    re.IGNORECASE,
-)
+_HEADING_TEXT = re.compile(r'heading "([^"]*)"')
+_NAME_CHARS = r"[A-Za-z0-9_/ ]+"
+"""Heading name group: the module name, possibly preceded by a type word."""
 
-# Parameter row pattern - extracts data from row description
-# Uses explicit constants: SE37_DISPLAY_SUFFIX_DE ("anzeigen" button), SE37_DISPLAY_PREFIX_EN ("Display" button)
-# Format: "PARAM_NAME LIKE|TYPE REF_TYPE [DEFAULT] [optional_flag] Description Button"
-_PARAM_ROW_PATTERN = re.compile(
-    r'row "(?P<name>[A-Z0-9_]+)\s+(?P<typing>LIKE|TYPE)\s+(?P<ref>[A-Z0-9_/-]+)'
-    r"(?:\s+(?P<default>\S+))?"
-    r"(?:\s+)?"
-    r'(?P<desc>[^"]*?)'
-    rf'(?:\s+{bilingual_pattern(SE37_DISPLAY_SUFFIX_DE, SE37_DISPLAY_PREFIX_EN)})?"\s*:',
-    re.IGNORECASE,
-)
 
-# Exception row pattern
-# Uses explicit constants: SE37_DISPLAY_SUFFIX_DE, SE37_DISPLAY_PREFIX_EN
-# Format: "EXCEPTION_NAME Description Button"
-_DISPLAY_BUTTON = bilingual_pattern(SE37_DISPLAY_SUFFIX_DE, SE37_DISPLAY_PREFIX_EN)
-_EXCEPTION_ROW_PATTERN = re.compile(
-    rf'row "(?P<name>[A-Z0-9_]+)\s+(?P<desc>[^"]+?)(?:\s+{_DISPLAY_BUTTON})?"\s*:',
-    re.IGNORECASE,
-)
+def _param_row_pattern(t: LanguagePack) -> re.Pattern[str]:
+    """Parameter row: ``PARAM_NAME LIKE|TYPE REF_TYPE [DEFAULT] [optional_flag] Description Button``."""
+    return compiled(
+        r'(?i)row "(?P<name>[A-Z0-9_]+)\s+(?P<decl>LIKE|TYPE)\s+(?P<ref>[A-Z0-9_/-]+)'
+        r"(?:\s+(?P<default>\S+))?"
+        r"(?:\s+)?"
+        r'(?P<desc>[^"]*?)'
+        rf'(?:\s+{t.common.display.alt})?"\s*:'
+    )
+
+
+def _exception_row_pattern(t: LanguagePack) -> re.Pattern[str]:
+    """Exception row: ``EXCEPTION_NAME Description Button``."""
+    return compiled(rf'(?i)row "(?P<name>[A-Z0-9_]+)\s+(?P<desc>[^"]+?)(?:\s+{t.common.display.alt})?"\s*:')
+
 
 # Check if checkbox is checked
 _CHECKBOX_CHECKED_PATTERN = re.compile(r"checkbox[^]]*\[checked\]", re.IGNORECASE)
@@ -90,11 +71,12 @@ _TAB_SELECTED_PATTERN = re.compile(r'tab "(?P<tab>[^"]+)"\s*\[selected\]', re.IG
 # =============================================================================
 
 
-def _extract_function_module_name(snapshot: str) -> str | None:
-    """Extract function module name from heading."""
-    match = _FM_HEADING_PATTERN.search(snapshot)
-    if match:
-        return match.group("fm_de") or match.group("fm_en")
+def _extract_function_module_name(snapshot: str, t: LanguagePack) -> str | None:
+    """Extract function module name from heading (``Function Builder: Display RFC_READ_TABLE``)."""
+    for heading in _HEADING_TEXT.finditer(snapshot):
+        match = t.se37.display_title.search(heading.group(1), name=_NAME_CHARS)
+        if match is not None and (tokens := match.group("name").split()):
+            return tokens[-1].upper()
     return None
 
 
@@ -126,13 +108,13 @@ def _get_checkbox_flags(snapshot: str, match: re.Match[str], category: SE37Param
     return False, False
 
 
-def _parse_parameter_rows(snapshot: str, category: SE37ParameterCategory) -> list[SE37Parameter]:
+def _parse_parameter_rows(snapshot: str, category: SE37ParameterCategory, t: LanguagePack) -> list[SE37Parameter]:
     """Parse parameter rows from a grid section."""
     parameters: list[SE37Parameter] = []
 
-    for match in _PARAM_ROW_PATTERN.finditer(snapshot):
+    for match in _param_row_pattern(t).finditer(snapshot):
         name = match.group("name")
-        typing_str = match.group("typing").upper()
+        typing_str = match.group("decl").upper()
         ref_type = match.group("ref")
         default = match.group("default")
         desc = re.sub(r"\s+$", "", match.group("desc").strip())
@@ -155,11 +137,11 @@ def _parse_parameter_rows(snapshot: str, category: SE37ParameterCategory) -> lis
     return parameters
 
 
-def _parse_exception_rows(snapshot: str) -> list[SE37Exception]:
+def _parse_exception_rows(snapshot: str, t: LanguagePack) -> list[SE37Exception]:
     """Parse exception rows from exceptions grid."""
     exceptions: list[SE37Exception] = []
 
-    for match in _EXCEPTION_ROW_PATTERN.finditer(snapshot):
+    for match in _exception_row_pattern(t).finditer(snapshot):
         name = match.group("name")
         desc = match.group("desc").strip()
 
@@ -177,56 +159,49 @@ def _parse_exception_rows(snapshot: str) -> list[SE37Exception]:
     return exceptions
 
 
-def _is_initial_se37_screen(snapshot: str) -> bool:
+def _is_initial_se37_screen(snapshot: str, t: LanguagePack) -> bool:
     """Check if we're on the initial SE37 screen (no function module displayed)."""
-    # Uses explicit constants: SE37_INITIAL_SCREEN_DE, SE37_INITIAL_SCREEN_EN
     header_section = "\n".join(snapshot.split("\n")[:10])
-    has_initial_heading = (
-        f'heading "{SE37_INITIAL_SCREEN_DE}"' in header_section
-        or f'heading "{SE37_INITIAL_SCREEN_EN}"' in header_section
-    )
-    return has_initial_heading
+    return any(f'heading "{variant}"' in header_section for variant in t.se37.initial_screen)
 
 
-def _is_fm_not_found(snapshot: str, fm_name: str) -> bool:
+def _is_fm_not_found(snapshot: str, fm_name: str, t: LanguagePack) -> bool:
     """Check if function module was not found (status bar message)."""
-    # Uses explicit constants: SE37_NOT_EXIST_DE/EN, SE37_NOT_FOUND_DE/EN
-    not_found_patterns = [
-        f"{fm_name} {SE37_NOT_EXIST_DE}",
-        f"{fm_name} {SE37_NOT_EXIST_EN}",
-        f"{fm_name} not found",
-        SE37_NOT_FOUND_DE,
-        SE37_NOT_FOUND_EN,
-    ]
-    snapshot_lower = snapshot.lower()
-    return any(pattern.lower() in snapshot_lower for pattern in not_found_patterns)
+    if t.se37.not_found.contains(snapshot):
+        return True
+    pattern = re.compile(rf"(?i:{re.escape(fm_name)})\s+{t.common.not_found.alt}")  # lang-ok: per-name pattern
+    return pattern.search(snapshot) is not None
 
 
-def parse_se37_parameters_snapshot(snapshot: AriaSnapshot, category: SE37ParameterCategory) -> list[SE37Parameter]:
+def parse_se37_parameters_snapshot(
+    snapshot: AriaSnapshot, category: SE37ParameterCategory, t: LanguagePack
+) -> list[SE37Parameter]:
     """
     Parse parameters from a SE37 tab snapshot.
 
     Args:
         snapshot: YAML accessibility snapshot from the Import/Export/Changing/Tables tab
         category: Which parameter category this is
+        t: Language pack of the session
 
     Returns:
         List of parsed parameters
     """
-    return _parse_parameter_rows(snapshot, category)
+    return _parse_parameter_rows(snapshot, category, t)
 
 
-def parse_se37_exceptions_snapshot(snapshot: AriaSnapshot) -> list[SE37Exception]:
+def parse_se37_exceptions_snapshot(snapshot: AriaSnapshot, t: LanguagePack) -> list[SE37Exception]:
     """
     Parse exceptions from a SE37 Exceptions tab snapshot.
 
     Args:
         snapshot: YAML accessibility snapshot from the Exceptions tab
+        t: Language pack of the session
 
     Returns:
         List of parsed exceptions
     """
-    return _parse_exception_rows(snapshot)
+    return _parse_exception_rows(snapshot, t)
 
 
 @dataclass
@@ -243,6 +218,7 @@ class SE37TabSnapshots:
 def parse_se37_snapshot(
     snapshot: AriaSnapshot,
     fm_name: str,
+    t: LanguagePack,
     tab_snapshots: SE37TabSnapshots | None = None,
 ) -> SE37Entry | SE37Error:
     """
@@ -251,6 +227,7 @@ def parse_se37_snapshot(
     Args:
         snapshot: The main YAML accessibility snapshot from browser_snapshot
         fm_name: The function module name being looked up
+        t: Language pack of the session
         tab_snapshots: Optional container with snapshots from each tab
 
     Returns:
@@ -259,7 +236,7 @@ def parse_se37_snapshot(
     now = datetime.now(UTC)
 
     # Check if we're on initial screen
-    if _is_initial_se37_screen(snapshot):
+    if _is_initial_se37_screen(snapshot, t):
         return SE37Error(
             function_module=fm_name,
             error=f"Function module '{fm_name}' not found - still on initial screen",
@@ -267,7 +244,7 @@ def parse_se37_snapshot(
         )
 
     # Check for not found message
-    if _is_fm_not_found(snapshot, fm_name):
+    if _is_fm_not_found(snapshot, fm_name, t):
         return SE37Error(
             function_module=fm_name,
             error=f"Function module '{fm_name}' not found",
@@ -275,18 +252,18 @@ def parse_se37_snapshot(
         )
 
     # Extract function module name from heading
-    found_fm = _extract_function_module_name(snapshot)
+    found_fm = _extract_function_module_name(snapshot, t)
     if not found_fm:
         # Try to use provided name if we can't extract from heading
         found_fm = fm_name.upper()
 
     # Parse parameters from each tab if provided
     tabs = tab_snapshots or SE37TabSnapshots()
-    import_params = parse_se37_parameters_snapshot(tabs.import_tab, "import") if tabs.import_tab else []
-    export_params = parse_se37_parameters_snapshot(tabs.export_tab, "export") if tabs.export_tab else []
-    changing_params = parse_se37_parameters_snapshot(tabs.changing_tab, "changing") if tabs.changing_tab else []
-    tables_params = parse_se37_parameters_snapshot(tabs.tables_tab, "tables") if tabs.tables_tab else []
-    exceptions = parse_se37_exceptions_snapshot(tabs.exceptions_tab) if tabs.exceptions_tab else []
+    import_params = parse_se37_parameters_snapshot(tabs.import_tab, "import", t) if tabs.import_tab else []
+    export_params = parse_se37_parameters_snapshot(tabs.export_tab, "export", t) if tabs.export_tab else []
+    changing_params = parse_se37_parameters_snapshot(tabs.changing_tab, "changing", t) if tabs.changing_tab else []
+    tables_params = parse_se37_parameters_snapshot(tabs.tables_tab, "tables", t) if tabs.tables_tab else []
+    exceptions = parse_se37_exceptions_snapshot(tabs.exceptions_tab, t) if tabs.exceptions_tab else []
 
     return SE37Entry(
         function_module=found_fm,

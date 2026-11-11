@@ -164,9 +164,10 @@ def test_template_groups_have_the_same_name_in_every_language() -> None:
 
 def test_a_three_language_template_merge_keeps_one_group_name() -> None:
     merged = merge([DE.se24.display_title, EN.se24.display_title, XX.se24.display_title])
-    assert len(merged.variants) == 3
+    assert len(merged.variants) == len(DE.se24.display_title.variants) + 2
     for heading in (
         "Klassenpflege: ZCL_FOO anzeigen",
+        "Class Builder: ZCL_FOO anzeigen",
         "Class Builder: Display ZCL_FOO",
         f"{MARK}Class Builder: Display ZCL_FOO",
     ):
