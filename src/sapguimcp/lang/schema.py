@@ -91,23 +91,80 @@ def canonical(entries: Mapping[S, Text]) -> Mapping[S, Text]:
 
 @dataclass(frozen=True, slots=True)
 class PopupSection:
-    """Popup texts. Empty until the popup migration (phase 3) moves them here."""
+    """Popup titles, texts and buttons, matched in every registered language."""
 
     MERGE: ClassVar[MergeMode] = "all"
+    type_error: Text
+    """Keyword in a desktop popup's title or text that classifies it as an error (substring)."""
+    type_info: Text
+    """Keyword that classifies a desktop popup as information (substring, checked after ``type_error``)."""
+    type_confirm: Text
+    """Keyword that classifies a desktop popup as a confirmation (substring, checked last).
+
+    Short variants such as ``Ja`` and ``No`` also match inside other words, as they always did."""
+    inactive_objects: Text
+    """Title of the "Inactive Objects" popup during activation. ``fold=False``: the WebGUI checks it
+    case-sensitively in the ARIA snapshot; the desktop lower-cases both sides itself."""
+    original_language_title: Text
+    """Title fragment of the "different original and logon languages" popup in a WebGUI ARIA
+    snapshot (case-sensitive)."""
+    original_language_hint: RegexText
+    """The same popup on the desktop, searched in its lower-cased window title (EN: ``original`` and
+    ``language`` in either order)."""
+    maintain_in_original: Text
+    """Button of that popup that continues in the original language."""
+    button_labels: Text
+    """Popup button labels; a WebGUI popup text equal to one of them is not the popup's message."""
+    close: Text
+    """Title (tooltip) of a WebGUI popup's close control (case-sensitive CSS attribute match)."""
 
 
 @dataclass(frozen=True, slots=True)
 class StatusTypeSection:
-    """Keywords that infer a message's type. Empty until the status-bar migration (phase 3)."""
+    """Status-bar texts: keywords that infer a message's type, message-bar prefixes and noise."""
 
     MERGE: ClassVar[MergeMode] = "all"
+    error: Text
+    """Keyword in a WebGUI status message that makes it an error (substring)."""
+    warning: Text
+    """Keyword that makes a WebGUI status message a warning (substring)."""
+    success: Text
+    """Keyword that makes a WebGUI status message a success (substring)."""
+    noise: Text
+    """WebGUI message-bar control texts removed from a status message (the bar's label, its buttons)."""
+    success_prefix: Text
+    """First word of a successful message-bar note in the WebGUI ARIA snapshot (case-sensitive)."""
+    error_prefix: Text
+    """First word of an error message-bar note in the WebGUI ARIA snapshot (case-sensitive)."""
+    message_bar: Text
+    """Label of the message bar that follows the prefix in the ARIA note (case-sensitive)."""
+    check_success: Text
+    """Syntax check or activation success fragments (substring)."""
+    check_error: Text
+    """Syntax check error fragments (substring, checked after ``check_success``)."""
+    activation_confirmed: Text
+    """Desktop status-bar fragment that confirms an activation (substring)."""
+    activation_denied: Text
+    """Fragments that negate it: "konnte nicht aktiviert werden" contains "aktiviert" (substring)."""
 
 
 @dataclass(frozen=True, slots=True)
 class SessionPagesSection:
-    """Login, logoff and timeout page texts. Empty until the session-pages migration (phase 3)."""
+    """Login, logoff and timeout page texts, and the WebGUI frame used while setting up a session."""
 
     MERGE: ClassVar[MergeMode] = "all"
+    already_logged_on: Text
+    """Fragment of the WebGUI "user already logged on" page (substring)."""
+    continue_button: Text
+    """Button that continues past the "already logged on" page (Playwright ``has-text``)."""
+    timed_out: Text
+    """Fragments of a WebGUI timeout or logoff page (substring)."""
+    settings_menu: Text
+    """Title of the WebGUI settings menu button (case-sensitive CSS attribute match)."""
+    okcode_option: Text
+    """Settings menu entry that shows the OK-code field (Playwright ``text=``)."""
+    debugger_window: Text
+    """Start of the window title of an ABAP debugger session (case-sensitive prefix)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,6 +186,10 @@ class CommonSection:
 
     MERGE: ClassVar[MergeMode] = "session_en"
     display: Text
+    display_change_toggle: Text
+    """Toolbar button that switches between display and change mode."""
+    initial_screen: Text
+    """Title fragment of a transaction's initial screen (substring)."""
     not_found: Text
     does_not_exist: Text
     no_entries: Text

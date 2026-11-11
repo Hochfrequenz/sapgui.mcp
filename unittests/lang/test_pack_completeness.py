@@ -297,4 +297,6 @@ def test_guard_rejects_a_section_without_its_own_merge_declaration() -> None:
         pass
 
     with pytest.raises(AssertionError, match="declare MERGE"):
-        _check_merge_modes(_broken(popup=Inheriting()))
+        _check_merge_modes(
+            _broken(popup=Inheriting(**{f.name: getattr(EN.popup, f.name) for f in dataclasses.fields(PopupSection)}))
+        )
