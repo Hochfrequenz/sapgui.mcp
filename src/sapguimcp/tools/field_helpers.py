@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
     from sapguimcp.lang import LanguagePack
+    from sapguimcp.lang.text import Text
 
 
 logger = logging.getLogger(__name__)
@@ -141,6 +142,7 @@ async def fill_and_display(
     t: LanguagePack,
     *,
     tcode_label: str = "object",
+    initial_title: Text | None = None,
 ) -> str | None:
     """Fill the initial-screen field and press F7 (Display).
 
@@ -154,11 +156,14 @@ async def fill_and_display(
         name: The object name to look up (e.g. class name, FM name).
         t: The session's language pack (``lang.current()``), resolved by the calling tool.
         tcode_label: Human-readable label for error messages (e.g. "class", "function module").
+        initial_title: Title variants of the transaction's initial screen; defaults to
+            ``t.common.initial_screen`` (for transactions whose title lacks that fragment, e.g. SE93).
 
     Returns:
         None on success, or an error message string on failure.
     """
     upper_name = name.upper()
+    initial = initial_title if initial_title is not None else t.common.initial_screen
 
     for attempt in range(2):
         if attempt > 0:
@@ -193,7 +198,7 @@ async def fill_and_display(
         navigated = False
         for poll in range(_F7_MAX_POLLS):
             screen = await backend.get_screen_info()
-            if not t.common.initial_screen.contains(screen.title or ""):
+            if not initial.contains(screen.title or ""):
                 navigated = True
                 break
             logger.debug("Still on initial screen, poll %d/%d", poll + 1, _F7_MAX_POLLS)
