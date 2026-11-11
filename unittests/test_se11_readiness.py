@@ -1,4 +1,7 @@
-"""Tests for the SE11 desktop readiness predicate (#928)."""
+"""Tests for the SE11 desktop readiness predicate (#928).
+
+The initial screen is recognised by program and dynpro (``SAPLSD_ENTRY`` / ``1000``), not by its title.
+"""
 
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -6,14 +9,16 @@ from unittest.mock import MagicMock
 from sapguimcp.tools.se11_tools import _se11_display_screen_reached
 
 
-def _session(elements: dict[str, object]) -> MagicMock:
-    session = MagicMock()
-    session.find_by_id = lambda element_id, **_kwargs: elements.get(element_id)
-    return session
-
-
 def _wnd(title: str) -> SimpleNamespace:
     return SimpleNamespace(text=title)
+
+
+def _session(elements: dict[str, object], program: str = "SAPLSD_ENTRY", screen: str = "1000") -> MagicMock:
+    """A session on the SE11 initial screen (program and dynpro) unless told otherwise."""
+    session = MagicMock()
+    session.find_by_id = lambda element_id, **_kwargs: elements.get(element_id)
+    session.info = SimpleNamespace(program=program, screen_number=screen)
+    return session
 
 
 def test_initial_screen_with_empty_status_bar_is_not_ready() -> None:
@@ -29,7 +34,9 @@ def test_initial_screen_with_status_bar_text_is_ready() -> None:
 
 
 def test_display_screen_is_ready() -> None:
-    assert _se11_display_screen_reached("")(_session({"wnd[0]": _wnd("Dictionary: Display Table")}))
+    assert _se11_display_screen_reached("")(
+        _session({"wnd[0]": _wnd("Dictionary: Display Table")}, program="SAPLSD41", screen="2200")
+    )
 
 
 def test_popup_is_ready() -> None:
@@ -48,7 +55,7 @@ def test_status_text_from_before_f7_is_ignored() -> None:
 def test_screen_transition_and_popup_accepted_despite_same_status() -> None:
     sbar = SimpleNamespace(text="Old message")
     assert _se11_display_screen_reached("Old message")(
-        _session({"wnd[0]": _wnd("Dictionary: Display Table"), "wnd[0]/sbar": sbar})
+        _session({"wnd[0]": _wnd("Dictionary: Display Table"), "wnd[0]/sbar": sbar}, program="SAPLSD41", screen="2200")
     )
     assert _se11_display_screen_reached("Old message")(
         _session({"wnd[0]": _wnd("ABAP Dictionary: Initial Screen"), "wnd[1]": object(), "wnd[0]/sbar": sbar})

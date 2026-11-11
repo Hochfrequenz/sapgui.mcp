@@ -140,7 +140,7 @@ class FeedbackIssueHandler(logging.Handler):
                 return f"Feedback: {feedback[:60]}..."
             return f"Feedback: {feedback}"
         tags_display = ", ".join(tags) if tags else "(no tags)"
-        return f"Feedback ({len(entries)} entries): {tags_display}"
+        return f"Feedback ({len(entries)} entries): {tags_display}"  # lang-ok: our own message
 
     def _build_issue_body(
         self,

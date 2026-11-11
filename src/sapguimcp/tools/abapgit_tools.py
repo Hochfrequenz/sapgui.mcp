@@ -818,7 +818,7 @@ def _validate_list_filters(name: str | None, package: str | None, url: str | Non
         if value is None:
             continue
         if not value.strip():
-            return f"Invalid filter: {label} must not be empty"
+            return f"Invalid filter: {label} must not be empty"  # lang-ok: our own message
         if len(value) > _FILTER_MAX_LENGTH:
             return f"Invalid filter: {label} is longer than {_FILTER_MAX_LENGTH} characters"
     if key is not None and not _KEY_FILTER.fullmatch(key.strip()):

@@ -18,11 +18,12 @@ from typing import TYPE_CHECKING, Any
 from fastmcp import Context, FastMCP
 from mcp.types import ToolAnnotations
 
+from sapguimcp import lang
 from sapguimcp.backend.desktop._com_thread import _get_com_error_code
 from sapguimcp.backend.manager import get_backend
+from sapguimcp.backend.webgui.js_helpers import script_arg
 from sapguimcp.backend.webgui.parsers.se16_parser import parse_se16_columns, parse_se16_hit_count, parse_se16_rows
 from sapguimcp.backend.webgui.types import AriaSnapshot
-from sapguimcp.lang import SE16_NO_ENTRIES_DE, SE16_NO_ENTRIES_EN
 from sapguimcp.models import SE16FileSummary, SE16Result, SE16Row, TableData
 from sapguimcp.tools.se11_tools import _lookup_object_on_initial_screen
 from sapguimcp.tools.table_helpers import _get_raw_tc
@@ -33,6 +34,7 @@ if TYPE_CHECKING:
 
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
+    from sapguimcp.lang.schema import LanguagePack
 
 
 logger = logging.getLogger(__name__)
@@ -62,7 +64,9 @@ MAX_PAGES = 800
 # =============================================================================
 
 
-async def _get_field_order_from_se11(backend: WebGuiBackend | DesktopBackend, table: str) -> dict[str, int] | None:
+async def _get_field_order_from_se11(
+    backend: WebGuiBackend | DesktopBackend, table: str, t: LanguagePack
+) -> dict[str, int] | None:
     """
     Get field order from SE11 for a table.
 
@@ -80,7 +84,7 @@ async def _get_field_order_from_se11(backend: WebGuiBackend | DesktopBackend, ta
             return None
         await backend.wait_for_ready()
 
-        result = await _lookup_object_on_initial_screen(backend, table, "table")
+        result = await _lookup_object_on_initial_screen(backend, table, "table", t)
 
         # Press F3 (Back) to exit SE11 and return to clean state
         # This prevents state issues when navigating to SE16N next
@@ -131,37 +135,31 @@ def _empty_failure(
     )
 
 
-async def _fill_se16n_table_name(backend: WebGuiBackend | DesktopBackend, table: str) -> str | None:
+async def _fill_se16n_table_name(backend: WebGuiBackend | DesktopBackend, table: str, t: LanguagePack) -> str | None:
     """
     Fill SE16N table name field.
 
-    Tries English labels first, then German.
+    Tries the label of every language of the merged view, then the main form input.
 
-    Returns:
-        Error message if failed, None if successful.
+    Returns: Error message if failed, None if successful.
     """
-    # Try English label first
-    try:
-        await backend.fill_field("Table", table.upper())
-        return None
-    except ValueError:  # pylint: disable=broad-exception-caught
-        pass
-
-    # Try German label
-    try:
-        await backend.fill_field("Tabelle", table.upper())
-        return None
-    except ValueError:  # pylint: disable=broad-exception-caught
-        pass
+    for label in t.se16.table_label:
+        try:
+            await backend.fill_field(label, table.upper())
+            return None
+        except ValueError:  # pylint: disable=broad-exception-caught
+            pass
 
     # Fallback: fill main form input, skipping toolbar/combobox inputs.
-    if await backend.fill_main_input(table.upper(), ["Table", "Tabelle"]):
+    if await backend.fill_main_input(table.upper(), list(t.se16.table_label)):
         return None
 
-    return "Failed to set table name field. Field not found with labels 'Table' or 'Tabelle'."
+    return "Failed to set the table name field. Field not found by its label."
 
 
-async def _type_table_name_with_validation(backend: WebGuiBackend | DesktopBackend, table: str) -> str | None:
+async def _type_table_name_with_validation(
+    backend: WebGuiBackend | DesktopBackend, table: str, t: LanguagePack
+) -> str | None:
     """
     Type table name in SE16N and trigger validation with Enter.
 
@@ -171,7 +169,7 @@ async def _type_table_name_with_validation(backend: WebGuiBackend | DesktopBacke
     Returns:
         Error message if failed, None if successful.
     """
-    for textbox_name in ["Table", "Tabelle"]:
+    for textbox_name in t.se16.table_label:
         try:
             if await backend.focus_and_type(textbox_name, table.upper(), delay_ms=50):
                 logger.info("Typed table name", extra={"table": table, "field": textbox_name})
@@ -182,14 +180,32 @@ async def _type_table_name_with_validation(backend: WebGuiBackend | DesktopBacke
             logger.warning("Typing in table field", extra={"field": textbox_name, "error": str(e)})
 
     # Fallback to fill_field approach
-    if fill_error := await _fill_se16n_table_name(backend, table):
+    if fill_error := await _fill_se16n_table_name(backend, table, t):
         return fill_error
     logger.warning("Used fallback fill_field for table name")
     await backend.press_key("Enter")
     return None
 
 
-async def _wait_for_grid_rows(backend: WebGuiBackend, timeout_seconds: int = 5) -> bool:
+# The grid has rows once one of them holds text other than the placeholder of an empty row ("Empty Empty ...").
+# The placeholder is a pack text: ``texts.empty.source`` is its regex source (spec section 8). In this Python
+# string ``\\\\s`` reaches JS as ``\\s`` (a JS string escape), and the regex engine sees ``\s``.
+_GRID_HAS_ROWS_JS = """
+(params) => {
+    const empty = new RegExp('^(?:(?:' + params.texts.empty.source + ')\\\\s*)+$', params.texts.empty.flags);
+    for (const grid of document.querySelectorAll('[role="grid"]')) {
+        for (const row of grid.querySelectorAll('[role="row"]')) {
+            if (row.querySelector('[role="columnheader"]')) continue;
+            const text = row.textContent?.trim() || '';
+            if (text && !empty.test(text)) return true;
+        }
+    }
+    return false;
+}
+"""
+
+
+async def _wait_for_grid_rows(backend: WebGuiBackend, t: LanguagePack, timeout_seconds: int = 5) -> bool:
     """
     Wait for SE16N selection criteria grid to populate with data rows.
 
@@ -197,22 +213,7 @@ async def _wait_for_grid_rows(backend: WebGuiBackend, timeout_seconds: int = 5) 
         True if grid has rows, False if timeout.
     """
     for i in range(timeout_seconds * 2):  # Poll every 500ms
-        result = await backend.evaluate_javascript("""
-            () => {
-                const grids = document.querySelectorAll('[role="grid"]');
-                for (const grid of grids) {
-                    const rows = grid.querySelectorAll('[role="row"]');
-                    for (const row of rows) {
-                        if (row.querySelector('[role="columnheader"]')) continue;
-                        const text = row.textContent?.trim() || '';
-                        if (text && !text.match(/^(Leer\\s*)+$/)) {
-                            return true;
-                        }
-                    }
-                }
-                return false;
-            }
-        """)
+        result = await backend.evaluate_javascript(_GRID_HAS_ROWS_JS, script_arg({"empty": t.se16.empty_cell}))
         if result:
             logger.info("Table structure loaded", extra={"poll_iteration": i})
             return True
@@ -222,25 +223,19 @@ async def _wait_for_grid_rows(backend: WebGuiBackend, timeout_seconds: int = 5) 
     return False
 
 
-async def _fill_se16n_max_hits(backend: WebGuiBackend | DesktopBackend, max_hits: int) -> None:
+async def _fill_se16n_max_hits(backend: WebGuiBackend | DesktopBackend, max_hits: int, t: LanguagePack) -> None:
     """
     Fill SE16N max hits field.
 
-    Tries English labels first, then German. Ignores errors since
+    Tries the label of every language of the merged view. Ignores errors since
     the field has a default value.
     """
-    # Try English label first
-    try:
-        await backend.fill_field("Max. Number of Hits", str(max_hits))
-        return
-    except ValueError:  # pylint: disable=broad-exception-caught
-        pass
-
-    # Try German label
-    try:
-        await backend.fill_field("Maximale Trefferzahl", str(max_hits))
-    except ValueError:  # pylint: disable=broad-exception-caught
-        pass
+    for label in t.se16.max_hits_label:
+        try:
+            await backend.fill_field(label, str(max_hits))
+            return
+        except ValueError:  # pylint: disable=broad-exception-caught
+            pass
 
 
 async def _fill_filter_by_locator(
@@ -276,50 +271,39 @@ async def _fill_filter_by_locator(
     return False
 
 
-def _check_table_not_found(snapshot: str, table: str) -> str | None:
+def _check_table_not_found(snapshot: str, table: str, t: LanguagePack) -> str | None:
     """
     Check if snapshot indicates table not found error.
+
+    Scans the whole snapshot, so it uses the narrow ``se16.table_not_found`` fragment, not the wider
+    ``common.does_not_exist`` (a result row could contain "nicht vorhanden").
 
     Returns:
         Error message if table not found, None if table exists.
     """
-    # Check for explicit "not found" error messages
-    snapshot_lower = snapshot.lower()
-    if "does not exist" in snapshot_lower or "existiert nicht" in snapshot_lower:
+    if t.se16.table_not_found.contains(snapshot):
         return f"Table '{table}' not found in SAP"  # lang-ok: our own message
 
     # No explicit error - will check columns after parsing
     return None
 
 
-def _check_no_entries_found(snapshot: str) -> bool:
+def _check_no_entries_found(snapshot: str, t: LanguagePack) -> bool:
     """Check if snapshot contains 'no values found' message (empty but existing table)."""
-    snapshot_lower = snapshot.lower()
-    return SE16_NO_ENTRIES_DE in snapshot_lower or SE16_NO_ENTRIES_EN in snapshot_lower
+    return t.se16.no_values_found.contains(snapshot)
 
 
-def _check_selection_screen_columns(columns: list[str]) -> bool:
+def _check_selection_screen_columns(columns: list[str], t: LanguagePack) -> bool:
     """
     Check if parsed columns indicate we're still on the selection screen.
 
-    SE16N selection screen has these column headers in the filter grid:
-    - DE: Feldname, Option, Von-Wert, Bis-Wert, Mehr, Ausgabe, Technischer Name
-    - EN: Field Name, Option, From-Value, To-Value, More, Output, Technical Name
+    The selection screen grid has headers that a result grid does not (field name, from-value, to-value,
+    technical name). Two of them mean the selection screen.
 
     Returns:
         True if columns indicate selection screen, False otherwise.
     """
-    # Selection screen column names (DE and EN)
-    selection_columns_de = {"Feldname", "Von-Wert", "Bis-Wert", "Technischer Name"}
-    selection_columns_en = {"Field Name", "From-Value", "To-Value", "Technical Name"}
-
-    columns_set = set(columns)
-
-    # If we see multiple selection-screen-only columns, we're on selection screen
-    de_matches = len(columns_set & selection_columns_de)
-    en_matches = len(columns_set & selection_columns_en)
-
-    return de_matches >= 2 or en_matches >= 2
+    return sum(1 for column in set(columns) if t.se16.selection_columns.equals(column)) >= 2
 
 
 async def _focus_grid(backend: WebGuiBackend) -> None:
@@ -331,10 +315,11 @@ async def _focus_grid(backend: WebGuiBackend) -> None:
         logger.warning("Could not focus grid", extra={"error": str(e)})
 
 
-async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
+async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals,too-many-arguments,too-many-positional-arguments
     backend: WebGuiBackend,
     total_hits: int,
     columns: list[str],
+    t: LanguagePack,
     ctx: Context | None = None,
 ) -> list[dict[str, Any]]:
     """
@@ -347,6 +332,7 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
         backend: WebGuiBackend instance
         total_hits: Expected total rows (from "Number of Hits")
         columns: Column names for row parsing
+        t: Language pack of the session
         ctx: FastMCP context for progress reporting (optional)
 
     Returns:
@@ -363,7 +349,7 @@ async def _collect_rows_with_pagination(  # pylint: disable=too-many-locals
     while len(all_rows) < total_hits and page_num < MAX_PAGES:
         # Get snapshot and parse rows
         snapshot = AriaSnapshot(await backend.get_snapshot())
-        rows = parse_se16_rows(snapshot, columns)
+        rows = parse_se16_rows(snapshot, t, columns)
 
         if not rows:
             logger.debug("No rows found on page", extra={"page": page_num})
@@ -799,7 +785,8 @@ def _plan_se16n_filters(
         return plan
     if len(rows) != len(field_order):
         result.other_errors.append(
-            f"SE16N offers {len(rows)} selection rows for table {table} but SE11 lists {len(field_order)} fields; "
+            f"SE16N offers {len(rows)} selection rows for table {table} "  # lang-ok: our own message
+            f"but SE11 lists {len(field_order)} fields; "
             "row positions may not match field names, so no filter was applied"
         )
         return plan
@@ -956,8 +943,8 @@ async def _fill_se16n_filters_desktop(
     return await com.run(_apply_filters)
 
 
-# Status bar fragments meaning "query ran, nothing found" (lower case, DE + EN)
-_SE16N_NO_ENTRIES_KEYWORDS = ("keine werte", "no values", "keine einträge", "no entries")
+# Status bar message (class, number) meaning "query ran, nothing found"; language-independent
+_SE16N_NO_VALUES_MESSAGE = ("WUSL", "002")  # "No values found", same message ID on both releases
 
 
 def _statusbar_is_new_error(session: Any, before_status: str) -> bool:
@@ -1026,6 +1013,7 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
     filters: dict[str, str] | None,
     max_hits: int,
     now: datetime,
+    t: LanguagePack,
     ctx: Context | None = None,  # TODO: progress reporting via ctx not yet implemented on desktop
 ) -> SE16Result:
     """Desktop-specific SE16N query using read_table instead of ARIA parsing."""
@@ -1049,30 +1037,13 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
         "se16_desktop_fill", extra={"screen": screen.title, "tcode": screen.transaction, "program": screen.program}
     )
 
+    # The table name field is addressed by its technical name
     filled = False
-    for field_label in ["GD-TAB", "Table", "Tabelle"]:
-        try:
-            result_fill = await backend.focus_and_type(field_label, table.upper(), delay_ms=50)
-            logger.debug("se16_desktop_focus_result", extra={"field": field_label, "result": result_fill})
-            if result_fill:
-                filled = True
-                break
-        except Exception:  # pylint: disable=broad-exception-caught
-            pass
-
-    if not filled:
-        # Last resort: try fill_field
-        try:
-            await backend.fill_field("Table", table.upper())
-            filled = True
-        except ValueError:
-            pass
-        if not filled:
-            try:
-                await backend.fill_field("Tabelle", table.upper())
-                filled = True
-            except ValueError:
-                pass
+    try:
+        filled = bool(await backend.focus_and_type("GD-TAB", table.upper(), delay_ms=50))
+        logger.debug("se16_desktop_focus_result", extra={"field": "GD-TAB", "result": filled})
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass
 
     if not filled:
         return _empty_failure(f"Could not fill table name field for '{table}'", table, now)
@@ -1094,12 +1065,10 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
             return _filter_fill_failure(fill, table, now)
 
     # Set max hits (best effort)
-    for max_label in ["GD-MAX_LINES", "Max. Number of Hits", "Maximale Trefferzahl"]:
-        try:
-            if await backend.focus_and_type(max_label, str(max_hits), delay_ms=50):
-                break
-        except Exception:  # pylint: disable=broad-exception-caught
-            pass
+    try:
+        await backend.focus_and_type("GD-MAX_LINES", str(max_hits), delay_ms=50)
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass
 
     # Execute (F8); snapshot the status bar first so a message from before the keypress is not mistaken for the result
     before_f8 = (await backend.get_status_bar()).message.strip()
@@ -1114,7 +1083,9 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
         return _empty_failure(f"SE16N error: {sbar.message}", table, now, filter_warnings=filter_warnings)
 
     # Check for "no entries found"
-    if sbar.message and any(msg in sbar.message.lower() for msg in _SE16N_NO_ENTRIES_KEYWORDS):
+    if (sbar.message_id, sbar.message_number) == _SE16N_NO_VALUES_MESSAGE or (
+        sbar.message and t.common.no_entries.contains(sbar.message)
+    ):
         return SE16Result(
             table=table,
             total_hits=0,
@@ -1132,7 +1103,7 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
     if not table_data.headers:
         # Check title for hit count hint
         title = await backend.get_page_title()
-        if any(kw in title.lower() for kw in ["treffer", "hits", "entries"]):
+        if t.se16.results_title.contains(title):
             return _empty_failure(
                 "SE16N results displayed but could not read table (list report format?)",
                 table,
@@ -1181,10 +1152,12 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
     """
     now = datetime.now(UTC)
     filter_warnings: list[str] = []
+    # Resolved once, outside every try: an UnsupportedLanguageError must reach the caller
+    t = lang.current("sap_se16_query")
 
     # Desktop backend: use read_table instead of ARIA snapshot parsing
     if backend.backend_type == "desktop":
-        return await _execute_se16_query_desktop(backend, table, filters, max_hits, now, ctx)
+        return await _execute_se16_query_desktop(backend, table, filters, max_hits, now, t, ctx)
 
     from sapguimcp.backend.webgui.backend import WebGuiBackend as _WG  # pylint: disable=import-outside-toplevel
 
@@ -1197,7 +1170,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
     field_order: dict[str, int] | None = None
     if filters:
         logger.info("Getting field order from SE11", extra={"table": table})
-        field_order = await _get_field_order_from_se11(backend, table)
+        field_order = await _get_field_order_from_se11(backend, table, t)
         if field_order is None:
             logger.warning("Could not get field order from SE11, filters may not work")
 
@@ -1211,9 +1184,9 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
     # Fill table name - with validation trigger if filters are provided
     fill_error: str | None = None
     if filters:
-        fill_error = await _type_table_name_with_validation(backend, table)
+        fill_error = await _type_table_name_with_validation(backend, table, t)
         if not fill_error:
-            await _wait_for_grid_rows(backend, timeout_seconds=5)
+            await _wait_for_grid_rows(backend, t, timeout_seconds=5)
             fill = await _fill_se16n_filters_webgui(backend, table, filters, field_order)
             if fill.unapplied_fields or fill.other_errors:
                 logger.warning(
@@ -1223,24 +1196,23 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
                 return _filter_fill_failure(fill, table, now)
             # Re-fill table name after filter filling — filter input via
             # page.keyboard could have corrupted it (fixes #289, #290)
-            refill_error = await _fill_se16n_table_name(backend, table)
+            refill_error = await _fill_se16n_table_name(backend, table, t)
             if refill_error:
                 logger.warning("Could not re-fill table name after filters", extra={"error": refill_error})
     else:
-        fill_error = await _fill_se16n_table_name(backend, table)
+        fill_error = await _fill_se16n_table_name(backend, table, t)
 
     if fill_error:
         return _empty_failure(fill_error, table, now)
 
     # Set max hits
-    await _fill_se16n_max_hits(backend, max_hits)
+    await _fill_se16n_max_hits(backend, max_hits, t)
 
     # Best-effort: click table name field to move focus out of filter grid
     # (focus in filter grid can interfere with F8).
     try:
-        clicked = await backend.click_element("input[title*='Table'], input[aria-label*='Table']")
-        if not clicked:
-            await backend.click_element("input[title*='Tabelle'], input[aria-label*='Tabelle']")
+        selector = ", ".join(f"input[title*='{v}'], input[aria-label*='{v}']" for v in t.se16.table_label)
+        await backend.click_element(selector)
         await backend.wait(200)
     except Exception:  # pylint: disable=broad-exception-caught
         pass  # Best effort - continue with F8
@@ -1255,14 +1227,14 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
     snapshot_str = str(snapshot)
 
     # Check for table not found errors
-    if table_error := _check_table_not_found(snapshot_str, table):
+    if table_error := _check_table_not_found(snapshot_str, table, t):
         # Log first 500 chars of snapshot for debugging
         logger.warning("Check failed", extra={"snapshot_preview": snapshot_str[:500]})
         return _empty_failure(table_error, table, now)
 
     # Parse hit count and columns
-    total_hits = parse_se16_hit_count(snapshot)
-    columns = parse_se16_columns(snapshot)
+    total_hits = parse_se16_hit_count(snapshot, t)
+    columns = parse_se16_columns(snapshot, t)
 
     if not columns:
         return _empty_failure(
@@ -1273,10 +1245,10 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
         )
 
     # Check if we're still on selection screen (parsed filter grid instead of results)
-    if _check_selection_screen_columns(columns):
+    if _check_selection_screen_columns(columns, t):
         # Distinguish empty table from non-existent table:
         # SAP shows "No values found" / "Keine Werte gefunden" for existing tables with no data
-        if _check_no_entries_found(snapshot_str):
+        if _check_no_entries_found(snapshot_str, t):
             logger.info("Table exists but has no entries", extra={"table": table})
             return SE16Result(
                 table=table,
@@ -1290,7 +1262,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
             )
         logger.info("Parsed selection screen columns, table likely doesn't exist", extra={"table": table})
         return _empty_failure(
-            f"Table '{table}' not found in SAP (still on selection screen)",
+            f"Table '{table}' not found in SAP (still on selection screen)",  # lang-ok: our own message
             table,
             now,
         )
@@ -1310,7 +1282,7 @@ async def _execute_se16_query(  # pylint: disable=too-many-locals,too-many-branc
 
     # Focus grid and collect all rows with pagination
     await _focus_grid(backend)
-    rows = [SE16Row(data=row) for row in await _collect_rows_with_pagination(backend, total_hits, columns, ctx)]
+    rows = [SE16Row(data=row) for row in await _collect_rows_with_pagination(backend, total_hits, columns, t, ctx)]
 
     return SE16Result(
         table=table,
