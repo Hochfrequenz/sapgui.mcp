@@ -23,7 +23,7 @@ T = TypeVar("T")
 
 _PLACEHOLDER = re.compile(r"\{([A-Za-z_]\w*)\}")
 _DEFAULT_GROUP = r".+?"
-_TRAILING_GROUP = r".+"
+_TRAILING_GROUP = r'[^"\n]+'  # stops at an ARIA snapshot's closing quote
 """A placeholder that ends a variant captures the whole rest of the line, not a lazy fragment."""
 
 
@@ -117,8 +117,9 @@ def template_patterns(
     """One compiled pattern per template variant (Python rejects duplicate group names).
 
     ``groups`` maps placeholder names to the regex source of their capture group; placeholders
-    without an entry capture ``.+?`` (``.+`` at the very end of a variant). Each literal part is
-    scoped on its own with the case flag, so the capture groups stay outside the fold.
+    without an entry capture ``.+?``, or ``[^"\n]+`` at the very end of a variant, so the closing
+    quote of an ARIA snapshot stays outside. Each literal part is scoped on its own with the case
+    flag, so the capture groups stay outside the fold.
     """
     sources = dict(groups)
     patterns: list[re.Pattern[str]] = []
@@ -215,6 +216,7 @@ class RegexText:
         for pattern in _require_strings("RegexText patterns", self.patterns):
             if re.compile(pattern).groupindex:  # fail at import, not at first use
                 raise ValueError(f"named groups belong in Template, not RegexText: {pattern!r}")
+        compiled(regex_alt(self.patterns, self.fold))  # e.g. a global "(?i)" fails when embedded
 
     @property
     def alt(self) -> str:

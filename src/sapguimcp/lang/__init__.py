@@ -94,7 +94,7 @@ def pack_for(code: str) -> LanguagePack:
     normalized = normalize_language(code)
     pack = _PACKS.get(normalized) if normalized is not None else None
     if pack is None:
-        raise UnsupportedLanguageError(normalized, "this lookup")
+        raise UnsupportedLanguageError(normalized or repr(code), "this lookup")
     return pack
 
 

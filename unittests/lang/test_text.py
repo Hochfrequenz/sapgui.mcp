@@ -168,3 +168,14 @@ class TestAltOf:
     def test_needs_a_text(self) -> None:
         with pytest.raises(ValueError, match="at least one"):
             alt_of()
+
+
+def test_regex_text_rejects_a_global_inline_flag_at_construction() -> None:
+    with pytest.raises(re.error):
+        RegexText(("(?i)foo",))
+
+
+def test_trailing_placeholder_stops_at_a_snapshot_quote() -> None:
+    match = Template(("Display {name}",)).search('- heading "Class Builder: Display ZCL_FOO"')
+    assert match is not None
+    assert match["name"] == "ZCL_FOO"
