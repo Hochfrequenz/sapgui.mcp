@@ -20,6 +20,7 @@ from sapguimcp.backend.webgui.browser import get_browser_manager
 from sapguimcp.backend.webgui.js_helpers import load_js, load_js_with_field_utils
 from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.backend.webgui.utils import escape_css_selector, is_sap_shortcut
+from sapguimcp.lang import language_for_html_lang
 from sapguimcp.middleware.logging import set_sap_identity
 from sapguimcp.models.alv_models import AlvCellInfo, AlvMetadata, TableCellClickResult
 from sapguimcp.models.base import CheckActivateResult, PopupButton, PopupInfo
@@ -46,7 +47,7 @@ from sapguimcp.models.sap_results import (
     TableRow,
     TransactionResult,
 )
-from sapguimcp.session_language import normalize_language, set_session_language
+from sapguimcp.session_language import set_session_language
 
 if TYPE_CHECKING:
     from playwright.async_api import Page
@@ -247,11 +248,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         await self._capture_sap_identity(effective_url, mandant, session_id)
 
     async def _read_page_language(self) -> str | None:
-        """SAP logon language from the page's ``<html lang>`` (ISO code, e.g. ``de``).
-
-        Phase 1 of #1044: ISO and SAP keys coincide for DE and EN. Phase 2 maps ISO codes to SAP
-        keys through the language packs' ``html_lang``.
-        """
+        """SAP logon language from the page's ``<html lang>``, mapped through the packs' ``html_lang``."""
         try:
             value = await self._page.evaluate("() => document.documentElement.lang || ''")
         except Exception:  # pylint: disable=broad-exception-caught
@@ -259,7 +256,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             return None
         if not isinstance(value, str):  # e.g. a mocked page
             return None
-        return normalize_language(value.split("-")[0])
+        return language_for_html_lang(value)
 
     async def login(  # pylint: disable=too-many-arguments,too-many-positional-arguments,unused-argument
         self,
