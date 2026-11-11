@@ -165,8 +165,8 @@ Guards:
   `unittests/lang_baseline.json` is shrink-only and holds only `tools/breakpoint_tools.py`, the one
   documented exception (#1025).
 - `unittests/lang/` checks pack completeness, flag consistency, regex/JS portability, and
-  `test_pseudo_locale.py` round-trips a pseudo pack (every text replaced by a marker) through all
-  helpers, so no code path may depend on a DE or EN spelling.
+  `test_pseudo_locale.py` round-trips a pseudo pack (every text replaced by a marker) through its
+  helpers (the parser tests against the pseudo pack are a follow-up).
 
 ### Adding a login language
 

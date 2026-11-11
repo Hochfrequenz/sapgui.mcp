@@ -72,12 +72,14 @@ transport prompts, and error messages. These appear at `wnd[1]` or `wnd[2]`.
 and other tools target the popup — not the main window behind it.
 
 **How to detect a popup opened:**
+
 - Check the `active_window` field in tool results. `"wnd[0]"` means the main
   window; `"wnd[1]"` or higher means a modal dialog is open.
 - After actions that change screen state (`sap_press_key`, `sap_fill_form`),
   always note the `active_window` value.
 
 **Typical workflow:**
+
 1. `sap_press_key(key="F5")` → result has `active_window="wnd[1]"` (dialog opened)
 2. `sap_discover_fields()` → shows fields in the dialog
 3. `sap_fill_form({...})` → fills dialog fields
@@ -244,7 +246,7 @@ USE THIS APPROACH TO ACCESS HELP.SAP.COM ONLY.
 
 **Impact on automation:** If your tool assumes a default checkbox state (e.g., "Workbench is checked by default in SE09"), it will break when the user previously used a different configuration. The checkbox state persists even across browser sessions and logins.
 
-**Solution:** Transaction-specific tools use `ensure_screen_state()` to always explicitly set the desired state before executing. This reads the ARIA snapshot, diffs against the target, applies only necessary changes, and verifies the result. Labels that don't match the current language produce harmless warnings (bilingual support via `bilingual_target()`).
+**Solution:** Transaction-specific tools use `ensure_screen_state()` to always explicitly set the desired state before executing. This reads the ARIA snapshot, diffs against the target, applies only necessary changes, and verifies the result. Labels that don't match the current language produce harmless warnings (labels come from the language pack).
 
 **Applies to:** All SAP selection screens, not just SE09. Any transaction with a selection screen (SE16, SM37, SLG1, etc.) has this stateful behavior.
 
@@ -294,14 +296,14 @@ Parallel sub-agents help only across genuinely separate connections (different s
 
 ### Session Management Tools
 
-| Tool                                      | Purpose                                                         |
-| ----------------------------------------- | --------------------------------------------------------------- |
-| `sap_transaction(tcode, new_window=True)` | Open a new SAP session with a transaction, returns `session_id` |
-| `sap_session_list()`                      | List all active sessions with IDs and titles                    |
-| `sap_session_close(session_id)`           | Close a specific session by ID                                  |
+| Tool                                      | Purpose                                                                  |
+| ----------------------------------------- | ------------------------------------------------------------------------ |
+| `sap_transaction(tcode, new_window=True)` | Open a new SAP session with a transaction, returns `session_id`          |
+| `sap_session_list()`                      | List all active sessions with IDs and titles                             |
+| `sap_session_close(session_id)`           | Close a specific session by ID                                           |
 | `sap_session_detach(session_id)`          | Drop a session from the registry, leaving its window open (desktop only) |
-| `sap_session_bind(session_id, agent_id)`  | Bind a session to an agent for parallel workflows               |
-| `sap_session_release(session_id)`         | Unbind a session from an agent without closing it               |
+| `sap_session_bind(session_id, agent_id)`  | Bind a session to an agent for parallel workflows                        |
+| `sap_session_release(session_id)`         | Unbind a session from an agent without closing it                        |
 
 ### Workflow Example
 

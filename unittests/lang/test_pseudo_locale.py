@@ -4,12 +4,11 @@ A pseudo pack replaces every text variant of EN with a unique marker ``⟦sectio
 no real DE/EN spelling resembles. Every field must then round-trip through the helper that code
 uses to match, click, search or ship it to JavaScript (``contains`` / ``equals`` / ``alt`` /
 ``pattern`` / ``for_js`` / ``format``), and the session view of the pseudo language must hold only
-markers plus the EN fallback. A code path that still depends on a DE or EN spelling would fail here
-once a text is read from the pack instead.
+markers plus the EN fallback.
 
 Scope note: the spec also describes rewriting the DE parser fixtures with markers and running every
-parser test against the pseudo pack. That is a much larger harness; this unit test covers the pack
-and helper side, and the parser tests run per real language on their own fixtures.
+parser test against the pseudo pack. That harness is a follow-up (another PR will add it); this unit
+test covers the pack and helper side only.
 """
 
 import dataclasses
@@ -21,7 +20,7 @@ import pytest
 from sapguimcp import lang
 from sapguimcp.lang import _register_for_tests
 from sapguimcp.lang.schema import LanguagePack, Leaf, canonical, iter_leaves, sections
-from sapguimcp.lang.text import RegexText, Template, Text, placeholder_names
+from sapguimcp.lang.text import RegexText, Template, Text, compiled, placeholder_names
 
 CODE = "PS"
 
@@ -102,6 +101,7 @@ def test_leaf_round_trips_through_its_helpers(path: str) -> None:
         assert merged.contains(f"before {first} after")
         assert first in list(merged)  # clicking / filling candidates
         assert merged.pattern.search(f"before {first} after") is not None
+        assert compiled(merged.alt).search(first) is not None
         assert merged.first_key({first: 1}) == 1
         js = merged.for_js()
         assert js["variants"][0] == first
