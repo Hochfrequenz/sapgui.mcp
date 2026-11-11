@@ -11,12 +11,32 @@ They are NOT shipped with the package and NOT used at runtime.
 
 ## Scripts Overview
 
-| Script                    | Purpose                                          | When to Use                                     |
-| ------------------------- | ------------------------------------------------ | ----------------------------------------------- |
-| `consolidate_catalog.py`  | Build `transactions.json` from SE16 result files | After scraping TSTC with `sap_se16_query`       |
-| `add_inline_results.py`   | Add inline SE16 results to catalog               | When SE16 returned results inline (not to file) |
-| `recapture-snapshots.ps1` | Recapture HTML test snapshots in DE/EN           | When SAP UI changes or adding new tests         |
-| `render_readme_demo.py`   | Render README demo composites + concat file      | Rebuilding the README GIF (see below)           |
+| Script                    | Purpose                                          | When to Use                                                                        |
+| ------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `consolidate_catalog.py`  | Build `transactions.json` from SE16 result files | After scraping TSTC with `sap_se16_query`                                          |
+| `add_inline_results.py`   | Add inline SE16 results to catalog               | When SE16 returned results inline (not to file)                                    |
+| `recapture-snapshots.ps1` | Recapture HTML test snapshots in DE/EN           | When SAP UI changes or adding new tests                                            |
+| `render_readme_demo.py`   | Render README demo composites + concat file      | Rebuilding the README GIF (see below)                                              |
+| `harvest_lang_texts.py`   | Compare a language pack with SAP's own texts     | After an SAP upgrade, after changing a sourced pack text, before adding a language |
+
+## Language Pack Verification
+
+`harvest_lang_texts.py` compares a language pack (`src/sapguimcp/lang/`) with SAP's own texts
+(#1044, spec section 9). It reads only development-metadata text tables (DD04T, D021T, RSMPTEXTS,
+T100, DD07T, TSTCT, T002) through the ADT data-preview endpoint, with the credentials of
+`systems.json`.
+
+```bash
+uv run python scripts/harvest_lang_texts.py DE --verify [--system <key>]
+uv run python scripts/harvest_lang_texts.py DE --verify --sap-texts texts.json
+uv run python scripts/harvest_lang_texts.py DE --print-sql
+```
+
+`--verify` reports every sourced pack field whose text no longer matches SAP (exit code 1). OAuth2
+systems are not supported by the built-in client: `--print-sql` lists one query per field, run each
+through the sap-adt MCP `run_query` tool (purpose `development_metadata`), save `{path: [text, ...]}`
+as JSON and pass it with `--sap-texts`. `--draft` (writing a new language pack) is specified in spec
+section 9 but not implemented yet.
 
 ## Transaction Catalog Building
 
