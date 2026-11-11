@@ -226,8 +226,8 @@ async def _set_se09_selection_screen(
     await _set_checkbox_bilingual(backend, "Customizing-Auftr\u00e4ge", "Customizing Requests", cust_checked)
 
     # Status checkboxes
-    mod_checked = status in ("all", "modifiable")
-    rel_checked = status in ("all", "released")
+    mod_checked = status in ("all", "modifiable")  # lang-ok: tool parameter values
+    rel_checked = status in ("all", "released")  # lang-ok: tool parameter values
     await _set_checkbox_bilingual(backend, "\u00c4nderbar", "Modifiable", mod_checked)
     await _set_checkbox_bilingual(backend, "Freigegeben", "Released", rel_checked)
 

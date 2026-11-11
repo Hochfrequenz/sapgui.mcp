@@ -255,7 +255,7 @@ class BrowserManager:  # pylint: disable=too-many-instance-attributes
             cdp_host = parsed_url.hostname if parsed_url else ""
 
             # Detect invalid URL format — no auto-launch possible
-            if "invalid url" in error_msg:
+            if "invalid url" in error_msg:  # lang-ok: browser error text, not SAP
                 raise RuntimeError(
                     f"Invalid CDP_URL format: '{settings.cdp_url}'\n\n"
                     f"Expected format: http://hostname:port (e.g., http://localhost:9222)\n\n"

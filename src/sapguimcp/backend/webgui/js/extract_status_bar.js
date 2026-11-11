@@ -101,7 +101,7 @@
 
     // Check for error indicators
     if (
-        parentClasses.includes('error') ||
+        parentClasses.includes('error') || // lang-ok: CSS class name
         parentClasses.includes('fehler') ||
         statusElement.querySelector('[class*="error" i], .sapMsgError')
     ) {
@@ -109,7 +109,7 @@
     }
     // Check for warning indicators
     else if (
-        parentClasses.includes('warning') ||
+        parentClasses.includes('warning') || // lang-ok: CSS class name
         parentClasses.includes('warnung') ||
         statusElement.querySelector('[class*="warning" i], .sapMsgWarning')
     ) {
@@ -117,7 +117,7 @@
     }
     // Check for success indicators
     else if (
-        parentClasses.includes('success') ||
+        parentClasses.includes('success') || // lang-ok: CSS class name
         parentClasses.includes('erfolg') ||
         statusElement.querySelector('[class*="success" i], .sapMsgSuccess')
     ) {

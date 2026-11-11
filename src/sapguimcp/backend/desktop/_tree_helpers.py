@@ -123,7 +123,7 @@ def resolve_tree(raw_session: Any, tree_id: str | None) -> tuple[Any, str]:
             _reraise_if_transient(exc)
             raise RuntimeError(f"tree {tree_id!r} not found (FindById failed: {exc})") from exc
         kind, subtype = _try(getattr, shell, "Type"), _try(getattr, shell, "SubType")
-        if kind != "GuiShell" or subtype != "Tree":
+        if kind != "GuiShell" or subtype != "Tree":  # lang-ok: COM type name
             raise ValueError(f"{tree_id!r} is not a tree control (Type={kind!r}, SubType={subtype!r})")
         return shell, tree_id
     candidates = find_tree_shells(raw_session)

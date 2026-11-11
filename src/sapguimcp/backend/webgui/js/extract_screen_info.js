@@ -32,7 +32,7 @@
     }
 
     // Try to extract from URL if it contains transaction info
-    const urlMatch = window.location.href.match(/[?&](?:tcode|transaction)=([^&]+)/i);
+    const urlMatch = window.location.href.match(/[?&](?:tcode|transaction)=([^&]+)/i); // lang-ok: URL parameter names
     if (urlMatch) {
         info.transaction = info.transaction || urlMatch[1];
     }
