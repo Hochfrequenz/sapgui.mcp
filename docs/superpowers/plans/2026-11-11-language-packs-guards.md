@@ -225,10 +225,8 @@ code; the phase-4 pseudo-locale test covers regressions.
 
 Tasks run in order 0 -> 1 -> 2 -> 3 -> 4 -> 5, one agent at a time in one working tree. Tasks 1,
 2 and 3 touch disjoint files and could run in parallel in separate worktrees, but one shared index
-makes parallel commits fragile, so the default is sequential. Task 4 must follow Task 3 (it
-re-seeds the baseline Task 3 created) and must run after Tasks 1 and 2, because the line numbers
-it lists are those of the `src/` files, which Tasks 1 and 2 do not touch except
-`lang/__init__.py` (excluded from the scan).
+makes parallel commits fragile, so the default is sequential. Task 4 must follow Task 3: it marks
+the false positives Task 3's scanner reports and re-seeds the baseline Task 3 created.
 
 ---
 
