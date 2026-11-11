@@ -151,7 +151,7 @@ def _find_key_fields(yaml_content: str, t: LanguagePack) -> set[str]:
         # Key checkbox pattern: after field name gridcell, next gridcell has [checked] checkbox
         key_pattern = re.compile(
             r'gridcell "' + re.escape(field_name) + r'":\s*\n'
-            r"\s*- textbox\s*\n"
+            r"\s*- textbox[^\n]*\n"
             r"\s*- gridcell[^:]*:\s*\n"
             r"\s*- checkbox[^\n]*\[checked\]",
         )

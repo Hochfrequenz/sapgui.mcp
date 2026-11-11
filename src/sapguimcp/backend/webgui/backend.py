@@ -8,9 +8,11 @@ Each ``WebGuiBackend`` instance wraps a single Playwright ``Page``
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import re
 import time
+import weakref
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
@@ -57,6 +59,54 @@ if TYPE_CHECKING:
     from sapguimcp.backend.webgui.models.session_registry import SessionRegistry
 
 logger = logging.getLogger(__name__)
+
+_EXPOSE_GRID_CELL_VALUES_JS = r"""() => {
+  const undo = [];
+  for (const td of document.querySelectorAll('[role="gridcell"]')) {
+    const box = td.querySelector('span[role="textbox"]');
+    if (!box || box.hasAttribute('value')) { continue; }
+    const text = (box.textContent || '').trim();
+    if (text) {
+      undo.push([td, 'aria-label', td.getAttribute('aria-label')]);
+      td.setAttribute('aria-label', text);
+    } else if (box.hasAttribute('aria-label')) {
+      // an empty cell would otherwise be named after its column header (the textbox label)
+      undo.push([box, 'aria-label', box.getAttribute('aria-label')]);
+      box.removeAttribute('aria-label');
+    }
+  }
+  // sortable column headers append a "press space to select the column" hint (``*-selectionlabel``) to their name
+  for (const th of document.querySelectorAll('[role="columnheader"][aria-labelledby]')) {
+    const ids = th.getAttribute('aria-labelledby').split(/\s+/);
+    const kept = ids.filter((id) => !id.endsWith('-selectionlabel')); // lang-ok: DOM id suffix, not UI text
+    if (kept.length && kept.length < ids.length) {
+      undo.push([th, 'aria-labelledby', th.getAttribute('aria-labelledby')]);
+      th.setAttribute('aria-labelledby', kept.join(' '));
+    }
+  }
+  window.__sapguimcpUndoCellLabels = () => {
+    for (const [el, attr, old] of undo) {
+      if (old === null) { el.removeAttribute(attr); } else { el.setAttribute(attr, old); }
+    }
+  };
+}"""
+_RESTORE_GRID_CELL_VALUES_JS = r"""() => {
+  const undo = window.__sapguimcpUndoCellLabels;
+  delete window.__sapguimcpUndoCellLabels;
+  if (undo) { undo(); }
+}"""
+
+# One lock per page: the undo callback lives on the page, so overlapping snapshots of the same page (also from two
+# backends wrapping it) would record already-changed attributes and leave the DOM changed.
+_SNAPSHOT_LOCKS: weakref.WeakKeyDictionary[Page, asyncio.Lock] = weakref.WeakKeyDictionary()
+
+
+def _snapshot_lock(page: Page) -> asyncio.Lock:
+    lock = _SNAPSHOT_LOCKS.get(page)
+    if lock is None:
+        lock = _SNAPSHOT_LOCKS[page] = asyncio.Lock()
+    return lock
+
 
 # ---------------------------------------------------------------------------
 # Helpers private to WebGuiBackend
@@ -1176,7 +1226,19 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
     async def get_snapshot(self) -> AriaSnapshot:
         """Get the ARIA accessibility tree snapshot."""
-        raw = await self._page.locator("body").aria_snapshot()
+        # Current SAP WebGUI renders read-only table cell values as the text of a ``span[role=textbox]`` whose
+        # accessible name is the column header, so the value would be missing from the ARIA tree. Expose it as
+        # the cell's own label (empty cells lose the header label), which gives ``gridcell "VALUE"`` like the
+        # captured fixtures. The DOM is restored right after the snapshot.
+        async with _snapshot_lock(self._page):
+            try:
+                with contextlib.suppress(Exception):
+                    await self._page.evaluate(_EXPOSE_GRID_CELL_VALUES_JS)
+                raw = await self._page.locator("body").aria_snapshot()
+            finally:
+                # always, also after a cancellation during the exposure; a no-op when nothing was changed
+                with contextlib.suppress(Exception):
+                    await self._page.evaluate(_RESTORE_GRID_CELL_VALUES_JS)
         return AriaSnapshot(raw)
 
     async def get_page_title(self) -> str:
