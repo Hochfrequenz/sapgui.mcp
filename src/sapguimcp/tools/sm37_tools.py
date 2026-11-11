@@ -72,26 +72,15 @@ def _first(data: dict[str, str], names: Iterable[str], default: str | None = "")
     return default
 
 
-async def _fill_selection_field(
-    backend: "WebGuiBackend | DesktopBackend", field_name: str, labels: list[str], value: str
-) -> bool:
-    """Fill a field of the SM37 selection screen by its technical name, else by one of its labels.
+async def _fill_selection_field(backend: "WebGuiBackend | DesktopBackend", field_name: str, value: str) -> bool:
+    """Fill a field of the SM37 selection screen by its technical name (``BTCH2170-*``, same on every release).
 
-    The labels do not find the fields on the desktop (the screen has none next to them), so the technical name comes
-    first; a field that cannot be filled must be reported, or the lookup would return the default selection.
+    A field that cannot be filled must be reported, or the lookup would return the default selection.
     """
     try:
-        if await backend.focus_and_type(field_name, value, delay_ms=50):
-            return True
+        return bool(await backend.focus_and_type(field_name, value, delay_ms=50))
     except Exception:  # pylint: disable=broad-exception-caught
-        pass
-    for label in labels:
-        try:
-            if await backend.focus_and_type(label, value, delay_ms=50):
-                return True
-        except Exception:  # pylint: disable=broad-exception-caught
-            continue
-    return False
+        return False
 
 
 async def _read_classic_job_list(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> TableData:
@@ -252,12 +241,10 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
     # Fill selection screen fields. A filter that cannot be applied fails the lookup: it would otherwise return the
     # default selection (the user's own jobs of today) as if it were the answer.
     unapplied: list[str] = []
-    if not await _fill_selection_field(backend, "BTCH2170-JOBNAME", list(t.sm37.job_name), job_name):
+    if not await _fill_selection_field(backend, "BTCH2170-JOBNAME", job_name):
         unapplied.append("job_name")
 
-    if username is not None and not await _fill_selection_field(
-        backend, "BTCH2170-USERNAME", list(t.sm37.user_name), username
-    ):
+    if username is not None and not await _fill_selection_field(backend, "BTCH2170-USERNAME", username):
         unapplied.append("username")
 
     # Status checkboxes (language-dependent labels)
@@ -280,12 +267,12 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
 
     # Date fields
     if from_date and not await _fill_selection_field(
-        backend, "BTCH2170-FROM_DATE", list(t.sm37.from_date), format_sap_date_as(from_date, t.date_format)
+        backend, "BTCH2170-FROM_DATE", format_sap_date_as(from_date, t.date_format)
     ):
         unapplied.append("from_date")
 
     if to_date and not await _fill_selection_field(
-        backend, "BTCH2170-TO_DATE", list(t.sm37.to_date), format_sap_date_as(to_date, t.date_format)
+        backend, "BTCH2170-TO_DATE", format_sap_date_as(to_date, t.date_format)
     ):
         unapplied.append("to_date")
 

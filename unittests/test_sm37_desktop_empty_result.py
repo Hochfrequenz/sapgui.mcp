@@ -97,6 +97,14 @@ async def test_a_filter_that_cannot_be_filled_fails_the_lookup(args: tuple[Any, 
     backend.press_key.assert_not_awaited()  # the query was not run with the default selection
 
 
+@pytest.mark.anyio
+async def test_an_unfillable_filter_is_not_retried_with_localized_labels() -> None:
+    """The BTCH2170 field names are the same on every release and language: no label is tried after them."""
+    backend = _filter_backend(fillable=set())
+    await _lookup(backend, "MYJOB*", None, None, None, None)
+    assert [call.args[0] for call in backend.focus_and_type.await_args_list] == ["BTCH2170-JOBNAME"]
+
+
 def _listing_backend(table: Any, session: Any) -> Any:
     """A desktop backend that gets past the selection screen and then reads ``table`` (or falls back to ``session``)."""
     backend = _backend("")
