@@ -149,6 +149,11 @@ def _parse_exception_rows(snapshot: str, t: LanguagePack) -> list[SE37Exception]
         if " LIKE " in match.group(0) or " TYPE " in match.group(0):
             continue
 
+        # Skip the header row ("Ausnahme Kurztext Langtext"): its first column title is one ASCII
+        # word and so looks like an exception name.
+        if t.se37.exception_column.equals(name):
+            continue
+
         exceptions.append(
             SE37Exception(
                 name=name,
