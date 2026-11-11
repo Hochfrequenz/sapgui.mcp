@@ -174,18 +174,20 @@ The full guide, including what to look out for (mixed-language screens, release 
 case sensitivity, short fragments), is
 [`src/sapguimcp/lang/ADDING_A_LANGUAGE.md`](src/sapguimcp/lang/ADDING_A_LANGUAGE.md). In short:
 
-1. Create `src/sapguimcp/lang/<xx>.py` with a `LanguagePack` of the same shape as `en.py` (copy it,
-   translate every text; mypy and `unittests/lang/test_pack_completeness.py` list the gaps). Texts
-   that are deliberately identical to EN go into `same_as_en`.
-2. Register the pack in `src/sapguimcp/lang/__init__.py` (`_PACKS`); the code becomes an accepted
-   `language` in `systems.json` at once.
-3. Fill the test pack (`unittests/webgui/testdata/lang_test.py`) and record fixtures for the new
-   language next to the existing `*_<lang>.html` snapshots.
-4. Verify the texts against SAP's own text tables:
-   `uv run python scripts/harvest_lang_texts.py <XX> --verify` (see `lang/sources.py`, `SOURCES`;
-   `--draft` writes the starting `<xx>.py` for a new language). Fix every drift or mark the field `Manual` with a reason.
-5. Run `uv run --group tests pytest unittests/lang unittests/test_no_ui_literals.py` (completeness,
-   pseudo-locale, no-literal guards), then the live tests logged on in the new language.
+1. Draft the pack: `uv run python scripts/harvest_lang_texts.py <XX> --draft --out src/sapguimcp/lang/<xx>.py`
+   on a system that has the language installed. Sourced texts come from SAP; everything else keeps
+   the EN value with a `# TODO`. Set `html_lang`, `logon_dropdown` and `date_format`.
+2. Register the pack in `src/sapguimcp/lang/__init__.py` (`_PACKS`); `--verify` and the config
+   accept only registered codes.
+3. Settle every `TODO` from SAP (`--print-sql` lists the queries; mypy and
+   `unittests/lang/test_pack_completeness.py` list the gaps). Texts that are deliberately identical
+   to EN go into `same_as_en`.
+4. Verify against SAP's text tables on every release:
+   `uv run python scripts/harvest_lang_texts.py <XX> --verify`. Fix every drift or mark the field
+   `Manual` with a reason.
+5. Fill the test pack (`unittests/webgui/testdata/lang_test.py`), record fixtures with
+   `SAP_LANGUAGE=<XX>`, run `uv run --group tests pytest unittests/lang unittests/test_no_ui_literals.py`,
+   then the live tests logged on in the new language.
 6. Known limitation: `tools/breakpoint_tools.py` stays DE/EN.
 
 ## How to Add a New Transaction Tool
