@@ -92,15 +92,6 @@
     "warning": 1,
     "warnung": 2
   },
-  "src/sapguimcp/backend/webgui/js/read_se16n_selection_rows.js": {
-    "Feldname": 1,
-    "Field Name": 1,
-    "From Value": 1,
-    "From-Value": 1,
-    "Selection Criteria": 1,
-    "Selektionskriterien": 1,
-    "Von-Wert": 1
-  },
   "src/sapguimcp/backend/webgui/parsers/se09_parser.py": {
     "Auftrag": 1,
     "Aufträge": 1,
@@ -194,6 +185,7 @@
     "yes": 1
   },
   "src/sapguimcp/tools/breakpoint_tools.py": {
+    "' methods table": 1,
     "' not found in class '": 1,
     "' not found in source (": 1,
     "ABAP Program Name": 1,
@@ -273,50 +265,6 @@
     "modifiable": 2,
     "released": 2,
     "Änderbar": 2
-  },
-  "src/sapguimcp/tools/se11_tools.py": {
-    "Data Type": 1,
-    "Data type": 2,
-    "Database table": 1,
-    "Datenbanktabelle": 1,
-    "Datentyp": 2,
-    "Dec.Pl.": 1,
-    "Decimal Places": 1,
-    "Decimals": 1,
-    "Dez.St.": 1,
-    "DezStellen": 1,
-    "Feld": 1,
-    "Feldname": 1,
-    "Field": 1,
-    "Field Name": 1,
-    "Field name": 1,
-    "Key": 1,
-    "Kurzbeschreibung": 1,
-    "Length": 1,
-    "Länge": 1,
-    "Short Description": 1,
-    "Short text": 1,
-    "Table name": 2,
-    "einstieg": 2,
-    "initial": 2
-  },
-  "src/sapguimcp/tools/se16_tools.py": {
-    "/^(Leer\\s*)+$/": 1,
-    "Max. Number of Hits": 2,
-    "Maximale Trefferzahl": 2,
-    "Tabelle": 5,
-    "Table": 5,
-    "does not exist": 1,
-    "entries": 1,
-    "existiert nicht": 1,
-    "hits": 1,
-    "input[title*='Tabelle'], input[aria-label*='Tabelle']": 1,
-    "input[title*='Table'], input[aria-label*='Table']": 1,
-    "keine einträge": 1,
-    "keine werte": 1,
-    "no entries": 1,
-    "no values": 1,
-    "treffer": 1
   },
   "src/sapguimcp/tools/se24_edit_tools.py": {
     "Class Builder": 1,

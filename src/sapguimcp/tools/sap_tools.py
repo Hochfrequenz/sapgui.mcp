@@ -770,7 +770,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return await backend.read_table(start_row=start_row, end_row=end_row, max_rows=max_rows)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Reading table")
-            return TableData.failure(f"Error reading table: {e}")
+            return TableData.failure(f"Error reading table: {e}")  # lang-ok: our own message
 
     @mcp.tool(
         description=(
@@ -821,7 +821,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Clicking table cell", extra={"row": row, "column": column})
             return TableCellClickResult.failure(
-                f"Error clicking table cell: {e}",
+                f"Error clicking table cell: {e}",  # lang-ok: our own message
                 row=row,
                 column=column,
                 selector_used="",
@@ -1268,7 +1268,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             Check active_window to see which window was operated on (wnd[0] or wnd[1]).
         """
         if not fields:
-            return FillFormResult.failure("fields cannot be empty")  # lang-ok: own message
+            return FillFormResult.failure("fields cannot be empty")  # lang-ok: our own message
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_fill_form")
@@ -1346,7 +1346,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             For dropdown errors, includes available_options.
         """
         if not label:
-            return SetFieldResult.failure("label cannot be empty", label="", value=value)  # lang-ok: own message
+            return SetFieldResult.failure("label cannot be empty", label="", value=value)  # lang-ok: our own message
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_set_field")
@@ -1399,7 +1399,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     ) -> SetFieldResult:
         """Set a SAP checkbox to checked or unchecked."""
         if not label:
-            return SetFieldResult.failure("label cannot be empty", label="", value=str(checked))  # lang-ok: own message
+            return SetFieldResult.failure(
+                "label cannot be empty",  # lang-ok: our own message
+                label="",
+                value=str(checked),
+            )
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_set_checkbox")
@@ -1443,7 +1447,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     ) -> SetFieldResult:
         """Select a SAP radio button."""
         if not label:
-            return SetFieldResult.failure("label cannot be empty", label="", value="")  # lang-ok: own message
+            return SetFieldResult.failure("label cannot be empty", label="", value="")  # lang-ok: our own message
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_set_radio_button")
@@ -1494,7 +1498,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     ) -> ClickButtonResult:
         """Click a button by label text on the current SAP screen."""
         if not label:
-            return ClickButtonResult.failure("label cannot be empty", label="")  # lang-ok: own message
+            return ClickButtonResult.failure("label cannot be empty", label="")  # lang-ok: our own message
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_click_button")
@@ -1538,7 +1542,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     ) -> SelectTabResult:
         """Select a tab by label text on the current SAP screen."""
         if not label:
-            return SelectTabResult.failure("label cannot be empty", label="")  # lang-ok: own message
+            return SelectTabResult.failure("label cannot be empty", label="")  # lang-ok: our own message
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_select_tab")
@@ -1587,7 +1591,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     ) -> SelectDropdownResult:
         """Select a value from a dropdown field."""
         if not label:
-            return SelectDropdownResult.failure("label cannot be empty", label="", value=value)  # lang-ok: own message
+            return SelectDropdownResult.failure(
+                "label cannot be empty",  # lang-ok: our own message
+                label="",
+                value=value,
+            )
 
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_select_dropdown")

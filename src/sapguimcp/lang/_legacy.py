@@ -24,8 +24,6 @@ __all__ = [
     "SE11_DATABASE_TABLE_EN",
     "SE11_DATA_TYPE_DE",
     "SE11_DATA_TYPE_EN",
-    "SE11_DICTIONARY_TYPE_DE",
-    "SE11_DICTIONARY_TYPE_EN",
     "SE11_DISPLAY_BUTTON_DE",
     "SE11_DISPLAY_BUTTON_EN",
     "SE11_NOT_EXIST_DE",
@@ -214,9 +212,6 @@ SE11_ROW_SELECT_PREFIX_EN = "To select a row"
 
 SE11_ROW_SELECT_FULL_DE = r'Zum Auswählen[^"]*Leertaste\.'
 SE11_ROW_SELECT_FULL_EN = r"To select a row, press the space bar\."
-
-SE11_DICTIONARY_TYPE_DE = "Dictionary.*Typ"
-SE11_DICTIONARY_TYPE_EN = "Dictionary.*type"
 
 # Error messages
 SE11_NOT_EXIST_DE = "existiert nicht"

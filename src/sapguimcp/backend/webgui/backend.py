@@ -1254,7 +1254,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Reading table")
-            return TableData.failure(f"Error reading table: {e}")
+            return TableData.failure(f"Error reading table: {e}")  # lang-ok: our own message
 
     async def click_table_cell(self, row: int, column: int | str, action: str = "click") -> TableCellClickResult:
         """Click a cell in the current ALV grid table."""
@@ -1295,7 +1295,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Clicking table cell")
             return TableCellClickResult.failure(
-                f"Error clicking table cell: {e}",
+                f"Error clicking table cell: {e}",  # lang-ok: our own message
                 row=row,
                 column=column,
                 selector_used="",

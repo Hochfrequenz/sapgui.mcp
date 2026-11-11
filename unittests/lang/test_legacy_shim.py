@@ -26,7 +26,6 @@ LEGACY_PATHS: dict[str, str] = {
     "SE11_SHORT_DESC": "se11.short_description",
     "SE11_ROW_SELECT_PREFIX": "common.row_select_hint",
     "SE11_ROW_SELECT_FULL": "se11.row_select_full",
-    "SE11_DICTIONARY_TYPE": "se11.dictionary_type",
     "SE11_NOT_EXIST": "common.does_not_exist",
     "SE11_NOT_FOUND": "common.not_found",
     "SE37_INITIAL_SCREEN": "se37.initial_screen",
