@@ -31,7 +31,9 @@ from fastmcp import Context, FastMCP
 from fastmcp.utilities.types import Image
 from mcp.types import ToolAnnotations
 
+from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
+from sapguimcp.lang.schema import Key
 from sapguimcp.mcp_session import get_mcp_session_id
 from sapguimcp.models import (
     CapabilitiesResult,
@@ -93,32 +95,37 @@ _TRANSACTION_NOT_FOUND_MESSAGE = ("S#", "343")
 # F1-F12, Strg+F1, Umschalt+F1, Strg+Umschalt+F1, Eingabe, Strg+S, etc.
 _SHORTCUT_PATTERN = re.compile(r"(.+)\s+\(([^)]+)\)$")
 
+_FUNCTION_KEY = re.compile(r"^f\d{1,2}$", re.IGNORECASE)
+_MODIFIERS = (Key.CTRL, Key.SHIFT, Key.ALT)
+_SPECIAL_KEYS = (Key.ENTER, Key.DELETE, Key.ESCAPE)
 
-def _is_keyboard_shortcut(shortcut: str) -> bool:
+
+def _canonical_shortcut(shortcut: str) -> str | None:
+    """The shortcut with canonical English key names, or ``None`` if it is no keyboard shortcut.
+
+    Key names of every language pack are recognized (``lang.universal()``): ``Strg+Umschalt+F1``
+    becomes ``Ctrl+Shift+F1``, ``Eingabe`` becomes ``Enter``, as the desktop key mapping accepts them.
+
+    Valid shortcuts are:
+    - a function key (F1-F12)
+    - a special key alone (Enter, Delete, Escape and their localized names)
+    - anything with a modifier (Ctrl, Shift, Alt and their localized names) as a whole word
     """
-    Check if a string looks like a keyboard shortcut.
+    names = lang.universal().keys.names
 
-    Valid shortcuts include:
-    - F1-F12, Eingabe, Enter, Escape, Esc
-    - Strg+S, Ctrl+S, Strg+F1
-    - Umschalt+F1, Shift+F1
-    - Strg+Umschalt+F1, Ctrl+Shift+F1
-    """
-    shortcut_lower = shortcut.lower()
+    def canonical(part: str) -> str:
+        for key, text in names.items():
+            if text.equals(part.strip()):
+                return key.value
+        return part.strip()
 
-    # Function keys
-    if re.match(r"^f\d{1,2}$", shortcut_lower):
-        return True
-
-    # Special keys
-    if shortcut_lower in ("eingabe", "enter", "escape", "esc", "entf", "delete"):
-        return True
-
-    # Modifier + key combinations
-    if any(mod in shortcut_lower for mod in ("strg", "ctrl", "umschalt", "shift", "alt")):
-        return True
-
-    return False
+    if _FUNCTION_KEY.match(shortcut):
+        return shortcut
+    if any(names[key].equals(shortcut) for key in _SPECIAL_KEYS):
+        return canonical(shortcut)
+    if any(names[key].contains(shortcut) for key in _MODIFIERS):
+        return "+".join(canonical(part) for part in shortcut.split("+"))
+    return None
 
 
 def parse_shortcut_from_title(title: str) -> ShortcutInfo | None:
@@ -140,11 +147,14 @@ def parse_shortcut_from_title(title: str) -> ShortcutInfo | None:
         ShortcutInfo if a valid keyboard shortcut is found, None otherwise.
         Returns None for non-keyboard patterns like dates or numbers.
 
+    The shortcut is returned with canonical English key names (``Strg+S`` -> ``Ctrl+S``), so it
+    can be passed to ``sap_press_key`` on either backend.
+
     Examples:
         >>> parse_shortcut_from_title("Person anlegen (F5)")
         ShortcutInfo(action='Person anlegen', shortcut='F5')
         >>> parse_shortcut_from_title("Save (Strg+S)")
-        ShortcutInfo(action='Save', shortcut='Strg+S')
+        ShortcutInfo(action='Save', shortcut='Ctrl+S')
         >>> parse_shortcut_from_title("Created (2024-01-01)")  # Not a shortcut
         None
     """
@@ -157,10 +167,11 @@ def parse_shortcut_from_title(title: str) -> ShortcutInfo | None:
     action = match.group(1).strip()
     shortcut = match.group(2).strip()
 
-    if not _is_keyboard_shortcut(shortcut):
+    canonical = _canonical_shortcut(shortcut)
+    if canonical is None:
         return None
 
-    return ShortcutInfo(action=action, shortcut=shortcut)
+    return ShortcutInfo(action=action, shortcut=canonical)
 
 
 # =============================================================================
@@ -171,12 +182,14 @@ SELECTORS: dict[str, str] = {
     "okcode_field": (
         'input[id*="ToolbarOkCode"], input[name*="okcode" i], input[id*="okcd" i], input[id*="OkCodeField" i]'
     ),
-    "settings_button": (
-        '[id*="settingsButton"], '
-        '[title*="Setting" i], '
-        '[title*="Einstellung" i], '
-        'button[id*="gear" i], '
-        '[aria-label*="Setting" i]'
+    # The id/gear entries match no captured snapshot, so the localized titles stay (#1044).
+    "settings_button": ", ".join(
+        [
+            '[id*="settingsButton"]',
+            *(f'[title*="{title}" i]' for title in lang.universal().session_pages.settings_menu),
+            'button[id*="gear" i]',
+            *(f'[aria-label*="{title}" i]' for title in lang.universal().session_pages.settings_menu),
+        ]
     ),
 }
 
@@ -1097,7 +1110,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
     @mcp.tool(
         description=(
             "Discover keyboard shortcuts available on the current SAP screen. "
-            "Use BEFORE clicking buttons - shortcuts like F5, Strg+S are faster and more reliable. "
+            "Use BEFORE clicking buttons - shortcuts like F5, Ctrl+S are faster and more reliable. "
             "Returns action text and key combination for each available shortcut.\n\n"
             "**Session parameter:**\n"
             '- session=None (default): Uses primary session ("s1")\n'
@@ -1125,7 +1138,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         Returns:
             ShortcutsResult with list of ShortcutInfo objects containing:
             - action: Button/action text (e.g., "Person anlegen")
-            - shortcut: Key combination (e.g., "F5", "Strg+S")
+            - shortcut: Key combination with English key names (e.g., "F5", "Ctrl+S")
         """
         try:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_get_shortcuts")
