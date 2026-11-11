@@ -101,15 +101,6 @@
     "Selektionskriterien": 1,
     "Von-Wert": 1
   },
-  "src/sapguimcp/backend/webgui/parsers/se09_parser.py": {
-    "Auftrag": 1,
-    "Aufträge": 1,
-    "Modifiable": 2,
-    "Released": 2,
-    "Transport Organizer: Auftr": 1,
-    "Transport Organizer: Requ": 1,
-    "region\\s+\"Liste\"": 1
-  },
   "src/sapguimcp/backend/webgui/parsers/se24_parser.py": {
     "abstract": 1,
     "abstrakt": 1,
@@ -119,10 +110,6 @@
   "src/sapguimcp/backend/webgui/parsers/se37_parser.py": {
     " not found": 1,
     "heading \"Function Builder:\\s*(?:(?P<fm_de>[A-Z0-9_/]+)\\s+": 1
-  },
-  "src/sapguimcp/backend/webgui/parsers/se93_parser.py": {
-    "anzeigen": 1,
-    "display": 1
   },
   "src/sapguimcp/backend/webgui/parsers/slg1_parser.py": {
     "empty": 1,
@@ -288,24 +275,6 @@
   "src/sapguimcp/tools/sap_tools.py": {
     "[id*=\"settingsButton\"], [title*=\"Setting\" i], [title*=\"Einstellung\" i], button[id*=\"gear\" i], [aria-label*=\"Setting\" i]": 1
   },
-  "src/sapguimcp/tools/se09_tools.py": {
-    "Anzeigen": 2,
-    "Benutzer": 2,
-    "Customizing Requests": 2,
-    "Customizing-Aufträge": 2,
-    "Display": 2,
-    "Freigegeben": 2,
-    "Modifiable": 2,
-    "Released": 2,
-    "Transport Organizer:": 1,
-    "User": 2,
-    "Workbench Requests": 2,
-    "Workbench-Aufträge": 2,
-    "all": 8,
-    "modifiable": 2,
-    "released": 2,
-    "Änderbar": 2
-  },
   "src/sapguimcp/tools/se11_tools.py": {
     "Data Type": 1,
     "Data type": 2,
@@ -434,11 +403,6 @@
     "initial": 1,
     "initial screen": 1,
     "input[title*='rogramm'][ct='CBS']": 1
-  },
-  "src/sapguimcp/tools/se93_tools.py": {
-    "Transaction Code": 1,
-    "Transaction code": 1,
-    "Transaktionscode": 1
   },
   "src/sapguimcp/tools/slg1_tools.py": {
     "Anzahl Nachr.": 1,

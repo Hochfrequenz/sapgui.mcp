@@ -17,8 +17,26 @@ class Invariant:
 
     sm34_hint: Text
     """SM30 points to SM34 for view clusters; the transaction code is not translated."""
+    abapgit_pull_successful: Text
+    """Success message of the abapGit pull report (our own Z report, English only)."""
+    abapgit_successful: Text
+    abapgit_branch_not_found: Text
+    """Prefix of the report's branch error; matched with ``startswith``, so case-sensitive."""
+    abapgit_error_words: Text
+    """English words in abapGit's own exception texts (popups); the logon language does not translate them."""
+    abapgit_error: Text
+    abapgit_screen_errors: Text
+    abapgit_trkorr_hint: Text
+    """The report names its transport parameter ``P_TRKORR`` in its transport hint."""
 
 
 INVARIANT = Invariant(
     sm34_hint=Text(("SM34",)),
+    abapgit_pull_successful=Text(("pull successful",)),
+    abapgit_successful=Text(("successful",)),
+    abapgit_branch_not_found=Text(("Branch not found:",), fold=False),
+    abapgit_error_words=Text(("error", "exception", "failed", "required", "transport", "repository")),
+    abapgit_error=Text(("error",)),
+    abapgit_screen_errors=Text(("exception", "error:")),
+    abapgit_trkorr_hint=Text(("provide p_trkorr", "p_trkorr=")),
 )

@@ -141,6 +141,37 @@ class CommonSection:
 class Se09Section:
     MERGE: ClassVar[MergeMode] = "session_en"
     status: Mapping[TransportStatus, Text]
+    display_button: Text
+    """Case-sensitive on purpose: the WebGUI check scans a whole snapshot, so ``common.display`` is too broad."""
+    workbench_requests: Text
+    customizing_requests: Text
+    expand: Text
+    compress: Text
+    list_region: Text
+    organizer_title: Text
+    request_word: Text
+
+
+@dataclass(frozen=True, slots=True)
+class AbapgitSection:
+    """Texts of SAP messages and popups around the abapGit report; the report's own output is invariant."""
+
+    MERGE: ClassVar[MergeMode] = "session_en"
+    error_keywords: Text
+    status_error: Text
+    screen_errors: Text
+    transport_required: Text
+    no_task: Text
+    button_labels: Text
+    inactive_objects: Text
+    se38_initial_title: Text
+
+
+@dataclass(frozen=True, slots=True)
+class QuickReportSection:
+    MERGE: ClassVar[MergeMode] = "session_en"
+    empty_patterns: Text
+    execute_button: Text
 
 
 @dataclass(frozen=True, slots=True)
@@ -218,6 +249,10 @@ class Sm30Section:
     maintain: Text
     table_view: Text
     display_view: Text
+    view_not_found: Text
+    no_maintenance_dialog: Text
+    view_title: Template
+    row_count: Template
 
 
 @dataclass(frozen=True, slots=True)
@@ -272,6 +307,8 @@ class LanguagePack:
     status_type: StatusTypeSection
     session_pages: SessionPagesSection
     keys: KeysSection
+    abapgit: AbapgitSection
+    quick_report: QuickReportSection
     se09: Se09Section
     se11: Se11Section
     se16: Se16Section

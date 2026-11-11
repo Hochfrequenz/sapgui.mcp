@@ -1,6 +1,7 @@
 """English language pack (SAP logon language EN); the fallback merged into every session view."""
 
 from sapguimcp.lang.schema import (
+    AbapgitSection,
     CommonSection,
     DumpSection,
     JobStatus,
@@ -8,6 +9,7 @@ from sapguimcp.lang.schema import (
     KeysSection,
     LanguagePack,
     PopupSection,
+    QuickReportSection,
     Se09Section,
     Se11Section,
     Se16Section,
@@ -57,6 +59,22 @@ EN = LanguagePack(
             }
         ),
     ),
+    abapgit=AbapgitSection(
+        error_keywords=Text(("not found",)),
+        status_error=Text(("not found",)),
+        screen_errors=Text(("repository not found", "transport required")),
+        transport_required=Text(("transport required",)),
+        no_task=Text(("no modifiable task", "has no task")),
+        button_labels=Text(("OK", "Cancel", "Yes", "No")),
+        inactive_objects=Text(("Inactive Objects",)),
+        # LIVE CHECK NEEDED (#1044): the real EN title of the SE38 initial screen. "Entry" never matched it
+        # (a DE-only check in practice); kept until the title is read live.
+        se38_initial_title=Text(("Entry",)),
+    ),
+    quick_report=QuickReportSection(
+        empty_patterns=Text(("no data", "no entries", "no job", "no documents")),
+        execute_button=Text(("Execute", "Execute Highlighted")),
+    ),
     se09=Se09Section(
         status=canonical(
             {
@@ -64,6 +82,14 @@ EN = LanguagePack(
                 TransportStatus.RELEASED: Text(("Released",)),
             }
         ),
+        display_button=Text(("Display",), fold=False),
+        workbench_requests=Text(("Workbench Requests",)),
+        customizing_requests=Text(("Customizing Requests",)),
+        expand=Text(("Expand",)),
+        compress=Text(("Compress",)),
+        list_region=Text(("List",)),
+        organizer_title=Text(("Transport Organizer",)),
+        request_word=Text(("Request",)),
     ),
     se11=Se11Section(
         database_table=Text(("Database table",)),
@@ -102,7 +128,7 @@ EN = LanguagePack(
         display_title=Template(("Function Builder: Display {name}",)),
     ),
     se93=Se93Section(
-        initial_screen=Text(("Transaction Maintenance",)),
+        initial_screen=Text(("Transaction Maintenance", "Maintain Transaction")),  # EN title per the captured snapshots
         dialog_transaction=Text(("Dialog Transaction",)),
         report_transaction=Text(("Report Transaction",)),
         gui_html=Text(("SAP GUI for HTML",)),
@@ -111,7 +137,9 @@ EN = LanguagePack(
         screen_number=Text(("Screen number",)),
         selection_screen=Text(("Selection screen",)),
         start_with_variant=Text(("Start with variant",)),
-        transaction_code=Text(("Transaction code",)),
+        transaction_code=Text(
+            ("Transaction code", "Transaction Code")
+        ),  # exact-case title lookups: both spellings exist
         transaction_text=Text(("Transaction text",)),
         package=Text(("Package",)),
         auth_object=Text(("Authorization object",)),
@@ -128,6 +156,10 @@ EN = LanguagePack(
         maintain=Text(("Maintain",)),
         table_view=Text(("Table/View",)),
         display_view=Text(("View",)),
+        view_not_found=Text(("is not in the Dictionary", "does not exist", "not found")),
+        no_maintenance_dialog=Text(("no maintenance dialog",)),
+        view_title=Template(("Display View {desc}", "Change View {desc}")),
+        row_count=Template(("Entry {current} of {total}",)),
     ),
     sm37=Sm37Section(
         status=canonical(
