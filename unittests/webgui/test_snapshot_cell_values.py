@@ -26,7 +26,7 @@ _HTML = """
   </tr>
 </tbody></table></div>
 <div role="textbox" aria-label="Outside">not in a grid</div>
-"""
+"""  # noqa: E501, W293
 
 
 async def _snapshot_text(html: str) -> str:
