@@ -9,6 +9,7 @@ import pytest
 import respx
 from httpx import ConnectError, Response
 
+from sapguimcp import lang
 from sapguimcp.server import app_lifespan
 from sapguimcp.tools.abapgit_tools import validate_github_pat
 
@@ -171,7 +172,7 @@ class TestAnalyzePullResultFallback:
             new_callable=AsyncMock,
             return_value=None,
         ):
-            result = await _analyze_pull_result(mock_backend, "TEST_REPO")
+            result = await _analyze_pull_result(mock_backend, "TEST_REPO", lang.view_for("DE"))
 
         assert result.success is False
         assert result.error is not None
@@ -203,7 +204,7 @@ class TestRunPullAndCheckErrors:
             new_callable=AsyncMock,
             return_value=None,
         ):
-            await _run_pull_and_check_errors(mock_backend, "TEST_REPO")
+            await _run_pull_and_check_errors(mock_backend, "TEST_REPO", lang.view_for("DE"))
 
         # Should press F8 via backend
         mock_backend.press_key.assert_any_call("F8")
@@ -231,7 +232,7 @@ class TestRunPullAndCheckErrors:
             return_value=None,
         ):
             # Should NOT raise — timeout is caught and logged
-            result = await _run_pull_and_check_errors(mock_backend, "TEST_REPO")
+            result = await _run_pull_and_check_errors(mock_backend, "TEST_REPO", lang.view_for("DE"))
 
         assert result is None  # No popup error found, continues to _analyze_pull_result
 
@@ -255,7 +256,7 @@ class TestRunPullAndCheckErrors:
             new_callable=AsyncMock,
             return_value=None,
         ):
-            await _run_pull_and_check_errors(mock_backend, "TEST_REPO")
+            await _run_pull_and_check_errors(mock_backend, "TEST_REPO", lang.view_for("DE"))
 
         # Should press Enter via backend to confirm inactive objects popup
         enter_calls = [c for c in mock_backend.press_key.call_args_list if c == call("Enter")]
@@ -291,7 +292,7 @@ class TestRunPullAndCheckErrors:
             new_callable=AsyncMock,
             return_value=None,
         ):
-            await _run_pull_and_check_errors(mock_backend, "TEST_REPO")
+            await _run_pull_and_check_errors(mock_backend, "TEST_REPO", lang.view_for("DE"))
 
         enter_calls = [c for c in mock_backend.press_key.call_args_list if c == call("Enter")]
         assert len(enter_calls) == expected_enters

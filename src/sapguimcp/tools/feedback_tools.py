@@ -108,7 +108,7 @@ async def _create_github_issue(
                 return response.json().get("html_url"), None
             return None, f"GitHub API error: {response.status_code} - {response.text}"
     except httpx.RequestError as e:
-        return None, f"Request failed: {e}"
+        return None, f"Request failed: {e}"  # lang-ok: our own message
 
 
 async def _create_issue_background(pat: str, repo: str, title: str, body: str) -> None:

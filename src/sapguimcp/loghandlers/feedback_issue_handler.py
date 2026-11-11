@@ -244,4 +244,4 @@ class FeedbackIssueHandler(logging.Handler):
                     return response.json().get("html_url"), None
                 return None, f"GitHub API error: {response.status_code}"
         except httpx.RequestError as e:
-            return None, f"Request failed: {e}"
+            return None, f"Request failed: {e}"  # lang-ok: our own message

@@ -27,7 +27,9 @@ import httpx
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
+from sapguimcp.lang import INVARIANT
 from sapguimcp.models.abapgit_models import (
     AbapGitActionResult,
     AbapGitListResult,
@@ -35,13 +37,16 @@ from sapguimcp.models.abapgit_models import (
     AbapGitRepoSummary,
 )
 from sapguimcp.models.config import get_settings
+from sapguimcp.tools.sap_tools import _TRANSACTION_NOT_FOUND_MESSAGE
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
+    from sapguimcp.lang.schema import LanguagePack
     from sapguimcp.models.base import PopupInfo
+    from sapguimcp.models.sap_results import StatusBarInfo
 
 
 logger = logging.getLogger(__name__)
@@ -99,52 +104,10 @@ class PullParams:
 
 # Error Detection Helpers
 
-ERROR_KEYWORDS = [
-    "not found",
-    "nicht gefunden",
-    "error",
-    "fehler",
-    "exception",
-    "failed",
-    "fehlgeschlagen",
-    "required",
-    "erforderlich",
-    "transport",
-    "repository",
-]
-
-ERROR_PATTERNS = [
-    ("repository not found", "Repository not found"),
-    ("nicht gefunden", "Not found"),
-    ("transport required", "Transport required"),
-    ("transport erforderlich", "Transport required"),
-    ("exception", "Exception occurred"),
-    ("fehler bei", "Error in"),
-    ("error:", "Error"),
-]
-
-# Additional transport-related patterns beyond ERROR_PATTERNS above.
-# Keep in sync: ERROR_PATTERNS covers "transport required" / "transport erforderlich"
-# for generic error detection; this list adds patterns for the enrichment check.
-_TRANSPORT_REQUIRED_PATTERNS = (
-    "transport required",
-    "transport erforderlich",
-    "provide p_trkorr",
-    "p_trkorr=",
-    "transportauftrag",
-)
-
 _TRANSPORT_REQUIRED_GUIDANCE = (
     "A transport request (TRKORR) is required for this pull. "
     "Look up an open transport request (e.g. via SE09/SE10) and "
     "retry: sap_abapgit_pull(repo=..., trkorr='<TRKORR>')"
-)
-
-_NO_TASK_PATTERNS = (
-    "no modifiable task",
-    "keine modifizierbare aufgabe",
-    "has no task",
-    "keine aufgabe",
 )
 
 _NO_TASK_GUIDANCE = (
@@ -154,16 +117,27 @@ _NO_TASK_GUIDANCE = (
 )
 
 
-def _is_transport_required_error(error_text: str) -> bool:
+def _is_transport_required_error(error_text: str, t: LanguagePack) -> bool:
     """Check if an error message indicates a transport request is required."""
-    lower = error_text.lower()
-    return any(pattern in lower for pattern in _TRANSPORT_REQUIRED_PATTERNS)
+    return t.abapgit.transport_required.contains(error_text) or INVARIANT.abapgit_trkorr_hint.contains(error_text)
 
 
-def _is_no_task_error(error_text: str) -> bool:
+def _is_no_task_error(error_text: str, t: LanguagePack) -> bool:
     """Check if an error message indicates the user has no task in the transport."""
-    lower = error_text.lower()
-    return any(pattern in lower for pattern in _NO_TASK_PATTERNS)
+    return t.abapgit.no_task.contains(error_text)
+
+
+def _is_transaction_not_found(status: StatusBarInfo, t: LanguagePack) -> bool:
+    """Check if the status bar says the pull transaction does not exist.
+
+    The desktop status bar carries the message ID (S# 343), which does not depend on the logon language. The text
+    check stays for the WebGUI, whose status bar has no message ID (and for the desktop until a live run shows the ID
+    arrives after an OK-code entry too).
+    """
+    if (status.message_id, status.message_number) == _TRANSACTION_NOT_FOUND_MESSAGE:
+        return True
+    message = status.message or ""
+    return t.common.not_found.contains(message) or t.common.does_not_exist.contains(message)
 
 
 _CREDENTIALS_POPUP_NAME = "password_popup"
@@ -188,18 +162,18 @@ def _is_credentials_popup_error(error_text: str) -> bool:
     return _CREDENTIALS_POPUP_NAME in lower or lower.rstrip(". ").endswith(_CREDENTIALS_POPUP_CUT_ENGLISH)
 
 
-def _enrich_transport_error(error_text: str) -> str:
+def _enrich_transport_error(error_text: str, t: LanguagePack) -> str:
     """If the error is transport- or credentials-related, append actionable guidance."""
     if _is_credentials_popup_error(error_text):
         return f"{error_text.rstrip('. ')}. {_CREDENTIALS_POPUP_GUIDANCE}"
-    if _is_transport_required_error(error_text):
+    if _is_transport_required_error(error_text, t):
         return f"{error_text.rstrip('. ')}. {_TRANSPORT_REQUIRED_GUIDANCE}"
-    if _is_no_task_error(error_text):
+    if _is_no_task_error(error_text, t):
         return f"{error_text.rstrip('. ')}. {_NO_TASK_GUIDANCE}"
     return error_text
 
 
-async def _check_for_error_popup(backend: "WebGuiBackend | DesktopBackend") -> str | None:
+async def _check_for_error_popup(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> str | None:
     """Check for SAP error popup dialog and extract message text."""
     try:
         if backend.backend_type == "desktop":
@@ -208,14 +182,11 @@ async def _check_for_error_popup(backend: "WebGuiBackend | DesktopBackend") -> s
             text = await _check_for_error_popup_webgui(cast("WebGuiBackend", backend))
         if not text:
             return None
-        text_lower = text.lower()
-        if not any(keyword in text_lower for keyword in ERROR_KEYWORDS):
+        if not (t.abapgit.error_keywords.contains(text) or INVARIANT.abapgit_error_words.contains(text)):
             return None
         lines = text.split("\n")
         message_lines = [
-            line.strip()
-            for line in lines
-            if line.strip() and line.strip().lower() not in ("ok", "cancel", "abbrechen", "ja", "nein", "yes", "no")
+            line.strip() for line in lines if line.strip() and not t.abapgit.button_labels.equals(line.strip())
         ]
         if message_lines:
             logger.info("Found error popup", extra={"popup_message": message_lines[0]})
@@ -258,7 +229,7 @@ async def _check_for_error_popup_desktop(backend: "WebGuiBackend | DesktopBacken
     return popup.message
 
 
-async def _check_screen_for_errors(backend: "WebGuiBackend | DesktopBackend") -> str | None:
+async def _check_screen_for_errors(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> str | None:
     """Check the entire screen for error indicators as a fallback."""
     try:
         if backend.backend_type == "desktop":
@@ -268,16 +239,15 @@ async def _check_screen_for_errors(backend: "WebGuiBackend | DesktopBackend") ->
             body_text = await cast("WebGuiBackend", backend).evaluate_javascript("() => document.body.innerText || ''")
         body_lower = body_text.lower()
 
-        for pattern, message_prefix in ERROR_PATTERNS:
-            if pattern in body_lower:
-                idx = body_lower.find(pattern)
+        for pattern in (*t.abapgit.screen_errors, *INVARIANT.abapgit_screen_errors):
+            idx = body_lower.find(pattern.lower())
+            if idx >= 0:
                 start = max(0, idx - 50)
                 end = min(len(body_text), idx + 150)
                 context = " ".join(body_text[start:end].split())
                 if context:
                     logger.info("Found error on screen", extra={"context": context[:100]})
                     return context
-                return message_prefix
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.debug("Checking screen for errors", extra={"error": str(e)})
     return None
@@ -504,42 +474,44 @@ async def _enter_tcode_via_okcode(
 # Pull Result Analysis
 
 
-async def _analyze_pull_result(backend: "WebGuiBackend | DesktopBackend", repo: str) -> AbapGitActionResult:
+async def _analyze_pull_result(
+    backend: "WebGuiBackend | DesktopBackend", repo: str, t: LanguagePack
+) -> AbapGitActionResult:
     """Analyze status bar and screen to determine pull result."""
     status = await backend.get_status_bar()
     msg = status.message or ""
     msg_type = status.type or ""
-    msg_lower = msg.lower()
 
     logger.info("Pull result", extra={"status_type": msg_type, "status_message": msg})
 
     # Check for explicit success or error on first read
-    is_success = "pull successful" in msg_lower or ("successful" in msg_lower and msg_type in ("S", "I"))
-    is_error = msg_type in ("E", "A") or "not found" in msg_lower or "error" in msg_lower
+    is_success = INVARIANT.abapgit_pull_successful.contains(msg) or (
+        INVARIANT.abapgit_successful.contains(msg) and msg_type in ("S", "I")
+    )
+    is_error = msg_type in ("E", "A") or t.abapgit.status_error.contains(msg) or INVARIANT.abapgit_error.contains(msg)
 
     if is_success:
         return AbapGitActionResult.success_result(action="pull", repo_name=repo, message=msg)
     if is_error:
-        return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=_enrich_transport_error(msg))
+        return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=_enrich_transport_error(msg, t))
 
     # Retry status bar read
     await backend.wait(2000)
     status = await backend.get_status_bar()
     final_msg = status.message or msg
     final_type = status.type or msg_type
-    final_lower = final_msg.lower()
     logger.info("Final status check", extra={"status_type": final_type, "status_message": final_msg})
 
     # Check final status
-    is_final_success = "pull successful" in final_lower
+    is_final_success = INVARIANT.abapgit_pull_successful.contains(final_msg)
     is_final_error = final_type in ("E", "A")
-    screen_error = None if final_msg and final_type != "none" else await _check_screen_for_errors(backend)
+    screen_error = None if final_msg and final_type != "none" else await _check_screen_for_errors(backend, t)
 
     if is_final_success:
         return AbapGitActionResult.success_result(action="pull", repo_name=repo, message=final_msg)
     if is_final_error or screen_error:
         return AbapGitActionResult.failure_result(
-            action="pull", repo_name=repo, error=_enrich_transport_error(screen_error or final_msg)
+            action="pull", repo_name=repo, error=_enrich_transport_error(screen_error or final_msg, t)
         )
 
     # Treat ambiguous result based on whether we got any status message.
@@ -563,20 +535,22 @@ async def _analyze_pull_result(backend: "WebGuiBackend | DesktopBackend", repo: 
 # Main Pull Implementation
 
 
-async def _handle_popup_error(backend: "WebGuiBackend | DesktopBackend", repo: str) -> AbapGitActionResult | None:
+async def _handle_popup_error(
+    backend: "WebGuiBackend | DesktopBackend", repo: str, t: LanguagePack
+) -> AbapGitActionResult | None:
     """Check for error popup and return failure if found, None otherwise."""
-    popup_error = await _check_for_error_popup(backend)
+    popup_error = await _check_for_error_popup(backend, t)
     if popup_error:
         await backend.press_key("Enter")
         await backend.wait(500)
         return AbapGitActionResult.failure_result(
-            action="pull", repo_name=repo, error=_enrich_transport_error(popup_error)
+            action="pull", repo_name=repo, error=_enrich_transport_error(popup_error, t)
         )
     return None
 
 
 async def _execute_pull_transaction(
-    backend: "WebGuiBackend | DesktopBackend", params: PullParams, repo: str
+    backend: "WebGuiBackend | DesktopBackend", params: PullParams, repo: str, t: LanguagePack
 ) -> AbapGitActionResult | None:
     """Execute pull transaction and return failure result if error, None if OK to continue."""
     okcode_error = await _enter_tcode_via_okcode(backend, params.tcode_with_params, repo)
@@ -585,9 +559,7 @@ async def _execute_pull_transaction(
 
     # Check if transaction was found
     status = await backend.get_status_bar()
-    status_msg = (status.message or "").lower()
-    tx_not_found = "not found" in status_msg or "existiert nicht" in status_msg or "does not exist" in status_msg
-    if tx_not_found:
+    if _is_transaction_not_found(status, t):
         return AbapGitActionResult.failure_result(
             action="pull",
             repo_name=repo,
@@ -599,28 +571,24 @@ async def _execute_pull_transaction(
     return None
 
 
-_INACTIVE_OBJECTS_PHRASES = ("inaktive objekte", "inactive objects")
-
-
-def _is_inactive_objects_popup(popup: PopupInfo) -> bool:
+def _is_inactive_objects_popup(popup: PopupInfo, t: LanguagePack) -> bool:
     """Return True if the popup is the "Inaktive Objekte" / "Inactive Objects" dialog.
 
     The phrase may be in the window title (desktop: the message is built from the dialog's
     labels, not its title) or in the message (WebGUI: the message comes from the header title).
     """
-    haystack = f"{popup.title or ''} {popup.message or ''}".lower()
-    return any(phrase in haystack for phrase in _INACTIVE_OBJECTS_PHRASES)
+    return t.abapgit.inactive_objects.contains(f"{popup.title or ''} {popup.message or ''}")
 
 
 async def _run_pull_and_check_errors(
-    backend: "WebGuiBackend | DesktopBackend", repo: str
+    backend: "WebGuiBackend | DesktopBackend", repo: str, t: LanguagePack
 ) -> AbapGitActionResult | None:
     """Execute F8 and wait for SAP to finish processing. Returns error if found."""
     await backend.press_key("F8")
 
     # Fast-fail: check for immediate error popups (bad transport, auth error)
     await backend.wait(2000)
-    popup_result = await _handle_popup_error(backend, repo)
+    popup_result = await _handle_popup_error(backend, repo, t)
     if popup_result:
         return popup_result
 
@@ -633,7 +601,7 @@ async def _run_pull_and_check_errors(
     # SAP may show an "Inaktive Objekte" / "Inactive Objects" popup after pull.
     # Detect via check_popup() instead of parsing snapshot text.
     popup = await backend.check_popup()
-    if popup and _is_inactive_objects_popup(popup):
+    if popup and _is_inactive_objects_popup(popup, t):
         logger.info("Detected inactive objects popup, confirming with Enter")
         await backend.press_key("Enter")
         await backend.wait(2000)
@@ -642,7 +610,7 @@ async def _run_pull_and_check_errors(
         except Exception:  # pylint: disable=broad-exception-caught
             pass
 
-    return await _handle_popup_error(backend, repo)
+    return await _handle_popup_error(backend, repo, t)
 
 
 def _clean_timestamp(value: str) -> str | None:
@@ -973,6 +941,8 @@ async def _read_report_screen(backend: "WebGuiBackend | DesktopBackend", read_pr
 async def _abapgit_list_repos(backend: "WebGuiBackend | DesktopBackend") -> AbapGitListResult:
     """List all registered abapGit repositories via Z_ABAPGIT_PULL_MCP P_ACTION=LIST."""
     logger.info("Listing abapGit repositories")
+    # Resolved outside the try: an unsupported session language must reach the caller, not become a failure result.
+    t = lang.current("sap_abapgit_list_repos")
 
     try:
         tcode_with_params = "/nZ_ABAPGIT_PULL_MCP P_ACTION=LIST;"
@@ -982,8 +952,7 @@ async def _abapgit_list_repos(backend: "WebGuiBackend | DesktopBackend") -> Abap
 
         # Check if transaction was found
         status = await backend.get_status_bar()
-        status_msg = (status.message or "").lower()
-        if "not found" in status_msg or "existiert nicht" in status_msg or "does not exist" in status_msg:
+        if _is_transaction_not_found(status, t):
             return AbapGitListResult(
                 success=False,
                 error=(
@@ -1093,7 +1062,7 @@ def _annotate_branch_failure(result: AbapGitActionResult, params: PullParams) ->
             "WARNING: the previous branch was restored, but re-applying its commit pin failed, so the repository "
             f"may no longer be pinned. Check the original pin before retrying. {error}"
         )
-    elif error.startswith("Branch not found:"):
+    elif error.startswith(tuple(INVARIANT.abapgit_branch_not_found)):
         result.error = f"{error} The selected branch is unchanged; check the branch name on the remote."
     return result
 
@@ -1127,7 +1096,7 @@ def _annotate_key_failure(result: AbapGitActionResult) -> AbapGitActionResult:
             'The report does not support pulling by key (it answered "P_REPO is required for PULL action"). '
             "Update Z_ABAPGIT_PULL_MCP_SHORTCUT to a version with P_KEY, or pass repo instead. Nothing was pulled."
         )
-    elif "repository not found: key" in lower:
+    elif INVARIANT.abapgit_key_not_found.contains(error):
         result.error = error.rstrip() + _KEY_NOT_FOUND_HINT
     elif "sap_abapgit_pull(repo=..." in error:
         result.error = error.replace("sap_abapgit_pull(repo=...", "sap_abapgit_pull(key=...")
@@ -1169,6 +1138,8 @@ async def _abapgit_pull_via_api(  # pylint: disable=too-many-arguments,too-many-
     """Pull changes using the Z_ABAPGIT_PULL_MCP transaction (abapGit ABAP API)."""
     label = _failure_label(repo, key)
     logger.info("Starting abapGit Pull via API", extra={"repo": label})
+    # Resolved outside the try: an unsupported session language must reach the caller, not become a failure result.
+    t = lang.current("sap_abapgit_pull")
 
     try:
         # Validate and prepare parameters
@@ -1189,16 +1160,16 @@ async def _abapgit_pull_via_api(  # pylint: disable=too-many-arguments,too-many-
         )
 
         # Execute transaction
-        tx_error = await _execute_pull_transaction(backend, params, params.label)
+        tx_error = await _execute_pull_transaction(backend, params, params.label, t)
         if tx_error:
             return _check_key_outcome(tx_error, params)
 
         # Run pull and check for popup errors
-        popup_error = await _run_pull_and_check_errors(backend, params.label)
+        popup_error = await _run_pull_and_check_errors(backend, params.label, t)
         if popup_error:
             return _check_key_outcome(popup_error, params)
 
-        outcome = await _check_branch_outcome(backend, await _analyze_pull_result(backend, params.label), params)
+        outcome = await _check_branch_outcome(backend, await _analyze_pull_result(backend, params.label, t), params)
         return _check_key_outcome(outcome, params)
 
     except Exception as e:  # pylint: disable=broad-exception-caught
@@ -1211,7 +1182,7 @@ async def _abapgit_pull_via_api(  # pylint: disable=too-many-arguments,too-many-
 # =============================================================================
 
 
-async def _fill_se38_program_field(backend: "WebGuiBackend", program_name: str) -> bool:
+async def _fill_se38_program_field(backend: "WebGuiBackend", program_name: str, t: LanguagePack) -> bool:
     """Fill the program name field in SE38 using various strategies."""
     input_selectors = [
         "input[name*='PROGRAM']",
@@ -1231,7 +1202,7 @@ async def _fill_se38_program_field(backend: "WebGuiBackend", program_name: str) 
 
     # Try backend.fill_form as fallback
     try:
-        fill_result = await backend.fill_form({"Programm": program_name, "Program": program_name})
+        fill_result = await backend.fill_form(dict.fromkeys(t.common.program, program_name))
         if not fill_result.not_found or len(fill_result.not_found) < 2:
             logger.info("Filled program name using backend.fill_form")
             return True
@@ -1438,7 +1409,7 @@ async def _find_source_code(backend: "WebGuiBackend") -> str | None:
     return None
 
 
-async def read_se38_source(backend: "WebGuiBackend", program_name: str) -> dict[str, Any]:
+async def read_se38_source(backend: "WebGuiBackend", program_name: str, t: LanguagePack) -> dict[str, Any]:
     """Read ABAP report source code from SE38."""
     try:
         nav_error = await _navigate_to_se38(backend)
@@ -1446,7 +1417,7 @@ async def read_se38_source(backend: "WebGuiBackend", program_name: str) -> dict[
             return {"success": False, "error": nav_error}
 
         await backend.wait(2000)
-        if not await _fill_se38_program_field(backend, program_name):
+        if not await _fill_se38_program_field(backend, program_name, t):
             return {"success": False, "error": "Could not find program input field"}
 
         # Press F7 (Display) and handle entry screen
@@ -1456,11 +1427,11 @@ async def read_se38_source(backend: "WebGuiBackend", program_name: str) -> dict[
 
         page_title = await backend.get_page_title()
         logger.info("Page title after F7", extra={"title": page_title})
-        if "Einstieg" in page_title or "Entry" in page_title:
+        if t.abapgit.se38_initial_title.contains(page_title):
             await backend.press_key("Enter")
             await backend.wait(2000)
             title_after_enter = await backend.get_page_title()
-            if "Einstieg" in title_after_enter or "Entry" in title_after_enter:
+            if t.abapgit.se38_initial_title.contains(title_after_enter):
                 await backend.press_key("F8")
                 await backend.wait(3000)
 
@@ -1487,7 +1458,7 @@ async def read_se38_source(backend: "WebGuiBackend", program_name: str) -> dict[
 
 async def verify_abap_report_content(backend: "WebGuiBackend", program_name: str, expected_text: str) -> dict[str, Any]:
     """Verify that an ABAP report contains expected text."""
-    result = await read_se38_source(backend, program_name)
+    result = await read_se38_source(backend, program_name, lang.current("sap_read_se38_source"))
 
     if not result.get("success"):
         return result
@@ -1699,4 +1670,4 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
         from sapguimcp.backend.webgui.backend import WebGuiBackend  # pylint: disable=import-outside-toplevel
 
         assert isinstance(backend, WebGuiBackend)
-        return await read_se38_source(backend, program_name)
+        return await read_se38_source(backend, program_name, lang.current("sap_read_se38_source"))

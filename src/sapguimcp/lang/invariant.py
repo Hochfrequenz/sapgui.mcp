@@ -22,6 +22,8 @@ class Invariant:
     abapgit_successful: Text
     abapgit_branch_not_found: Text
     """Prefix of the report's branch error; matched with ``startswith``, so case-sensitive."""
+    abapgit_key_not_found: Text
+    """The report's answer to an unknown repository key."""
     abapgit_error_words: Text
     """English words in abapGit's own exception texts (popups); the logon language does not translate them."""
     abapgit_error: Text
@@ -35,6 +37,7 @@ INVARIANT = Invariant(
     abapgit_pull_successful=Text(("pull successful",)),
     abapgit_successful=Text(("successful",)),
     abapgit_branch_not_found=Text(("Branch not found:",), fold=False),
+    abapgit_key_not_found=Text(("repository not found: key",)),
     abapgit_error_words=Text(("error", "exception", "failed", "required", "transport", "repository")),
     abapgit_error=Text(("error",)),
     abapgit_screen_errors=Text(("exception", "error:")),
