@@ -204,7 +204,7 @@ class TestRunPullAndCheckErrors:
             new_callable=AsyncMock,
             return_value=None,
         ):
-            await _run_pull_and_check_errors(mock_backend, "TEST_REPO", lang.view_for("DE"))
+            await _run_pull_and_check_errors(mock_backend, "TEST_REPO")
 
         # Should press F8 via backend
         mock_backend.press_key.assert_any_call("F8")
@@ -232,7 +232,7 @@ class TestRunPullAndCheckErrors:
             return_value=None,
         ):
             # Should NOT raise — timeout is caught and logged
-            result = await _run_pull_and_check_errors(mock_backend, "TEST_REPO", lang.view_for("DE"))
+            result = await _run_pull_and_check_errors(mock_backend, "TEST_REPO")
 
         assert result is None  # No popup error found, continues to _analyze_pull_result
 
@@ -256,7 +256,7 @@ class TestRunPullAndCheckErrors:
             new_callable=AsyncMock,
             return_value=None,
         ):
-            await _run_pull_and_check_errors(mock_backend, "TEST_REPO", lang.view_for("DE"))
+            await _run_pull_and_check_errors(mock_backend, "TEST_REPO")
 
         # Should press Enter via backend to confirm inactive objects popup
         enter_calls = [c for c in mock_backend.press_key.call_args_list if c == call("Enter")]
@@ -292,7 +292,7 @@ class TestRunPullAndCheckErrors:
             new_callable=AsyncMock,
             return_value=None,
         ):
-            await _run_pull_and_check_errors(mock_backend, "TEST_REPO", lang.view_for("DE"))
+            await _run_pull_and_check_errors(mock_backend, "TEST_REPO")
 
         enter_calls = [c for c in mock_backend.press_key.call_args_list if c == call("Enter")]
         assert len(enter_calls) == expected_enters

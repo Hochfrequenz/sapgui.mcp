@@ -58,7 +58,13 @@ DE = LanguagePack(
         user=Text(("Benutzer",)),
         program=Text(("Programm",)),
     ),
-    popup=PopupSection(),
+    popup=PopupSection(
+        abapgit_error_keywords=Text(("nicht gefunden", "fehler", "fehlgeschlagen", "erforderlich")),
+        abapgit_button_labels=Text(("Abbrechen", "Ja", "Nein")),
+        abapgit_inactive_objects=Text(("Inaktive Objekte",)),
+        abapgit_transport_required=Text(("transport erforderlich", "transportauftrag")),
+        abapgit_no_task=Text(("keine modifizierbare aufgabe", "keine aufgabe")),
+    ),
     status_type=StatusTypeSection(),
     session_pages=SessionPagesSection(),
     keys=KeysSection(
@@ -74,13 +80,8 @@ DE = LanguagePack(
         ),
     ),
     abapgit=AbapgitSection(
-        error_keywords=Text(("nicht gefunden", "fehler", "fehlgeschlagen", "erforderlich")),
         status_error=Text(("nicht gefunden", "fehler")),
         screen_errors=Text(("nicht gefunden", "transport erforderlich", "fehler bei")),
-        transport_required=Text(("transport erforderlich", "transportauftrag")),
-        no_task=Text(("keine modifizierbare aufgabe", "keine aufgabe")),
-        button_labels=Text(("Abbrechen", "Ja", "Nein")),
-        inactive_objects=Text(("Inaktive Objekte",)),
         se38_initial_title=Text(("Einstieg",)),
     ),
     catalog=CatalogSection(screen_header=Text(("Dynpro",))),

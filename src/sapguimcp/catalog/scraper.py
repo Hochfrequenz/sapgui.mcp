@@ -266,13 +266,15 @@ async def enrich_with_se93(
     from sapguimcp.backend.manager import get_backend
     from sapguimcp.tools.se93_tools import _lookup_tcode_on_initial_screen
 
-    t = lang.current("SE93 catalog enrichment")
-
     # Load TSTC data
     if tstc_data is None:
         if tstc_file is None:
             return {"success": False, "error": "Must provide either tstc_file or tstc_data"}
         tstc_data = load_tstc_data(tstc_file)
+
+    # The session language is only known once the backend is connected: acquire it before reading the language.
+    backend = await get_backend()
+    t = lang.current("SE93 catalog enrichment")
 
     # Load existing catalog (uncached - we modify and save after each batch)
     catalog = load_catalog_for_scraping(catalog_file)
@@ -316,9 +318,6 @@ async def enrich_with_se93(
     enriched = 0
     failed = 0
     errors: list[dict[str, str]] = []
-
-    # Get backend
-    backend = await get_backend()
 
     # Process in batches
     for batch_start in range(0, total, batch_size):

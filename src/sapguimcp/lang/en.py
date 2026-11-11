@@ -46,7 +46,13 @@ EN = LanguagePack(
         user=Text(("User",)),
         program=Text(("Program",)),
     ),
-    popup=PopupSection(),
+    popup=PopupSection(
+        abapgit_error_keywords=Text(("not found",)),
+        abapgit_button_labels=Text(("OK", "Cancel", "Yes", "No")),
+        abapgit_inactive_objects=Text(("Inactive Objects",)),
+        abapgit_transport_required=Text(("transport required",)),
+        abapgit_no_task=Text(("no modifiable task", "has no task")),
+    ),
     status_type=StatusTypeSection(),
     session_pages=SessionPagesSection(),
     keys=KeysSection(
@@ -62,13 +68,8 @@ EN = LanguagePack(
         ),
     ),
     abapgit=AbapgitSection(
-        error_keywords=Text(("not found",)),
         status_error=Text(("not found",)),
         screen_errors=Text(("transport required",)),
-        transport_required=Text(("transport required",)),
-        no_task=Text(("no modifiable task", "has no task")),
-        button_labels=Text(("OK", "Cancel", "Yes", "No")),
-        inactive_objects=Text(("Inactive Objects",)),
         # LIVE CHECK NEEDED (#1044): the real EN title of the SE38 initial screen. "Entry" never matched it
         # (a DE-only check in practice); kept until the title is read live.
         se38_initial_title=Text(("Entry",)),

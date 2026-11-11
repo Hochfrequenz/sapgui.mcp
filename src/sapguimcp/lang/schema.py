@@ -91,9 +91,14 @@ def canonical(entries: Mapping[S, Text]) -> Mapping[S, Text]:
 
 @dataclass(frozen=True, slots=True)
 class PopupSection:
-    """Popup texts. Empty until the popup migration (phase 3) moves them here."""
+    """Popup texts, matched in every language whatever the session language is."""
 
     MERGE: ClassVar[MergeMode] = "all"
+    abapgit_error_keywords: Text
+    abapgit_button_labels: Text
+    abapgit_inactive_objects: Text
+    abapgit_transport_required: Text
+    abapgit_no_task: Text
 
 
 @dataclass(frozen=True, slots=True)
@@ -157,13 +162,8 @@ class AbapgitSection:
     """Texts of SAP messages and popups around the abapGit report; the report's own output is invariant."""
 
     MERGE: ClassVar[MergeMode] = "session_en"
-    error_keywords: Text
     status_error: Text
     screen_errors: Text
-    transport_required: Text
-    no_task: Text
-    button_labels: Text
-    inactive_objects: Text
     se38_initial_title: Text
 
 

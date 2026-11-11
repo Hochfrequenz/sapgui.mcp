@@ -157,47 +157,47 @@ def test_settings_loads_abapgit_from_env(abapgit_env_vars: None) -> None:
 def test_is_transport_required_error() -> None:
     """Test detection of transport-required error messages."""
     # Positive cases — various SAP transport error messages
-    assert _is_transport_required_error("Transport required. Provide P_TRKORR= KS", lang.view_for("DE"))
-    assert _is_transport_required_error("transport erforderlich", lang.view_for("DE"))
-    assert _is_transport_required_error("Transport Required", lang.view_for("DE"))
-    assert _is_transport_required_error("Please provide P_TRKORR= for this operation", lang.view_for("DE"))
-    assert _is_transport_required_error("Transportauftrag fehlt", lang.view_for("DE"))
+    assert _is_transport_required_error("Transport required. Provide P_TRKORR= KS")
+    assert _is_transport_required_error("transport erforderlich")
+    assert _is_transport_required_error("Transport Required")
+    assert _is_transport_required_error("Please provide P_TRKORR= for this operation")
+    assert _is_transport_required_error("Transportauftrag fehlt")
 
     # Negative cases — unrelated errors
-    assert not _is_transport_required_error("Repository not found", lang.view_for("DE"))
-    assert not _is_transport_required_error("Pull successful", lang.view_for("DE"))
-    assert not _is_transport_required_error("Authentication failed", lang.view_for("DE"))
-    assert not _is_transport_required_error("", lang.view_for("DE"))
+    assert not _is_transport_required_error("Repository not found")
+    assert not _is_transport_required_error("Pull successful")
+    assert not _is_transport_required_error("Authentication failed")
+    assert not _is_transport_required_error("")
 
 
 def test_enrich_transport_error_adds_guidance() -> None:
     """Test that transport errors get actionable guidance appended."""
     # Transport error should get guidance
-    enriched = _enrich_transport_error("Transport required. Provide P_TRKORR= KS", lang.view_for("DE"))
+    enriched = _enrich_transport_error("Transport required. Provide P_TRKORR= KS")
     assert "Transport required" in enriched
     assert "SE09" in enriched
     assert "trkorr=" in enriched
 
     # Non-transport error should pass through unchanged
     original = "Repository not found"
-    assert _enrich_transport_error(original, lang.view_for("DE")) == original
+    assert _enrich_transport_error(original) == original
 
 
 def test_enrich_transport_error_strips_trailing_period() -> None:
     """Test that enriched error does not produce double-period sentence boundary."""
-    enriched = _enrich_transport_error("Transport required.", lang.view_for("DE"))
+    enriched = _enrich_transport_error("Transport required.")
     # Should not have ". ." or ".." at the junction (but "..." in repo=... is fine)
     assert ". ." not in enriched, f"Double period at sentence boundary in: {enriched}"
     # The original trailing period should be stripped before appending guidance
     assert not enriched.startswith("Transport required.. "), f"Trailing period not stripped: {enriched}"
 
-    enriched2 = _enrich_transport_error("Transport required. Provide P_TRKORR= KS.", lang.view_for("DE"))
+    enriched2 = _enrich_transport_error("Transport required. Provide P_TRKORR= KS.")
     assert ". ." not in enriched2, f"Double period at sentence boundary in: {enriched2}"
 
 
 def test_enrich_transport_error_german() -> None:
     """Test that German transport errors also get guidance."""
-    enriched = _enrich_transport_error("Transport erforderlich", lang.view_for("DE"))
+    enriched = _enrich_transport_error("Transport erforderlich")
     assert "SE09" in enriched
     assert "trkorr=" in enriched
 
@@ -215,7 +215,7 @@ def test_enrich_transport_error_german() -> None:
 def test_credentials_popup_error_is_recognised_and_enriched(message: str) -> None:
     """abapGit's password popup cannot work through the API: point at the token, not at the OK-code path."""
     assert _is_credentials_popup_error(message)
-    enriched = _enrich_transport_error(message, lang.view_for("DE"))
+    enriched = _enrich_transport_error(message)
     assert enriched.startswith(message.rstrip(". "))
     assert "ABAPGIT_PAT" in enriched
     assert "GITHUB_PAT" in enriched
@@ -237,7 +237,7 @@ def test_credentials_popup_error_is_recognised_and_enriched(message: str) -> Non
 def test_credentials_popup_error_does_not_match_other_errors(message: str) -> None:
     """Unrelated errors must not get the credentials hint."""
     assert not _is_credentials_popup_error(message)
-    assert "ABAPGIT_PAT" not in _enrich_transport_error(message, lang.view_for("DE"))
+    assert "ABAPGIT_PAT" not in _enrich_transport_error(message)
 
 
 class _EmptyStatusBackend:
@@ -271,26 +271,26 @@ async def test_pull_with_empty_status_bar_says_it_may_have_run() -> None:
 def test_is_no_task_error() -> None:
     """Test detection of no-task-in-transport error messages."""
     # Positive cases
-    assert _is_no_task_error("User TESTUSER has no modifiable task in XYZK900011", lang.view_for("DE"))
-    assert _is_no_task_error("Benutzer TESTUSER hat keine modifizierbare Aufgabe", lang.view_for("DE"))
-    assert _is_no_task_error("has no task in transport", lang.view_for("DE"))
+    assert _is_no_task_error("User TESTUSER has no modifiable task in XYZK900011")
+    assert _is_no_task_error("Benutzer TESTUSER hat keine modifizierbare Aufgabe")
+    assert _is_no_task_error("has no task in transport")
 
     # Negative cases
-    assert not _is_no_task_error("Transport required. Provide P_TRKORR=", lang.view_for("DE"))
-    assert not _is_no_task_error("Pull successful", lang.view_for("DE"))
-    assert not _is_no_task_error("", lang.view_for("DE"))
+    assert not _is_no_task_error("Transport required. Provide P_TRKORR=")
+    assert not _is_no_task_error("Pull successful")
+    assert not _is_no_task_error("")
 
 
 def test_enrich_no_task_error_adds_guidance() -> None:
     """Test that no-task errors get actionable guidance appended."""
-    enriched = _enrich_transport_error("User TESTUSER has no modifiable task in XYZK900011", lang.view_for("DE"))
+    enriched = _enrich_transport_error("User TESTUSER has no modifiable task in XYZK900011")
     assert "has no modifiable task" in enriched
     assert "SE09" in enriched
     assert "task" in enriched.lower()
 
     # Non-task error should pass through unchanged
     original = "Repository not found"
-    assert _enrich_transport_error(original, lang.view_for("DE")) == original
+    assert _enrich_transport_error(original) == original
 
 
 def test_abapgit_action_result_requires_action() -> None:

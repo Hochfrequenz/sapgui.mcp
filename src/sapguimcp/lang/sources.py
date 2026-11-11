@@ -93,13 +93,13 @@ NOT_LOOKED_UP = Manual("not yet looked up")
 
 SOURCES: Mapping[str, Source] = MappingProxyType(
     {
-        "abapgit.error_keywords": Manual("abapGit UI text"),
+        "popup.abapgit_error_keywords": Manual("abapGit UI text"),
         "abapgit.status_error": Manual("abapGit UI text"),
         "abapgit.screen_errors": Manual("abapGit UI text"),
-        "abapgit.transport_required": Manual("abapGit UI text"),
-        "abapgit.no_task": Manual("abapGit UI text"),
-        "abapgit.button_labels": Manual("abapGit UI text"),
-        "abapgit.inactive_objects": Manual("abapGit UI text"),
+        "popup.abapgit_transport_required": Manual("abapGit UI text"),
+        "popup.abapgit_no_task": Manual("abapGit UI text"),
+        "popup.abapgit_button_labels": Manual("abapGit UI text"),
+        "popup.abapgit_inactive_objects": Manual("abapGit UI text"),
         "abapgit.se38_initial_title": Manual("abapGit UI text; EN title not yet read live (#1044)"),
         "catalog.screen_header": Manual(
             "SE16 column header of the TSTC screen number (DYPNO); EN seen in a WebGUI capture"

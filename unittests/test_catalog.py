@@ -698,3 +698,32 @@ class TestFuzzySearch:
         results = search_transactions(catalog, "VA01", limit=5)
         assert results[0].score >= 80, "Exact/prefix match should score >= 80"
         assert results[0].transaction.tcode == "VA01"
+
+
+@pytest.mark.anyio
+async def test_enrichment_acquires_the_backend_before_reading_the_language() -> None:
+    """The session language is only known after the backend connected."""
+    from unittest.mock import AsyncMock, patch
+
+    from sapguimcp.catalog.scraper import enrich_with_se93
+
+    order: list[str] = []
+
+    async def fake_backend() -> object:
+        order.append("backend")
+        raise RuntimeError("stop")
+
+    real_current = lang.current
+
+    def spy(feature: str = "x") -> object:
+        order.append("language")
+        return real_current(feature)
+
+    with (
+        patch("sapguimcp.backend.manager.get_backend", AsyncMock(side_effect=fake_backend)),
+        patch("sapguimcp.catalog.scraper.lang.current", spy),
+        pytest.raises(RuntimeError),
+    ):
+        await enrich_with_se93(catalog_file="x.json", tstc_data=[])
+
+    assert order == ["backend"]
