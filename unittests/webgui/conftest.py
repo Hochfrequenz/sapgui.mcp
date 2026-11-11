@@ -15,7 +15,7 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 from pydantic import BaseModel
 
 from sapguimcp.models import LoginResult
-from unittests.conftest import has_sap_webgui_creds
+from unittests.conftest import SESSION_SAP_CONFIG_FILE, has_sap_webgui_creds
 from unittests.webgui.testdata.lang_test import UI_TEST_PACKS, UiTestPack, resolve_sap_language
 
 
@@ -263,9 +263,9 @@ async def sap_mcp_client() -> AsyncGenerator[ClientSession, None]:
     # This works regardless of whether the entry point script is installed,
     # making tests runnable from any Python environment (PyCharm, tox, etc.)
     #
-    # We pass SAP_CONFIG_FILE so the subprocess can find the shared
-    # sap-mcp-config systems.json even after clean_environment clears env vars.
-    config_file = os.environ.get("SAP_CONFIG_FILE", "")
+    # We pass SAP_CONFIG_FILE so the subprocess uses the systems.json the run was started with,
+    # even after clean_environment cleared the variable.
+    config_file = os.environ.get("SAP_CONFIG_FILE", "") or SESSION_SAP_CONFIG_FILE
     server_env = {
         **os.environ,  # Inherit current environment
         "SAP_URL": os.environ.get("SAP_URL", ""),
