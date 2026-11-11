@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.catalog.models import (
     SAP_AREA_PREFIXES,
     TransactionCatalog,
@@ -99,7 +100,7 @@ class TestTransactionInfo:
             "PGMNA": "SAPMV45A",
             "DESSION": "100",
         }
-        txn = TransactionInfo.from_tstc_row(row)
+        txn = TransactionInfo.from_tstc_row(row, lang.view_for("DE"))
 
         assert txn.tcode == "VA01"
         assert txn.program == "SAPMV45A"
@@ -107,14 +108,18 @@ class TestTransactionInfo:
         assert txn.area == "SD-Sales"
         assert txn.enriched is False
 
-    def test_from_tstc_row_german_names(self) -> None:
-        """Test creation from TSTC row with German display names."""
-        row = {
-            "Transaktionscode": "ME21N",
-            "Programm": "SAPLMEGUI",
-            "Dynpro": "200",
-        }
-        txn = TransactionInfo.from_tstc_row(row)
+    @pytest.mark.parametrize(
+        ("code", "row"),
+        [
+            ("DE", {"Transaktionscode": "ME21N", "Programm": "SAPLMEGUI", "Dynpro": "200"}),
+            ("EN", {"Transaction Code": "ME21N", "Program": "SAPLMEGUI", "Screen number": "200"}),
+            ("EN", {"Transaction code": "ME21N", "Program": "SAPLMEGUI", "Screen number": "200"}),
+            ("DE", {"TCODE": "ME21N", "Programm": "SAPLMEGUI", "DESSION": "200"}),
+        ],
+    )
+    def test_from_tstc_row_header_keyed_rows(self, code: str, row: dict[str, object]) -> None:
+        """The WebGUI SE16 parser keys rows by column header text; technical names win when present."""
+        txn = TransactionInfo.from_tstc_row(row, lang.view_for(code))
 
         assert txn.tcode == "ME21N"
         assert txn.program == "SAPLMEGUI"
@@ -127,7 +132,7 @@ class TestTransactionInfo:
             "TCODE": "SE38",
             "PGMNA": "SAPMS38M",
         }
-        txn = TransactionInfo.from_tstc_row(row)
+        txn = TransactionInfo.from_tstc_row(row, lang.view_for("DE"))
 
         assert txn.tcode == "SE38"
         assert txn.screen_number is None
@@ -139,7 +144,7 @@ class TestTransactionInfo:
             "PGMNA": " SAPMV45A ",
             "DESSION": " 100 ",
         }
-        txn = TransactionInfo.from_tstc_row(row)
+        txn = TransactionInfo.from_tstc_row(row, lang.view_for("DE"))
 
         assert txn.tcode == "VA01"
         assert txn.program == "SAPMV45A"
@@ -693,3 +698,32 @@ class TestFuzzySearch:
         results = search_transactions(catalog, "VA01", limit=5)
         assert results[0].score >= 80, "Exact/prefix match should score >= 80"
         assert results[0].transaction.tcode == "VA01"
+
+
+@pytest.mark.anyio
+async def test_enrichment_acquires_the_backend_before_reading_the_language() -> None:
+    """The session language is only known after the backend connected."""
+    from unittest.mock import AsyncMock, patch
+
+    from sapguimcp.catalog.scraper import enrich_with_se93
+
+    order: list[str] = []
+
+    async def fake_backend() -> object:
+        order.append("backend")
+        raise RuntimeError("stop")
+
+    real_current = lang.current
+
+    def spy(feature: str = "x") -> object:
+        order.append("language")
+        return real_current(feature)
+
+    with (
+        patch("sapguimcp.backend.manager.get_backend", AsyncMock(side_effect=fake_backend)),
+        patch("sapguimcp.catalog.scraper.lang.current", spy),
+        pytest.raises(RuntimeError),
+    ):
+        await enrich_with_se93(catalog_file="x.json", tstc_data=[])
+
+    assert order == ["backend"]

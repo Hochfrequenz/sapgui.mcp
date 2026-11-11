@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.backend.desktop import DesktopBackend
 from sapguimcp.models import SE93Entry
 from sapguimcp.models.sap_results import ScreenInfo, StatusBarInfo
@@ -239,7 +240,7 @@ async def test_lookup_tcode_desktop_snapshots_state_and_waits_after_f7() -> None
     backend.wait_for_ready.side_effect = lambda *_a, **_k: events.append("ready")
     backend.wait_for_condition.side_effect = lambda *_a, **_k: events.append("cond")
     with patch("sapguimcp.tools.se93_tools._read_checkbox", new=AsyncMock(return_value=True)):
-        result = await _lookup_tcode_desktop(backend, "SE16")
+        result = await _lookup_tcode_desktop(backend, "SE16", lang.view_for("DE"))
     assert isinstance(result, SE93Entry)
     assert events == ["F7", "ready", "cond"]
     predicate = backend.wait_for_condition.await_args.args[0]
@@ -267,7 +268,7 @@ async def test_lookup_tcode_desktop_reads_each_gui_flag_from_its_own_checkbox() 
     states = {"TSTCC_S_WEBGUI": True, "TSTCC-S_PLATIN": False, "TSTCC-S_WIN32": True}
     read = AsyncMock(side_effect=lambda _backend, name: states[name])
     with patch("sapguimcp.tools.se93_tools._read_checkbox", new=read):
-        result = await _lookup_tcode_desktop(backend, "SE16")
+        result = await _lookup_tcode_desktop(backend, "SE16", lang.view_for("DE"))
     assert isinstance(result, SE93Entry)
     assert sorted(call.args[1] for call in read.await_args_list) == sorted(states)
     assert (result.gui_html, result.gui_java, result.gui_windows) == (True, False, True)
@@ -320,7 +321,7 @@ async def test_lookup_transports_desktop_snapshots_state_and_waits_after_display
     events: list[str] = []
     _record(backend, events)
     with patch("sapguimcp.tools.se09_tools._set_se09_selection_screen", new=AsyncMock()):
-        result = await _lookup_transports_desktop(backend, None, "all", "modifiable")
+        result = await _lookup_transports_desktop(backend, lang.view_for("DE"), None, "all", "modifiable")
     assert result.request_count == 0
     assert events == ["wait_for_ready", "click_button", "wait_for_ready", "wait_for_condition"]
     assert backend.wait_for_condition.await_args.kwargs == {"timeout_ms": 5000}

@@ -11,7 +11,7 @@
         "max_hits": "input[name='DATABROWSE-MAX_SEL'], input[id*='MAX_SEL']"
       },
       "selection": {
-        "execute_button": "button[title*='Execute'], button[title*='Ausführen'], #EXECUTE_BTN"
+        "execute_button": "#EXECUTE_BTN"
       }
     }
   },

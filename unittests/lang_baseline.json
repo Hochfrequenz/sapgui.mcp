@@ -1,38 +1,4 @@
 {
-  "src/sapguimcp/backend/webgui/parsers/se09_parser.py": {
-    "Auftrag": 1,
-    "Aufträge": 1,
-    "Modifiable": 2,
-    "Released": 2,
-    "Transport Organizer: Auftr": 1,
-    "Transport Organizer: Requ": 1,
-    "region\\s+\"Liste\"": 1
-  },
-  "src/sapguimcp/backend/webgui/parsers/se93_parser.py": {
-    "anzeigen": 1,
-    "display": 1
-  },
-  "src/sapguimcp/backend/webgui/parsers/sm30_parser.py": {
-    "button \"(?:Eintrag|Entry)\\s+\\d+\\s+(?:von|of)\\s+(?P<total>\\d+)\"": 1,
-    "heading \"(?:Display|Change) View \\\\?\"(?P<desc>[^\"\\\\]+)\\\\?\"": 1,
-    "heading \"Sicht \\\\?\"(?P<desc>[^\"\\\\]+)\\\\?\" (?:anzeigen|ändern)": 1,
-    "is not in the Dictionary": 1,
-    "ist nicht im Dictionary vorhanden": 1,
-    "kein Pflegedialog": 1,
-    "nicht vorhanden": 1,
-    "no maintenance dialog": 1,
-    "not found": 1
-  },
-  "src/sapguimcp/catalog/models.py": {
-    "Dynpro": 1,
-    "Programm": 1,
-    "Transaktionscode": 1
-  },
-  "src/sapguimcp/catalog/scraper.py": {
-    "Dynpro": 1,
-    "Programm": 1,
-    "Transaktionscode": 1
-  },
   "src/sapguimcp/classcatalog/search.py": {
     "description contains": 1,
     "fuzzy description": 1
@@ -42,58 +8,12 @@
     "description contains": 1,
     "fuzzy description": 1
   },
-  "src/sapguimcp/tables/scraper.py": {
-    "Tabellenname": 1
-  },
   "src/sapguimcp/tables/search.py": {
     " description contains": 1,
     "fuzzy description": 1
   },
   "src/sapguimcp/tools/abapgit_tools.py": {
-    "Branch not found:": 1,
-    "Einstieg": 2,
-    "Entry": 2,
-    "Exception occurred": 1,
-    "Not found": 1,
-    "Program": 1,
-    "Programm": 1,
-    "Repository not found": 1,
-    "abbrechen": 1,
-    "cancel": 1,
-    "does not exist": 2,
-    "erforderlich": 1,
-    "error": 7,
-    "exception": 2,
-    "existiert nicht": 2,
-    "failed": 1,
-    "fehler": 1,
-    "fehler bei": 1,
-    "fehlgeschlagen": 1,
-    "has no task": 1,
-    "inactive objects": 1,
-    "inaktive objekte": 1,
-    "ja": 1,
-    "keine aufgabe": 1,
-    "keine modifizierbare aufgabe": 1,
-    "nein": 1,
-    "nicht gefunden": 2,
-    "no": 1,
-    "no modifiable task": 1,
-    "not found": 4,
-    "ok": 1,
-    "p_trkorr=": 1,
-    "provide p_trkorr": 1,
-    "pull successful": 2,
-    "repository": 1,
-    "repository not found": 1,
-    "repository not found: key": 1,
-    "required": 1,
-    "successful": 1,
-    "transport": 1,
-    "transport erforderlich": 2,
-    "transport required": 2,
-    "transportauftrag": 1,
-    "yes": 1
+    "error": 5
   },
   "src/sapguimcp/tools/breakpoint_tools.py": {
     "' methods table": 1,
@@ -140,48 +60,11 @@
     "gesetzt": 1,
     "initial": 3
   },
-  "src/sapguimcp/tools/quick_report_tools.py": {
-    "Ausführen": 1,
-    "Ausführen Hervorgehoben": 1,
-    "Execute": 1,
-    "Execute Highlighted": 1,
-    "kein job": 1,
-    "keine belege": 1,
-    "keine daten": 1,
-    "keine werte": 1,
-    "no data": 1,
-    "no documents": 1,
-    "no entries": 1,
-    "no job": 1
-  },
   "src/sapguimcp/tools/script_tools.py": {
     "Exception": 1
   },
-  "src/sapguimcp/tools/se09_tools.py": {
-    "Anzeigen": 2,
-    "Benutzer": 2,
-    "Customizing Requests": 2,
-    "Customizing-Aufträge": 2,
-    "Display": 2,
-    "Freigegeben": 2,
-    "Modifiable": 2,
-    "Released": 2,
-    "Transport Organizer:": 1,
-    "User": 2,
-    "Workbench Requests": 2,
-    "Workbench-Aufträge": 2,
-    "all": 8,
-    "modifiable": 2,
-    "released": 2,
-    "Änderbar": 2
-  },
   "src/sapguimcp/tools/se24_tools.py": {
     "interface": 1
-  },
-  "src/sapguimcp/tools/se93_tools.py": {
-    "Transaction Code": 1,
-    "Transaction code": 1,
-    "Transaktionscode": 1
   },
   "src/sapguimcp/tools/table_tools.py": {
     "No tables found for '": 1

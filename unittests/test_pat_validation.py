@@ -9,6 +9,7 @@ import pytest
 import respx
 from httpx import ConnectError, Response
 
+from sapguimcp import lang
 from sapguimcp.server import app_lifespan
 from sapguimcp.tools.abapgit_tools import validate_github_pat
 
@@ -171,7 +172,7 @@ class TestAnalyzePullResultFallback:
             new_callable=AsyncMock,
             return_value=None,
         ):
-            result = await _analyze_pull_result(mock_backend, "TEST_REPO")
+            result = await _analyze_pull_result(mock_backend, "TEST_REPO", lang.view_for("DE"))
 
         assert result.success is False
         assert result.error is not None

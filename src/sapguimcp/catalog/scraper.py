@@ -61,7 +61,8 @@ from typing import Any, Callable
 
 from fastmcp import Context
 
-from sapguimcp.catalog.models import TransactionCatalog, TransactionInfo
+from sapguimcp import lang
+from sapguimcp.catalog.models import TransactionCatalog, TransactionInfo, tstc_columns
 from sapguimcp.models.se16_models import SE16Result
 from sapguimcp.models.se93_models import SE93Entry
 
@@ -118,14 +119,12 @@ async def scrape_tstc(
             "error": "Expected inline SE16Result, got file summary",
         }
 
-    # Extract transaction data (handle both technical and German column names)
+    t = lang.current("SE16 catalog scrape")
+    # Extract transaction data (technical column names first, then the header texts of the session language)
     transactions = []
     for row in result.rows:
-        # Handle both TCODE (technical) and Transaktionscode (German display name)
-        tcode = row.data.get("TCODE") or row.data.get("Transaktionscode", "")
+        tcode, program, screen = tstc_columns(row.data, t)
         if tcode:  # Skip empty transaction codes
-            program = row.data.get("PGMNA") or row.data.get("Programm", "")
-            screen = row.data.get("DESSION") or row.data.get("Dynpro")
             transactions.append(
                 {
                     "TCODE": str(tcode).strip(),
@@ -264,7 +263,6 @@ async def enrich_with_se93(
         Dict with enrichment statistics
     """
     # Import here to avoid circular imports
-    from sapguimcp import lang
     from sapguimcp.backend.manager import get_backend
     from sapguimcp.tools.se93_tools import _lookup_tcode_on_initial_screen
 
@@ -274,18 +272,22 @@ async def enrich_with_se93(
             return {"success": False, "error": "Must provide either tstc_file or tstc_data"}
         tstc_data = load_tstc_data(tstc_file)
 
+    # The session language is only known once the backend is connected: acquire it before reading the language.
+    backend = await get_backend()
+    t = lang.current("SE93 catalog enrichment")
+
     # Load existing catalog (uncached - we modify and save after each batch)
     catalog = load_catalog_for_scraping(catalog_file)
 
     # Build index of existing transactions
-    existing_tcodes = {t.tcode.upper(): i for i, t in enumerate(catalog.transactions)}
+    existing_tcodes = {txn.tcode.upper(): i for i, txn in enumerate(catalog.transactions)}
 
     # Add any new transactions from TSTC
     new_count = 0
     for tstc_row in tstc_data:
-        tcode = str(tstc_row.get("TCODE", "")).strip().upper()
+        tcode = str(tstc_columns(tstc_row, t)[0]).strip().upper()
         if tcode and tcode not in existing_tcodes:
-            txn = TransactionInfo.from_tstc_row(tstc_row)
+            txn = TransactionInfo.from_tstc_row(tstc_row, t)
             catalog.transactions.append(txn)
             existing_tcodes[tcode] = len(catalog.transactions) - 1
             new_count += 1
@@ -316,11 +318,6 @@ async def enrich_with_se93(
     enriched = 0
     failed = 0
     errors: list[dict[str, str]] = []
-
-    # Get backend
-    backend = await get_backend()
-    # Resolved once, outside the per-transaction try: an unsupported language must reach the caller.
-    t = lang.current("SE93 enrichment")
 
     # Process in batches
     for batch_start in range(0, total, batch_size):
@@ -374,7 +371,7 @@ async def enrich_with_se93(
                 logger.exception("SE93 enrichment failed", extra={"tcode": txn.tcode})
 
         # Save after each batch
-        catalog.enriched_count = sum(1 for t in catalog.transactions if t.enriched)
+        catalog.enriched_count = sum(1 for txn in catalog.transactions if txn.enriched)
         catalog.last_updated = datetime.now(UTC)
         save_catalog(catalog, catalog_file)
         logger.info("Saved catalog", extra={"enriched": enriched, "failed": failed})

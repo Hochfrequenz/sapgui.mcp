@@ -21,6 +21,7 @@ from sapguimcp.backend.desktop._com_thread import is_server_fault_error
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.backend.webgui.parsers.se93_parser import parse_se93_snapshot
 from sapguimcp.backend.webgui.types import AriaSnapshot
+from sapguimcp.lang.schema import LanguagePack
 from sapguimcp.models import (
     SE93Entry,
     SE93Error,
@@ -50,14 +51,6 @@ MAX_INLINE_OBJECTS = 10
 # =============================================================================
 
 
-# DE/EN label variants for the transaction code input field.
-_TCODE_FIELD_LABELS = [
-    "Transaktionscode",
-    "Transaction code",
-    "Transaction Code",
-]
-
-
 async def _read_checkbox(backend: WebGuiBackend | DesktopBackend, sap_name: str) -> bool:
     """Read a checkbox's selected state by SAP element name. Returns False on error."""
     from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
@@ -85,7 +78,7 @@ async def _read_checkbox(backend: WebGuiBackend | DesktopBackend, sap_name: str)
 
 
 async def _lookup_tcode_desktop(  # pylint: disable=too-many-locals
-    backend: WebGuiBackend | DesktopBackend, tcode: str
+    backend: WebGuiBackend | DesktopBackend, tcode: str, t: LanguagePack
 ) -> SE93Entry | SE93Error:
     """Desktop-specific SE93 lookup using field reading instead of ARIA parsing."""
     from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
@@ -96,7 +89,7 @@ async def _lookup_tcode_desktop(  # pylint: disable=too-many-locals
 
     # Fill transaction code field
     filled = False
-    for label in _TCODE_FIELD_LABELS:
+    for label in t.se93.transaction_code:
         try:
             await backend.fill_field(label, tcode.upper())
             filled = True
@@ -176,7 +169,7 @@ async def _lookup_tcode_on_initial_screen(
     await backend.wait_for_ready()
 
     # Fill field with real keyboard events, press F7, and verify navigation.
-    error_msg = await fill_and_display(backend, _TCODE_FIELD_LABELS, tcode, t, tcode_label="transaction")
+    error_msg = await fill_and_display(backend, list(t.se93.transaction_code), tcode, t, tcode_label="transaction")
     if error_msg:
         return SE93Error(
             tcode=tcode,
@@ -188,7 +181,7 @@ async def _lookup_tcode_on_initial_screen(
     snapshot = AriaSnapshot(await backend.get_snapshot())
     logger.debug("Got snapshot", extra={"object": tcode, "length": len(snapshot)})
 
-    return parse_se93_snapshot(snapshot, tcode)
+    return parse_se93_snapshot(snapshot, tcode, t)
 
 
 async def _lookup_batch_webgui(
@@ -227,7 +220,9 @@ async def _lookup_batch_webgui(
     return SE93Result.failure(error=f"All {len(errors)} lookups failed", entries=[], errors=errors)
 
 
-async def _lookup_batch_desktop(backend: WebGuiBackend | DesktopBackend, tcode_list: list[str]) -> SE93Result:
+async def _lookup_batch_desktop(
+    backend: WebGuiBackend | DesktopBackend, tcode_list: list[str], t: LanguagePack
+) -> SE93Result:
     """Run SE93 lookups for a batch of tcodes on the desktop backend."""
     entries: list[SE93Entry] = []
     errors: list[SE93Error] = []
@@ -245,7 +240,7 @@ async def _lookup_batch_desktop(backend: WebGuiBackend | DesktopBackend, tcode_l
             continue
         await backend.wait_for_ready()
         try:
-            result = await _lookup_tcode_desktop(backend, tcode)
+            result = await _lookup_tcode_desktop(backend, tcode, t)
             if isinstance(result, SE93Entry):
                 entries.append(result)
             else:
@@ -310,12 +305,13 @@ def register_se93_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return SE93Result.failure(f"Session error: {e}")
 
+        t = lang.current("sap_se93_lookup")
+
         # Desktop backend: use field reading instead of ARIA parsing
         if backend.backend_type == "desktop":
-            final_result = await _lookup_batch_desktop(backend, tcode_list)
+            final_result = await _lookup_batch_desktop(backend, tcode_list, t)
         else:
-            # The shared fill_and_display helper reads the not-found and initial-screen texts.
-            final_result = await _lookup_batch_webgui(backend, tcode_list, lang.current("sap_se93_lookup"))
+            final_result = await _lookup_batch_webgui(backend, tcode_list, t)
 
         # Write to file if requested
         if output_file:

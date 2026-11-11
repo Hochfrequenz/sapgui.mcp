@@ -5,6 +5,7 @@ import sys
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.models.se93_models import SE93Entry, SE93Error
 from sapguimcp.tools.se93_tools import _lookup_tcode_desktop
 from unittests.desktop.conftest import go_home, skip_no_sap
@@ -18,7 +19,7 @@ async def test_se93_lookup_se16(backend):
     """SE93: look up SE16 returns a dialog transaction with program and screen."""
     await backend.enter_transaction("SE93")
     await backend.wait_for_ready()
-    result = await _lookup_tcode_desktop(backend, "SE16")
+    result = await _lookup_tcode_desktop(backend, "SE16", lang.current())
     assert isinstance(result, SE93Entry), f"Expected SE93Entry, got {type(result).__name__}: {result}"
     assert result.tcode == "SE16"
     assert result.description, "SE16 should have a description"
@@ -38,7 +39,7 @@ async def test_se93_lookup_nonexistent(backend):
     """SE93: look up ZZZFAKE99 returns SE93Error."""
     await backend.enter_transaction("SE93")
     await backend.wait_for_ready()
-    result = await _lookup_tcode_desktop(backend, "ZZZFAKE99")
+    result = await _lookup_tcode_desktop(backend, "ZZZFAKE99", lang.current())
     assert isinstance(result, SE93Error), f"Expected SE93Error, got {type(result).__name__}"
     assert result.tcode == "ZZZFAKE99"
     assert result.error, "Should have an error message"
@@ -51,7 +52,7 @@ async def test_se93_gui_capabilities(backend):
     """SE93: SE16 should report GUI capability flags."""
     await backend.enter_transaction("SE93")
     await backend.wait_for_ready()
-    result = await _lookup_tcode_desktop(backend, "SE16")
+    result = await _lookup_tcode_desktop(backend, "SE16", lang.current())
     assert isinstance(result, SE93Entry)
     # Verify GUI flags are booleans (actual values depend on system config; the field names are unit tested)
     assert isinstance(result.gui_html, bool)

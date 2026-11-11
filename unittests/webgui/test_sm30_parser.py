@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.backend.webgui.parsers.sm30_parser import (
     detect_sm30_view_type,
     parse_sm30_columns,
@@ -28,7 +29,7 @@ class TestDetectViewType:
         - columnheader "Country"
         - columnheader "Name"
         """
-        assert detect_sm30_view_type(snapshot) == "flat"
+        assert detect_sm30_view_type(snapshot, lang.view_for("DE")) == "flat"
 
     def test_initial_screen_is_unsupported(self) -> None:
         """A snapshot still on initial screen should be unsupported."""
@@ -37,7 +38,7 @@ class TestDetectViewType:
   - heading "Tabellensicht-Pflege: Einstieg"
   - textbox "Tabelle/Sicht": V_T002
         """
-        assert detect_sm30_view_type(snapshot) == "unsupported"
+        assert detect_sm30_view_type(snapshot, lang.view_for("DE")) == "unsupported"
 
     def test_no_grid_is_unsupported(self) -> None:
         """A snapshot without grid or columnheaders should be unsupported."""
@@ -45,21 +46,21 @@ class TestDetectViewType:
 - main "Some other screen":
   - heading "Some random screen"
         """
-        assert detect_sm30_view_type(snapshot) == "unsupported"
+        assert detect_sm30_view_type(snapshot, lang.view_for("DE")) == "unsupported"
 
     def test_real_v_t005_snapshot_de(self) -> None:
         """Test detection from real DE snapshot if available."""
         snapshot_file = TESTDATA_DIR / "sm30_v_t005_display_de.yaml"
         if snapshot_file.exists():
             snapshot = snapshot_file.read_text(encoding="utf-8")
-            assert detect_sm30_view_type(snapshot) == "flat"
+            assert detect_sm30_view_type(snapshot, lang.view_for("DE")) == "flat"
 
     def test_real_v_t005_snapshot_en(self) -> None:
         """Test detection from real EN snapshot if available."""
         snapshot_file = TESTDATA_DIR / "sm30_v_t005_display_en.yaml"
         if snapshot_file.exists():
             snapshot = snapshot_file.read_text(encoding="utf-8")
-            assert detect_sm30_view_type(snapshot) == "flat"
+            assert detect_sm30_view_type(snapshot, lang.view_for("DE")) == "flat"
 
 
 class TestParseColumns:
@@ -77,7 +78,7 @@ class TestParseColumns:
       - row "Zum Auswählen einer Zeile drücken Sie die Leertaste. AD Andorra":
         - gridcell "Zum Auswählen einer Zeile drücken Sie die Leertaste."
         """
-        columns = parse_sm30_columns(snapshot)
+        columns = parse_sm30_columns(snapshot, lang.view_for("DE"))
         assert columns == ["Land/Reg.", "Land/Region"]
 
     def test_skips_selection_column_de(self) -> None:
@@ -91,7 +92,7 @@ class TestParseColumns:
         - columnheader "Bezeichnung"
       - row "Zum Auswählen einer Zeile data":
         """
-        columns = parse_sm30_columns(snapshot)
+        columns = parse_sm30_columns(snapshot, lang.view_for("DE"))
         assert "Spalte für Zeilenauswahl" not in columns
         assert columns == ["Land", "Bezeichnung"]
 
@@ -106,7 +107,7 @@ class TestParseColumns:
         - columnheader "Name"
       - row "To select a row DE Germany":
         """
-        columns = parse_sm30_columns(snapshot)
+        columns = parse_sm30_columns(snapshot, lang.view_for("DE"))
         assert "Column for row selection" not in columns
         assert columns == ["Country", "Name"]
 
@@ -120,16 +121,16 @@ class TestParseColumns:
 {headers}
       - row "Zum Auswählen einer Zeile data":
         """
-        columns = parse_sm30_columns(snapshot)
+        columns = parse_sm30_columns(snapshot, lang.view_for("DE"))
         assert len(columns) == 20
 
     def test_real_v_t005_snapshot(self) -> None:
         """Test parsing columns from real V_T005 snapshot if available."""
-        for lang in ["de", "en"]:
-            snapshot_file = TESTDATA_DIR / f"sm30_v_t005_display_{lang}.yaml"
+        for code in ["de", "en"]:
+            snapshot_file = TESTDATA_DIR / f"sm30_v_t005_display_{code}.yaml"
             if snapshot_file.exists():
                 snapshot = snapshot_file.read_text(encoding="utf-8")
-                columns = parse_sm30_columns(snapshot)
+                columns = parse_sm30_columns(snapshot, lang.view_for("DE"))
                 assert len(columns) > 0, f"No columns found in {lang} snapshot"
 
 
@@ -160,7 +161,7 @@ class TestParseRows:
           - textbox
     - rowgroup
         """
-        rows = parse_sm30_rows(snapshot)
+        rows = parse_sm30_rows(snapshot, lang.view_for("DE"))
         assert len(rows) == 2
         assert rows[0].values["Land/Reg."] == "AD"
         assert rows[0].values["Land/Region"] == "Andorra"
@@ -190,7 +191,7 @@ class TestParseRows:
           - textbox
     - rowgroup
         """
-        rows = parse_sm30_rows(snapshot)
+        rows = parse_sm30_rows(snapshot, lang.view_for("DE"))
         assert len(rows) == 2
         assert rows[0].values["Country"] == "DE"
         assert rows[0].values["Name"] == "Germany"
@@ -214,7 +215,7 @@ class TestParseRows:
           - textbox
     - rowgroup
         """
-        rows = parse_sm30_rows(snapshot)
+        rows = parse_sm30_rows(snapshot, lang.view_for("DE"))
         assert len(rows) == 1
         assert rows[0].values["A"] == "Val1"
         assert rows[0].values["B"] == ""
@@ -234,17 +235,17 @@ class TestParseRows:
           - textbox
     - rowgroup
         """
-        rows = parse_sm30_rows(snapshot)
+        rows = parse_sm30_rows(snapshot, lang.view_for("DE"))
         assert len(rows) == 1
         assert rows[0].values["Land"] == "DE"
 
     def test_real_v_t005_snapshot(self) -> None:
         """Test parsing rows from real V_T005 snapshot if available."""
-        for lang in ["de", "en"]:
-            snapshot_file = TESTDATA_DIR / f"sm30_v_t005_display_{lang}.yaml"
+        for code in ["de", "en"]:
+            snapshot_file = TESTDATA_DIR / f"sm30_v_t005_display_{code}.yaml"
             if snapshot_file.exists():
                 snapshot = snapshot_file.read_text(encoding="utf-8")
-                rows = parse_sm30_rows(snapshot)
+                rows = parse_sm30_rows(snapshot, lang.view_for("DE"))
                 assert len(rows) > 0, f"No rows found in {lang} snapshot"
 
 
@@ -259,7 +260,7 @@ class TestParseSm30Snapshot:
   - textbox "Tabelle/Sicht": ZZZNOTEXIST99
   - note "Fehler Meldungsleiste Tabelle/View ZZZNOTEXIST99 ist nicht im Dictionary vorhanden"
         """
-        result = parse_sm30_snapshot(snapshot, "ZZZNOTEXIST99")
+        result = parse_sm30_snapshot(snapshot, "ZZZNOTEXIST99", lang.view_for("DE"))
         assert not result.success
         assert "not found" in result.error.lower()
         assert result.view_type == "unsupported"
@@ -272,7 +273,7 @@ class TestParseSm30Snapshot:
   - textbox "Table/View": ZZZNOTEXIST99
   - note "Error Message Bar Table/View ZZZNOTEXIST99 does not exist"
         """
-        result = parse_sm30_snapshot(snapshot, "ZZZNOTEXIST99")
+        result = parse_sm30_snapshot(snapshot, "ZZZNOTEXIST99", lang.view_for("DE"))
         assert not result.success
         assert "not found" in result.error.lower()
 
@@ -299,7 +300,7 @@ class TestParseSm30Snapshot:
     - rowgroup
   - button "Eintrag 1 von 50"
         """
-        result = parse_sm30_snapshot(snapshot, "V_T005")
+        result = parse_sm30_snapshot(snapshot, "V_T005", lang.view_for("DE"))
         assert result.success
         assert result.view_type == "flat"
         assert result.view_name == "V_T005"
@@ -330,7 +331,7 @@ class TestParseSm30Snapshot:
     - rowgroup
   - button "Entry 1 of 100"
         """
-        result = parse_sm30_snapshot(snapshot, "V_T005")
+        result = parse_sm30_snapshot(snapshot, "V_T005", lang.view_for("DE"))
         assert result.success
         assert result.view_type == "flat"
         assert result.columns == ["Country", "Name"]
@@ -343,7 +344,7 @@ class TestParseSm30Snapshot:
         snapshot_file = TESTDATA_DIR / "sm30_v_t005_display_de.yaml"
         if snapshot_file.exists():
             snapshot = snapshot_file.read_text(encoding="utf-8")
-            result = parse_sm30_snapshot(snapshot, "V_T005")
+            result = parse_sm30_snapshot(snapshot, "V_T005", lang.view_for("DE"))
             assert result.success
             assert result.view_type == "flat"
             assert len(result.columns) > 0
@@ -358,7 +359,7 @@ class TestParseSm30Snapshot:
         snapshot_file = TESTDATA_DIR / "sm30_v_t005_display_en.yaml"
         if snapshot_file.exists():
             snapshot = snapshot_file.read_text(encoding="utf-8")
-            result = parse_sm30_snapshot(snapshot, "V_T005")
+            result = parse_sm30_snapshot(snapshot, "V_T005", lang.view_for("DE"))
             assert result.success
             assert result.view_type == "flat"
             assert len(result.columns) > 0
@@ -369,7 +370,7 @@ class TestParseSm30Snapshot:
         snapshot_file = TESTDATA_DIR / "sm30_not_found_de.yaml"
         if snapshot_file.exists():
             snapshot = snapshot_file.read_text(encoding="utf-8")
-            result = parse_sm30_snapshot(snapshot, "ZZZNOTEXIST99")
+            result = parse_sm30_snapshot(snapshot, "ZZZNOTEXIST99", lang.view_for("DE"))
             assert not result.success
 
     def test_real_v_t002_not_found_de(self) -> None:
@@ -377,7 +378,7 @@ class TestParseSm30Snapshot:
         snapshot_file = TESTDATA_DIR / "sm30_v_t002_display_de.yaml"
         if snapshot_file.exists():
             snapshot = snapshot_file.read_text(encoding="utf-8")
-            result = parse_sm30_snapshot(snapshot, "V_T002")
+            result = parse_sm30_snapshot(snapshot, "V_T002", lang.view_for("DE"))
             assert not result.success
 
 

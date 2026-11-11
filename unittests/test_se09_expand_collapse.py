@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.backend.desktop import DesktopBackend
 from sapguimcp.tools.desktop_wait_predicates import usr_child_count_changed
 from sapguimcp.tools.se09_tools import (
@@ -165,7 +166,7 @@ async def test_after_the_action_waits_for_ready_and_the_tree_change(operation: A
     backend = _backend(job_result=True)
     backend.require_session = MagicMock(return_value=session)
     backend.com.run = AsyncMock(side_effect=lambda job: job())
-    await operation(backend, "ABCK900002")
+    await operation(backend, "ABCK900002", lang.view_for("DE"))
     backend.wait_for_ready.assert_awaited_once()
     backend.wait_for_condition.assert_awaited_once()
     assert backend.wait_for_condition.await_args.kwargs == {"timeout_ms": 2000, "poll_ms": 50}
@@ -179,12 +180,12 @@ async def test_after_the_action_waits_for_ready_and_the_tree_change(operation: A
 @pytest.mark.anyio
 async def test_expand_without_a_matching_label_skips_the_tree_wait() -> None:
     backend = _backend(job_result=False)
-    assert await _expand_request_node_desktop(backend, "ABCK900001") is False
+    assert await _expand_request_node_desktop(backend, "ABCK900001", lang.view_for("DE")) is False
     backend.wait_for_condition.assert_not_awaited()
 
 
 @pytest.mark.anyio
 async def test_collapse_without_a_matching_label_skips_the_tree_wait() -> None:
     backend = _backend(job_result=False)
-    await _collapse_request_node_desktop(backend, "ABCK900001")
+    await _collapse_request_node_desktop(backend, "ABCK900001", lang.view_for("DE"))
     backend.wait_for_condition.assert_not_awaited()

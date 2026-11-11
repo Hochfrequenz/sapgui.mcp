@@ -23,6 +23,8 @@ from sapguimcp.tools.abapgit_tools import (
     register_abapgit_tools,
 )
 
+pytestmark = pytest.mark.usefixtures("lang_de")
+
 _LINES = [
     "my-app~https://github.com/org/my-app~Z_MYAPP~refs/heads/main~~~~100000000001",
     "My_Other~https://github.com/org/other.git~Z_OTHER~refs/heads/dev~~~~100000000002",

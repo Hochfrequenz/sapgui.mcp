@@ -8,9 +8,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.backend.desktop import DesktopBackend
 from sapguimcp.models.sap_results import ScreenInfo, StatusBarInfo
-from sapguimcp.tools.se09_tools import _lookup_transports_desktop, _parse_labels_to_requests
+from sapguimcp.tools.se09_tools import (
+    _lookup_transports_desktop,
+    _parse_labels_to_requests,
+    _set_se09_selection_screen,
+)
 
 
 def _owners_and_descriptions(labels: list[str], default_owner: str = "") -> list[tuple[str, str, str]]:
@@ -125,7 +130,7 @@ async def test_the_desktop_lookup_reads_the_labels_without_de_duplication() -> N
     ]
     backend = _desktop_backend(labels)
     with patch("sapguimcp.tools.se09_tools._set_se09_selection_screen", AsyncMock()):
-        result = await _lookup_transports_desktop(backend, None, "all", "all")
+        result = await _lookup_transports_desktop(backend, lang.view_for("DE"), None, "all", "all")
     backend.get_screen_text.assert_awaited_once_with(keep_duplicate_labels=True)
     assert [(r.request_number, r.owner, r.description) for r in result.requests] == [
         ("ABCK900001", "USER1", "shared description"),
@@ -182,3 +187,16 @@ def test_the_built_in_user_sap_star_is_an_owner() -> None:
         ("ABCK900001", "SAP*", "a description"),
         ("ABCK900002", "SAP*", "another"),
     ]
+
+
+@pytest.mark.anyio
+async def test_the_desktop_user_field_is_filled_by_technical_name_not_by_label() -> None:
+    backend = MagicMock()
+    backend.fill_field = AsyncMock()
+    backend.set_checkbox = AsyncMock()
+    backend.focus_and_type = AsyncMock(return_value=True)
+
+    await _set_se09_selection_screen(backend, lang.view_for("EN"), "someone", "all", "all")
+
+    backend.focus_and_type.assert_awaited_once_with("TRDYSE01CM-USERNAME", "SOMEONE")
+    backend.fill_field.assert_not_called()

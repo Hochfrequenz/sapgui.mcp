@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.backend.webgui.parsers.se93_parser import parse_se93_snapshot
 from sapguimcp.models import SE93Entry, SE93Error
 
@@ -29,7 +30,7 @@ class TestTransactionTypeDetection:
     def test_detect_dialog_transaction(self) -> None:
         """Dialog transaction heading should be detected."""
         snapshot = _load_snapshot("se93_va01_details")
-        result = parse_se93_snapshot(snapshot, "VA01")
+        result = parse_se93_snapshot(snapshot, "VA01", lang.view_for("DE"))
 
         assert isinstance(result, SE93Entry)
         assert result.transaction_type == "dialog"
@@ -37,7 +38,7 @@ class TestTransactionTypeDetection:
     def test_detect_report_transaction(self) -> None:
         """Report transaction heading should be detected."""
         snapshot = _load_snapshot("se93_se38_details")
-        result = parse_se93_snapshot(snapshot, "SE38")
+        result = parse_se93_snapshot(snapshot, "SE38", lang.view_for("DE"))
 
         assert isinstance(result, SE93Entry)
         assert result.transaction_type == "report"
@@ -45,7 +46,7 @@ class TestTransactionTypeDetection:
     def test_not_found_returns_error(self) -> None:
         """Transaction not found should return SE93Error."""
         snapshot = _load_snapshot("se93_not_found")
-        result = parse_se93_snapshot(snapshot, "ZZZNOTEXIST99")
+        result = parse_se93_snapshot(snapshot, "ZZZNOTEXIST99", lang.view_for("DE"))
 
         assert isinstance(result, SE93Error)
         assert "not found" in result.error.lower()
@@ -57,7 +58,7 @@ class TestDialogTransactionParsing:
     def test_parse_va01_basic_fields(self) -> None:
         """VA01 basic fields should be parsed correctly."""
         snapshot = _load_snapshot("se93_va01_details")
-        result = parse_se93_snapshot(snapshot, "VA01")
+        result = parse_se93_snapshot(snapshot, "VA01", lang.view_for("DE"))
 
         assert isinstance(result, SE93Entry)
         assert result.tcode == "VA01"
@@ -70,7 +71,7 @@ class TestDialogTransactionParsing:
     def test_parse_va01_screen_number(self) -> None:
         """VA01 should have screen number (dialog-specific)."""
         snapshot = _load_snapshot("se93_va01_details")
-        result = parse_se93_snapshot(snapshot, "VA01")
+        result = parse_se93_snapshot(snapshot, "VA01", lang.view_for("DE"))
 
         assert isinstance(result, SE93Entry)
         assert result.screen_number == "101"
@@ -80,7 +81,7 @@ class TestDialogTransactionParsing:
     def test_parse_va01_gui_capabilities(self) -> None:
         """VA01 GUI capabilities should be parsed."""
         snapshot = _load_snapshot("se93_va01_details")
-        result = parse_se93_snapshot(snapshot, "VA01")
+        result = parse_se93_snapshot(snapshot, "VA01", lang.view_for("DE"))
 
         assert isinstance(result, SE93Entry)
         assert result.gui_html is True
@@ -90,7 +91,7 @@ class TestDialogTransactionParsing:
     def test_parse_pfcg_with_auth_object(self) -> None:
         """PFCG should have authorization object."""
         snapshot = _load_snapshot("se93_pfcg_details")
-        result = parse_se93_snapshot(snapshot, "PFCG")
+        result = parse_se93_snapshot(snapshot, "PFCG", lang.view_for("DE"))
 
         assert isinstance(result, SE93Entry)
         assert result.tcode == "PFCG"
@@ -104,7 +105,7 @@ class TestReportTransactionParsing:
     def test_parse_se38_basic_fields(self) -> None:
         """SE38 basic fields should be parsed correctly."""
         snapshot = _load_snapshot("se93_se38_details")
-        result = parse_se93_snapshot(snapshot, "SE38")
+        result = parse_se93_snapshot(snapshot, "SE38", lang.view_for("DE"))
 
         assert isinstance(result, SE93Entry)
         assert result.tcode == "SE38"
@@ -116,7 +117,7 @@ class TestReportTransactionParsing:
     def test_parse_se38_selection_screen(self) -> None:
         """SE38 should have selection screen (report-specific)."""
         snapshot = _load_snapshot("se93_se38_details")
-        result = parse_se93_snapshot(snapshot, "SE38")
+        result = parse_se93_snapshot(snapshot, "SE38", lang.view_for("DE"))
 
         assert isinstance(result, SE93Entry)
         assert result.selection_screen == "1000"
@@ -126,7 +127,7 @@ class TestReportTransactionParsing:
     def test_parse_se38_gui_capabilities(self) -> None:
         """SE38 GUI capabilities should be parsed (no HTML for SE38)."""
         snapshot = _load_snapshot("se93_se38_details")
-        result = parse_se93_snapshot(snapshot, "SE38")
+        result = parse_se93_snapshot(snapshot, "SE38", lang.view_for("DE"))
 
         assert isinstance(result, SE93Entry)
         # SE38 doesn't support HTML GUI
@@ -137,7 +138,7 @@ class TestReportTransactionParsing:
     def test_parse_se24_as_report(self) -> None:
         """SE24 (Class Builder) is a report transaction."""
         snapshot = _load_snapshot("se93_se24_details")
-        result = parse_se93_snapshot(snapshot, "SE24")
+        result = parse_se93_snapshot(snapshot, "SE24", lang.view_for("DE"))
 
         assert isinstance(result, SE93Entry)
         assert result.tcode == "SE24"
@@ -152,7 +153,7 @@ class TestEdgeCases:
     def test_uppercase_tcode_normalization(self) -> None:
         """Transaction code should be normalized to uppercase."""
         snapshot = _load_snapshot("se93_va01_details")
-        result = parse_se93_snapshot(snapshot, "va01")
+        result = parse_se93_snapshot(snapshot, "va01", lang.view_for("DE"))
 
         assert isinstance(result, SE93Entry)
         assert result.tcode == "VA01"
@@ -160,7 +161,7 @@ class TestEdgeCases:
     def test_empty_optional_fields(self) -> None:
         """Optional fields should be None when empty."""
         snapshot = _load_snapshot("se93_se24_details")
-        result = parse_se93_snapshot(snapshot, "SE24")
+        result = parse_se93_snapshot(snapshot, "SE24", lang.view_for("DE"))
 
         assert isinstance(result, SE93Entry)
         # SE24 doesn't have authorization object in our snapshot

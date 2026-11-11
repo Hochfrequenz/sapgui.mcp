@@ -14,6 +14,8 @@ from sapguimcp.models.sap_results import StatusBarInfo
 from sapguimcp.tools import abapgit_tools
 from sapguimcp.tools.abapgit_tools import _abapgit_pull_via_api
 
+pytestmark = pytest.mark.usefixtures("lang_de")
+
 REF = "refs/heads/feature/x"
 
 

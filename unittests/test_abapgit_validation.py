@@ -11,6 +11,8 @@ import pytest
 from sapguimcp.tools import abapgit_tools
 from sapguimcp.tools.abapgit_tools import PullParams, _validate_and_prepare_params, _validate_repo_selector
 
+pytestmark = pytest.mark.usefixtures("lang_de")
+
 
 def _settings(**overrides: Any) -> SimpleNamespace:
     values: dict[str, Any] = {"abapgit_pat": None, "github_pat": None, "github_user": None}

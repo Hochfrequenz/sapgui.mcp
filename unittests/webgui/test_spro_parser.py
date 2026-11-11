@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.backend.webgui.parsers.spro_parser import (
     _extract_results_section,
     parse_spro_search_results,
@@ -33,46 +34,46 @@ class TestRealSearchResults:
         return path.read_text(encoding="utf-8")
 
     def test_parses_activities(self, de_search_results: str) -> None:
-        result = parse_spro_search_results(de_search_results, "Land")
+        result = parse_spro_search_results(de_search_results, "Land", lang.view_for("DE"))
         assert result.success
         assert result.activity_count == 22
         assert len(result.activities) == result.activity_count
 
     def test_activity_has_name(self, de_search_results: str) -> None:
-        result = parse_spro_search_results(de_search_results, "Land")
+        result = parse_spro_search_results(de_search_results, "Land", lang.view_for("DE"))
         for activity in result.activities:
             assert activity.activity_name, f"Activity missing name: {activity}"
 
     def test_activity_has_area(self, de_search_results: str) -> None:
-        result = parse_spro_search_results(de_search_results, "Land")
+        result = parse_spro_search_results(de_search_results, "Land", lang.view_for("DE"))
         # Most activities should have an area (broad section)
         activities_with_area = [a for a in result.activities if a.area]
         assert len(activities_with_area) > 0
 
     def test_query_preserved(self, de_search_results: str) -> None:
-        result = parse_spro_search_results(de_search_results, "Land")
+        result = parse_spro_search_results(de_search_results, "Land", lang.view_for("DE"))
         assert result.query == "Land"
 
     def test_retrieved_at_set(self, de_search_results: str) -> None:
-        result = parse_spro_search_results(de_search_results, "Land")
+        result = parse_spro_search_results(de_search_results, "Land", lang.view_for("DE"))
         assert result.retrieved_at is not None
 
     def test_known_activity_present(self, de_search_results: str) -> None:
         """Check that a known activity from the snapshot is parsed."""
-        result = parse_spro_search_results(de_search_results, "Land")
+        result = parse_spro_search_results(de_search_results, "Land", lang.view_for("DE"))
         names = [a.activity_name for a in result.activities]
         # From the real snapshot: "Zuordnung Kfz-Kennzeichen zu Land/Region pflegen"
         assert any("Kfz-Kennzeichen" in name for name in names)
 
     def test_parent_node_parsed(self, de_search_results: str) -> None:
         """Check that parent node column is parsed for activities that have one."""
-        result = parse_spro_search_results(de_search_results, "Land")
+        result = parse_spro_search_results(de_search_results, "Land", lang.view_for("DE"))
         activities_with_parent = [a for a in result.activities if a.parent_node]
         assert len(activities_with_parent) > 0
 
     def test_no_selection_cells_in_results(self, de_search_results: str) -> None:
         """Ensure row selection hint text is not included as activity data."""
-        result = parse_spro_search_results(de_search_results, "Land")
+        result = parse_spro_search_results(de_search_results, "Land", lang.view_for("DE"))
         for activity in result.activities:
             assert "Zum Auswählen" not in activity.activity_name
             assert "To select" not in activity.activity_name
@@ -89,18 +90,18 @@ class TestRealSearchResultsEN:
         return path.read_text(encoding="utf-8")
 
     def test_parses_activities(self, en_search_results: str) -> None:
-        result = parse_spro_search_results(en_search_results, "country")
+        result = parse_spro_search_results(en_search_results, "country", lang.view_for("DE"))
         assert result.success
         assert result.activity_count > 0
         assert len(result.activities) == result.activity_count
 
     def test_known_activity_present(self, en_search_results: str) -> None:
-        result = parse_spro_search_results(en_search_results, "country")
+        result = parse_spro_search_results(en_search_results, "country", lang.view_for("DE"))
         names = [a.activity_name for a in result.activities]
         assert any("Country" in name for name in names)
 
     def test_no_selection_cells_in_results(self, en_search_results: str) -> None:
-        result = parse_spro_search_results(en_search_results, "country")
+        result = parse_spro_search_results(en_search_results, "country", lang.view_for("DE"))
         for activity in result.activities:
             assert "To select" not in activity.activity_name
 
@@ -122,18 +123,18 @@ class TestNoResults:
     - row "Row selection disabled.":
       - gridcell "Row selection disabled." [disabled]
 """
-        result = parse_spro_search_results(snapshot, "nonexistent")
+        result = parse_spro_search_results(snapshot, "nonexistent", lang.view_for("DE"))
         assert result.success
         assert result.activity_count == 0
         assert result.activities == []
 
     def test_empty_snapshot(self) -> None:
-        result = parse_spro_search_results("", "test")
+        result = parse_spro_search_results("", "test", lang.view_for("DE"))
         assert result.success
         assert result.activity_count == 0
 
     def test_query_preserved_on_no_results(self) -> None:
-        result = parse_spro_search_results("no dialog here", "myquery")
+        result = parse_spro_search_results("no dialog here", "myquery", lang.view_for("DE"))
         assert result.query == "myquery"
 
 
@@ -169,7 +170,7 @@ class TestSyntheticSnapshots:
     - toolbar:
       - button "Weiter"
 """
-        result = parse_spro_search_results(snapshot, "test")
+        result = parse_spro_search_results(snapshot, "test", lang.view_for("DE"))
         assert result.success
         assert result.activity_count == 1
         assert result.activities[0].activity_name == "Test Activity"
@@ -205,7 +206,7 @@ class TestSyntheticSnapshots:
     - toolbar:
       - button "Weiter"
 """
-        result = parse_spro_search_results(snapshot, "multi")
+        result = parse_spro_search_results(snapshot, "multi", lang.view_for("DE"))
         assert result.activity_count == 2
         assert result.activities[0].activity_name == "Activity One"
         assert result.activities[1].activity_name == "Activity Two"
@@ -227,7 +228,7 @@ class TestSyntheticSnapshots:
     - toolbar:
       - button "Weiter"
 """
-        result = parse_spro_search_results(snapshot, "x")
+        result = parse_spro_search_results(snapshot, "x", lang.view_for("DE"))
         assert result.activity_count == 1
         assert result.activities[0].activity_name == "Standalone Activity"
         assert result.activities[0].parent_node == ""
@@ -252,7 +253,7 @@ class TestSyntheticSnapshots:
     - toolbar:
       - button "Continue"
 """
-        result = parse_spro_search_results(snapshot, "country")
+        result = parse_spro_search_results(snapshot, "country", lang.view_for("DE"))
         assert result.activity_count == 1
         assert result.activities[0].activity_name == "Define Countries"
         assert result.activities[0].parent_node == "Enterprise Structure"
@@ -269,17 +270,17 @@ class TestExtractResultsSection:
 
     def test_extracts_de_section(self) -> None:
         snapshot = 'prefix\n  - dialog "Trefferliste zum Suchbegriff \\"x\\"":\n    - grid:\nmore'
-        section = _extract_results_section(snapshot)
+        section = _extract_results_section(snapshot, lang.view_for("DE"))
         assert section.startswith('dialog "Trefferliste')
         assert "prefix" not in section
 
     def test_extracts_en_section(self) -> None:
         snapshot = 'prefix\n  - dialog "Hit List for Search Term \\"y\\"":\n    - grid:\nmore'
-        section = _extract_results_section(snapshot)
+        section = _extract_results_section(snapshot, lang.view_for("DE"))
         assert section.startswith('dialog "Hit List')
 
     def test_empty_on_no_dialog(self) -> None:
-        assert _extract_results_section("no results dialog here") == ""
+        assert _extract_results_section("no results dialog here", lang.view_for("DE")) == ""
 
     def test_empty_on_empty_input(self) -> None:
-        assert _extract_results_section("") == ""
+        assert _extract_results_section("", lang.view_for("DE")) == ""

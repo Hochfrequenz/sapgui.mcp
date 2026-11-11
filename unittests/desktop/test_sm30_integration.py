@@ -5,6 +5,7 @@ import sys
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.models.sm30_models import SM30ViewResult
 from sapguimcp.tools.sm30_tools import _lookup_view_desktop
 from unittests.desktop.conftest import go_home, skip_no_sap
@@ -22,7 +23,7 @@ async def test_sm30_existing_view_v_t005(backend):
     We verify the tool returns a well-formed SM30ViewResult regardless.
     If successful, also verify columns and rows are non-empty.
     """
-    result = await _lookup_view_desktop(backend, "V_T005")
+    result = await _lookup_view_desktop(backend, lang.current(), "V_T005")
     assert result is not None
     assert result.view_name == "V_T005"
     assert isinstance(result.model_dump_json(), str)
@@ -42,7 +43,7 @@ async def test_sm30_existing_view_v_t005(backend):
 @pytest.mark.anyio
 async def test_sm30_nonexistent_view(backend):
     """SM30: nonexistent view ZZZNOTEXIST99 returns error, not exception."""
-    result = await _lookup_view_desktop(backend, "ZZZNOTEXIST99")
+    result = await _lookup_view_desktop(backend, lang.current(), "ZZZNOTEXIST99")
     assert result is not None
     assert not result.success, "Expected failure for non-existent view"
     assert result.view_type == "unsupported"
@@ -54,7 +55,7 @@ async def test_sm30_nonexistent_view(backend):
 @pytest.mark.anyio
 async def test_sm30_model_serializes(backend):
     """SM30ViewResult must JSON-serialize (roundtrip)."""
-    result = await _lookup_view_desktop(backend, "V_T005")
+    result = await _lookup_view_desktop(backend, lang.current(), "V_T005")
     json_str = result.model_dump_json()
     parsed = json.loads(json_str)
     assert parsed["view_name"] == "V_T005"

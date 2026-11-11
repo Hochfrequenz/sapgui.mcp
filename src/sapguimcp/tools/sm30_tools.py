@@ -14,15 +14,11 @@ from typing import TYPE_CHECKING
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.backend.webgui.parsers.sm30_parser import parse_sm30_snapshot
 from sapguimcp.backend.webgui.types import AriaSnapshot
-from sapguimcp.lang import (
-    SM30_DISPLAY_BUTTON_DE,
-    SM30_DISPLAY_BUTTON_EN,
-    SM30_TABLE_VIEW_DE,
-    SM30_TABLE_VIEW_EN,
-)
+from sapguimcp.lang.schema import LanguagePack
 from sapguimcp.models import TableData
 from sapguimcp.models.sm30_models import SM30FileSummary, SM30Row, SM30ViewResult
 from sapguimcp.utils import resolve_output_file_path, write_json_output_file
@@ -42,9 +38,9 @@ __all__ = ["register_sm30_tools"]
 # =============================================================================
 
 
-async def _fill_view_field(backend: "WebGuiBackend | DesktopBackend", view_name: str) -> str | None:
+async def _fill_view_field(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack, view_name: str) -> str | None:
     """Fill the view name field in SM30. Returns error string or None."""
-    for label in [SM30_TABLE_VIEW_DE, SM30_TABLE_VIEW_EN]:
+    for label in t.sm30.table_view:
         try:
             await backend.fill_field(label, view_name.upper())
             return None
@@ -54,16 +50,16 @@ async def _fill_view_field(backend: "WebGuiBackend | DesktopBackend", view_name:
     return "Could not find Table/View field in SM30"
 
 
-async def _click_display_button(backend: "WebGuiBackend | DesktopBackend") -> str | None:
+async def _click_display_button(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> str | None:
     """
-    Click the Anzeigen/Display button in SM30.
+    Click the Display button in SM30.
 
     SM30 does not use standard F5/F7 keys for Display. We click the button
     directly using the backend's click_button method.
 
     Returns error string or None on success.
     """
-    for label in [SM30_DISPLAY_BUTTON_DE, SM30_DISPLAY_BUTTON_EN]:
+    for label in t.common.display:
         try:
             await backend.click_button(label)
             await backend.wait_for_ready()
@@ -72,10 +68,12 @@ async def _click_display_button(backend: "WebGuiBackend | DesktopBackend") -> st
             logger.warning("Click %r button failed: %r", label, e)
             continue
 
-    return "Could not find Anzeigen/Display button in SM30"
+    return "Could not find the Display button in SM30"
 
 
-async def _lookup_view_desktop(backend: "WebGuiBackend | DesktopBackend", view_name: str) -> SM30ViewResult:
+async def _lookup_view_desktop(
+    backend: "WebGuiBackend | DesktopBackend", t: LanguagePack, view_name: str
+) -> SM30ViewResult:
     """Desktop-specific SM30 lookup using read_table instead of ARIA parsing."""
     now = datetime.now(UTC)
     logger.info("SM30 desktop backend path", extra={"view_name": view_name})
@@ -95,7 +93,7 @@ async def _lookup_view_desktop(backend: "WebGuiBackend | DesktopBackend", view_n
     await backend.wait_for_ready()
 
     # Fill view name
-    fill_error = await _fill_view_field(backend, view_name)
+    fill_error = await _fill_view_field(backend, t, view_name)
     if fill_error:
         return SM30ViewResult.failure(
             error=fill_error,
@@ -109,7 +107,7 @@ async def _lookup_view_desktop(backend: "WebGuiBackend | DesktopBackend", view_n
         )
 
     # Click Display button
-    click_error = await _click_display_button(backend)
+    click_error = await _click_display_button(backend, t)
     if click_error:
         return SM30ViewResult.failure(
             error=click_error,
@@ -149,13 +147,13 @@ async def _lookup_view_desktop(backend: "WebGuiBackend | DesktopBackend", view_n
     )
 
 
-async def _lookup_view(backend: "WebGuiBackend | DesktopBackend", view_name: str) -> SM30ViewResult:
+async def _lookup_view(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack, view_name: str) -> SM30ViewResult:
     """Look up a single SM30 view."""
     now = datetime.now(UTC)
 
     # Desktop backend: use read_table instead of ARIA snapshot parsing
     if backend.backend_type == "desktop":
-        return await _lookup_view_desktop(backend, view_name)
+        return await _lookup_view_desktop(backend, t, view_name)
 
     # Navigate to SM30
     tx_result = await backend.enter_transaction("SM30")
@@ -175,7 +173,7 @@ async def _lookup_view(backend: "WebGuiBackend | DesktopBackend", view_name: str
     await backend.wait_for_ready()
 
     # Fill view name
-    fill_error = await _fill_view_field(backend, view_name)
+    fill_error = await _fill_view_field(backend, t, view_name)
     if fill_error:
         return SM30ViewResult.failure(
             error=fill_error,
@@ -189,7 +187,7 @@ async def _lookup_view(backend: "WebGuiBackend | DesktopBackend", view_name: str
         )
 
     # Click Display button
-    click_error = await _click_display_button(backend)
+    click_error = await _click_display_button(backend, t)
     if click_error:
         return SM30ViewResult.failure(
             error=click_error,
@@ -210,7 +208,7 @@ async def _lookup_view(backend: "WebGuiBackend | DesktopBackend", view_name: str
         len(str(snapshot)),
     )
 
-    return parse_sm30_snapshot(snapshot, view_name)
+    return parse_sm30_snapshot(snapshot, view_name, t)
 
 
 # =============================================================================
@@ -290,8 +288,11 @@ def register_sm30_tools(mcp: FastMCP) -> None:
                 retrieved_at=now,
             )
 
+        # Resolved outside the try: an unsupported session language must reach the caller, not become a failure result.
+        t = lang.current("sap_sm30_lookup")
+
         try:
-            result = await _lookup_view(backend, view_name)
+            result = await _lookup_view(backend, t, view_name)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Looking up SM30 view=%r", view_name)
             result = SM30ViewResult.failure(

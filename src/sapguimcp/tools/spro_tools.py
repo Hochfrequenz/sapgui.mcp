@@ -18,24 +18,16 @@ from typing import TYPE_CHECKING, Any, cast
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.backend.webgui.parsers.spro_parser import parse_spro_search_results
 from sapguimcp.backend.webgui.types import AriaSnapshot
-from sapguimcp.lang import (
-    SPRO_IMG_HEADING_DE,
-    SPRO_IMG_HEADING_EN,
-    SPRO_INITIAL_SCREEN_DE,
-    SPRO_INITIAL_SCREEN_EN,
-    SPRO_RESULTS_DIALOG_DE,
-    SPRO_RESULTS_DIALOG_EN,
-    SPRO_SEARCH_BUTTON_DE,
-    SPRO_SEARCH_BUTTON_EN,
-)
 from sapguimcp.models.spro_models import SPROActivity, SPROFileSummary, SPROSearchResult
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
+    from sapguimcp.lang.schema import LanguagePack
 
 
 logger = logging.getLogger(__name__)
@@ -65,8 +57,8 @@ _SPRO_TREE_ID = "wnd[0]/usr/cntlTREE_CONTROL_CONTAINER/shellcont/shell"
 # =============================================================================
 
 
-async def _click_sap_ref_img(backend: "WebGuiBackend | DesktopBackend") -> str | None:
-    """Click 'SAP Referenz-IMG' / 'SAP Reference IMG' button via F5.
+async def _click_sap_ref_img(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> str | None:
+    """Open the SAP Reference IMG via F5.
 
     On the SPRO initial screen, F5 triggers the SAP Reference IMG view.
     The IMG tree can take several seconds to render, so we poll for the
@@ -77,8 +69,9 @@ async def _click_sap_ref_img(backend: "WebGuiBackend | DesktopBackend") -> str |
     # Verify we're on the SPRO initial screen before pressing F5
     snapshot = await backend.get_snapshot()
     snapshot_str = str(snapshot)
-    if SPRO_INITIAL_SCREEN_DE not in snapshot_str and SPRO_INITIAL_SCREEN_EN not in snapshot_str:
-        return f"Not on SPRO initial screen (expected '{SPRO_INITIAL_SCREEN_DE}' or '{SPRO_INITIAL_SCREEN_EN}')"
+    if not t.spro.initial_screen.contains(snapshot_str):
+        expected = "' or '".join(t.spro.initial_screen)
+        return f"Not on SPRO initial screen (expected '{expected}')"
 
     await backend.press_key("F5")
     await backend.wait_for_ready()
@@ -87,7 +80,7 @@ async def _click_sap_ref_img(backend: "WebGuiBackend | DesktopBackend") -> str |
     for poll in range(_F5_MAX_POLLS):
         snapshot = await backend.get_snapshot()
         snapshot_str = str(snapshot)
-        if SPRO_IMG_HEADING_DE in snapshot_str or SPRO_IMG_HEADING_EN in snapshot_str:
+        if t.spro.img_heading.contains(snapshot_str):
             return None
         logger.debug("IMG heading not found yet, poll %d/%d", poll + 1, _F5_MAX_POLLS)
         await asyncio.sleep(_F5_POLL_INTERVAL_S)
@@ -95,7 +88,7 @@ async def _click_sap_ref_img(backend: "WebGuiBackend | DesktopBackend") -> str |
     return "Failed to enter IMG tree (heading not found after F5)"
 
 
-async def _open_search_dialog(backend: "WebGuiBackend | DesktopBackend") -> str | None:
+async def _open_search_dialog(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> str | None:
     """Open the SPRO search dialog by clicking the search button.
 
     Ctrl+F is intercepted by the browser, so we click the button directly
@@ -103,7 +96,7 @@ async def _open_search_dialog(backend: "WebGuiBackend | DesktopBackend") -> str 
 
     Returns error string or None on success.
     """
-    for label in [SPRO_SEARCH_BUTTON_DE, SPRO_SEARCH_BUTTON_EN]:
+    for label in t.spro.search_button:
         try:
             await backend.click_button(label)
             await backend.wait_for_ready()
@@ -155,7 +148,7 @@ async def _fill_search_and_execute(backend: "WebGuiBackend", query: str) -> str 
     return None
 
 
-async def _wait_for_results(backend: "WebGuiBackend | DesktopBackend") -> str:
+async def _wait_for_results(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> str:
     """Wait for SPRO search results dialog to appear.
 
     Polls for the results dialog title which appears when search completes.
@@ -174,7 +167,7 @@ async def _wait_for_results(backend: "WebGuiBackend | DesktopBackend") -> str:
         snapshot_str = str(snapshot)
 
         # Check for results dialog
-        if SPRO_RESULTS_DIALOG_DE in snapshot_str or SPRO_RESULTS_DIALOG_EN in snapshot_str:
+        if t.spro.results_dialog.contains(snapshot_str):
             logger.info(
                 "SPRO search results found after %d ms",
                 elapsed_ms,
@@ -182,7 +175,7 @@ async def _wait_for_results(backend: "WebGuiBackend | DesktopBackend") -> str:
             return snapshot
 
         # Check if we returned to the IMG tree (search dialog gone, no results)
-        if SPRO_IMG_HEADING_DE in snapshot_str or SPRO_IMG_HEADING_EN in snapshot_str:
+        if t.spro.img_heading.contains(snapshot_str):
             if "dialog" not in snapshot_str.lower():
                 logger.info(
                     "SPRO search completed with no results after %d ms",
@@ -309,7 +302,7 @@ async def _search_img_desktop(  # pylint: disable=too-many-locals
     )
 
 
-async def _search_img(backend: "WebGuiBackend", query: str) -> SPROSearchResult:
+async def _search_img(backend: "WebGuiBackend", t: LanguagePack, query: str) -> SPROSearchResult:
     """Execute a full SPRO IMG search."""
     now = datetime.now(UTC)
 
@@ -327,7 +320,7 @@ async def _search_img(backend: "WebGuiBackend", query: str) -> SPROSearchResult:
     await backend.wait_for_ready()
 
     # Enter IMG tree (F5)
-    img_error = await _click_sap_ref_img(backend)
+    img_error = await _click_sap_ref_img(backend, t)
     if img_error:
         return SPROSearchResult.failure(
             error=img_error,
@@ -338,7 +331,7 @@ async def _search_img(backend: "WebGuiBackend", query: str) -> SPROSearchResult:
         )
 
     # Open search dialog
-    dialog_error = await _open_search_dialog(backend)
+    dialog_error = await _open_search_dialog(backend, t)
     if dialog_error:
         return SPROSearchResult.failure(
             error=dialog_error,
@@ -360,10 +353,10 @@ async def _search_img(backend: "WebGuiBackend", query: str) -> SPROSearchResult:
         )
 
     # Wait for results
-    snapshot = AriaSnapshot(await _wait_for_results(backend))
+    snapshot = AriaSnapshot(await _wait_for_results(backend, t))
     logger.debug("SPRO search snapshot length=%d", len(str(snapshot)))
 
-    return parse_spro_search_results(snapshot, query)
+    return parse_spro_search_results(snapshot, query, t)
 
 
 # =============================================================================
@@ -436,8 +429,11 @@ def register_spro_tools(mcp: FastMCP) -> None:
                     retrieved_at=now,
                 )
         else:
+            # Resolved outside the try: an unsupported session language must reach the caller (the desktop search
+            # reads the tree control and needs no texts).
+            t = lang.current("sap_spro_search")
             try:
-                result = await _search_img(cast("WebGuiBackend", backend), query)
+                result = await _search_img(cast("WebGuiBackend", backend), t, query)
             except Exception as e:  # pylint: disable=broad-exception-caught
                 logger.exception("SPRO search query=%r", query)
                 result = SPROSearchResult.failure(

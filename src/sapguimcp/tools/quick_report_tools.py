@@ -11,6 +11,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
+from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.quick_report_models import (
     QuickReportResult,
@@ -23,21 +24,10 @@ from sapguimcp.tools.screen_state_helpers import ensure_screen_state
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
+    from sapguimcp.lang.schema import LanguagePack
 
 
 logger = logging.getLogger(__name__)
-
-# Patterns that indicate "no data" in status bar (case-insensitive)
-_EMPTY_PATTERNS: tuple[str, ...] = (
-    "keine daten",
-    "no data",
-    "keine werte",
-    "no entries",
-    "kein job",
-    "no job",
-    "keine belege",
-    "no documents",
-)
 
 # Page titles that indicate SAP Easy Access (main menu), not a report result.
 _EASY_ACCESS_TITLES: tuple[str, ...] = (
@@ -48,6 +38,7 @@ _EASY_ACCESS_TITLES: tuple[str, ...] = (
 
 async def classify_result_screen(  # pylint: disable=too-many-return-statements
     backend: WebGuiBackend | DesktopBackend,
+    t: LanguagePack,
 ) -> tuple[ScreenClassification, StatusBarInfo]:
     """Classify the current screen after F8.
 
@@ -59,7 +50,7 @@ async def classify_result_screen(  # pylint: disable=too-many-return-statements
     4. Page title is Easy Access → ERROR (transaction didn't navigate away)
     5. ARIA snapshot contains grid → TABLE
     5b. ARIA snapshot contains list/listitem → LIST
-    6. Still on selection screen (textbox + Ausführen button visible) → ERROR
+    6. Still on selection screen (textbox + Execute button visible) → ERROR
     7. Otherwise → UNKNOWN
     """
     status_bar = await backend.get_status_bar()
@@ -69,8 +60,7 @@ async def classify_result_screen(  # pylint: disable=too-many-return-statements
         return ScreenClassification.ERROR, status_bar
 
     # 2. Empty
-    msg_lower = status_bar.message.lower()
-    if any(pattern in msg_lower for pattern in _EMPTY_PATTERNS):
+    if t.quick_report.empty_patterns.contains(status_bar.message):
         return ScreenClassification.EMPTY, status_bar
 
     # 3. Warning — SAP showed a warning after F8 (e.g. selection not restricted).
@@ -96,7 +86,7 @@ async def classify_result_screen(  # pylint: disable=too-many-return-statements
 
     # 6. Still on selection screen — F8 didn't navigate away.
     #    Selection screens have input textboxes.  Some transactions also show
-    #    the Ausführen button, others (e.g. VF05) do not.  At this point we
+    #    the Execute button, others (e.g. VF05) do not.  At this point we
     #    already ruled out grid, list, error, empty, and Easy Access, so
     #    textboxes remaining strongly indicates we never left the selection
     #    screen.
@@ -111,23 +101,15 @@ async def classify_result_screen(  # pylint: disable=too-many-return-statements
 _MAX_POST_F8_KEYS = 3
 _F8_MAX_RETRIES = 3
 
-# Labels for the SAP "Execute" button (DE + EN, with/without highlight marker)
-_EXECUTE_BUTTON_LABELS: tuple[str, ...] = (
-    "Ausführen",
-    "Ausführen Hervorgehoben",
-    "Execute",
-    "Execute Highlighted",
-)
 
-
-async def _press_f8(backend: WebGuiBackend | DesktopBackend, tcode: str, attempt: int) -> None:
-    """Execute the report by clicking the Ausführen button or pressing F8.
+async def _press_f8(backend: WebGuiBackend | DesktopBackend, t: LanguagePack, tcode: str, attempt: int) -> None:
+    """Execute the report by clicking the Execute button or pressing F8.
 
     Prefers a direct DOM click on the Execute button (reliable across all
     focus states).  Falls back to ``keyboard.press("F8")`` when the button
     is not found (some transactions hide it).
     """
-    for label in _EXECUTE_BUTTON_LABELS:
+    for label in t.quick_report.execute_button:
         try:
             await backend.click_button(label)
         except Exception:  # pylint: disable=broad-exception-caught
@@ -178,9 +160,13 @@ async def _execute_quick_report(  # pylint: disable=too-many-arguments,too-many-
             screen_type=ScreenClassification.ERROR,
         )
 
+    # Resolved outside the try: an unsupported session language must reach the caller, not become a failure result.
+    t = lang.current("sap_quick_report")
+
     try:
         return await _run_pipeline(
             backend,
+            t,
             tcode=tcode,
             fields=fields,
             checkboxes=checkboxes,
@@ -201,6 +187,7 @@ async def _execute_quick_report(  # pylint: disable=too-many-arguments,too-many-
 
 async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches,too-many-statements
     backend: WebGuiBackend | DesktopBackend,
+    t: LanguagePack,
     tcode: str,
     fields: dict[str, str] | None,
     checkboxes: dict[str, bool] | None,
@@ -240,14 +227,14 @@ async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-position
         warnings.extend(state_result.warnings)
 
     # 4. Execute report (F8) — retry up to 3 times if screen doesn't change.
-    #    Strategy: click the Ausführen button (DOM click, most reliable),
+    #    Strategy: click the Execute button (DOM click, most reliable),
     #    fall back to keyboard F8 if the button is not found.
     classification = ScreenClassification.UNKNOWN
     status_bar = StatusBarInfo(type="none", message="")
 
     for attempt in range(1, _F8_MAX_RETRIES + 1):
-        await _press_f8(backend, tcode, attempt)
-        classification, status_bar = await classify_result_screen(backend)
+        await _press_f8(backend, t, tcode, attempt)
+        classification, status_bar = await classify_result_screen(backend, t)
 
         # If we got a definitive result, stop retrying.
         if classification not in (ScreenClassification.ERROR, ScreenClassification.UNKNOWN):
@@ -258,7 +245,7 @@ async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-position
         if classification == ScreenClassification.UNKNOWN and not status_bar.message:
             await backend.wait(2000)
             await backend.wait_for_ready()
-            classification, status_bar = await classify_result_screen(backend)
+            classification, status_bar = await classify_result_screen(backend, t)
             if classification != ScreenClassification.ERROR:
                 break
 
@@ -298,7 +285,7 @@ async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-position
         # Press key, wait, and re-classify
         await backend.press_key(key)
         await backend.wait_for_ready()
-        classification, status_bar = await classify_result_screen(backend)
+        classification, status_bar = await classify_result_screen(backend, t)
 
     # 7. Parse by classification
     page_title = await backend.get_page_title()
@@ -318,11 +305,9 @@ async def _run_pipeline(  # pylint: disable=too-many-arguments,too-many-position
         # Fallback: get_status_bar() may return empty if SAP hasn't
         # updated the DOM yet (race with networkidle). screen_text
         # captures it more reliably. Re-check empty patterns.
-        if screen_text and screen_text.status_bar:
-            sb_text_lower = screen_text.status_bar.lower()
-            if any(pattern in sb_text_lower for pattern in _EMPTY_PATTERNS):
-                classification = ScreenClassification.EMPTY
-                screen_text = None  # not needed for EMPTY
+        if screen_text and screen_text.status_bar and t.quick_report.empty_patterns.contains(screen_text.status_bar):
+            classification = ScreenClassification.EMPTY
+            screen_text = None  # not needed for EMPTY
 
         if classification == ScreenClassification.UNKNOWN:
             logger.warning(
