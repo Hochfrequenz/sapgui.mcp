@@ -270,7 +270,9 @@ def draft(language: str, fetch: Callable[[str, Source], Sequence[str]]) -> str:
         imports["sapguimcp.lang.text"].add(type(leaf).__name__)
         emit(indent, f"{prefix}{code},", comment)
 
-    emit(0, f"{language} = LanguagePack(")
+    # The module constant must be a Python identifier; SAP keys such as "1Q" start with a digit.
+    constant = language if language.isidentifier() else f"PACK_{language}"
+    emit(0, f"{constant} = LanguagePack(")
     emit(4, f"code={_q(language)},")
     emit(4, f"html_lang={_q(en.html_lang)},", f"TODO ISO code of <html lang> in the WebGUI for {language}")
     emit(4, f"logon_dropdown={_q(en.logon_dropdown)},", "TODO language name in the WebGUI logon dropdown")

@@ -143,6 +143,12 @@ class TestDraft:
             if isinstance(leaf, Text):
                 assert leaf.word == en_leaves[path].word, path  # type: ignore[attr-defined]
 
+    def test_digit_leading_key_gives_a_valid_constant(self, tmp_path: Path) -> None:
+        """SAP keys may start with a digit; the module constant must still be an identifier (Copilot, #1067)."""
+        source = harvest.draft("1Q", self._fake_fetch)
+        compile(source, "1q.py", "exec")
+        assert self._load(source, tmp_path).PACK_1Q.code == "1Q"
+
     def test_sourced_equal_text_field_holds_the_sap_text(self) -> None:
         source = harvest.draft("ZZ", self._fake_fetch)
         assert 'hit_count_label=Text(("Anzahl Treffer",)),' in source
