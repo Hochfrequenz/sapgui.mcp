@@ -201,22 +201,13 @@ async def _set_se09_selection_screen(
 
     SE09 uses checkboxes (not radio buttons) for both request type and status.
     The username field is in a subscreen whose label/field names don't follow
-    the standard convention, so we fill it by trying both label and technical name.
+    the standard convention,.
     """
-    # Username field — SE09's user field is in a subscreen where label/field names
-    # don't match (lblSEL_USER vs ctxtUSERNAME), so fill_field by label fails.
-    # Fallback: focus_and_type with SAP technical name (uses FindByName strategy).
+    # Username field: SE09's user field sits in a subscreen whose label/field names don't
+    # match (lblSEL_USER vs ctxtUSERNAME). The technical name TRDYSE01CM-USERNAME exists on
+    # S/4 and ECC (live-checked), so no label lookup is needed.
     if username:
-        filled = False
-        for label in t.common.user:
-            try:
-                await backend.fill_field(label, username.upper())
-                filled = True
-                break
-            except ValueError:
-                continue
-        if not filled:
-            filled = await backend.focus_and_type("TRDYSE01CM-USERNAME", username.upper())
+        filled = await backend.focus_and_type("TRDYSE01CM-USERNAME", username.upper())
         if not filled:
             logger.warning("SE09 desktop: could not fill username field, results may be unfiltered")
 
