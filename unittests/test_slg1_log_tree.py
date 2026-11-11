@@ -9,9 +9,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from sapsucker.components.tree import GuiTree
 
+from sapguimcp import lang
 from sapguimcp.models import TableData
 from sapguimcp.models.slg1_models import SLG1LogEntry
-from sapguimcp.session_language import use_language
 from sapguimcp.tools.slg1_tools import _read_log_tree, _slg1_lookup_desktop
 
 _COLUMNS = ["001", "100", "101", "102", "103", "107"]
@@ -72,12 +72,17 @@ def test_a_screen_without_a_tree_has_no_logs() -> None:
 def _backend(
     *,
     tree_logs: list[SLG1LogEntry] | None = None,
-    not_found: list[str] | None = None,
+    not_found: set[str] | None = None,
     errors: list[Any] | None = None,
 ) -> Any:
     backend = MagicMock()
     backend.enter_transaction = AsyncMock(return_value=SimpleNamespace(success=True, error=None))
-    backend.fill_form = AsyncMock(return_value=SimpleNamespace(not_found=not_found or [], errors=errors or []))
+    # ``not_found`` holds the labels the screen does not have: asked for one of them, fill_form reports it as not found
+    backend.fill_form = AsyncMock(
+        side_effect=lambda fields: SimpleNamespace(
+            not_found=[label for label in fields if label in (not_found or set())], errors=errors or []
+        )
+    )
     for name in ("wait_for_ready", "press_key"):
         setattr(backend, name, AsyncMock())
     backend.focus_and_type = AsyncMock(return_value=True)
@@ -89,9 +94,8 @@ def _backend(
     return backend
 
 
-async def _lookup(backend: Any, *args: Any) -> Any:
-    with use_language("DE"):
-        return await _slg1_lookup_desktop(backend, *args)
+async def _lookup(backend: Any, *args: Any, language: str = "DE") -> Any:
+    return await _slg1_lookup_desktop(backend, lang.view_for(language), *args)
 
 
 @pytest.mark.anyio
@@ -114,13 +118,35 @@ async def test_the_date_range_is_filled_by_the_technical_field_names() -> None:
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("missing", [["Objekt"], ["Unterobjekt"]])
-async def test_a_filter_field_that_is_not_found_fails_the_lookup(missing: list[str]) -> None:
+@pytest.mark.parametrize(
+    ("missing", "filter_name"),
+    [({"Objekt", "Object"}, "object"), ({"Unterobjekt", "Subobject"}, "subobject")],
+)
+async def test_a_filter_field_that_is_not_found_fails_the_lookup(missing: set[str], filter_name: str) -> None:
     backend = _backend(not_found=missing)
     result = await _lookup(backend, "OBJ", "SUB")
     assert not result.success
-    assert missing[0] in str(result.error)
+    assert filter_name in str(result.error)
     backend.press_key.assert_not_awaited()  # the query was not run with the default selection
+
+
+@pytest.mark.anyio
+async def test_a_label_of_the_other_language_is_tried_when_the_first_is_not_on_the_screen() -> None:
+    """The session's view lists its own labels first and the English ones after: a screen in English works too."""
+    entry = SLG1LogEntry(log_number="", object="Object", date="07.10.2026", time="10:00:00", user="USER1")
+    backend = _backend(not_found={"Objekt", "Unterobjekt"}, tree_logs=[entry])
+    result = await _lookup(backend, "OBJ", "SUB")
+    assert result.success
+    labels = [next(iter(call.args[0])) for call in backend.fill_form.await_args_list]
+    assert labels == ["Objekt", "Object", "Unterobjekt", "Subobject"]
+
+
+@pytest.mark.anyio
+async def test_a_german_session_fills_the_german_labels_first_and_only_those_when_found() -> None:
+    backend = _backend()
+    await _lookup(backend, "OBJ", "SUB", "EXT")
+    labels = [next(iter(call.args[0])) for call in backend.fill_form.await_args_list]
+    assert labels == ["Objekt", "Unterobjekt", "Ext. Identif."]
 
 
 @pytest.mark.anyio
@@ -160,5 +186,6 @@ async def test_a_field_that_was_found_but_did_not_accept_the_value_fails_the_loo
     backend = _backend(errors=[SimpleNamespace(field="Objekt", error="value rejected")])
     result = await _lookup(backend, "OBJ")
     assert not result.success
-    assert "Objekt" in str(result.error)
+    assert "object" in str(result.error)
+    assert backend.fill_form.await_count == 1  # a refused value is final, no label of the other language is tried
     backend.press_key.assert_not_awaited()

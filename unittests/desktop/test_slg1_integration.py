@@ -6,11 +6,17 @@ from datetime import date
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.models.slg1_models import SLG1LogListResult
 from sapguimcp.tools.slg1_tools import _slg1_lookup_desktop
 from unittests.desktop.conftest import go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
+
+
+def _t(backend):  # type: ignore[no-untyped-def]
+    """The language pack of the fixture's logon language (the backend manager sets it for a real tool call)."""
+    return lang.view_for(backend.registry.language_of(backend.registry.primary_session))
 
 
 @skip_no_sap
@@ -23,6 +29,7 @@ async def test_slg1_with_wildcard(backend):
     """
     result = await _slg1_lookup_desktop(
         backend,
+        t=_t(backend),
         object_name="*",
         subobject=None,
         external_id=None,
@@ -52,6 +59,7 @@ async def test_slg1_no_results(backend):
     """
     result = await _slg1_lookup_desktop(
         backend,
+        t=_t(backend),
         object_name="ZZZNOTEXIST",
         subobject=None,
         external_id=None,
@@ -70,6 +78,7 @@ async def test_slg1_model_serializes(backend):
     """SLG1LogListResult must JSON-serialize (roundtrip)."""
     result = await _slg1_lookup_desktop(
         backend,
+        t=_t(backend),
         object_name="*",
         subobject=None,
         external_id=None,
@@ -99,6 +108,7 @@ async def test_slg1_with_date_filter(backend):
     today = date.today().isoformat()
     result = await _slg1_lookup_desktop(
         backend,
+        t=_t(backend),
         object_name="*",
         subobject=None,
         external_id=None,

@@ -11,6 +11,7 @@ from datetime import date
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.backend.desktop import _current_session_id
 from sapguimcp.session_language import current_language, normalize_language, use_language
 from sapguimcp.tools.sm37_tools import _execute_sm37_lookup_desktop
@@ -80,7 +81,13 @@ async def test_second_login_in_the_other_language(backend):
                 with use_language(backend.registry.language_of(sid)):
                     assert await backend.com.run(current_language) == language
                     result = await _execute_sm37_lookup_desktop(
-                        backend, job_name="*", username=None, statuses=None, from_date=None, to_date=None
+                        backend,
+                        lang.view_for(language),
+                        job_name="*",
+                        username=None,
+                        statuses=None,
+                        from_date=None,
+                        to_date=None,
                     )
                     assert result.success, f"SM37 in {language} failed: {result.error}"
                     await go_home(backend)
@@ -103,7 +110,13 @@ async def test_sm37_date_range_in_the_session_language(backend):
     try:
         with use_language(backend.registry.language_of(sid)):
             result = await _execute_sm37_lookup_desktop(
-                backend, job_name="*", username=None, statuses=None, from_date=today, to_date=today
+                backend,
+                lang.view_for(backend.registry.language_of(sid)),
+                job_name="*",
+                username=None,
+                statuses=None,
+                from_date=today,
+                to_date=today,
             )
     finally:
         _current_session_id.reset(token)

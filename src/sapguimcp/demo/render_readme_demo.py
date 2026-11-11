@@ -25,7 +25,9 @@ VALID_ROLES = frozenset({"user", "assistant", "title"})
 
 _BEAT_HEADER = re.compile(r"^\[beat (?P<num>\d+)\](?P<keys>.*)$")
 _KEY_VALUE = re.compile(r"(?P<key>\w+)=(?P<value>\S+)")
-_RECT_LINE = re.compile(r"^(?P<key>mark|status)=(?P<x>\d+),(?P<y>\d+),(?P<w>\d+),(?P<h>\d+)(?:\s+(?P<text>.*))?$")
+_RECT_LINE = re.compile(
+    r"^(?P<key>mark|status)=(?P<x>\d+),(?P<y>\d+),(?P<w>\d+),(?P<h>\d+)(?:\s+(?P<text>.*))?$"  # lang-ok: file format
+)
 
 
 class ParseError(ValueError):
@@ -253,7 +255,7 @@ def render_composites(transcript_path: Path, frames_dir: Path, out_dir: Path, *,
         # ffmpeg concat demuxer: `duration` must be its own line AFTER `file`,
         # and ffmpeg drops the last duration unless the last file is repeated.
         concat_lines.append(f"file '{composite_name}'")
-        concat_lines.append(f"duration {_beat_seconds(beat)}")
+        concat_lines.append(f"duration {_beat_seconds(beat)}")  # lang-ok: ffmpeg directive
 
     if last_composite_name is not None:
         concat_lines.append(f"file '{last_composite_name}'")

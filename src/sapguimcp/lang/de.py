@@ -35,6 +35,7 @@ DE = LanguagePack(
     date_format="%d.%m.%Y",
     same_as_en=frozenset(
         {
+            "sm37.col_status",
             "se24.interface_label",
             "se37.import_tab",
             "se37.export_tab",
@@ -176,7 +177,17 @@ DE = LanguagePack(
     slg1=Slg1Section(
         initial_screen=Text(("Anwendungslog auswerten",)),
         log_list_screen=Text(("Protokolle anzeigen",)),
-        no_logs_found=Text(("Es konnte kein Protokoll auf der Datenbank gefunden werden",)),
+        no_logs_found=Text(("Es konnte kein Protokoll auf der Datenbank gefunden werden", "Keine Protokolle")),
+        log_object=Text(("Objekt",)),
+        log_subobject=Text(("Unterobjekt",)),
+        external_id=Text(("Ext. Identif.",)),
+        from_datetime=Text(("von (Datum/Uhrzeit)",)),
+        to_datetime=Text(("bis (Datum/Uhrzeit)",)),
+        log_number=Text(("Protokollnummer", "Protokollnr.")),
+        col_date=Text(("Datum",)),
+        col_time=Text(("Uhrzeit",)),
+        col_messages=Text(("Anzahl Nachr.",)),
+        empty_cell=Text(("Leer",)),
     ),
     sm30=Sm30Section(
         initial_screen=Text(("Tabellensicht-Pflege",)),
@@ -195,6 +206,25 @@ DE = LanguagePack(
                 JobStatus.CANCELED: Text(("Abgebrochen",)),
             }
         ),
+        col_status=Text(("Status",)),
+        job_name=Text(("Jobname",), fold=False),
+        user_name=Text(("Benutzername",), fold=False),
+        from_date=Text(("von Datum",)),
+        to_date=Text(("bis Datum",)),
+        job_log_button=Text(("Job-Log",)),
+        job_log_heading=Text(("Job Log Einträge",), fold=False),
+        job_log_title_ecc=Text(("Job-Log zu Job",)),
+        job_list_heading=Text(("Jobübersicht",), fold=False),
+        no_jobs=Text(("Kein Job entspricht", "Keine Jobs", "Keine Hintergrundjobs")),
+        select_hint=Text(("Zum Auswählen",), fold=False),
+        selected_hint=Text(("Selektierte",), fold=False),
+        event_driven=Text(("eventgesteuert",), fold=False),
+        abap_program=Text(("ABAP Programm",), fold=False),
+        col_start_date=Text(("Startdatum",)),
+        col_start_time=Text(("Startzeit",)),
+        col_duration=Text(("Dauer", "Dauer(s)", "Dauer(sec.)")),
+        col_created_by=Text(("Ersteller", "Job-Erstelle", "Job-Ersteller")),
+        col_client=Text(("Mandant",)),
     ),
     spro=SproSection(
         initial_screen=Text(("Customizing: Projektbearbeitung",)),
@@ -211,10 +241,38 @@ DE = LanguagePack(
     st22=St22Section(
         section=canonical(
             {
-                DumpSection.WHAT_HAPPENED: Text(("Was ist geschehen?",)),
-                DumpSection.HOW_TO_CORRECT: Text(("Was können Sie tun?",)),
+                DumpSection.WHAT_HAPPENED: Text(("Was ist geschehen?", "Was ist passiert")),
+                DumpSection.HOW_TO_CORRECT: Text(("Was können Sie tun?", "Hinweise zur Fehlerbehebung")),
                 DumpSection.ERROR_ANALYSIS: Text(("Fehleranalyse",)),
             }
         ),
+        today=Text(("Heute",)),
+        yesterday=Text(("Gestern",)),
+        date_field=Text(("Datum",)),
+        runtime_errors=Text(("Laufzeitfehler",)),
+        no_dumps=Text(("Keine Einträge gefunden", "Keine Kurzdumps", "Keine Dumps", "Keine Kurzabzüge")),
+        col_time=Text(("Uhrzeit", "Zeit")),
+        col_program=Text(("Programm", "Abgebrochenes Programm")),
+        col_error_type=Text(("Laufzeitfehler", "Fehler")),
+        col_short_text=Text(("Kurztext",)),
+        call_stack_heading=Text(("Aktive Aufrufe/Ereignisse", "Aktive Aufrufe", "Aufrufhierarchie")),
+        other_headings=Text(
+            (
+                "Systemumgebung",
+                "Anwenderspezifische Systemumgebung",
+                "Informationen zur Abbruchstelle",
+                "Quelltextauszug",
+                "Inhalte der Systemfelder",
+                "Ausgewählte Variablen",
+                "Aktive Aufrufe im SAP-Kernel",
+                "Anwender und Transaktion",
+                "Kurztext",
+                "Interne Notizen",
+            )
+        ),
+        source_code_start=RegexText((r"Quelltext",)),
+        source_code_of=RegexText((r"Quelltext des? Programm(?:s|es)?",)),
+        source_line=Text(("Zeile im Quelltext",)),
+        line=Text(("Zeile",)),
     ),
 )

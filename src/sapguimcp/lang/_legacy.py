@@ -118,7 +118,6 @@ __all__ = [
     "SLG1_LOG_LIST_SCREEN_EN",
     "SLG1_NO_LOGS_FOUND_DE",
     "SLG1_NO_LOGS_FOUND_EN",
-    "SLG1_NO_LOGS_FOUND_EN_LEGACY",
     "SM30_DISPLAY_BUTTON_DE",
     "SM30_DISPLAY_BUTTON_EN",
     "SM30_DISPLAY_VIEW_DE",
@@ -342,8 +341,6 @@ SLG1_LOG_LIST_SCREEN_EN = "Display Logs"
 SLG1_NO_LOGS_FOUND_DE = "Es konnte kein Protokoll auf der Datenbank gefunden werden"
 # SAP message BL 208 in EN (#1044: the former text was hand-typed and drifted).
 SLG1_NO_LOGS_FOUND_EN = "No log found in the database"
-# The former expectation; still accepted by the SLG1 tool and parser until the SLG1 migration.
-SLG1_NO_LOGS_FOUND_EN_LEGACY = "No log could be found in the database"
 
 
 # =============================================================================

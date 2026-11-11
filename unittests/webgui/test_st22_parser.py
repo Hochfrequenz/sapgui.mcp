@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.backend.webgui.parsers.st22_parser import (
     is_no_dumps_message,
     parse_st22_dump_detail,
@@ -15,6 +16,9 @@ from sapguimcp.backend.webgui.parsers.st22_parser import (
     parse_st22_initial_screen,
 )
 from sapguimcp.models.st22_models import ST22Dump, ST22DumpDetail
+
+T = lang.view_for("DE")  # German first, English after: the snapshots of both languages are parsed
+
 
 SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "st22_exploration"
 
@@ -33,7 +37,7 @@ class TestParseInitialScreen:
     def test_parse_initial_screen_counts(self) -> None:
         """Initial screen snapshot should extract today/yesterday counts."""
         snapshot = _load_snapshot("st22_initial")
-        counts = parse_st22_initial_screen(snapshot)
+        counts = parse_st22_initial_screen(snapshot, T)
 
         assert "today" in counts
         assert "yesterday" in counts
@@ -43,7 +47,7 @@ class TestParseInitialScreen:
     def test_parse_initial_screen_with_dumps(self) -> None:
         """Initial screen shows '1 Laufzeitfehler' for both days."""
         snapshot = _load_snapshot("st22_initial")
-        counts = parse_st22_initial_screen(snapshot)
+        counts = parse_st22_initial_screen(snapshot, T)
 
         # Our captured snapshot has "1 Laufzeitfehler" for both
         assert counts["today"] == 1
@@ -58,7 +62,7 @@ class TestParseInitialScreen:
   - button "Gestern"
   - button "12 Laufzeitfehler"
 """
-        counts = parse_st22_initial_screen(snapshot)
+        counts = parse_st22_initial_screen(snapshot, T)
         assert counts["today"] == 5
         assert counts["yesterday"] == 12
 
@@ -71,14 +75,14 @@ class TestParseInitialScreen:
   - button "Yesterday"
   - button "0 Runtime Errors"
 """
-        counts = parse_st22_initial_screen(snapshot)
+        counts = parse_st22_initial_screen(snapshot, T)
         assert counts["today"] == 3
         assert counts["yesterday"] == 0
 
     def test_parse_initial_screen_empty(self) -> None:
         """Snapshot without count buttons returns 0."""
         snapshot = "- heading 'Something else'"
-        counts = parse_st22_initial_screen(snapshot)
+        counts = parse_st22_initial_screen(snapshot, T)
         assert counts["today"] == 0
         assert counts["yesterday"] == 0
 
@@ -88,21 +92,21 @@ class TestIsNoDumpsMessage:
 
     def test_no_dumps_de(self) -> None:
         snapshot = 'note "Warnung Meldungsleiste Es sind keine Kurzdumps - wie selektiert - verfügbar"'
-        assert is_no_dumps_message(snapshot)
+        assert is_no_dumps_message(snapshot, T)
 
     def test_no_dumps_en(self) -> None:
         snapshot = 'note "Warning No entries found for the selection"'
-        assert is_no_dumps_message(snapshot)
+        assert is_no_dumps_message(snapshot, T)
 
     def test_no_dumps_from_real_snapshot(self) -> None:
         """Real snapshot with no dumps message."""
         snapshot = _load_snapshot("st22_today_executed")
-        assert is_no_dumps_message(snapshot)
+        assert is_no_dumps_message(snapshot, T)
 
     def test_has_dumps(self) -> None:
         """Snapshot without no-dumps message."""
         snapshot = '- row "some data row"\n  - cell "10:00:00"\n  - cell "ZPROG"'
-        assert not is_no_dumps_message(snapshot)
+        assert not is_no_dumps_message(snapshot, T)
 
 
 class TestParseDumpList:
@@ -111,13 +115,13 @@ class TestParseDumpList:
     def test_empty_list_returns_empty(self) -> None:
         """Snapshot with no dump rows should return empty list."""
         snapshot = '- heading "ABAP Runtime Errors":\n  - toolbar:\n    - button "Today"'
-        dumps = parse_st22_dump_list(snapshot)
+        dumps = parse_st22_dump_list(snapshot, T)
         assert dumps == []
 
     def test_no_dumps_message_returns_empty(self) -> None:
         """Snapshot with 'no dumps' message returns empty list."""
         snapshot = 'note "Es sind keine Kurzdumps - wie selektiert - verfügbar"'
-        dumps = parse_st22_dump_list(snapshot)
+        dumps = parse_st22_dump_list(snapshot, T)
         assert dumps == []
 
     def test_parse_gridcell_format(self) -> None:
@@ -142,7 +146,7 @@ class TestParseDumpList:
     - gridcell "USER2"
     - gridcell "Another error"
 """
-        dumps = parse_st22_dump_list(snapshot)
+        dumps = parse_st22_dump_list(snapshot, T)
 
         assert len(dumps) == 2
         # Parser returns DOM order (sorting is done in tool layer)
@@ -167,7 +171,7 @@ class TestParseDumpList:
     - cell "RABAX_STATE"
     - cell "TESTUSER"
 """
-        dumps = parse_st22_dump_list(snapshot)
+        dumps = parse_st22_dump_list(snapshot, T)
         # The cell pattern heuristic should pick this up
         assert len(dumps) >= 1
         if len(dumps) > 0:
@@ -197,7 +201,7 @@ class TestParseDumpList:
     - gridcell "PROG3"
     - gridcell "USER3"
 """
-        dumps = parse_st22_dump_list(snapshot)
+        dumps = parse_st22_dump_list(snapshot, T)
         assert len(dumps) == 3
         for i, dump in enumerate(dumps):
             assert dump.index == i
@@ -226,7 +230,7 @@ class TestParseDumpList:
     - gridcell "ZPROG_MID"
     - gridcell "USER3"
 """
-        dumps = parse_st22_dump_list(snapshot)
+        dumps = parse_st22_dump_list(snapshot, T)
         assert len(dumps) == 3
         # DOM order preserved: 08:15, 16:45, 12:00
         assert dumps[0].time == "08:15:00"
@@ -246,7 +250,7 @@ class TestParseDumpDetail:
     def test_parse_detail_fallback(self) -> None:
         """Parser should not crash on unexpected format, returning raw_text fallback."""
         snapshot = '- document:\n  - text: "Some random text content here"'
-        detail = parse_st22_dump_detail(snapshot)
+        detail = parse_st22_dump_detail(snapshot, T)
 
         assert isinstance(detail, ST22DumpDetail)
         assert detail.raw_text  # Should still have raw content
@@ -267,7 +271,7 @@ class TestParseDumpDetail:
   - text: "Programm: ZTEST_PROGRAM"
   - text: "Zeile im Quelltext: 42"
 """
-        detail = parse_st22_dump_detail(snapshot)
+        detail = parse_st22_dump_detail(snapshot, T)
 
         assert detail.error_type == "RABAX_STATE"
         assert detail.program == "ZTEST_PROGRAM"
@@ -287,7 +291,7 @@ class TestParseDumpDetail:
   - text: "Program: ZPROG_MAIN"
   - text: "Source Code Line: 100"
 """
-        detail = parse_st22_dump_detail(snapshot)
+        detail = parse_st22_dump_detail(snapshot, T)
 
         assert detail.error_type == "MESSAGE_TYPE_X"
         assert detail.program == "ZPROG_MAIN"
@@ -298,7 +302,7 @@ class TestParseDumpDetail:
         """raw_text should be truncated if content is very large."""
         # Create a large snapshot
         large_content = '- text: "' + "x" * 500 + '"\n' * 100
-        detail = parse_st22_dump_detail(large_content)
+        detail = parse_st22_dump_detail(large_content, T)
 
         assert len(detail.raw_text) <= 12000  # ~10KB with margin
 
@@ -312,5 +316,5 @@ class TestParseDumpDetail:
   - text: ""
   - text: "End of call stack"
 """
-        detail = parse_st22_dump_detail(snapshot)
+        detail = parse_st22_dump_detail(snapshot, T)
         assert len(detail.call_stack) >= 2

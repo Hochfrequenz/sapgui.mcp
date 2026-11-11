@@ -59,14 +59,21 @@ def format_sap_date(iso_date: str, language: SapLanguage) -> str:
     Raises:
         ValueError: If iso_date is not in YYYY-MM-DD format
     """
+    return format_sap_date_as(iso_date, "%d.%m.%Y" if language == "DE" else "%m/%d/%Y")
+
+
+def format_sap_date_as(iso_date: str, date_format: str) -> str:
+    """
+    Convert ISO date (YYYY-MM-DD) to a ``strftime`` pattern, e.g. a language pack's ``date_format``.
+
+    Raises:
+        ValueError: If iso_date is not in YYYY-MM-DD format
+    """
     try:
         dt = datetime.strptime(iso_date, "%Y-%m-%d")
     except ValueError as e:
         raise ValueError(f"Expected YYYY-MM-DD format, got: {iso_date}") from e
-
-    if language == "DE":
-        return dt.strftime("%d.%m.%Y")
-    return dt.strftime("%m/%d/%Y")
+    return dt.strftime(date_format)
 
 
 def _default_output_base_dir() -> Path:

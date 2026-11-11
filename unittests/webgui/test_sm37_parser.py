@@ -9,12 +9,16 @@ from pathlib import Path
 
 import pytest
 
+from sapguimcp import lang
 from sapguimcp.backend.webgui.parsers.sm37_parser import (
     is_job_list_screen,
     is_no_jobs_found,
     parse_sm37_job_list,
     parse_sm37_job_log,
 )
+
+T = lang.view_for("DE")  # German first, English after: the snapshots of both languages are parsed
+
 
 SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "sm37_exploration"
 
@@ -32,17 +36,17 @@ class TestJobListDetection:
 
     def test_detect_job_list_screen(self) -> None:
         snapshot = _load_snapshot("sm37_job_list")
-        assert is_job_list_screen(snapshot)
+        assert is_job_list_screen(snapshot, T)
 
     def test_initial_screen_not_job_list(self) -> None:
         snapshot = _load_snapshot("sm37_initial")
-        assert not is_job_list_screen(snapshot)
+        assert not is_job_list_screen(snapshot, T)
 
     def test_no_jobs_found_stays_on_selection(self) -> None:
         """When no jobs found, SAP stays on selection screen with status bar message."""
         snapshot = _load_snapshot("sm37_no_jobs_found")
-        assert is_no_jobs_found(snapshot)
-        assert not is_job_list_screen(snapshot)
+        assert is_no_jobs_found(snapshot, T)
+        assert not is_job_list_screen(snapshot, T)
 
 
 class TestJobListParsing:
@@ -50,7 +54,7 @@ class TestJobListParsing:
 
     def test_parse_job_list(self) -> None:
         snapshot = _load_snapshot("sm37_job_list")
-        jobs = parse_sm37_job_list(snapshot)
+        jobs = parse_sm37_job_list(snapshot, T)
 
         assert len(jobs) > 0, "Should find at least one job"
 
@@ -68,12 +72,12 @@ class TestJobListParsing:
 
     def test_parse_no_jobs(self) -> None:
         snapshot = _load_snapshot("sm37_no_jobs_found")
-        jobs = parse_sm37_job_list(snapshot)
+        jobs = parse_sm37_job_list(snapshot, T)
         assert len(jobs) == 0
 
     def test_status_normalization(self) -> None:
         snapshot = _load_snapshot("sm37_job_list")
-        jobs = parse_sm37_job_list(snapshot)
+        jobs = parse_sm37_job_list(snapshot, T)
 
         for job in jobs:
             assert job.status in (
@@ -88,7 +92,7 @@ class TestJobListParsing:
     def test_deduplication(self) -> None:
         """SM37 sometimes renders each job row twice; parser should deduplicate."""
         snapshot = _load_snapshot("sm37_job_list")
-        jobs = parse_sm37_job_list(snapshot)
+        jobs = parse_sm37_job_list(snapshot, T)
 
         # Check that we don't have exact duplicates
         seen = set()
@@ -100,7 +104,7 @@ class TestJobListParsing:
     def test_finished_jobs_have_start_time(self) -> None:
         """Finished jobs should have a start_time with date."""
         snapshot = _load_snapshot("sm37_job_list")
-        jobs = parse_sm37_job_list(snapshot)
+        jobs = parse_sm37_job_list(snapshot, T)
 
         finished = [j for j in jobs if j.status == "Finished"]
         for job in finished:
@@ -110,7 +114,7 @@ class TestJobListParsing:
     def test_initial_screen_returns_empty(self) -> None:
         """Parsing initial screen should return empty list."""
         snapshot = _load_snapshot("sm37_initial")
-        jobs = parse_sm37_job_list(snapshot)
+        jobs = parse_sm37_job_list(snapshot, T)
         assert len(jobs) == 0
 
 
@@ -135,18 +139,18 @@ class TestJobLogParsing:
 """
 
     def test_parse_job_log_extracts_lines(self) -> None:
-        result = parse_sm37_job_log(self._SYNTHETIC_JOB_LOG, "TEST_JOB")
+        result = parse_sm37_job_log(self._SYNTHETIC_JOB_LOG, "TEST_JOB", T)
         assert result.job_name == "TEST_JOB"
         assert len(result.log_lines) >= 3
         assert any("gestartet" in line for line in result.log_lines)
         assert any("beendet" in line for line in result.log_lines)
 
     def test_parse_job_log_skips_selection_hint(self) -> None:
-        result = parse_sm37_job_log(self._SYNTHETIC_JOB_LOG, "TEST_JOB")
+        result = parse_sm37_job_log(self._SYNTHETIC_JOB_LOG, "TEST_JOB", T)
         assert not any("Zum Auswählen" in line for line in result.log_lines)
 
     def test_parse_job_log_empty_snapshot(self) -> None:
-        result = parse_sm37_job_log("- main:\n  - heading: No data", "EMPTY")
+        result = parse_sm37_job_log("- main:\n  - heading: No data", "EMPTY", T)
         assert result.job_name == "EMPTY"
         assert len(result.log_lines) == 0
 

@@ -873,7 +873,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return await backend.get_status_bar()
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Reading status bar")
-            return StatusBarInfo.failure(f"Error reading status bar: {e}", type="none")
+            return StatusBarInfo.failure(f"Error reading status bar: {e}", type="none")  # lang-ok: own message
 
     @mcp.tool(
         description=(

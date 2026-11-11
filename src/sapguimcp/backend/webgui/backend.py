@@ -82,7 +82,7 @@ def _parse_toolbar_note(snapshot_text: str) -> tuple[bool, str]:
     """Parse toolbar note from an ARIA snapshot to determine success/failure."""
     match = re.search(r'note\s+"([^"]+)"', snapshot_text)
     if not match:
-        return False, "No status message found in toolbar"
+        return False, "No status message found in toolbar"  # lang-ok: own message
 
     full_note = match.group(1)
     message = _PREFIX_STRIP.sub("", full_note).strip() or full_note
@@ -1086,7 +1086,7 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
             )
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Reading status bar")
-            return StatusBarInfo.failure(f"Error reading status bar: {e}", type="none")
+            return StatusBarInfo.failure(f"Error reading status bar: {e}", type="none")  # lang-ok: own message
 
     async def get_screen_info(self) -> ScreenInfo:
         """Get technical information about the current SAP screen."""

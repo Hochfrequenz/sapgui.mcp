@@ -267,6 +267,19 @@ class Slg1Section:
     initial_screen: Text
     log_list_screen: Text
     no_logs_found: Text
+    log_object: Text
+    """Selection label and list column of the log object."""
+    log_subobject: Text
+    external_id: Text
+    from_datetime: Text
+    to_datetime: Text
+    log_number: Text
+    """Log number column title, in the short desktop form and the long WebGUI form."""
+    col_date: Text
+    col_time: Text
+    col_messages: Text
+    empty_cell: Text
+    """What the WebGUI grid shows for an empty cell."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -282,6 +295,30 @@ class Sm30Section:
 class Sm37Section:
     MERGE: ClassVar[MergeMode] = "session_en"
     status: Mapping[JobStatus, Text]
+    col_status: Text
+    job_name: Text
+    """Selection label and list column of the job name (case-sensitive: SAP releases differ in the case)."""
+    user_name: Text
+    from_date: Text
+    to_date: Text
+    job_log_button: Text
+    job_log_heading: Text
+    """Heading of the job log screen (S/4HANA)."""
+    job_log_title_ecc: Text
+    """Title of the job log screen on SAP ERP 6.0."""
+    job_list_heading: Text
+    no_jobs: Text
+    """Status bar message of an empty selection, one text for the tool and the parser."""
+    select_hint: Text
+    """Hint line of a classic list (case-sensitive: a job log line may say 'to select')."""
+    selected_hint: Text
+    event_driven: Text
+    abap_program: Text
+    col_start_date: Text
+    col_start_time: Text
+    col_duration: Text
+    col_created_by: Text
+    col_client: Text
 
 
 @dataclass(frozen=True, slots=True)
@@ -303,6 +340,25 @@ class SproSection:
 class St22Section:
     MERGE: ClassVar[MergeMode] = "session_en"
     section: Mapping[DumpSection, Text]
+    today: Text
+    yesterday: Text
+    date_field: Text
+    runtime_errors: Text
+    """Runtime error count button of the initial screen and the label before the error name in a dump."""
+    no_dumps: Text
+    """Status text of an empty selection, one text for the tool and the parser."""
+    col_time: Text
+    col_program: Text
+    col_error_type: Text
+    col_short_text: Text
+    call_stack_heading: Text
+    other_headings: Text
+    """Headings that end a section of the dump detail (the ones in ``section`` and ``call_stack_heading`` do too)."""
+    source_code_of: RegexText
+    source_code_start: RegexText
+    """Prefix of the source code headings; ends the advice section (a pattern: the plain words are too common)."""
+    source_line: Text
+    line: Text
 
 
 # =============================================================================
