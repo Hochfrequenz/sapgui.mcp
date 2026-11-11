@@ -35,6 +35,9 @@ _DE_ROWS = [
     ("Geschützt", "Statische Methode", "protected", True),
     ("Privat", "Statische Methode", "private", True),
     ("Private", "Instanzmethode", "private", False),  # the domain text of SEOEXPOSE is English in both languages
+    # live desktop table control on a DE logon: the DDIC domain texts are English
+    ("Protected", "Static Method", "protected", True),
+    ("Public", "Instance Method", "public", False),
 ]
 _EN_ROWS = [
     ("Public", "Instance method", "public", False),

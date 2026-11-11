@@ -100,16 +100,18 @@ DE = LanguagePack(
         object_type=Text(("Objekttyp",)),
         class_label=Text(("Klasse",)),
         interface_label=Text(("Interface",)),
+        # The methods/attributes table controls show the DDIC domain texts in English on DE logons too (live check),
+        # so the English words are variants of the DE pack.
         visibility=canonical(
             {
-                Visibility.PUBLIC: Text(("Öffentlich",)),
-                Visibility.PROTECTED: Text(("Geschützt",)),
-                Visibility.PRIVATE: Text(("Privat",)),
+                Visibility.PUBLIC: Text(("Öffentlich", "Public")),
+                Visibility.PROTECTED: Text(("Geschützt", "Protected")),
+                Visibility.PRIVATE: Text(("Privat", "Private")),
             }
         ),
-        static=Text(("Statisch",)),
-        abstract=Text(("Abstrakt",)),
-        constant=Text(("Konstante",)),
+        static=Text(("Statisch", "Static")),
+        abstract=Text(("Abstrakt", "Abstract")),
+        constant=Text(("Konstante", "Constant")),
         class_field_label=Text(("Objekttyp", "Klasse/Interface")),
         methods_tab=Text(("Methoden",)),
         attributes_tab=Text(("Attribute",)),
