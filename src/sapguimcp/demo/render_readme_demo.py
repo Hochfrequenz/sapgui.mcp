@@ -25,7 +25,9 @@ VALID_ROLES = frozenset({"user", "assistant", "title"})
 
 _BEAT_HEADER = re.compile(r"^\[beat (?P<num>\d+)\](?P<keys>.*)$")
 _KEY_VALUE = re.compile(r"(?P<key>\w+)=(?P<value>\S+)")
-_RECT_LINE = re.compile(r"^(?P<key>mark|status)=(?P<x>\d+),(?P<y>\d+),(?P<w>\d+),(?P<h>\d+)(?:\s+(?P<text>.*))?$")
+_RECT_LINE = re.compile(
+    r"^(?P<key>mark|status)=(?P<x>\d+),(?P<y>\d+),(?P<w>\d+),(?P<h>\d+)(?:\s+(?P<text>.*))?$"  # lang-ok: file format
+)
 
 
 class ParseError(ValueError):

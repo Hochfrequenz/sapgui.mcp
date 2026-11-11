@@ -77,9 +77,18 @@ def parse_st22_initial_screen(snapshot: AriaSnapshot, t: LanguagePack) -> dict[s
     return counts
 
 
+_MESSAGE_LINE = re.compile(r"\s*(?:-\s+)?(?:note|status|alert)(?![\w-])")
+"""An ARIA line of the status bar / message area, as opposed to grid cells and text of the result data."""
+
+
+def _message_lines(snapshot: str) -> str:
+    """The status bar / message lines of a snapshot (the result data must not decide whether a list is empty)."""
+    return "\n".join(line for line in snapshot.split("\n") if _MESSAGE_LINE.match(line))
+
+
 def is_no_dumps_message(snapshot: AriaSnapshot, t: LanguagePack) -> bool:
     """Check if the snapshot contains a 'no dumps found' status message."""
-    return t.st22.no_dumps.contains(snapshot)
+    return t.st22.no_dumps.contains(_message_lines(snapshot))
 
 
 # =============================================================================
@@ -318,37 +327,44 @@ def _extract_text_content(snapshot: str) -> str:
     return "\n".join(text_parts)
 
 
+def _heading_text(line: str) -> str:
+    """A line as it is compared with a heading: trimmed, lower case, without a trailing question mark."""
+    return line.strip().rstrip("?").strip().lower()
+
+
+def _is_heading(line: str, headings: Iterable[str]) -> bool:
+    """The whole line is one of ``headings`` (optionally followed by ':'), not prose that merely contains one."""
+    text = _heading_text(line)
+    for heading in headings:
+        wanted = _heading_text(heading)
+        if text == wanted or text.startswith(wanted + ":"):
+            return True
+    return False
+
+
 def _extract_section(
     text: str,
     start_markers: Iterable[str],
     end_markers: Iterable[str],
     end_pattern: re.Pattern[str] | None = None,
 ) -> str:
-    """Extract text between section markers (best-effort)."""
-    text_lower = text.lower()
-    start_pos = -1
-    for marker in start_markers:
-        pos = text_lower.find(marker.lower())
-        if pos >= 0:
-            start_pos = pos + len(marker)
-            break
+    """Extract the sections under every heading in ``start_markers`` (screen order), best-effort.
 
-    if start_pos < 0:
-        return ""
-
-    # Find the next section header
-    end_pos = len(text)
-    for marker in end_markers:
-        pos = text_lower.find(marker.lower(), start_pos)
-        if 0 < pos < end_pos:
-            end_pos = pos
-
-    if end_pattern is not None:
-        match = end_pattern.search(text, start_pos, end_pos)
-        if match is not None and match.start() > 0:
-            end_pos = match.start()
-
-    return text[start_pos:end_pos].strip()
+    A heading is a whole line. A section ends at the next heading in ``start_markers`` or ``end_markers`` or at a
+    line that starts like ``end_pattern`` (the source code headings).
+    """
+    starts = list(start_markers)
+    boundaries = [*starts, *end_markers]
+    body: list[str] = []
+    collecting = False
+    for line in text.split("\n"):
+        if _is_heading(line, starts):
+            collecting = True
+        elif _is_heading(line, boundaries) or (end_pattern is not None and end_pattern.match(line.strip())):
+            collecting = False
+        elif collecting and line.strip():
+            body.append(line.strip())
+    return "\n".join(body)
 
 
 def _extract_error_type(text: str, t: LanguagePack) -> str:
@@ -458,13 +474,23 @@ def parse_st22_dump_detail(snapshot: AriaSnapshot, t: LanguagePack) -> ST22DumpD
     what_happened = _extract_section(
         raw_text,
         sections[DumpSection.WHAT_HAPPENED],
-        [*sections[DumpSection.HOW_TO_CORRECT], *sections[DumpSection.ERROR_ANALYSIS]],
+        [
+            *sections[DumpSection.HOW_TO_CORRECT],
+            *sections[DumpSection.ERROR_ANALYSIS],
+            *t.st22.other_headings,
+            *t.st22.call_stack_heading,
+        ],
+        end_pattern=t.st22.source_code_start.pattern,
     )
 
     how_to_correct = _extract_section(
         raw_text,
         sections[DumpSection.HOW_TO_CORRECT],
-        [*sections[DumpSection.ERROR_ANALYSIS], *t.st22.other_headings],
+        [
+            *sections[DumpSection.ERROR_ANALYSIS],
+            *t.st22.other_headings,
+            *t.st22.call_stack_heading,
+        ],
         end_pattern=t.st22.source_code_start.pattern,
     )
 

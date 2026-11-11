@@ -35,6 +35,7 @@ DE = LanguagePack(
     date_format="%d.%m.%Y",
     same_as_en=frozenset(
         {
+            "sm37.col_status",
             "se24.interface_label",
             "se37.import_tab",
             "se37.export_tab",
@@ -205,6 +206,7 @@ DE = LanguagePack(
                 JobStatus.CANCELED: Text(("Abgebrochen",)),
             }
         ),
+        col_status=Text(("Status",)),
         job_name=Text(("Jobname",), fold=False),
         user_name=Text(("Benutzername",), fold=False),
         from_date=Text(("von Datum",)),

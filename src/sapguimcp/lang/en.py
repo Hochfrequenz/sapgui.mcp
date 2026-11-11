@@ -192,6 +192,7 @@ EN = LanguagePack(
                 JobStatus.CANCELED: Text(("Canceled",)),
             }
         ),
+        col_status=Text(("Status",)),
         job_name=Text(("Job Name", "Job name"), fold=False),
         user_name=Text(("User Name", "User name"), fold=False),
         from_date=Text(("From Date",)),

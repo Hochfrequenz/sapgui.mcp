@@ -295,6 +295,7 @@ class Sm30Section:
 class Sm37Section:
     MERGE: ClassVar[MergeMode] = "session_en"
     status: Mapping[JobStatus, Text]
+    col_status: Text
     job_name: Text
     """Selection label and list column of the job name (case-sensitive: SAP releases differ in the case)."""
     user_name: Text

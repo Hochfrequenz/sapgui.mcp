@@ -217,6 +217,7 @@ SOURCES: Mapping[str, Source] = MappingProxyType(
         "sm37.status[Active]": ScreenText("SAPLBTCH", "2170", "BTCH2170-RUNNING"),
         "sm37.status[Finished]": ScreenText("SAPLBTCH", "2170", "BTCH2170-FINISHED"),
         "sm37.status[Canceled]": ScreenText("SAPLBTCH", "2170", "BTCH2170-ABORTED"),
+        "sm37.col_status": Manual("list column title of the job overview, not looked up"),
         "sm37.job_name": ScreenText("SAPLBTCH", "2170", "JOBNAME"),
         "sm37.user_name": ScreenText("SAPLBTCH", "2170", "USERNAME"),
         "sm37.from_date": Manual("WebGUI label: 'von' / 'From' (SAPLBTCH 2170 FROM) plus the date field's own label"),

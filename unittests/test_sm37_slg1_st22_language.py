@@ -341,3 +341,59 @@ def test_the_advice_ends_at_the_source_code_heading(language: str, advice: str, 
     snapshot = AriaSnapshot(f'- text "{advice}"\n- text "the remedy"\n- text "{source}"\n- text "code"')
     detail = parse_st22_dump_detail(snapshot, lang.view_for(language))
     assert detail.how_to_correct == "the remedy"
+
+
+def test_a_populated_log_list_is_not_empty_because_a_cell_says_no_logs() -> None:
+    t = lang.view_for("EN")
+    populated = AriaSnapshot('- grid:\n  - row "1":\n    - gridcell "No logs processed"\n- note "Success Message bar"')
+    assert not is_slg1_no_results(populated, t)
+    assert is_slg1_no_results(AriaSnapshot('- note "Success No log found in the database"'), t)
+
+
+def test_a_dump_list_is_not_empty_because_a_cell_says_no_dumps() -> None:
+    t = lang.view_for("EN")
+    assert not is_no_dumps_message(AriaSnapshot('- row "x":\n  - cell "No dumps from the batch run"'), t)
+
+
+def test_every_advice_section_is_collected_in_screen_order_and_prose_does_not_end_one() -> None:
+    snapshot = AriaSnapshot(
+        '- text "What happened?"\n- text "Check the system environment and retry."\n'
+        '- text "What can you do?"\n- text "first tip"\n- text "Error Analysis"\n- text "analysis"\n'
+        '- text "How to Correct the Error"\n- text "second tip"\n- text "Source Code Extract"\n- text "code"'
+    )
+    detail = parse_st22_dump_detail(snapshot, lang.view_for("EN"))
+    assert detail.what_happened == "Check the system environment and retry."
+    assert detail.how_to_correct == "first tip\nsecond tip"
+
+
+def test_german_dump_detail_sections() -> None:
+    snapshot = AriaSnapshot(
+        '- text "Was ist passiert?"\n- text "Das Programm wurde abgebrochen."\n'
+        '- text "Was können Sie tun?"\n- text "Tipp"\n- text "Quelltextauszug"\n- text "Code"'
+    )
+    detail = parse_st22_dump_detail(snapshot, lang.view_for("DE"))
+    assert detail.what_happened == "Das Programm wurde abgebrochen."
+    assert detail.how_to_correct == "Tipp"
+
+
+@pytest.mark.anyio
+async def test_the_status_column_title_comes_from_the_pack() -> None:
+    t = lang.view_for("DE")
+    assert t.sm37.col_status.first_key({"Status": "x"}) == "x"
+    with _register_for_tests(synthetic_pack()), lang.use(CODE):
+        tx = lang.current("test")
+        assert tx.sm37.col_status.variants[0].startswith(MARK)
+        backend = MagicMock()
+        backend.backend_type = "desktop"
+        backend.enter_transaction = AsyncMock(return_value=SimpleNamespace(success=True, error=None))
+        for name in ("wait_for_ready", "press_key"):
+            setattr(backend, name, AsyncMock())
+        backend.focus_and_type = AsyncMock(return_value=True)
+        backend.get_status_bar = AsyncMock(return_value=SimpleNamespace(type="S", message=""))
+        title = tx.sm37.col_status.variants[0]
+        row = TableRow(
+            row=1, data={tx.sm37.job_name.variants[0]: "J", title: tx.sm37.status[JobStatus.FINISHED].variants[0]}
+        )
+        backend.read_table = AsyncMock(return_value=TableData(success=True, headers=[title], rows=[row]))
+        result = await _execute_sm37_lookup_desktop(backend, tx, "*", None, None, None, None)
+    assert [job.status for job in result.jobs] == ["Finished"]

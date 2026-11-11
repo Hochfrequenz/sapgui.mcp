@@ -83,9 +83,18 @@ def is_slg1_log_list_screen(snapshot: AriaSnapshot, t: LanguagePack) -> bool:
     return t.slg1.log_list_screen.contains(header)
 
 
+_MESSAGE_LINE = re.compile(r"\s*(?:-\s+)?(?:note|status|alert)(?![\w-])")
+"""An ARIA line of the status bar / message area, as opposed to grid cells and text of the result data."""
+
+
+def _message_lines(snapshot: str) -> str:
+    """The status bar / message lines of a snapshot (the result data must not decide whether a list is empty)."""
+    return "\n".join(line for line in snapshot.split("\n") if _MESSAGE_LINE.match(line))
+
+
 def is_slg1_no_results(snapshot: AriaSnapshot, t: LanguagePack) -> bool:
     """Check if SLG1 returned no logs (status bar message or still on initial screen)."""
-    return t.slg1.no_logs_found.contains(snapshot)
+    return t.slg1.no_logs_found.contains(_message_lines(snapshot))
 
 
 def _clean_cell_value(value: str, t: LanguagePack) -> str:

@@ -298,7 +298,7 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
         if status_filter_applied:
             filters_applied["status"] = ",".join(statuses)
         else:
-            filters_applied["status"] = ",".join(statuses) + " (status filter not applied)"
+            filters_applied["status"] = ",".join(statuses) + " (status filter not applied)"  # lang-ok: own message
     if from_date:
         filters_applied["from_date"] = from_date
     if to_date:
@@ -343,7 +343,7 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
         d = tr.data
         # Try common column name variants
         jn = _first(d, t.sm37.job_name) or ""
-        st = normalize_job_status(_first(d, ("Status",)) or "", t)
+        st = normalize_job_status(_first(d, t.sm37.col_status) or "", t)
         sd = _first(d, t.sm37.col_start_date) or ""
         sz = _first(d, t.sm37.col_start_time) or ""
         start_time = f"{sd} {sz}".strip() if sd or sz else None
