@@ -73,7 +73,7 @@ def test_guard_rejects_a_flag_that_differs_from_en() -> None:
 
 @pytest.mark.parametrize(
     ("env", "expected"),
-    [(None, "DE"), ("en", "EN"), ("DE", "DE"), ("IT", "DE")],
+    [(None, "DE"), ("en", "EN"), ("DE", "DE"), ("QQ", "DE")],
 )
 def test_sap_language_fixture_reads_the_environment(
     monkeypatch: pytest.MonkeyPatch, env: str | None, expected: str

@@ -167,6 +167,16 @@ class Hit:
 
 
 @cache
+def _en_leaves() -> dict[str, object]:
+    return dict(iter_leaves(lang.pack_for("EN")))
+
+
+def _same_as_en(path: str, leaf: object) -> bool:
+    """A field still holding the EN value (an untranslated draft) gets the EN exemption, nothing more."""
+    return leaf == _en_leaves().get(path)
+
+
+@cache
 def pack_variants() -> tuple[str, ...]:
     """Case-folded variants of five or more characters from every registered pack (keys excluded)."""
     found: set[str] = set()
@@ -174,7 +184,7 @@ def pack_variants() -> tuple[str, ...]:
         for path, leaf in iter_leaves(lang.pack_for(code)):
             if path.startswith("keys."):
                 continue  # canonical key names (Enter, Delete) are the press_key API, not screen text
-            if path in GENERIC_WORDS and code == "EN":
+            if path in GENERIC_WORDS and (code == "EN" or _same_as_en(path, leaf)):
                 continue  # generic words (error, failed) of every own message, see GENERIC_WORDS
             if isinstance(leaf, Text):
                 found.update(leaf.variants)
