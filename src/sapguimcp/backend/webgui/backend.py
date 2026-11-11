@@ -12,6 +12,7 @@ import contextlib
 import logging
 import re
 import time
+import weakref
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
@@ -90,6 +91,18 @@ _EXPOSE_GRID_CELL_VALUES_JS = r"""() => {
   };
 }"""
 _RESTORE_GRID_CELL_VALUES_JS = "() => { if (window.__sapguimcpUndoCellLabels) { window.__sapguimcpUndoCellLabels(); } }"
+
+# One lock per page: the undo callback lives on the page, so overlapping snapshots of the same page (also from two
+# backends wrapping it) would record already-changed attributes and leave the DOM changed.
+_SNAPSHOT_LOCKS: weakref.WeakKeyDictionary[Page, asyncio.Lock] = weakref.WeakKeyDictionary()
+
+
+def _snapshot_lock(page: Page) -> asyncio.Lock:
+    lock = _SNAPSHOT_LOCKS.get(page)
+    if lock is None:
+        lock = _SNAPSHOT_LOCKS[page] = asyncio.Lock()
+    return lock
+
 
 # ---------------------------------------------------------------------------
 # Helpers private to WebGuiBackend
@@ -1213,16 +1226,17 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         # accessible name is the column header, so the value would be missing from the ARIA tree. Expose it as
         # the cell's own label (empty cells lose the header label), which gives ``gridcell "VALUE"`` like the
         # captured fixtures. The DOM is restored right after the snapshot.
-        exposed = False
-        with contextlib.suppress(Exception):
-            await self._page.evaluate(_EXPOSE_GRID_CELL_VALUES_JS)
-            exposed = True
-        try:
-            raw = await self._page.locator("body").aria_snapshot()
-        finally:
-            if exposed:
-                with contextlib.suppress(Exception):
-                    await self._page.evaluate(_RESTORE_GRID_CELL_VALUES_JS)
+        async with _snapshot_lock(self._page):
+            exposed = False
+            with contextlib.suppress(Exception):
+                await self._page.evaluate(_EXPOSE_GRID_CELL_VALUES_JS)
+                exposed = True
+            try:
+                raw = await self._page.locator("body").aria_snapshot()
+            finally:
+                if exposed:
+                    with contextlib.suppress(Exception):
+                        await self._page.evaluate(_RESTORE_GRID_CELL_VALUES_JS)
         return AriaSnapshot(raw)
 
     async def get_page_title(self) -> str:
