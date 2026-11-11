@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.se37_edit_models import SE37EditResult
 from sapguimcp.tools.edit_helpers import describe_failed_replace
@@ -22,27 +23,30 @@ from sapguimcp.tools.field_helpers import fill_field_with_keyboard, toggle_to_ch
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
+    from sapguimcp.lang.schema import LanguagePack
 
 
 logger = logging.getLogger(__name__)
 
-_SE37_LABELS = ("Funktionsbaustein", "Function Module", "Function module")
 
-
-async def _fill_fm_field(backend: WebGuiBackend | DesktopBackend, function_module: str, attempt: int) -> bool:
+async def _fill_fm_field(
+    backend: WebGuiBackend | DesktopBackend, function_module: str, attempt: int, t: LanguagePack
+) -> bool:
     """Fill the SE37 function module name field. attempt==0 uses JS, retries use keyboard."""
     if attempt == 0:
-        for label in _SE37_LABELS:
+        for label in t.se37.fm_field_label:
             try:
                 await backend.fill_field(label, function_module)
                 return True
             except ValueError:
                 continue
-        return await backend.fill_main_input(function_module, list(_SE37_LABELS))
-    return await fill_field_with_keyboard(backend, _SE37_LABELS, function_module)
+        return await backend.fill_main_input(function_module, list(t.se37.fm_field_label))
+    return await fill_field_with_keyboard(backend, list(t.se37.fm_field_label), function_module)
 
 
-async def _open_fm_in_change_mode(backend: WebGuiBackend | DesktopBackend, function_module: str) -> str | None:
+async def _open_fm_in_change_mode(
+    backend: WebGuiBackend | DesktopBackend, function_module: str, t: LanguagePack
+) -> str | None:
     """Navigate to SE37, display FM via F7, and toggle to change mode.
 
     Returns error message or None on success.
@@ -56,7 +60,7 @@ async def _open_fm_in_change_mode(backend: WebGuiBackend | DesktopBackend, funct
             logger.info("Retrying fill+F7 for %s (attempt %d)", function_module, attempt + 1)
             await asyncio.sleep(1.0)
 
-        filled = await _fill_fm_field(backend, function_module, attempt)
+        filled = await _fill_fm_field(backend, function_module, attempt, t)
         if not filled:
             logger.warning("FM name field not found (attempt %d)", attempt + 1)
             continue
@@ -67,7 +71,7 @@ async def _open_fm_in_change_mode(backend: WebGuiBackend | DesktopBackend, funct
         await backend.wait_for_ready()
 
         snapshot = str(await backend.get_snapshot())
-        if "Function Builder" in snapshot or "Funktionsbaustein" in snapshot:
+        if t.se37.function_builder.contains(snapshot):
             break
     else:
         return "Could not find or fill function module name field after retries"
@@ -77,9 +81,9 @@ async def _open_fm_in_change_mode(backend: WebGuiBackend | DesktopBackend, funct
     return await toggle_to_change_mode(backend)
 
 
-async def _click_source_tab(backend: WebGuiBackend | DesktopBackend) -> str | None:
+async def _click_source_tab(backend: WebGuiBackend | DesktopBackend, t: LanguagePack) -> str | None:
     """Click the source code tab in SE37. Returns error or None on success."""
-    for tab_name in ("Quelltext", "Source Code", "Source code", "Source text"):
+    for tab_name in t.se37.source_tab:
         try:
             await backend.click_tab(tab_name)
             await backend.wait_for_ready()
@@ -90,22 +94,24 @@ async def _click_source_tab(backend: WebGuiBackend | DesktopBackend) -> str | No
     return f"Could not find source code tab. Page: {str(snapshot)[:500]}"
 
 
-async def _navigate_to_fm_editor(backend: WebGuiBackend | DesktopBackend, function_module: str) -> str | None:
+async def _navigate_to_fm_editor(
+    backend: WebGuiBackend | DesktopBackend, function_module: str, t: LanguagePack
+) -> str | None:
     """Navigate to SE37, open FM in change mode, click source tab.
 
     Returns error message or None on success.
     """
-    error = await _open_fm_in_change_mode(backend, function_module)
+    error = await _open_fm_in_change_mode(backend, function_module, t)
     if error:
         return error
-    return await _click_source_tab(backend)
+    return await _click_source_tab(backend, t)
 
 
 async def _edit_check_activate_fm(
-    backend: WebGuiBackend | DesktopBackend, function_module: str, new_source: str
+    backend: WebGuiBackend | DesktopBackend, function_module: str, new_source: str, t: LanguagePack
 ) -> SE37EditResult:
     """Core edit logic: navigate, read backup, replace, check, activate, revert on failure."""
-    nav_error = await _navigate_to_fm_editor(backend, function_module)
+    nav_error = await _navigate_to_fm_editor(backend, function_module, t)
     if nav_error:
         return SE37EditResult.failure(
             error=nav_error, function_module=function_module, backup_source="", activated=False
@@ -216,8 +222,11 @@ def register_se37_edit_tools(mcp: FastMCP) -> None:
                 activated=False,
             )
 
+        # Resolved outside the broad except below: an unsupported language must reach the caller as such
+        t = lang.current("sap_se37_edit")
+
         try:
-            return await _edit_check_activate_fm(backend, function_module, new_source)
+            return await _edit_check_activate_fm(backend, function_module, new_source, t)
         except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.exception("SE37 edit failed for %s", function_module)
             return SE37EditResult.failure(

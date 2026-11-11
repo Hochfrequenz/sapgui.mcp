@@ -14,11 +14,11 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_se37_lookup_rfc_read_table(backend):
+async def test_se37_lookup_rfc_read_table(pack, backend):
     """SE37: look up RFC_READ_TABLE returns parameters and exceptions."""
     await backend.enter_transaction("SE37")
     await backend.wait_for_ready()
-    result = await _lookup_fm_desktop(backend, "RFC_READ_TABLE")
+    result = await _lookup_fm_desktop(backend, "RFC_READ_TABLE", pack)
     assert isinstance(result, SE37Entry), f"Expected SE37Entry, got {type(result).__name__}: {result}"
     assert result.function_module == "RFC_READ_TABLE"
     assert len(result.import_parameters) > 0, "Should have import parameters"
@@ -37,11 +37,11 @@ async def test_se37_lookup_rfc_read_table(backend):
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_se37_lookup_nonexistent(backend):
+async def test_se37_lookup_nonexistent(pack, backend):
     """SE37: look up ZZZFAKE_FM returns SE37Error."""
     await backend.enter_transaction("SE37")
     await backend.wait_for_ready()
-    result = await _lookup_fm_desktop(backend, "ZZZFAKE_FM")
+    result = await _lookup_fm_desktop(backend, "ZZZFAKE_FM", pack)
     assert isinstance(result, SE37Error), f"Expected SE37Error, got {type(result).__name__}"
     assert result.function_module == "ZZZFAKE_FM"
     assert result.error
@@ -50,11 +50,11 @@ async def test_se37_lookup_nonexistent(backend):
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_se37_params_have_category(backend):
+async def test_se37_params_have_category(pack, backend):
     """SE37: parameters should have correct category."""
     await backend.enter_transaction("SE37")
     await backend.wait_for_ready()
-    result = await _lookup_fm_desktop(backend, "RFC_READ_TABLE")
+    result = await _lookup_fm_desktop(backend, "RFC_READ_TABLE", pack)
     assert isinstance(result, SE37Entry)
     for p in result.import_parameters:
         assert p.category == "import"

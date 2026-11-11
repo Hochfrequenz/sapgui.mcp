@@ -101,16 +101,6 @@
     "Transport Organizer: Requ": 1,
     "region\\s+\"Liste\"": 1
   },
-  "src/sapguimcp/backend/webgui/parsers/se24_parser.py": {
-    "abstract": 1,
-    "abstrakt": 1,
-    "constant": 1,
-    "static": 2
-  },
-  "src/sapguimcp/backend/webgui/parsers/se37_parser.py": {
-    " not found": 1,
-    "heading \"Function Builder:\\s*(?:(?P<fm_de>[A-Z0-9_/]+)\\s+": 1
-  },
   "src/sapguimcp/backend/webgui/parsers/se93_parser.py": {
     "anzeigen": 1,
     "display": 1
@@ -153,6 +143,8 @@
     "(?:Program|Programm)\\s*[:]\\s*([A-Z][A-Z0-9_/]+)": 1,
     "(?:Source Code Line|Zeile im Quelltext)[:\\s]+(\\d+)": 1,
     "(?:Source Code of|Quelltext des? Programm(?:s|es)?)\\s+([A-Z][A-Z0-9_/]+)": 1,
+    "Quelltext": 1,
+    "Source Code": 1,
     "abgebrochenes programm": 1,
     "active calls": 1,
     "aktive aufrufe": 1,
@@ -168,6 +160,7 @@
     "programm": 1,
     "runtime error": 1,
     "runtime errors": 1,
+    "short text": 1,
     "terminated program": 1,
     "user": 1
   },
@@ -181,13 +174,27 @@
     "Programm": 1,
     "Transaktionscode": 1
   },
+  "src/sapguimcp/classcatalog/search.py": {
+    "description contains": 1,
+    "fuzzy description": 1
+  },
+  "src/sapguimcp/fmcatalog/search.py": {
+    " description": 1,
+    "description contains": 1,
+    "fuzzy description": 1
+  },
   "src/sapguimcp/tables/scraper.py": {
     "Tabellenname": 1
+  },
+  "src/sapguimcp/tables/search.py": {
+    " description contains": 1,
+    "fuzzy description": 1
   },
   "src/sapguimcp/tools/abapgit_tools.py": {
     "Branch not found:": 1,
     "Einstieg": 2,
     "Entry": 2,
+    "Exception occurred": 1,
     "Not found": 1,
     "Program": 1,
     "Programm": 1,
@@ -243,12 +250,17 @@
     "Could not display class '": 1,
     "Could not display function module '": 1,
     "Could not display program '": 1,
+    "Could not find 'Quelltext'/'Sourcecode' button": 1,
     "Display": 1,
     "Display All": 1,
     "Display...": 1,
     "Editor shell not found at wnd[0]/": 1,
+    "Function Module": 1,
+    "Function module": 1,
+    "Funktionsbaustein": 1,
     "Grid not found at wnd[1]/usr/cntlG_BP_CONTAINER/shellcont/shell": 1,
     "Method": 1,
+    "Method '": 1,
     "Methode": 1,
     "Methoden": 1,
     "Methods": 1,
@@ -256,6 +268,11 @@
     "Objekttyp": 1,
     "Program": 1,
     "Programm": 1,
+    "Quelltext": 2,
+    "Source Code": 2,
+    "Source code": 2,
+    "Source text": 1,
+    "Sourcecode": 1,
     "\\bdeleted\\b": 1,
     "\\bset\\b": 1,
     "einstieg": 3,
@@ -293,6 +310,9 @@
   "src/sapguimcp/tools/sap_tools.py": {
     "[id*=\"settingsButton\"], [title*=\"Setting\" i], [title*=\"Einstellung\" i], button[id*=\"gear\" i], [aria-label*=\"Setting\" i]": 1
   },
+  "src/sapguimcp/tools/script_tools.py": {
+    "Exception": 1
+  },
   "src/sapguimcp/tools/se09_tools.py": {
     "Anzeigen": 2,
     "Benutzer": 2,
@@ -311,90 +331,8 @@
     "released": 2,
     "Änderbar": 2
   },
-  "src/sapguimcp/tools/se24_edit_tools.py": {
-    "Class Builder": 1,
-    "Klasse": 1,
-    "Method": 1,
-    "Methode": 1,
-    "Methoden": 2,
-    "Methods": 2,
-    "Object Type": 1,
-    "Objekttyp": 1,
-    "Quelltext": 2,
-    "Source Code": 2,
-    "Source code": 2,
-    "Sourcecode": 2,
-    "Weiter zu Quelltext": 1,
-    "einstieg": 1,
-    "initial": 1
-  },
   "src/sapguimcp/tools/se24_tools.py": {
-    "Art": 2,
-    "Assoc.Type": 1,
-    "Attribut": 1,
-    "Attribute": 3,
-    "Bezugstyp": 1,
-    "Class/Interface": 1,
-    "Eigenschaften": 1,
-    "Initial Value": 1,
-    "Initialer Wert": 1,
-    "Interface": 2,
-    "Interfaces": 2,
-    "Klasse/Interface": 1,
-    "Level": 2,
-    "Method": 1,
-    "Methode": 1,
-    "Methoden": 2,
-    "Methods": 2,
-    "Object Type": 1,
-    "Object type": 1,
-    "Objekttyp": 1,
-    "Properties": 1,
-    "Sichtbarkeit": 2,
-    "Visibility": 2,
-    "abstract": 1,
-    "abstrakt": 1,
-    "class/interface": 1,
-    "constant": 1,
-    "interface": 2,
-    "konstante": 1,
-    "private": 2,
-    "protected": 2,
-    "static": 2
-  },
-  "src/sapguimcp/tools/se37_edit_tools.py": {
-    "Function Builder": 1,
-    "Funktionsbaustein": 2
-  },
-  "src/sapguimcp/tools/se37_tools.py": {
-    "Associated Type": 1,
-    "Attributes": 1,
-    "Ausnahme": 1,
-    "Bezugstyp": 1,
-    "Default Value": 1,
-    "Eigenschaften": 1,
-    "Exception": 1,
-    "Optional": 1,
-    "Parameter Name": 1,
-    "Parametername": 1,
-    "Pass Value": 1,
-    "Standardwert": 1,
-    "Tabellen": 2,
-    "Tables": 2,
-    "Typing": 1,
-    "Typisierung": 1,
-    "Wertübergabe": 1
-  },
-  "src/sapguimcp/tools/se38_edit_tools.py": {
-    "ABAP Program Name": 1,
-    "ABAP program name": 1,
-    "ABAP-Programmname": 1,
-    "Program": 3,
-    "Programm": 3,
-    "einstieg": 2,
-    "initial": 1,
-    "initial screen": 1,
-    "input[title*='rogramm'][ct='CBS']": 1
+    "interface": 1
   },
   "src/sapguimcp/tools/se93_tools.py": {
     "Transaction Code": 1,
@@ -508,5 +446,8 @@
     "user and transaction": 1,
     "was können sie tun": 1,
     "what can you do": 1
+  },
+  "src/sapguimcp/tools/table_tools.py": {
+    "No tables found for '": 1
   }
 }

@@ -301,3 +301,14 @@ def make_mock_session(
 def mock_session():
     """Provide a factory for mock GuiSession objects."""
     return make_mock_session
+
+
+@pytest.fixture(scope="module")
+def pack():  # type: ignore[no-untyped-def]
+    """The language pack (merged view) of the language the integration fixture logs in with."""
+    from sapguimcp import lang
+
+    load_dotenv()
+    from sapguimcp.models.config import get_sap_config
+
+    return lang.view_for(get_sap_config().get_default().language)
