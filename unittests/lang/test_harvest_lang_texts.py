@@ -184,10 +184,19 @@ class TestDraft:
     def test_main_does_not_overwrite_an_existing_out_file(self, tmp_path: Path) -> None:
         out = tmp_path / "zz.py"
         out.write_text("keep", encoding="utf-8")
+        texts = tmp_path / "t.json"
+        texts.write_text("{}", encoding="utf-8")
         with pytest.raises(SystemExit) as exit_info:
-            harvest.main(["zz", "--draft", "--sap-texts", str(tmp_path / "t.json"), "--out", str(out)])
+            harvest.main(["zz", "--draft", "--sap-texts", str(texts), "--out", str(out)])
         assert exit_info.value.code == 2
         assert out.read_text(encoding="utf-8") == "keep"
+
+    def test_main_reports_an_unwritable_out_path(self, tmp_path: Path) -> None:
+        texts = tmp_path / "texts.json"
+        texts.write_text("{}", encoding="utf-8")
+        with pytest.raises(SystemExit) as exit_info:
+            harvest.main(["zz", "--draft", "--sap-texts", str(texts), "--out", str(tmp_path / "no_dir" / "zz.py")])
+        assert exit_info.value.code == 2
 
     def test_main_prints_to_stdout(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
         texts = tmp_path / "texts.json"

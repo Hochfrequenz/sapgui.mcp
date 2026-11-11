@@ -327,14 +327,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error(f"not a 2-character SAP language key: {args.language!r}")
     if args.out is not None and not args.draft:
         parser.error("--out belongs to --draft")
-    if args.out is not None and args.out.exists():
-        parser.error(f"{args.out} exists; the draft does not overwrite files")
     if not (args.draft or args.print_sql) and args.language not in supported_languages():
         parser.error(f"unsupported language {args.language!r}; supported: {', '.join(sorted(supported_languages()))}")
     if args.print_sql:
         for path, source in SOURCES.items():
             if not isinstance(source, Manual):
-                print(f"{path}	{sql_for(source, args.language)}")
+                print(f"{path}\t{sql_for(source, args.language)}")
         return 0
     preview: AdtPreview | None = None
     if args.sap_texts is not None:
@@ -355,7 +353,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.out is None:
                 sys.stdout.write(source_text)
             else:
-                args.out.write_text(source_text, encoding="utf-8", newline="\n")
+                try:
+                    with args.out.open("x", encoding="utf-8", newline="\n") as handle:
+                        handle.write(source_text)
+                except OSError as exc:  # includes FileExistsError: the draft never overwrites a file
+                    parser.error(f"cannot write {args.out}: {type(exc).__name__}")
                 print(f"{args.language}: draft written to {args.out}", file=sys.stderr)
             return 0
         findings = verify(args.language, fetch)

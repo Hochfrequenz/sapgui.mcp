@@ -38,7 +38,7 @@ verification. Design and rationale: `docs/superpowers/specs/2026-11-10-language-
    `<html lang>`, e.g. `"it"`), `logon_dropdown` (the language's name in the WebGUI logon
    dropdown) and `date_format`, and run `ruff format` on the file.
 2. **Register the pack** in `__init__.py` (`_PACKS`). Do this before verifying: `--verify` and the
-   config accept only registered codes (`--draft` and `--print-sql` accept any code of `T002`). The
+   config accept only registered codes (`--draft` and `--print-sql` accept any 2-character key; with direct ADT access `--draft` rejects a key missing from `T002`). The
    code is then accepted as `language` in `systems.json`, because the config takes its list from
    `supported_languages()`.
 3. **Settle every `TODO` from SAP, not from a dictionary.** The source of most fields is recorded
