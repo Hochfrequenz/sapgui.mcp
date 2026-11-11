@@ -54,12 +54,20 @@ if TYPE_CHECKING:
     from sap_mcp_config.models import SAPSystem
 
 _TECHNICAL_ID = re.compile(r"^[A-Z0-9_/]{1,40}$")
+_SCREEN_FIELD = re.compile(r"^[A-Z0-9_/*-]{1,132}$")  # D021T FLDN, e.g. RSRD1-TBMA
 _LANGUAGE_KEY = re.compile(r"^[A-Z0-9]{2}$")
 _T100_PLACEHOLDER = re.compile(r"&\d?")
 _PLACEHOLDER_FILL = "ZZPLACEHOLDER"
 _DD04T_COLUMN = {"short": "SCRTEXT_S", "medium": "SCRTEXT_M", "long": "SCRTEXT_L", "heading": "REPTEXT"}
 _PREVIEW_PATH = "/sap/bc/adt/datapreview/freestyle"
 _PREVIEW_NS = "{http://www.sap.com/adt/dataPreview}"
+
+
+def _field(value: str) -> str:
+    """A screen field name (may hold ``-``), checked before it goes into a SQL literal."""
+    if not _SCREEN_FIELD.match(value):
+        raise ValueError(f"not a screen field name: {value!r}")
+    return value
 
 
 def _id(value: str) -> str:
@@ -83,7 +91,7 @@ def sql_for(source: Source, language: str) -> str:
         case ScreenText(program=program, screen=screen, field=field):
             return (
                 f"SELECT DTXT FROM D021T WHERE PROG = '{_id(program)}' AND DYNR = '{_id(screen)}'"
-                f" AND FLDN = '{_id(field)}' AND LANG {lang}"
+                f" AND FLDN = '{_field(field)}' AND LANG {lang}"
             )
         case GuiFunction(program=program, fcode=fcode):
             return (
