@@ -240,7 +240,7 @@ EN = LanguagePack(
     ),
     sm30=Sm30Section(
         initial_screen=Text(("Table View Maintenance",)),
-        maintain=Text(("Maintain",)),
+        maintain=Text(("Maintain", "Edit")),
         table_view=Text(("Table/View",)),
         display_view=Text(("View",)),
         view_not_found=Text(("is not in the Dictionary", "does not exist", "not found")),

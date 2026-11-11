@@ -122,7 +122,8 @@ def tstc_columns(row: Mapping[str, Any], t: LanguagePack) -> tuple[Any, Any, Any
     """``(tcode, program, screen)`` of a TSTC row: technical names first, then the header texts of the language."""
     tcode = row.get("TCODE") or t.se93.transaction_code.first_key(row) or ""
     program = row.get("PGMNA") or t.common.program.first_key(row) or ""
-    screen = row.get("DESSION") or t.catalog.screen_header.first_key(row)
+    # DYPNO is the real TSTC field; DESSION is the key the scraper wrote to saved JSON dumps (read back here)
+    screen = row.get("DYPNO") or row.get("DESSION") or t.catalog.screen_header.first_key(row)
     return tcode, program, screen
 
 
@@ -166,7 +167,7 @@ class TransactionInfo(BaseModel):
     def from_tstc_row(cls, row_data: dict[str, object], t: LanguagePack) -> "TransactionInfo":
         """Create TransactionInfo from a TSTC table row.
 
-        The technical column names (TCODE, PGMNA, DESSION) are tried first; the WebGUI SE16 parser keys rows by
+        The technical column names (TCODE, PGMNA, DYPNO; DESSION from older scraper dumps) are tried first; the WebGUI SE16 parser keys rows by
         column header text, so the pack's header texts follow (see ``tstc_columns``).
         """
         tcode, program, screen = tstc_columns(row_data, t)
