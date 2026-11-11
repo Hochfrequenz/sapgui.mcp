@@ -189,6 +189,23 @@ class Se24Section:
     visibility: Mapping[Visibility, Text]
     static: Text
     abstract: Text
+    constant: Text
+    class_field_label: Text
+    """Title/label of the class-or-interface input on the initial screen."""
+    methods_tab: Text
+    attributes_tab: Text
+    interfaces_tab: Text
+    properties_tab: Text
+    source_button: Text
+    """Button that opens the source of the selected method."""
+    method_column: Text
+    """Column titles of the methods / attributes table controls (row dict keys, ``Columns(c).Title``)."""
+    attribute_column: Text
+    kind_column: Text
+    visibility_column: Text
+    description_column: Text
+    type_ref_column: Text
+    initial_value_column: Text
 
 
 @dataclass(frozen=True, slots=True)
@@ -196,6 +213,34 @@ class Se37Section:
     MERGE: ClassVar[MergeMode] = "session_en"
     initial_screen: Text
     display_title: Template
+    function_builder: Text
+    fm_field_label: Text
+    not_found: Text
+    """Status bar / snapshot fragment: the function module does not exist (narrower than ``common``)."""
+    attributes_tab: Text
+    import_tab: Text
+    export_tab: Text
+    changing_tab: Text
+    tables_tab: Text
+    exceptions_tab: Text
+    source_tab: Text
+    parameter_name_column: Text
+    """Column titles of the parameter / exception table controls (row dict keys)."""
+    typing_column: Text
+    type_ref_column: Text
+    default_column: Text
+    optional_column: Text
+    pass_value_column: Text
+    short_text_column: Text
+    exception_column: Text
+
+
+@dataclass(frozen=True, slots=True)
+class Se38Section:
+    MERGE: ClassVar[MergeMode] = "session_en"
+    initial_screen: Text
+    program_field_title: Text
+    """``title`` attribute of the program name input (not the label next to it)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -345,6 +390,7 @@ class LanguagePack:
     se16: Se16Section
     se24: Se24Section
     se37: Se37Section
+    se38: Se38Section
     se93: Se93Section
     slg1: Slg1Section
     sm30: Sm30Section

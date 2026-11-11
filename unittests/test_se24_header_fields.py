@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
 from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RETRYABLE_COM_ERRORS
 from sapguimcp.tools.desktop_wait_predicates import named_text_field_present
 from sapguimcp.tools.se24_tools import _HEADER_DESCRIPTION_FIELDS, _read_se24_header
+
+if TYPE_CHECKING:
+    from sapguimcp.lang import LanguagePack
 
 _TEXT, _CTEXT, _COMBO, _CHECK, _LABEL = 31, 32, 34, 42, 30
 
@@ -51,24 +54,27 @@ def _class(*, instantiation: str = "Public", superclass: str | None = None) -> l
     return elements
 
 
-def test_description_package_and_the_flags_of_a_class_are_read_by_field_name() -> None:
-    assert _read_se24_header(_session(_class(), final=True), _flatten) == {
+def test_description_package_and_the_flags_of_a_class_are_read_by_field_name(lang_de: LanguagePack) -> None:
+    assert _read_se24_header(_session(_class(), final=True), _flatten, lang_de) == {
         "description": "An example class",
+        "object_type": "class",
         "package": "ZPACKAGE",
         "is_abstract": False,
         "is_final": True,
     }
 
 
-def test_a_class_instantiated_abstract_is_abstract_by_the_key_of_the_combo_box_in_any_language() -> None:
+def test_a_class_instantiated_abstract_is_abstract_by_the_key_of_the_combo_box_in_any_language(
+    lang_de: LanguagePack,
+) -> None:
     # the text is that of the logon language: only the key tells in every language
     elements = _class(instantiation="Abstraite")
-    assert _read_se24_header(_session(elements, key="3"), _flatten)["is_abstract"] is True
-    assert _read_se24_header(_session(elements, key="0"), _flatten)["is_abstract"] is False
+    assert _read_se24_header(_session(elements, key="3"), _flatten, lang_de)["is_abstract"] is True
+    assert _read_se24_header(_session(elements, key="0"), _flatten, lang_de)["is_abstract"] is False
 
 
 @pytest.mark.parametrize("text", ["Abstrakt", "Abstract", " abstrakt "])
-def test_the_text_decides_when_the_key_cannot_be_read(text: str) -> None:
+def test_the_text_decides_when_the_key_cannot_be_read(lang_de: LanguagePack, text: str) -> None:
     window = SimpleNamespace(dump_tree=lambda: _class(instantiation=text))
 
     def find_by_id(element_id: str, **_: Any) -> Any:
@@ -76,36 +82,43 @@ def test_the_text_decides_when_the_key_cannot_be_read(text: str) -> None:
             return window
         raise OSError("key not readable")
 
-    assert _read_se24_header(SimpleNamespace(find_by_id=find_by_id), _flatten)["is_abstract"] is True
+    assert _read_se24_header(SimpleNamespace(find_by_id=find_by_id), _flatten, lang_de)["is_abstract"] is True
 
 
-def test_a_subclass_names_its_superclass_and_a_class_without_one_has_no_key() -> None:
-    assert _read_se24_header(_session(_class(superclass="ZCL_BASE")), _flatten)["superclass"] == "ZCL_BASE"
-    assert "superclass" not in _read_se24_header(_session(_class()), _flatten)
+def test_a_subclass_names_its_superclass_and_a_class_without_one_has_no_key(lang_de: LanguagePack) -> None:
+    assert _read_se24_header(_session(_class(superclass="ZCL_BASE")), _flatten, lang_de)["superclass"] == "ZCL_BASE"
+    assert "superclass" not in _read_se24_header(_session(_class()), _flatten, lang_de)
 
 
-def test_an_interface_has_its_own_description_and_package_fields() -> None:
+def test_an_interface_has_its_own_description_and_package_fields(lang_de: LanguagePack) -> None:
     elements = [
         _element("VSEOINTERF-DESCRIPT", "An interface", _TEXT),
         _element("DY_0153-DEVCLASS", "ZPACKAGE", _TEXT),
     ]
-    assert _read_se24_header(_session(elements), _flatten) == {"description": "An interface", "package": "ZPACKAGE"}
+    assert _read_se24_header(_session(elements), _flatten, lang_de) == {
+        "description": "An interface",
+        "object_type": "interface",
+        "package": "ZPACKAGE",
+    }
 
 
-def test_a_label_with_the_name_of_a_field_is_not_taken_for_the_field() -> None:
+def test_a_label_with_the_name_of_a_field_is_not_taken_for_the_field(lang_de: LanguagePack) -> None:
     labels = [
         _element("VSEOCLASS-DESCRIPT", "Short description", _LABEL),
         _element("DY_0152-DEVCLASS", "Package", _LABEL),
     ]
-    assert _read_se24_header(_session([*labels, *_class(), *labels]), _flatten)["description"] == "An example class"
-    assert _read_se24_header(_session(labels), _flatten) == {}
+    assert (
+        _read_se24_header(_session([*labels, *_class(), *labels]), _flatten, lang_de)["description"]
+        == "An example class"
+    )
+    assert _read_se24_header(_session(labels), _flatten, lang_de) == {}
 
 
-def test_a_screen_without_the_properties_tab_gives_no_values() -> None:
-    assert _read_se24_header(_session([_element("VSEOCLASS-CLSNAME", "ZCL_EXAMPLE", _TEXT)]), _flatten) == {}
+def test_a_screen_without_the_properties_tab_gives_no_values(lang_de: LanguagePack) -> None:
+    assert _read_se24_header(_session([_element("VSEOCLASS-CLSNAME", "ZCL_EXAMPLE", _TEXT)]), _flatten, lang_de) == {}
 
 
-def test_a_checkbox_that_cannot_be_read_is_left_out_while_the_other_values_are_kept() -> None:
+def test_a_checkbox_that_cannot_be_read_is_left_out_while_the_other_values_are_kept(lang_de: LanguagePack) -> None:
     window = SimpleNamespace(dump_tree=_class)
 
     def find_by_id(element_id: str, **_: Any) -> Any:
@@ -113,13 +126,15 @@ def test_a_checkbox_that_cannot_be_read_is_left_out_while_the_other_values_are_k
             return window
         raise OSError("not readable")
 
-    values = _read_se24_header(SimpleNamespace(find_by_id=find_by_id), _flatten)
+    values = _read_se24_header(SimpleNamespace(find_by_id=find_by_id), _flatten, lang_de)
     assert values["description"] == "An example class"
     assert "is_final" not in values
 
 
 @pytest.mark.parametrize("code", [*RETRYABLE_COM_ERRORS, -2147417851, _RPC_E_DISCONNECTED])
-def test_a_com_error_the_com_thread_retries_or_a_lost_connection_is_not_swallowed(code: int) -> None:
+def test_a_com_error_the_com_thread_retries_or_a_lost_connection_is_not_swallowed(
+    lang_de: LanguagePack, code: int
+) -> None:
     window = SimpleNamespace(dump_tree=_class)
 
     def find_by_id(element_id: str, **_: Any) -> Any:
@@ -128,10 +143,10 @@ def test_a_com_error_the_com_thread_retries_or_a_lost_connection_is_not_swallowe
         raise _ComError(code)
 
     with pytest.raises(_ComError):
-        _read_se24_header(SimpleNamespace(find_by_id=find_by_id), _flatten)
+        _read_se24_header(SimpleNamespace(find_by_id=find_by_id), _flatten, lang_de)
 
 
-def test_an_unreadable_element_does_not_stop_the_elements_after_it() -> None:
+def test_an_unreadable_element_does_not_stop_the_elements_after_it(lang_de: LanguagePack) -> None:
     # the final checkbox comes before the combo box and the package: it cannot be read, the others still are
     window = SimpleNamespace(dump_tree=_class)
 
@@ -142,7 +157,7 @@ def test_an_unreadable_element_does_not_stop_the_elements_after_it() -> None:
             raise OSError("not readable")
         return SimpleNamespace(selected=False, key="3")
 
-    values = _read_se24_header(SimpleNamespace(find_by_id=find_by_id), _flatten)
+    values = _read_se24_header(SimpleNamespace(find_by_id=find_by_id), _flatten, lang_de)
     assert "is_final" not in values
     assert (values["is_abstract"], values["package"]) == (True, "ZPACKAGE")
 
