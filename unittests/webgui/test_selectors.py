@@ -37,6 +37,7 @@ from bs4.element import Tag
 # Import the selectors we want to test
 from sapguimcp.backend.webgui.utils import escape_css_selector
 from sapguimcp.tools.sap_tools import SELECTORS, parse_shortcut_from_title
+from unittests.webgui.testdata.lang_test import UiTestPack
 
 
 @pytest.fixture
@@ -1113,7 +1114,7 @@ class TestPopupDetection:
             pytest.skip(f"Snapshot {snapshot_path.name} doesn't contain popup elements")
         assert popup is not None, "Expected popup container element"
 
-    def test_se38_error_popup_has_buttons(self, html_snapshots_path: Path, lang_strings: dict[str, str]) -> None:
+    def test_se38_error_popup_has_buttons(self, html_snapshots_path: Path) -> None:
         """Verify SE38 error popup has expected buttons."""
         snapshot_path = get_snapshot_path(html_snapshots_path, "se38_error_popup")
         if not snapshot_path:
@@ -1169,9 +1170,7 @@ class TestPopupDetection:
         blocking_layer = soup.select_one("#urPopupWindowBlockLayer, .lsBlockLayer")
         assert blocking_layer is not None, "Expected blocking layer element"
 
-    def test_bp_validation_popup_has_ja_nein_buttons(
-        self, html_snapshots_path: Path, lang_strings: dict[str, str]
-    ) -> None:
+    def test_bp_validation_popup_has_ja_nein_buttons(self, html_snapshots_path: Path, ui_texts: UiTestPack) -> None:
         """Verify BP validation popup has Yes/No buttons."""
         snapshot_path = get_snapshot_path(html_snapshots_path, "bp_validation_popup")
         if not snapshot_path:
@@ -1185,9 +1184,10 @@ class TestPopupDetection:
         button_texts = [btn.get_text(strip=True) for btn in buttons]
 
         # Should have Yes and No buttons (DE: Ja/Nein, EN: Yes/No)
-        has_yes = any(lang_strings["yes"] in text for text in button_texts)
-        has_no = any(lang_strings["no"] in text for text in button_texts)
-        assert has_yes and has_no, f"Expected {lang_strings['yes']}/{lang_strings['no']} buttons. Got: {button_texts}"
+        yes, no = ui_texts.bp.yes_button, ui_texts.bp.no_button
+        has_yes = any(yes.contains(text) for text in button_texts)
+        has_no = any(no.contains(text) for text in button_texts)
+        assert has_yes and has_no, f"Expected {yes.variants}/{no.variants} buttons. Got: {button_texts}"
 
     def test_se38_initial_has_no_popup(self, html_snapshots_path: Path) -> None:
         """Verify SE38 initial screen has no blocking popup."""
@@ -1224,7 +1224,7 @@ class TestDropdownDetection:
         dropdowns = soup.select('input[ct="CB"]')
         assert len(dropdowns) >= 1, "Expected at least one dropdown field in BP create person"
 
-    def test_bp_create_person_gp_rolle_dropdown(self, html_snapshots_path: Path, lang_strings: dict[str, str]) -> None:
+    def test_bp_create_person_gp_rolle_dropdown(self, html_snapshots_path: Path, ui_texts: UiTestPack) -> None:
         """Verify GP-Rolle/Role dropdown has expected attributes."""
         snapshot_path = get_snapshot_path(html_snapshots_path, "bp_create_person")
         if not snapshot_path:
@@ -1236,21 +1236,21 @@ class TestDropdownDetection:
         # Find dropdown with GP-Rolle/Role label (look for lsdata containing the text)
         dropdowns = soup.select('input[ct="CB"]')
         gp_rolle_dropdown = None
-        role_label = lang_strings["gp_role_label"]
+        role_label = ui_texts.bp.gp_role_label
         for dd in dropdowns:
             title = dd.get("title", "")
             # Check for both DE and EN labels in case of fallback
-            if role_label in title or "GP-Rolle" in title or "Role" in title:
+            if role_label.contains(title) or "GP-Rolle" in title or "Role" in title:
                 gp_rolle_dropdown = dd
                 break
 
-        assert gp_rolle_dropdown is not None, f"Expected {role_label} dropdown field"
+        assert gp_rolle_dropdown is not None, f"Expected {role_label.variants} dropdown field"
         assert gp_rolle_dropdown.get("readonly") is not None or gp_rolle_dropdown.has_attr("readonly"), (
             "Dropdown should be readonly"
         )
         assert gp_rolle_dropdown.get("aria-haspopup") == "true", "Dropdown should have aria-haspopup=true"
 
-    def test_bp_create_person_dropdown_has_value(self, html_snapshots_path: Path, lang_strings: dict[str, str]) -> None:
+    def test_bp_create_person_dropdown_has_value(self, html_snapshots_path: Path, ui_texts: UiTestPack) -> None:
         """Verify GP-Rolle dropdown has default value (GPartner allgemein / General BP)."""
         snapshot_path = get_snapshot_path(html_snapshots_path, "bp_create_person")
         if not snapshot_path:
@@ -1261,20 +1261,18 @@ class TestDropdownDetection:
 
         # Find dropdown with value containing the expected default
         dropdowns = soup.select('input[ct="CB"]')
-        expected_value = lang_strings["gp_role_default"]
+        expected_value = ui_texts.bp.gp_role_default
         gp_role_found = False
         for dd in dropdowns:
             value = dd.get("value", "")
             # Check for both DE and EN values in case of fallback
-            if expected_value in value or "GPartner" in value or "General BP" in value:
+            if expected_value.contains(value) or "GPartner" in value or "General BP" in value:
                 gp_role_found = True
                 break
 
-        assert gp_role_found, f"Expected dropdown with '{expected_value}' default value"
+        assert gp_role_found, f"Expected dropdown with {expected_value.variants} default value"
 
-    def test_bp_create_person_gruppierung_dropdown_empty(
-        self, html_snapshots_path: Path, lang_strings: dict[str, str]
-    ) -> None:
+    def test_bp_create_person_gruppierung_dropdown_empty(self, html_snapshots_path: Path, ui_texts: UiTestPack) -> None:
         """Verify Gruppierung/Grouping dropdown exists and is empty by default."""
         snapshot_path = get_snapshot_path(html_snapshots_path, "bp_create_person")
         if not snapshot_path:
@@ -1287,18 +1285,18 @@ class TestDropdownDetection:
         # Note: Full German label is "Geschäftspartnergruppierung"
         dropdowns = soup.select('input[ct="CB"]')
         gruppierung_dropdown = None
-        grouping_label = lang_strings["grouping_label"]
+        grouping_label = ui_texts.bp.grouping_label
         for dd in dropdowns:
             title = dd.get("title", "").lower()
             # Check for partial match since full label is "Geschäftspartnergruppierung"
-            if grouping_label.lower() in title or "gruppieru" in title or "grouping" in title:
+            if grouping_label.contains(title) or "gruppieru" in title or "grouping" in title:
                 gruppierung_dropdown = dd
                 break
 
-        assert gruppierung_dropdown is not None, f"Expected {grouping_label} dropdown field"
+        assert gruppierung_dropdown is not None, f"Expected {grouping_label.variants} dropdown field"
         # Value should be empty
         value = gruppierung_dropdown.get("value", "")
-        assert value == "", f"{grouping_label} should be empty by default, got: {value}"
+        assert value == "", f"{grouping_label.variants} should be empty by default, got: {value}"
 
     def test_dropdown_detection_attributes(self, html_snapshots_path: Path) -> None:
         """Verify dropdown detection criteria work correctly."""

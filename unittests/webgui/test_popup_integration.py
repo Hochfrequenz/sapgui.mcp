@@ -20,6 +20,7 @@ from .integration_helpers import (
     _wait_for_transaction_screen,
     capture_html_snapshot,
 )
+from .testdata.lang_test import UiTestPack
 
 
 @pytest.mark.anyio
@@ -141,7 +142,7 @@ async def test_bp_popup_detection_and_dismiss(sap_mcp_client: ClientSession) -> 
 
 
 @pytest.mark.anyio
-async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession, lang_strings: dict[str, str]) -> None:
+async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession, ui_texts: UiTestPack) -> None:
     """
     Test popup detection with a detailed body message in SE38.
 
@@ -176,7 +177,7 @@ async def test_se38_error_popup_with_body_message(sap_mcp_client: ClientSession,
     assert fill_result.success, f"Fill program name failed: {fill_result.error}"
 
     # Click "Anlegen/Create" button - this triggers a popup
-    create_label = lang_strings["create"]
+    create_label = ui_texts.se38.create_button.variants[0]
     click_data = await call_tool_typed(
         sap_mcp_client,
         "browser_click",
