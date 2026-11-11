@@ -14,6 +14,11 @@ if TYPE_CHECKING:
 # Load .env file if it exists (for local development and integration tests)
 load_dotenv()
 
+# The systems.json the run was started with. ``clean_environment`` clears SAP_CONFIG_FILE for every test, so a live
+# fixture that starts the server as a subprocess passes this value on; without it, a run started with another
+# systems.json would silently test the default one.
+SESSION_SAP_CONFIG_FILE = os.environ.get("SAP_CONFIG_FILE", "")
+
 # =============================================================================
 # SAP CREDENTIAL DETECTION
 # =============================================================================
