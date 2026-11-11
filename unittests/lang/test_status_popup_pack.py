@@ -222,18 +222,37 @@ async def test_webgui_popup_close_control_in_both_languages(snapshot: str, close
     assert found == close_id
 
 
-_STATUS_BAR = '<div id="LSMSG_AREA"><span class="lsMsgText">{}</span></div>'
+_MESSAGE_TEXT = '<div id="LSMSG_AREA"><span class="lsMsgText">{}</span></div>'
+"""The dedicated message-text element: its text is the message, never noise-filtered."""
+_CONTAINER_TEXT = '<div id="LSMSG_AREA"><span>{}</span></div>'
+"""A generic span, as in the snapshots: its text carries the message bar's label and buttons."""
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Executed successfully",
+        "Execute the report first",
+        "Ausführen nicht möglich",
+        "Function module was executed successfully",
+        "You are not authorized to execute transaction SE38",
+        "Message Bar settings saved",
+    ],
+)
+async def test_message_text_element_is_never_noise_filtered(message: str) -> None:
+    _, found = await _on_snapshot("", _status, html=_MESSAGE_TEXT.format(message))
+    assert found == message
 
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
     ("message", "expected"),
     [
-        # Words of the message itself survive: the noise is matched case-sensitively.
+        # Lower-case message words survive: the noise is matched case-sensitively.
         ("Function module was executed successfully", "Function module was executed successfully"),
-        ("You are not authorized to execute transaction SE38", "You are not authorized to execute transaction SE38"),
         ("Programm wird ausgeführt", "Programm wird ausgeführt"),
-        # The real noise of the snapshots is still removed.
+        # The real noise of the snapshots is still removed from container text.
         (
             "Business process code is not supported by EMMAExecute Emphasized",
             "Business process code is not supported by EMMA",
@@ -242,8 +261,8 @@ _STATUS_BAR = '<div id="LSMSG_AREA"><span class="lsMsgText">{}</span></div>'
         ("Erfolgreich Meldungsleiste Daten gesichert", "Erfolgreich Daten gesichert"),
     ],
 )
-async def test_status_bar_noise_keeps_message_words(message: str, expected: str) -> None:
-    _, found = await _on_snapshot("", _status, html=_STATUS_BAR.format(message))
+async def test_container_text_is_noise_filtered(message: str, expected: str) -> None:
+    _, found = await _on_snapshot("", _status, html=_CONTAINER_TEXT.format(message))
     assert found == expected
 
 

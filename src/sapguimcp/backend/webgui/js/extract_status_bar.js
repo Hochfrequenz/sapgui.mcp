@@ -17,14 +17,21 @@
     let statusElement = null;
     let message = '';
 
-    // Helper function to clean up status bar text by removing toolbar/button garbage
-    const cleanStatusText = (text) => {
+    // The dedicated message-text elements hold the message only; their text is never noise-filtered,
+    // so message words such as "Executed" or "Ausführen" stay intact.
+    const MESSAGE_TEXT = '.lsMsgText, .urMsgText, [class*="msgtext" i]';
+
+    // Helper function to clean up status bar text by removing toolbar/button garbage.
+    // stripNoise: the text is a container's or a generic span's textContent, which can hold the
+    // message bar's own label and buttons ("Message Bar", "View Details", "Execute", ...).
+    const cleanStatusText = (text, stripNoise) => {
         if (!text) return '';
 
         // Remove common toolbar button labels and UI garbage
         // These appear when the selector captures the whole status bar container
         const garbagePatterns = [
-            new RegExp(texts.noise.source, texts.noise.flags + 'g'), // bar label, "View Details", ... (case-sensitive)
+            // case-sensitive noise of the message bar, only outside the message-text elements
+            ...(stripNoise ? [new RegExp(texts.noise.source, texts.noise.flags + 'g')] : []),
             /\s*x\s*$/gi, // Close button "x" at end
             /[\ufffd]/g, // Replacement character (encoding issue)
         ];
@@ -54,10 +61,10 @@
                 '.lsMsgText, .urMsgText, span:not([class*="btn"]):not([class*="Btn"])'
             );
             if (textSpan) {
-                message = cleanStatusText(textSpan.textContent);
+                message = cleanStatusText(textSpan.textContent, !textSpan.matches(MESSAGE_TEXT));
             } else {
                 // Fall back to the container's text content and clean it up
-                message = cleanStatusText(statusElement.textContent);
+                message = cleanStatusText(statusElement.textContent, true);
             }
 
             if (message && message.length > 0) {
@@ -74,15 +81,13 @@
             statusElement = document.querySelector(selector);
             if (statusElement) {
                 // Look for the actual message text element within
-                const msgText = statusElement.querySelector(
-                    '.lsMsgText, .urMsgText, [class*="msgtext" i]'
-                );
+                const msgText = statusElement.querySelector(MESSAGE_TEXT);
                 if (msgText) {
-                    message = cleanStatusText(msgText.textContent);
+                    message = cleanStatusText(msgText.textContent, false);
                     if (message) break;
                 } else {
                     // Try the whole container and clean it
-                    message = cleanStatusText(statusElement.textContent);
+                    message = cleanStatusText(statusElement.textContent, true);
                     if (message) break;
                 }
             }
