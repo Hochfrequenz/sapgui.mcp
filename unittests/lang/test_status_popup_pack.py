@@ -99,6 +99,7 @@ def test_toolbar_note_in_every_language(note: str, ok: bool, message: str) -> No
         ("Löschen (Entf)", "Delete"),
         ("Sortieren (Strg+Umschalt+F4)", "Ctrl+Shift+F4"),
         ("Menü (Alt+F10)", "Alt+F10"),
+        ("X (Strg+Umsch+F1)", "Ctrl+Shift+F1"),
         ("Zurück (F3)", "F3"),
     ],
 )
@@ -109,11 +110,18 @@ def test_shortcuts_come_back_with_canonical_key_names(title: str, shortcut: str)
     assert info.shortcut == shortcut
 
 
-def test_settings_button_selector_keeps_both_languages() -> None:
-    selector = SELECTORS["settings_button"]
-    assert '[title*="Einstellungen" i]' in selector
-    assert '[title*="Settings" i]' in selector
-    assert '[id*="settingsButton"]' in selector
+def test_settings_button_selector_is_unchanged() -> None:
+    """The test-only selector is exactly the one of before the packs (English first, EN aria-label)."""
+    assert SELECTORS["settings_button"] == (
+        '[id*="settingsButton"], [title*="Setting" i], [title*="Einstellung" i], '
+        'button[id*="gear" i], [aria-label*="Setting" i]'
+    )
+
+
+def test_popup_close_titles_keep_the_old_order() -> None:
+    """check_popup.js tries [title*='Close'] before [title*='Schlie'], as before the packs."""
+    universal = lang.universal().popup.close
+    assert lang.english_first(universal, lang.pack_for("EN").popup.close).variants == ("Close", "Schlie")
 
 
 # ---------------------------------------------------------------------------
@@ -121,9 +129,8 @@ def test_settings_button_selector_keeps_both_languages() -> None:
 # ---------------------------------------------------------------------------
 
 
-async def _on_snapshot(name: str, action: Any) -> Any:
-    """Load a snapshot into headless Chromium (page scripts off, no network) and run ``action``."""
-    path = SNAPSHOTS / name
+async def _on_snapshot(name: str, action: Any, html: str | None = None) -> Any:
+    """Load a snapshot (or ``html``) into headless Chromium (page scripts off, no network), run ``action``."""
     async with async_playwright() as playwright:
         try:
             browser = await playwright.chromium.launch(executable_path=os.environ.get("PLAYWRIGHT_CHROMIUM_EXECUTABLE"))
@@ -136,7 +143,8 @@ async def _on_snapshot(name: str, action: Any) -> Any:
             context = await browser.new_context(java_script_enabled=False)
             await context.route("**/*", lambda route: route.abort())
             page = await context.new_page()
-            await page.set_content(path.read_text(encoding="utf-8"), wait_until="domcontentloaded")
+            content = html if html is not None else (SNAPSHOTS / name).read_text(encoding="utf-8")
+            await page.set_content(content, wait_until="domcontentloaded")
             return await action(WebGuiBackend(page))
         finally:
             await browser.close()
@@ -212,3 +220,42 @@ async def test_webgui_popup_message_skips_button_labels(snapshot: str, expected:
 async def test_webgui_popup_close_control_in_both_languages(snapshot: str, close_id: str) -> None:
     _, _, found = await _on_snapshot(snapshot, _popup)
     assert found == close_id
+
+
+_STATUS_BAR = '<div id="LSMSG_AREA"><span class="lsMsgText">{}</span></div>'
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        # Words of the message itself survive: the noise is matched case-sensitively.
+        ("Function module was executed successfully", "Function module was executed successfully"),
+        ("You are not authorized to execute transaction SE38", "You are not authorized to execute transaction SE38"),
+        ("Programm wird ausgeführt", "Programm wird ausgeführt"),
+        # The real noise of the snapshots is still removed.
+        (
+            "Business process code is not supported by EMMAExecute Emphasized",
+            "Business process code is not supported by EMMA",
+        ),
+        ("Success Message Bar Object name missingView Details", "Success Object name missing"),
+        ("Erfolgreich Meldungsleiste Daten gesichert", "Erfolgreich Daten gesichert"),
+    ],
+)
+async def test_status_bar_noise_keeps_message_words(message: str, expected: str) -> None:
+    _, found = await _on_snapshot("", _status, html=_STATUS_BAR.format(message))
+    assert found == expected
+
+
+_DROPDOWNS = (
+    '<input id="sap-language-dropdown" ct="CB" readonly value="Deutsch" style="width:100px;height:20px">'
+    '<input id="M0:46:::1:17" ct="CB" readonly value="Herr" style="width:100px;height:20px">'
+    '<input id="M0:46:::2:17" ct="CBS" value="X" style="width:100px;height:20px">'
+)
+
+
+@pytest.mark.anyio
+async def test_discover_fields_keeps_the_logon_language_dropdown() -> None:
+    """Only read-only screen dropdowns are skipped; the logon page's language dropdown is reported as before."""
+    ids = await _on_snapshot("", _field_ids, html=_DROPDOWNS)
+    assert ids == ["sap-language-dropdown", "M0:46:::2:17"]

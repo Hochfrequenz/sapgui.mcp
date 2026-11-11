@@ -68,7 +68,8 @@ EN = LanguagePack(
         error=Text(("Error", "not found", "invalid")),
         warning=Text(("Warning",)),
         success=Text(("saved", "created", "successful")),
-        noise=Text(("Message Bar", "View Details", "Execute", "Emphasized")),
+        # Case-sensitive: "executed successfully" or "authorized to execute" in a message must survive.
+        noise=Text(("Message Bar", "View Details", "Execute", "Emphasized"), fold=False),
         success_prefix=Text(("Success",), fold=False),
         error_prefix=Text(("Error",), fold=False),
         message_bar=Text(("Message Bar",), fold=False),
@@ -82,6 +83,7 @@ EN = LanguagePack(
         continue_button=Text(("Continue",)),
         timed_out=Text(("session timeout", "session expired", "logged off")),
         settings_menu=Text(("Settings",), fold=False),
+        settings_stem=Text(("Setting",)),
         okcode_option=Text(("OK-Code", "Transaction Field")),
         debugger_window=Text(("ABAP Debugger",), fold=False),
     ),

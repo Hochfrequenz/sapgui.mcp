@@ -51,6 +51,7 @@ __all__ = [
     "UnsupportedLanguageError",
     "alt_of",
     "current",
+    "english_first",
     "language_for_html_lang",
     "pack_for",
     "set_session_language",
@@ -160,6 +161,17 @@ def universal() -> UniversalView:
             for field in dataclasses.fields(UniversalView)
         }
     )
+
+
+def english_first(text: Text, english: Text) -> Text:
+    """``text`` (usually from :func:`universal`) with the variants of ``english`` (the same field of
+    the EN pack) moved to the front.
+
+    For call sites whose try order was English first before the packs, where the registration order
+    (DE first) would change which element a first-match lookup picks.
+    """
+    first = tuple(variant for variant in text.variants if variant in english.variants)
+    return dataclasses.replace(text, variants=(*first, *(v for v in text.variants if v not in first)))
 
 
 @contextmanager

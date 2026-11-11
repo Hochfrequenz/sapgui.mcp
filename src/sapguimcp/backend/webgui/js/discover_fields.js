@@ -73,8 +73,14 @@
             return;
         }
 
-        // Skip readonly dropdowns (combo boxes): ct=CB, the same attribute check_field_type.js reads
-        if (el.readOnly && el.getAttribute('ct') === 'CB') {
+        // Skip readonly dropdowns of SAP screens (combo boxes): ct=CB, the attribute check_field_type.js
+        // reads. The logon page's language dropdown is also a read-only ct=CB input but was always
+        // reported (its role description is "Dropdown-Box", not the screens' "Dropdown-Listenfeld").
+        if (
+            el.readOnly &&
+            el.getAttribute('ct') === 'CB' &&
+            el.id !== 'sap-language-dropdown' // lang-ok: element id
+        ) {
             return;
         }
 

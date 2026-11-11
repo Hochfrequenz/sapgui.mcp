@@ -69,7 +69,8 @@ DE = LanguagePack(
         original_language_hint=RegexText(("originalsprache",)),
         maintain_in_original=Text(("Pflege in Originalsprache",)),
         button_labels=Text(("Ja", "Nein", "OK", "Abbrechen")),
-        close=Text(("Schließen",), fold=False),
+        # The stem, as before: matches "Schließen" without depending on the encoding of ß.
+        close=Text(("Schlie",), fold=False),
         abapgit_error_keywords=Text(("nicht gefunden", "fehler", "fehlgeschlagen", "erforderlich")),
         abapgit_button_labels=Text(("Abbrechen", "Ja", "Nein")),
         abapgit_inactive_objects=Text(("Inaktive Objekte",)),
@@ -80,7 +81,7 @@ DE = LanguagePack(
         error=Text(("Fehler", "nicht gefunden", "ungültig")),
         warning=Text(("Warnung",)),
         success=Text(("gesichert", "angelegt", "erfolgreich")),
-        noise=Text(("Meldungsleiste", "Details anzeigen", "Ausführen", "Hervorgehoben")),
+        noise=Text(("Meldungsleiste", "Details anzeigen", "Ausführen", "Hervorgehoben"), fold=False),
         success_prefix=Text(("Erfolgreich",), fold=False),
         error_prefix=Text(("Fehler",), fold=False),
         message_bar=Text(("Meldungsleiste",), fold=False),
@@ -94,6 +95,7 @@ DE = LanguagePack(
         continue_button=Text(("Weiter", "Fortfahren")),
         timed_out=Text(("Sitzung abgelaufen", "Zeitüberschreitung", "abgemeldet")),
         settings_menu=Text(("Einstellungen",), fold=False),
+        settings_stem=Text(("Einstellung",)),
         okcode_option=Text(("OK-Code", "Transaktionsfeld")),
         # The DE window title reads "ABAP Debugger(1)  (exklusiv) ..."; other releases hyphenate it.
         debugger_window=Text(("ABAP Debugger", "ABAP-Debugger"), fold=False),
@@ -102,7 +104,7 @@ DE = LanguagePack(
         names=canonical(
             {
                 Key.CTRL: Text(("Strg",), word=True),
-                Key.SHIFT: Text(("Umschalt",), word=True),
+                Key.SHIFT: Text(("Umschalt", "Umsch"), word=True),
                 Key.ALT: Text(("Alt",), word=True),
                 Key.ENTER: Text(("Eingabe",), word=True),
                 Key.DELETE: Text(("Entf",), word=True),

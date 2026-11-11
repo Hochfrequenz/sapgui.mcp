@@ -21,7 +21,7 @@ from sapguimcp.backend.webgui.browser import get_browser_manager
 from sapguimcp.backend.webgui.js_helpers import load_js, load_js_with_field_utils, script_arg
 from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.backend.webgui.utils import escape_css_selector, is_sap_shortcut
-from sapguimcp.lang import UnsupportedLanguageError, alt_of, language_for_html_lang, pack_for
+from sapguimcp.lang import UnsupportedLanguageError, alt_of, english_first, language_for_html_lang, pack_for
 from sapguimcp.lang.text import compiled
 from sapguimcp.middleware.logging import set_sap_identity
 from sapguimcp.models.alv_models import AlvCellInfo, AlvMetadata, TableCellClickResult
@@ -192,7 +192,9 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         if not any(title in snap for title in popup.original_language_title):  # case-sensitive, as before
             return
         logger.info("Detected language mismatch dialog, confirming maintenance in original language")
-        for label in popup.maintain_in_original:
+        for label in english_first(
+            popup.maintain_in_original, pack_for("EN").popup.maintain_in_original
+        ):  # English first, as before
             maint_btn = self._page.get_by_role("button", name=label)
             if await maint_btn.is_visible(timeout=2000):
                 await maint_btn.click()
@@ -1401,7 +1403,13 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         """Fast check for blocking popup dialog."""
         popup = lang.universal().popup
         result = await self._page.evaluate(
-            load_js("check_popup.js"), script_arg({"buttonLabels": popup.button_labels, "close": popup.close})
+            load_js("check_popup.js"),
+            script_arg(
+                {
+                    "buttonLabels": popup.button_labels,
+                    "close": english_first(popup.close, pack_for("EN").popup.close),
+                }  # Close first, as before
+            ),
         )
         if result is None:
             return None

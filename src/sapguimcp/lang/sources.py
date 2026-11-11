@@ -142,6 +142,7 @@ SOURCES: Mapping[str, Source] = MappingProxyType(
         "session_pages.continue_button": Manual("WebGUI logon page (ICF), not in SAP's text tables"),
         "session_pages.timed_out": Manual("WebGUI timeout and logoff pages (ICF), not in SAP's text tables"),
         "session_pages.settings_menu": Manual("WebGUI framework tooltip of the settings menu"),
+        "session_pages.settings_stem": Manual("stem of the WebGUI settings menu tooltip"),
         "session_pages.okcode_option": Manual("WebGUI framework settings menu entry"),
         "session_pages.debugger_window": Manual("SAP GUI window title of the ABAP debugger"),
         "keys.names[Ctrl]": NOT_LOOKED_UP,

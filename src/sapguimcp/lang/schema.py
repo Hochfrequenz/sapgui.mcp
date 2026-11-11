@@ -136,7 +136,9 @@ class StatusTypeSection:
     success: Text
     """Keyword that makes a WebGUI status message a success (substring)."""
     noise: Text
-    """WebGUI message-bar control texts removed from a status message (the bar's label, its buttons)."""
+    """WebGUI message-bar control texts removed from a status message (the bar's label, its buttons).
+
+    Case-sensitive (``fold=False``) substrings: a lower-case word of the message itself stays."""
     success_prefix: Text
     """First word of a successful message-bar note in the WebGUI ARIA snapshot (case-sensitive)."""
     error_prefix: Text
@@ -166,6 +168,8 @@ class SessionPagesSection:
     """Fragments of a WebGUI timeout or logoff page (substring)."""
     settings_menu: Text
     """Title of the WebGUI settings menu button (case-sensitive CSS attribute match)."""
+    settings_stem: Text
+    """Stem of that title for the case-insensitive ``SELECTORS["settings_button"]`` (test selector)."""
     okcode_option: Text
     """Settings menu entry that shows the OK-code field (Playwright ``text=``)."""
     debugger_window: Text

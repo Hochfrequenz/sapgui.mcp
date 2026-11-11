@@ -35,7 +35,6 @@ from sapguimcp.tools.field_helpers import fill_and_display
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
     from sapguimcp.backend.webgui.backend import WebGuiBackend
-    from sapguimcp.lang import LanguagePack
 
 
 logger = logging.getLogger(__name__)

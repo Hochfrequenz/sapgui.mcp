@@ -24,7 +24,7 @@
         // Remove common toolbar button labels and UI garbage
         // These appear when the selector captures the whole status bar container
         const garbagePatterns = [
-            new RegExp(texts.noise.source, 'giu'), // message bar label, "View Details", "Execute", ...
+            new RegExp(texts.noise.source, texts.noise.flags + 'g'), // bar label, "View Details", ... (case-sensitive)
             /\s*x\s*$/gi, // Close button "x" at end
             /[\ufffd]/g, // Replacement character (encoding issue)
         ];

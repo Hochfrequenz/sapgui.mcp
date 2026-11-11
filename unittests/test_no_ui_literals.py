@@ -76,8 +76,9 @@ GENERIC_WORDS = frozenset(
 """Pack fields made of generic words (#1044, area 2): keyword lists that infer a message or popup type
 from any text, and the one-word message types of the WebGUI message bar.
 
-Their variants (``Error``, ``failed``, ``could not``) are also the words of the server's own messages:
-the value rule would flag over a hundred of them. The sink and JS rules still apply to these words."""
+Their English variants (``Error``, ``failed``, ``could not``) are also the words of the server's own
+messages: the value rule would flag over a hundred of them, so it skips the EN variants of these fields
+only. Variants of every other language stay guarded, and the sink and JS rules still apply."""
 MAX_VALUE_WORDS = 6
 """Longer literals are prose (messages, docs); the value rule leaves them to the sink rule."""
 MESSAGE_KEYWORDS = frozenset({"error", "message", "msg", "hint", "reason", "details", "suggestion"})
@@ -170,7 +171,7 @@ def pack_variants() -> tuple[str, ...]:
         for path, leaf in iter_leaves(lang.pack_for(code)):
             if path.startswith("keys."):
                 continue  # canonical key names (Enter, Delete) are the press_key API, not screen text
-            if path in GENERIC_WORDS:
+            if path in GENERIC_WORDS and code == "EN":
                 continue  # generic words (error, failed) of every own message, see GENERIC_WORDS
             if isinstance(leaf, Text):
                 found.update(leaf.variants)

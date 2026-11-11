@@ -33,6 +33,7 @@ from mcp.types import ToolAnnotations
 
 from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
+from sapguimcp.lang import english_first
 from sapguimcp.lang.schema import Key
 from sapguimcp.mcp_session import get_mcp_session_id
 from sapguimcp.models import (
@@ -147,8 +148,8 @@ def parse_shortcut_from_title(title: str) -> ShortcutInfo | None:
         ShortcutInfo if a valid keyboard shortcut is found, None otherwise.
         Returns None for non-keyboard patterns like dates or numbers.
 
-    The shortcut is returned with canonical English key names (``Strg+S`` -> ``Ctrl+S``), so it
-    can be passed to ``sap_press_key`` on either backend.
+    The shortcut is returned with canonical English key names (``Strg+S`` -> ``Ctrl+S``) in every
+    logon language.
 
     Examples:
         >>> parse_shortcut_from_title("Person anlegen (F5)")
@@ -183,12 +184,18 @@ SELECTORS: dict[str, str] = {
         'input[id*="ToolbarOkCode"], input[name*="okcode" i], input[id*="okcd" i], input[id*="OkCodeField" i]'
     ),
     # The id/gear entries match no captured snapshot, so the localized titles stay (#1044).
+    # English first and the English aria-label only, exactly the selector of before the packs.
     "settings_button": ", ".join(
         [
             '[id*="settingsButton"]',
-            *(f'[title*="{title}" i]' for title in lang.universal().session_pages.settings_menu),
+            *(
+                f'[title*="{stem}" i]'
+                for stem in english_first(
+                    lang.universal().session_pages.settings_stem, lang.pack_for("EN").session_pages.settings_stem
+                )
+            ),
             'button[id*="gear" i]',
-            *(f'[aria-label*="{title}" i]' for title in lang.universal().session_pages.settings_menu),
+            *(f'[aria-label*="{stem}" i]' for stem in lang.pack_for("EN").session_pages.settings_stem),
         ]
     ),
 }
@@ -1387,7 +1394,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return SetFieldResult.failure(str(ve), label=label, value=value, available_options=available)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Setting field", extra={"label": label})
-            return SetFieldResult.failure(f"Error setting field: {e}", label=label, value=value)
+            return SetFieldResult.failure(
+                f"Error setting field: {e}",  # lang-ok: our own message
+                label=label,
+                value=value,
+            )
 
     @mcp.tool(
         description=(
@@ -1440,7 +1451,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return SetFieldResult.failure(str(e), label=label, value=str(checked))
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Setting checkbox")
-            return SetFieldResult.failure(f"Error setting checkbox: {e}", label=label, value=str(checked))
+            return SetFieldResult.failure(
+                f"Error setting checkbox: {e}",  # lang-ok: our own message
+                label=label,
+                value=str(checked),
+            )
 
     @mcp.tool(
         description=(
@@ -1484,7 +1499,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return SetFieldResult.failure(str(e), label=label, value="selected")
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Setting radio button")
-            return SetFieldResult.failure(f"Error setting radio button: {e}", label=label, value="selected")
+            return SetFieldResult.failure(
+                f"Error setting radio button: {e}",  # lang-ok: our own message
+                label=label,
+                value="selected",
+            )
 
     # =========================================================================
     # Button, Tab, and Dropdown Tools
