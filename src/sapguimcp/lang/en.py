@@ -116,7 +116,7 @@ EN = LanguagePack(
         initial_screen=Text(("Function Builder: Initial Screen",)),
         display_title=Template(("Function Builder: Display {name}",)),
         function_builder=Text(("Function Builder",)),
-        fm_field_label=Text(("Function module",)),
+        fm_field_label=Text(("Function Module", "Function module"), fold=False),
         not_found=Text(("does not exist",)),
         attributes_tab=Text(("Attributes",)),
         import_tab=Text(("Import",)),

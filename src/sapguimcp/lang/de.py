@@ -128,7 +128,7 @@ DE = LanguagePack(
         initial_screen=Text(("Function Builder: Einstieg",)),
         display_title=Template(("Function Builder: {name} anzeigen",)),
         function_builder=Text(("Function Builder", "Funktionsbaustein")),
-        fm_field_label=Text(("Funktionsbaustein",)),
+        fm_field_label=Text(("Funktionsbaustein",), fold=False),
         not_found=Text(("ist noch nicht vorhanden", "nicht vorhanden")),
         attributes_tab=Text(("Eigenschaften",)),
         import_tab=Text(("Import",)),

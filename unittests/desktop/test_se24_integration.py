@@ -14,11 +14,11 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_se24_lookup_class(backend):
+async def test_se24_lookup_class(pack, backend):
     """SE24: look up CL_ABAP_CHAR_UTILITIES returns methods and attributes."""
     await backend.enter_transaction("SE24")
     await backend.wait_for_ready()
-    result = await _lookup_class_desktop(backend, "CL_ABAP_CHAR_UTILITIES")
+    result = await _lookup_class_desktop(backend, "CL_ABAP_CHAR_UTILITIES", pack)
     assert isinstance(result, SE24Entry), f"Expected SE24Entry, got {type(result).__name__}: {result}"
     assert result.class_name == "CL_ABAP_CHAR_UTILITIES"
     assert len(result.methods) > 0, "Should have methods"
@@ -37,11 +37,11 @@ async def test_se24_lookup_class(backend):
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_se24_lookup_nonexistent(backend):
+async def test_se24_lookup_nonexistent(pack, backend):
     """SE24: look up ZZZFAKE_CLASS returns SE24Error."""
     await backend.enter_transaction("SE24")
     await backend.wait_for_ready()
-    result = await _lookup_class_desktop(backend, "ZZZFAKE_CLASS")
+    result = await _lookup_class_desktop(backend, "ZZZFAKE_CLASS", pack)
     assert isinstance(result, SE24Error), f"Expected SE24Error, got {type(result).__name__}"
     assert result.class_name == "ZZZFAKE_CLASS"
     assert result.error
@@ -50,11 +50,11 @@ async def test_se24_lookup_nonexistent(backend):
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_se24_methods_have_visibility(backend):
+async def test_se24_methods_have_visibility(pack, backend):
     """SE24: methods should have visibility (public/protected/private)."""
     await backend.enter_transaction("SE24")
     await backend.wait_for_ready()
-    result = await _lookup_class_desktop(backend, "CL_ABAP_CHAR_UTILITIES")
+    result = await _lookup_class_desktop(backend, "CL_ABAP_CHAR_UTILITIES", pack)
     assert isinstance(result, SE24Entry)
     for method in result.methods:
         assert method.visibility in ("public", "protected", "private")

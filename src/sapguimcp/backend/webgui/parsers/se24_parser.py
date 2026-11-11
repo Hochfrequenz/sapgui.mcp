@@ -40,6 +40,7 @@ __all__ = [
 # Regex Patterns
 # =============================================================================
 
+_HEADING_TEXT = re.compile(r'heading "([^"]*)"')
 _NAME_CHARS = r"[A-Za-z0-9_/ ]+"
 """Heading name group: the object name, possibly preceded by its type word ("Klasse CL_X", "Class CL_X")."""
 
@@ -114,13 +115,11 @@ def map_visibility(t: LanguagePack, raw: str | None, *, exact: bool = True) -> S
 
 def _extract_class_name(snapshot: str, t: LanguagePack) -> str | None:
     """Extract class/interface name from the heading (``Class Builder: Display Class CL_X``)."""
-    match = t.se24.display_title.search(snapshot, name=_NAME_CHARS)
-    if match is None:
-        return None
-    if snapshot[max(0, match.start() - 9) : match.start()] != 'heading "':
-        return None
-    tokens = match.group("name").split()
-    return tokens[-1].upper() if tokens else None
+    for heading in _HEADING_TEXT.finditer(snapshot):
+        match = t.se24.display_title.search(heading.group(1), name=_NAME_CHARS)
+        if match is not None and (tokens := match.group("name").split()):
+            return tokens[-1].upper()
+    return None
 
 
 def _determine_object_type(snapshot: str, t: LanguagePack) -> SE24ObjectType:

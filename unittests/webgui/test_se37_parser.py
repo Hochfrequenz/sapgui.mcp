@@ -169,3 +169,20 @@ class TestFullParsing:
 
         assert isinstance(result, SE37Entry)
         assert result.function_module == "RFC_READ_TABLE"
+
+
+class TestHeadingNameOnRealSnapshots:
+    """The name comes from the heading, not from the ``main`` landmark line above it."""
+
+    def test_german_heading(self, lang_de: LanguagePack) -> None:
+        snapshot = (SNAPSHOTS_DIR / "se37_bapi_user_get_detail_main_de.yaml").read_text(encoding="utf-8")
+        result = parse_se37_snapshot(snapshot, "x", lang_de)
+        assert isinstance(result, SE37Entry)
+        assert result.function_module == "BAPI_USER_GET_DETAIL"
+
+    def test_english_heading_with_an_english_session(self, lang_en: LanguagePack) -> None:
+        # the EN fixture of this module was captured on the initial screen, so the display heading is synthetic
+        snapshot = '- main "Function Builder: Display Z_FM":\n  - heading "Function Builder: Display Z_FM" [level=1]\n'
+        result = parse_se37_snapshot(snapshot, "x", lang_en)
+        assert isinstance(result, SE37Entry)
+        assert result.function_module == "Z_FM"

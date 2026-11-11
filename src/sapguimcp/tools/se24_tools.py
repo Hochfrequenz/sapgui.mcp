@@ -299,7 +299,12 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
     header = await com.run(lambda: _read_se24_header(session, _flatten, t), retry_server_fault=True)
 
     # Class or interface: by which description field the properties tab shows (language independent)
-    object_type: SE24ObjectType = "interface" if header.get("object_type") == "interface" else "class"  # lang-ok: value
+    header_type = header.get("object_type")
+    if header_type is None:  # the properties tab could not be read: fall back to the screen title
+        is_interface = t.se24.interface_label.contains(screen.title or "")
+    else:
+        is_interface = header_type == "interface"  # lang-ok: value
+    object_type: SE24ObjectType = "interface" if is_interface else "class"  # lang-ok: value
 
     return SE24Entry(
         class_name=class_name.upper(),

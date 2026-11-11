@@ -50,7 +50,7 @@ def _backend(*, titles: list[str], popup: PopupInfo | None = None) -> Any:
 
 @pytest.mark.anyio
 async def test_open_class_waits_for_state_changes_not_fixed_times(lang_de: LanguagePack) -> None:
-    backend = _backend(titles=["Klassenpflege: Einstieg", "Klassenpflege: Klasse CL_X anzeigen"])
+    backend = _backend(titles=["Class Builder: Einstieg", "Class Builder: Klasse CL_X anzeigen"])
     assert await _open_class_in_change_mode_desktop(backend, "cl_x", lang_de) is None
     backend.wait.assert_not_awaited()
     # F7 (display) and Ctrl+F1 (change mode) are each followed by a wait for a state change
@@ -61,12 +61,12 @@ async def test_open_class_waits_for_state_changes_not_fixed_times(lang_de: Langu
 
 @pytest.mark.anyio
 async def test_open_class_presses_enter_only_when_a_popup_is_open(lang_de: LanguagePack) -> None:
-    backend = _backend(titles=["Klassenpflege: Einstieg", "Klassenpflege: Klasse CL_X anzeigen"])
+    backend = _backend(titles=["Class Builder: Einstieg", "Class Builder: Klasse CL_X anzeigen"])
     await _open_class_in_change_mode_desktop(backend, "CL_X", lang_de)
     backend.dismiss_language_dialog.assert_not_awaited()
 
     popup = PopupInfo(title="Language", text="Different original and logon languages", buttons=[])
-    backend = _backend(titles=["Klassenpflege: Einstieg", "Klassenpflege: Klasse CL_X anzeigen"], popup=popup)
+    backend = _backend(titles=["Class Builder: Einstieg", "Class Builder: Klasse CL_X anzeigen"], popup=popup)
     await _open_class_in_change_mode_desktop(backend, "CL_X", lang_de)
     backend.dismiss_language_dialog.assert_awaited_once()
     assert [call.args[0] for call in backend.press_key.await_args_list] == ["F7", "Ctrl+F1"]
@@ -77,7 +77,7 @@ async def test_open_class_presses_enter_only_when_a_popup_is_open(lang_de: Langu
 @pytest.mark.anyio
 async def test_open_class_leaves_an_unrelated_popup_alone_and_reports_it(lang_de: LanguagePack) -> None:
     popup = PopupInfo(message="Object is locked by another user", buttons=[])
-    backend = _backend(titles=["Klassenpflege: Einstieg", "Klassenpflege: Klasse CL_X anzeigen"], popup=popup)
+    backend = _backend(titles=["Class Builder: Einstieg", "Class Builder: Klasse CL_X anzeigen"], popup=popup)
     # dismiss_language_dialog only confirms the language dialog: for any other popup it does nothing
     backend.dismiss_language_dialog = AsyncMock()
     backend.check_popup = AsyncMock(return_value=popup)
@@ -89,7 +89,7 @@ async def test_open_class_leaves_an_unrelated_popup_alone_and_reports_it(lang_de
 
 @pytest.mark.anyio
 async def test_open_class_that_stays_on_the_initial_screen_reports_the_status_text(lang_de: LanguagePack) -> None:
-    backend = _backend(titles=["Klassenpflege: Einstieg"])
+    backend = _backend(titles=["Class Builder: Einstieg"])
     backend.get_status_bar = AsyncMock(return_value=StatusBarInfo(type="E", message="Class CL_X does not exist"))
     assert await _open_class_in_change_mode_desktop(backend, "CL_X", lang_de) == "Class CL_X does not exist"
     assert "Ctrl+F1" not in [call.args[0] for call in backend.press_key.await_args_list]

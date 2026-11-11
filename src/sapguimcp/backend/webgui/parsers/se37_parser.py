@@ -38,6 +38,7 @@ __all__ = [
 # Regex Patterns
 # =============================================================================
 
+_HEADING_TEXT = re.compile(r'heading "([^"]*)"')
 _NAME_CHARS = r"[A-Za-z0-9_/ ]+"
 """Heading name group: the module name, possibly preceded by a type word."""
 
@@ -72,11 +73,11 @@ _TAB_SELECTED_PATTERN = re.compile(r'tab "(?P<tab>[^"]+)"\s*\[selected\]', re.IG
 
 def _extract_function_module_name(snapshot: str, t: LanguagePack) -> str | None:
     """Extract function module name from heading (``Function Builder: Display RFC_READ_TABLE``)."""
-    match = t.se37.display_title.search(snapshot, name=_NAME_CHARS)
-    if match is None or snapshot[max(0, match.start() - 9) : match.start()] != 'heading "':
-        return None
-    tokens = match.group("name").split()
-    return tokens[-1].upper() if tokens else None
+    for heading in _HEADING_TEXT.finditer(snapshot):
+        match = t.se37.display_title.search(heading.group(1), name=_NAME_CHARS)
+        if match is not None and (tokens := match.group("name").split()):
+            return tokens[-1].upper()
+    return None
 
 
 def _get_selected_tab(snapshot: str) -> str | None:
@@ -168,7 +169,8 @@ def _is_fm_not_found(snapshot: str, fm_name: str, t: LanguagePack) -> bool:
     """Check if function module was not found (status bar message)."""
     if t.se37.not_found.contains(snapshot):
         return True
-    return compiled(rf"(?i:{re.escape(fm_name)})\s+{t.common.not_found.alt}").search(snapshot) is not None
+    pattern = re.compile(rf"(?i:{re.escape(fm_name)})\s+{t.common.not_found.alt}")  # lang-ok: per-name pattern
+    return pattern.search(snapshot) is not None
 
 
 def parse_se37_parameters_snapshot(

@@ -409,3 +409,29 @@ class TestParseFullSnapshot:
         assert isinstance(result, SE24Entry)
         assert result.methods == []
         assert result.attributes == []
+
+
+_EDIT_DIR = Path(__file__).parent / "testdata" / "se24_edit_exploration"
+
+
+def _read(directory: Path, name: str) -> str:
+    return (directory / name).read_text(encoding="utf-8")
+
+
+class TestHeadingNameOnRealSnapshots:
+    """The name comes from the heading, not from the ``main`` landmark line above it."""
+
+    def test_display_heading_in_german(self, lang_de: LanguagePack) -> None:
+        result = parse_se24_snapshot(_read(_EDIT_DIR, "se24_edit_display_main_de.yaml"), "zcl_x", lang_de)
+        assert isinstance(result, SE24Entry)
+        assert result.class_name == "ZCL_TEST_MCP_EDIT"
+
+    def test_display_heading_in_english(self, lang_en: LanguagePack) -> None:
+        result = parse_se24_snapshot(_read(_EDIT_DIR, "se24_edit_display_main_en.yaml"), "zcl_x", lang_en)
+        assert isinstance(result, SE24Entry)
+        assert result.class_name == "ZCL_TEST_MCP_EDIT"
+
+    def test_interface_heading_in_german(self, lang_de: LanguagePack) -> None:
+        result = parse_se24_snapshot(_read(SNAPSHOTS_DIR, "se24_if_serializable_object_main_de.yaml"), "x", lang_de)
+        assert isinstance(result, SE24Entry)
+        assert result.class_name == "IF_SERIALIZABLE_OBJECT"
