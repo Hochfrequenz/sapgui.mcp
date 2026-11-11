@@ -90,7 +90,11 @@ _EXPOSE_GRID_CELL_VALUES_JS = r"""() => {
     }
   };
 }"""
-_RESTORE_GRID_CELL_VALUES_JS = "() => { if (window.__sapguimcpUndoCellLabels) { window.__sapguimcpUndoCellLabels(); } }"
+_RESTORE_GRID_CELL_VALUES_JS = r"""() => {
+  const undo = window.__sapguimcpUndoCellLabels;
+  delete window.__sapguimcpUndoCellLabels;
+  if (undo) { undo(); }
+}"""
 
 # One lock per page: the undo callback lives on the page, so overlapping snapshots of the same page (also from two
 # backends wrapping it) would record already-changed attributes and leave the DOM changed.
@@ -1227,16 +1231,14 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         # the cell's own label (empty cells lose the header label), which gives ``gridcell "VALUE"`` like the
         # captured fixtures. The DOM is restored right after the snapshot.
         async with _snapshot_lock(self._page):
-            exposed = False
-            with contextlib.suppress(Exception):
-                await self._page.evaluate(_EXPOSE_GRID_CELL_VALUES_JS)
-                exposed = True
             try:
+                with contextlib.suppress(Exception):
+                    await self._page.evaluate(_EXPOSE_GRID_CELL_VALUES_JS)
                 raw = await self._page.locator("body").aria_snapshot()
             finally:
-                if exposed:
-                    with contextlib.suppress(Exception):
-                        await self._page.evaluate(_RESTORE_GRID_CELL_VALUES_JS)
+                # always, also after a cancellation during the exposure; a no-op when nothing was changed
+                with contextlib.suppress(Exception):
+                    await self._page.evaluate(_RESTORE_GRID_CELL_VALUES_JS)
         return AriaSnapshot(raw)
 
     async def get_page_title(self) -> str:
