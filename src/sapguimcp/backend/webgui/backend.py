@@ -59,13 +59,37 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_EXPOSE_GRID_CELL_VALUES_JS = """() => {
+_EXPOSE_GRID_CELL_VALUES_JS = r"""() => {
+  const undo = [];
   for (const td of document.querySelectorAll('[role="gridcell"]')) {
     const box = td.querySelector('span[role="textbox"]');
-    const text = box ? (box.textContent || '').trim() : '';
-    if (text && !box.hasAttribute('value')) { td.setAttribute('aria-label', text); }
+    if (!box || box.hasAttribute('value')) { continue; }
+    const text = (box.textContent || '').trim();
+    if (text) {
+      undo.push([td, 'aria-label', td.getAttribute('aria-label')]);
+      td.setAttribute('aria-label', text);
+    } else if (box.hasAttribute('aria-label')) {
+      // an empty cell would otherwise be named after its column header (the textbox label)
+      undo.push([box, 'aria-label', box.getAttribute('aria-label')]);
+      box.removeAttribute('aria-label');
+    }
   }
+  // sortable column headers append a "press space to select the column" hint (``*-selectionlabel``) to their name
+  for (const th of document.querySelectorAll('[role="columnheader"][aria-labelledby]')) {
+    const ids = th.getAttribute('aria-labelledby').split(/\s+/);
+    const kept = ids.filter((id) => !id.endsWith('-selectionlabel'));
+    if (kept.length && kept.length < ids.length) {
+      undo.push([th, 'aria-labelledby', th.getAttribute('aria-labelledby')]);
+      th.setAttribute('aria-labelledby', kept.join(' '));
+    }
+  }
+  window.__sapguimcpUndoCellLabels = () => {
+    for (const [el, attr, old] of undo) {
+      if (old === null) { el.removeAttribute(attr); } else { el.setAttribute(attr, old); }
+    }
+  };
 }"""
+_RESTORE_GRID_CELL_VALUES_JS = "() => { if (window.__sapguimcpUndoCellLabels) { window.__sapguimcpUndoCellLabels(); } }"
 
 # ---------------------------------------------------------------------------
 # Helpers private to WebGuiBackend
@@ -1187,10 +1211,18 @@ class WebGuiBackend:  # pylint: disable=too-many-public-methods
         """Get the ARIA accessibility tree snapshot."""
         # Current SAP WebGUI renders read-only table cell values as the text of a ``span[role=textbox]`` whose
         # accessible name is the column header, so the value would be missing from the ARIA tree. Expose it as
-        # the cell's own label, which gives ``gridcell "VALUE"`` like the captured fixtures.
+        # the cell's own label (empty cells lose the header label), which gives ``gridcell "VALUE"`` like the
+        # captured fixtures. The DOM is restored right after the snapshot.
+        exposed = False
         with contextlib.suppress(Exception):
             await self._page.evaluate(_EXPOSE_GRID_CELL_VALUES_JS)
-        raw = await self._page.locator("body").aria_snapshot()
+            exposed = True
+        try:
+            raw = await self._page.locator("body").aria_snapshot()
+        finally:
+            if exposed:
+                with contextlib.suppress(Exception):
+                    await self._page.evaluate(_RESTORE_GRID_CELL_VALUES_JS)
         return AriaSnapshot(raw)
 
     async def get_page_title(self) -> str:

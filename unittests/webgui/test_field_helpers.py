@@ -76,6 +76,22 @@ async def test_fill_and_display_detects_en_initial_screen(code: str):
     assert "not found" in result.lower()
 
 
+@pytest.mark.anyio
+async def test_fill_and_display_initial_title_override(lang_en: LanguagePack):
+    """An explicit initial_title is polled instead of the common initial-screen fragment."""
+    # SE93-style title: lacks the common "Initial" fragment but is the transaction's initial screen.
+    title = "Transaction Maintenance"
+    backend = _make_backend(screen_titles=[title] * 20)
+    default = await fill_and_display(backend, ["Transaction Code"], "ZZZFAKE", lang_en)
+    assert default is None  # default polling treats the title as "navigated"
+    backend = _make_backend(screen_titles=[title] * 20)
+    result = await fill_and_display(
+        backend, ["Transaction Code"], "ZZZFAKE", lang_en, initial_title=lang_en.se93.initial_screen
+    )
+    assert result is not None
+    assert "not found" in result.lower()
+
+
 # ---- Desktop branch of fill_field_with_keyboard ----
 
 

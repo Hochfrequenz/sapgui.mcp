@@ -323,12 +323,16 @@ async def test_se16_query_output_file(
     assert len(summary.columns) > 0
     assert len(summary.sample_rows) <= 5  # Preview is max 5 rows
 
-    # Verify file was created
+    # The server writes below its own working directory (not the test's), so use the path it reports
+    output_file = Path(summary.output_file)
     assert output_file.exists(), f"Output file not created: {output_file}"
 
     # Verify file contents
-    with open(output_file, encoding="utf-8") as f:
-        full_result = json.load(f)
+    try:
+        with open(output_file, encoding="utf-8") as f:
+            full_result = json.load(f)
+    finally:
+        output_file.unlink(missing_ok=True)
 
     assert full_result["success"] is True
     assert full_result["table"] == "T000"
@@ -366,9 +370,14 @@ async def test_se16_query_large_pagination(
     # Allow slight variation due to pagination overlap (200 +/- 2)
     assert 198 <= summary.returned_rows <= 202, f"Expected ~200 rows, got {summary.returned_rows}"
 
-    # Verify file contents
-    with open(output_file, encoding="utf-8") as f:
-        full_result = json.load(f)
+    # The server writes below its own working directory (not the test's), so use the path it reports
+    assert summary.output_file is not None
+    output_file = Path(summary.output_file)
+    try:
+        with open(output_file, encoding="utf-8") as f:
+            full_result = json.load(f)
+    finally:
+        output_file.unlink(missing_ok=True)
 
     assert 198 <= len(full_result["rows"]) <= 202
 
@@ -494,7 +503,9 @@ async def test_se16_query_multiple_filters(sap_mcp_client: ClientSession) -> Non
     # Column names vary by language: ARBGB="Arbeitsgebiet" (DE), "Application Area" (EN)
     # MSGNR="MsgNr" (DE), "Message" (EN) - but avoid matching "Message Text"
     arbgb_cols = [
-        c for c in result.columns if "ARBGB" in c.upper() or "ARBEITSGEBIET" in c.upper() or "APPLICATION" in c.upper()
+        c
+        for c in result.columns
+        if "ARBGB" in c.upper() or "ARBEITSGEBIET" in c.upper() or "APPLICATION" in c.upper() or c.upper() == "AGEB"
     ]
     # Match "MsgNr" or "Message" but not "Message Text"
     msgnr_cols = [c for c in result.columns if "MSGNR" in c.upper() or c.upper() == "MESSAGE" or "NR" in c.upper()]
