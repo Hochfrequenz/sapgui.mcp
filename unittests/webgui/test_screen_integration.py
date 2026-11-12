@@ -96,3 +96,25 @@ async def test_sap_get_screen_info_different_transactions(sap_mcp_client: Client
     assert result1.title != result2.title or result1.url != result2.url, (
         "Screen info should differ between SE16 and SM37"
     )
+
+
+@pytest.mark.anyio
+async def test_sap_read_status_bar_syntax_check_success_is_not_error(sap_mcp_client: ClientSession) -> None:
+    """A successful syntax check ("no syntax errors found") must read as S, not E (#1088).
+
+    The WebGUI message bar of that message carries no error/warning/success CSS class, so the type comes
+    from the text fallback, which must not mistake "syntax errors" in the success text for an error.
+    The syntax check runs from the SE38 initial screen on the existing test report; nothing is changed or saved.
+    """
+    await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
+    await call_tool_typed(sap_mcp_client, "sap_transaction", {"tcode": "SE38"}, TransactionResult)
+    await _wait_for_transaction_screen(sap_mcp_client, "SE38")
+
+    await sap_mcp_client.call_tool("sap_fill_form", {"fields": {"input[lsdata*='RS38M-PROGRAMM']": "ZTEST_MCP_EDIT"}})
+    await sap_mcp_client.call_tool("sap_press_key", {"key": "Control+F2"})
+    await sap_mcp_client.call_tool("browser_wait", {"timeout": 2500})
+
+    result = await call_tool_typed(sap_mcp_client, "sap_read_status_bar", {}, StatusBarInfo)
+
+    assert result.message, f"Syntax check should leave a status bar message: {result}"
+    assert result.type == "S", f"Syntax check success must read as S, not E: {result}"
