@@ -41,7 +41,7 @@ The **Development Setup** section at the bottom of this page covers running from
 
 ## Setup
 
-Pick an installation method below - each one walks you through two things: creating your SAP credentials file (`systems.json`) and/or enviroment variables and registering the MCP server with your AI client.
+Pick an installation method below - each one walks you through two things: creating your SAP credentials file (`systems.json`), optionally using `${env:VAR}` placeholders to reference environment variables, and registering the MCP server with your AI client.
 
 > [!NOTE]
 > **Why a separate credentials file?** Most MCP servers put SAP credentials directly in the per-project MCP config (`env` block), which means re-entering them for every project.
