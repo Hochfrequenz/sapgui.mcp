@@ -40,17 +40,24 @@ IT = LanguagePack(
     html_lang="it",
     logon_dropdown="Italiano",  # TODO verify in the WebGUI logon dropdown (task 3)
     date_format="%d.%m.%Y",  # T005X-DATFM = 1 for country IT
-    same_as_en=frozenset(),  # TODO field paths that deliberately equal EN
+    same_as_en=frozenset(
+        {
+            "keys.names[Alt]",
+            "keys.names[Ctrl]",
+            "keys.names[Shift]",
+            "se24.class_builder",
+            "se24.interface_label",
+            "se24.interfaces_tab",
+            "se37.function_builder",
+            "sm30.display_view",
+        }
+    ),
     common=CommonSection(
-        display=Text(("Display",)),  # TODO fragment of: @10@ Visualizzare
-        display_change_toggle=Text(
-            ("Display <-> Change",)
-        ),  # TODO translate (Manual: WebGUI toolbar tooltip of the display/change toggle)
-        initial_screen=Text(
-            ("Initial",)
-        ),  # TODO translate (Manual: title fragment shared by the initial screens of several transactions)
-        not_found=Text(("not found",)),  # TODO fragment of: L'oggetto richiesto non è stato trovato
-        does_not_exist=Text(("does not exist",)),  # TODO fragment of: Richiesta/task &1 inesistente
+        display=Text(("Visualizzare",)),
+        display_change_toggle=Text(("Visualizzare <-> Modificare",)),
+        initial_screen=Text(("videata iniziale",)),
+        not_found=Text(("non è stato trovato", "non trovati")),
+        does_not_exist=Text(("inesistente", "non esiste")),
         no_entries=Text(
             ("No entries found",)
         ),  # TODO translate (Manual: SAP text differs: ECC release has 'Es wurden keine Einträge gemäß Selektion gefunden' (SV 004), pack DE has 'Keine Einträge gefunden')
@@ -143,18 +150,10 @@ IT = LanguagePack(
     keys=KeysSection(
         names=canonical(
             {
-                Key.CTRL: Text(
-                    ("Ctrl",), word=True
-                ),  # TODO translate (Manual: keyboard key name of the SAP GUI client, not in SAP's text tables)
-                Key.SHIFT: Text(
-                    ("Shift",), word=True
-                ),  # TODO translate (Manual: keyboard key name of the SAP GUI client, not in SAP's text tables)
-                Key.ALT: Text(
-                    ("Alt",), word=True
-                ),  # TODO translate (Manual: keyboard key name of the SAP GUI client, not in SAP's text tables)
-                Key.ENTER: Text(
-                    ("Enter",), word=True
-                ),  # TODO translate (Manual: keyboard key name of the SAP GUI client, not in SAP's text tables)
+                Key.CTRL: Text(("Ctrl",), word=True),
+                Key.SHIFT: Text(("Shift",), word=True),
+                Key.ALT: Text(("Alt",), word=True),
+                Key.ENTER: Text(("Invio",), word=True),
                 Key.DELETE: Text(
                     ("Delete",), word=True
                 ),  # TODO translate (Manual: keyboard key name of the SAP GUI client, not in SAP's text tables)
@@ -167,9 +166,7 @@ IT = LanguagePack(
     abapgit=AbapgitSection(
         status_error=Text(("not found",)),  # TODO translate (Manual: abapGit UI text)
         screen_errors=Text(("transport required",)),  # TODO translate (Manual: abapGit UI text)
-        se38_initial_title=Text(
-            ("Initial Screen",)
-        ),  # TODO translate (Manual: abapGit UI text; title of the SE38 initial screen, read live in DE and EN)
+        se38_initial_title=Text(("videata iniziale",)),
     ),
     catalog=CatalogSection(
         screen_header=Text(
@@ -214,13 +211,9 @@ IT = LanguagePack(
         database_table=Text(("Tabella database",)),
         data_type=Text(("Tipo dati",)),
         table_name=Text(("Nome tabella",)),
-        transparent_table=Text(
-            ("Transparent Table",)
-        ),  # TODO translate (Manual: SAP text differs: DE domain value TABCLASS TRANSP is 'Transparente Tabelle', pack has 'Transp.Tabelle' (EN 'Transparent table' matches))
+        transparent_table=Text(("Tabella trasp.",)),
         structure=Text(("Struttura",)),
-        short_description=Text(
-            ("Short Description",)
-        ),  # TODO translate (Manual: SAP text differs: EN data element DDTEXT is 'Short text', pack has 'Short Description')
+        short_description=Text(("Descrizione breve",)),
         row_select_full=RegexText(
             ("To select a row, press the space bar\\.",)
         ),  # TODO translate (Manual: WebGUI framework text: ARIA hint of a selectable table row)
@@ -233,26 +226,18 @@ IT = LanguagePack(
         column_selection=Text(
             ("Column for row selection",)
         ),  # TODO translate (Manual: ALV list framework text (row selection column), not in D021T)
-        no_values_found=Text(("no values found",)),  # TODO fragment of: Valori non trovati
+        no_values_found=Text(("Valori non trovati",)),
         table_label=Text(("Tabella",)),
         max_hits_label=Text(("N. massimo risultati",)),
         empty_cell=Text(("Empty",)),  # TODO translate (Manual: WebGUI framework text of empty grid rows)
-        table_not_found=Text(("does not exist",)),  # TODO fragment of: Richiesta/task &1 inesistente
-        selection_columns=Text(
-            ("Field Name", "From-Value", "To-Value", "Technical Name")
-        ),  # TODO translate (Manual: column headers of the selection grid, composed from several data elements)
-        results_title=Text(("hits", "entries")),  # TODO translate (Manual: composed title fragment of the result list)
+        table_not_found=Text(("inesistente", "non esiste", "non è attiva nel Dictionary")),
+        selection_columns=Text(("Nm.campo", "Da val.", "A valore", "Nome tecnico")),
+        results_title=Text(("hit", "inserimenti trovati")),
     ),
     se24=Se24Section(
-        class_builder=Text(
-            ("Class Builder",)
-        ),  # TODO translate (Manual: SAP text differs: transaction SE24 is 'ABAP Class Builder' in both languages; pack DE has 'Klassenpflege')
-        initial_screen=Text(
-            ("Class Builder: Initial Screen", "Class Builder: Initial")
-        ),  # TODO translate (Manual: window title of the class builder initial screen (titlebar, not in the supported text tables))
-        display_title=Template(
-            ("Class Builder: Display {name}",)
-        ),  # TODO translate (Manual: composed window title of the class builder)
+        class_builder=Text(("Class Builder",)),
+        initial_screen=Text(("Class Builder: videata iniziale",)),
+        display_title=Template(("Class builder: visualizzare classe {name}",)),
         object_type=Text(("Tipo oggetto",)),
         class_label=Text(("Classe",)),
         interface_label=Text(("Interface",)),
@@ -264,106 +249,58 @@ IT = LanguagePack(
             }
         ),
         static=Text(("Statico",)),
-        abstract=Text(
-            ("Abstract",)
-        ),  # TODO translate (Manual: screen text SAPLSEOD 0351 VSEOMETHOD-MTDABSTRCT exists on the S/4HANA release only)
+        abstract=Text(("Astratto",)),
         constant=Text(("Costante",)),
-        class_field_label=Text(
-            ("Object Type", "Class/Interface")
-        ),  # TODO translate (Manual: input field label/title of the class builder initial screen)
-        methods_tab=Text(("Methods",)),  # TODO translate (Manual: tab title of the class builder tab strip)
-        attributes_tab=Text(("Attributes",)),  # TODO translate (Manual: tab title of the class builder tab strip)
-        interfaces_tab=Text(("Interfaces",)),  # TODO translate (Manual: tab title of the class builder tab strip)
-        properties_tab=Text(("Properties",)),  # TODO translate (Manual: tab title of the class builder tab strip)
-        source_button=Text(
-            ("Source Code", "Sourcecode")
-        ),  # TODO translate (Manual: button text of the class builder method list)
-        method_column=Text(("Method",)),  # TODO translate (Manual: table control column title of the methods tab)
-        attribute_column=Text(
-            ("Attribute",)
-        ),  # TODO translate (Manual: table control column title of the attributes tab)
-        kind_column=Text(
-            ("Level",)
-        ),  # TODO translate (Manual: table control column title of the methods and attributes tabs)
-        visibility_column=Text(
-            ("Visibility",)
-        ),  # TODO translate (Manual: table control column title of the methods and attributes tabs)
-        description_column=Text(
-            ("Description",)
-        ),  # TODO translate (Manual: table control column title of the class builder tabs)
-        type_ref_column=Text(
-            ("Assoc.Type",)
-        ),  # TODO translate (Manual: table control column title of the attributes tab)
-        initial_value_column=Text(
-            ("Initial Value",)
-        ),  # TODO translate (Manual: table control column title of the attributes tab)
+        class_field_label=Text(("Tipo oggetto", "Classe/interface")),
+        methods_tab=Text(("Metodi",)),
+        attributes_tab=Text(("Attributi",)),
+        interfaces_tab=Text(("Interfaces",)),
+        properties_tab=Text(("Proprietà",)),
+        source_button=Text(("Testo sorgente",)),
+        method_column=Text(("Metodo",)),
+        attribute_column=Text(("Attributo",)),
+        kind_column=Text(("Cat.", "Tipo")),
+        visibility_column=Text(("Visibilità",)),
+        description_column=Text(("Descrizione",)),
+        type_ref_column=Text(("Tipo di rif.",)),
+        initial_value_column=Text(("Valore iniziale",)),
     ),
     se37=Se37Section(
-        initial_screen=Text(
-            ("Function Builder: Initial Screen",)
-        ),  # TODO translate (Manual: window title of the function builder initial screen (titlebar, not in the supported text tables))
-        display_title=Template(
-            ("Function Builder: Display {name}",)
-        ),  # TODO translate (Manual: composed window title of the function builder)
-        function_builder=Text(("Function Builder",)),  # TODO translate (Manual: title fragment of the function builder)
+        initial_screen=Text(("Function Builder: videata iniziale",)),
+        display_title=Template(("Function Builder: {name} Visualizzare",)),
+        function_builder=Text(("Function Builder",)),
         fm_field_label=Text(("Function module",), fold=False),
-        not_found=Text(("does not exist",)),  # TODO fragment of: Il function module & non esiste ancora
-        attributes_tab=Text(("Attributes",)),  # TODO translate (Manual: tab title of the function builder tab strip)
-        import_tab=Text(("Import",)),  # TODO translate (Manual: tab title of the function builder tab strip)
-        export_tab=Text(("Export",)),  # TODO translate (Manual: tab title of the function builder tab strip)
-        changing_tab=Text(("Changing",)),  # TODO translate (Manual: tab title of the function builder tab strip)
-        tables_tab=Text(("Tables",)),  # TODO translate (Manual: tab title of the function builder tab strip)
-        exceptions_tab=Text(("Exceptions",)),  # TODO translate (Manual: tab title of the function builder tab strip)
-        source_tab=Text(
-            ("Source Code", "Source text")
-        ),  # TODO translate (Manual: tab title of the function builder tab strip)
-        parameter_name_column=Text(
-            ("Parameter Name",)
-        ),  # TODO translate (Manual: table control column title of the signature tabs)
-        typing_column=Text(("Typing",)),  # TODO translate (Manual: table control column title of the signature tabs)
-        type_ref_column=Text(
-            ("Associated Type",)
-        ),  # TODO translate (Manual: table control column title of the signature tabs)
-        default_column=Text(
-            ("Default Value",)
-        ),  # TODO translate (Manual: table control column title of the signature tabs)
-        optional_column=Text(
-            ("Optional",)
-        ),  # TODO translate (Manual: table control column title of the signature tabs)
-        pass_value_column=Text(
-            ("Pass Value",)
-        ),  # TODO translate (Manual: table control column title of the signature tabs)
-        short_text_column=Text(
-            ("Short Text",)
-        ),  # TODO translate (Manual: table control column title of the signature and exception tabs)
-        exception_column=Text(
-            ("Exception",)
-        ),  # TODO translate (Manual: table control column title of the exceptions tab)
+        not_found=Text(("non esiste",)),
+        attributes_tab=Text(("Proprietà",)),
+        import_tab=Text(("Importazione",)),
+        export_tab=Text(("Esportazione",)),
+        changing_tab=Text(("Modifica",)),
+        tables_tab=Text(("Tabelle",)),
+        exceptions_tab=Text(("Eccezioni",)),
+        source_tab=Text(("Testo sorgente",)),
+        parameter_name_column=Text(("Nome parametro",)),
+        typing_column=Text(("Tipizzaz.",)),
+        type_ref_column=Text(("Tipo di rif.",)),
+        default_column=Text(("Valore default",)),
+        optional_column=Text(("Facolt.",)),
+        pass_value_column=Text(("Trasm. val.",)),
+        short_text_column=Text(("Testo breve",)),
+        exception_column=Text(("Eccezione",)),
     ),
     se38=Se38Section(
-        initial_screen=Text(
-            ("Initial Screen",)
-        ),  # TODO translate (Manual: title fragment of the ABAP editor initial screen)
+        initial_screen=Text(("videata iniziale",)),
         program_field_title=Text(
             ("ABAP Program Name", "Program")
         ),  # TODO translate (Manual: title attribute of the program name input)
     ),
     se93=Se93Section(
-        initial_screen=Text(
-            ("Transaction Maintenance", "Maintain Transaction")
-        ),  # TODO translate (Manual: SAP text differs: transaction SE93 is 'Maintain Transaction Codes' / 'Pflege Transaktionscodes'; pack DE has 'Transaktionspflege')
-        dialog_transaction=Text(
-            ("Dialog Transaction",)
-        ),  # TODO translate (Manual: EN screen text SAPLSEUK 0300 RSSTCD-S_TRANS; no DE text in D021T)
-        report_transaction=Text(
-            ("Report Transaction",)
-        ),  # TODO translate (Manual: EN screen text SAPLSEUK 0300 RSSTCD-S_REPORT; no DE text in D021T)
+        initial_screen=Text(("Agg. transazioni",)),
+        dialog_transaction=Text(("Transazione interattiva", "transazione di dialogo")),
+        report_transaction=Text(("Trans. report", "transazione report")),
         gui_html=Text(("SAP GUI per HTML",)),
         gui_java=Text(("SAP GUI per Java",)),
         gui_windows=Text(("SAP GUI per Windows",)),
-        screen_number=Text(
-            ("Screen number",)
-        ),  # TODO translate (Manual: SAP text differs: EN screen text is 'Dynpro Number' on the S/4HANA release ('Screen number' on the ECC release); pack has 'Screen number')
+        screen_number=Text(("Numero dynpro",)),
         selection_screen=Text(("Videata di selezione",)),
         start_with_variant=Text(("Avvio con variante", "Start con variante")),
         transaction_code=Text(("Codice transazione",)),
@@ -403,26 +340,14 @@ IT = LanguagePack(
         empty_cell=Text(("Empty",)),  # TODO translate (Manual: WebGUI framework text for an empty grid cell)
     ),
     sm30=Sm30Section(
-        initial_screen=Text(
-            ("Table View Maintenance",)
-        ),  # TODO translate (Manual: SAP text differs: transaction SM30 is 'Call View Maintenance' / 'Aufruf View-Pflege'; pack has 'Table View Maintenance' / 'Tabellensicht-Pflege')
-        maintain=Text(
-            ("Maintain", "Edit")
-        ),  # TODO translate (Manual: SAP text differs: EN screen text SAPMSVMA 0100 UPDATE_PUSH is 'Edit' on the S/4HANA release ('Maintain' on the ECC release); pack has 'Maintain')
+        initial_screen=Text(("Aggiornamento view tabella",)),
+        maintain=Text(("Agg.",)),
         table_view=Text(("Tabella/view",)),
-        display_view=Text(("View",)),  # TODO translate (Manual: view-type word inside the composed SM30 titles)
-        view_not_found=Text(
-            ("is not in the Dictionary", "does not exist", "not found")
-        ),  # TODO fragment of: Tabella/view &1 inesistente nel Dictionary
-        no_maintenance_dialog=Text(
-            ("no maintenance dialog",)
-        ),  # TODO translate (Manual: no single T100 message has the fragment in both languages (SV 432 EN only, SV 790 DE only))
-        view_title=Template(
-            ("Display View {desc}", "Change View {desc}")
-        ),  # TODO translate (Manual: composed window title of the view maintenance)
-        row_count=Template(
-            ("Entry {current} of {total}",)
-        ),  # TODO translate (Manual: WebGUI composed status text of the entry counter)
+        display_view=Text(("View",)),
+        view_not_found=Text(("inesistente nel Dictionary", "inesistente")),
+        no_maintenance_dialog=Text(("dialogo di agg.",)),
+        view_title=Template(("Visualizza view {desc}", "Modifica view {desc}")),
+        row_count=Template(("Inserimento {current} di {total}",)),
     ),
     sm37=Sm37Section(
         status=canonical(
