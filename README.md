@@ -5,12 +5,13 @@
 [![Linting](https://github.com/Hochfrequenz/sapgui.mcp/workflows/Linting/badge.svg)](https://github.com/Hochfrequenz/sapgui.mcp/actions)
 [![Formatting](https://github.com/Hochfrequenz/sapgui.mcp/workflows/Formatting/badge.svg)](https://github.com/Hochfrequenz/sapgui.mcp/actions)
 
-A MCP (Model Context Protocol) server for SAP automation.
-It allows you to control SAP through Claude Desktop, Claude Code, or [OpenCode](https://opencode.ai) - via **SAP GUI desktop** or **SAP Web GUI** (chromium browser).
+An MCP (Model Context Protocol) server for SAP automation.
+It allows you to control SAP through Claude Desktop, Claude Code, or [opencode](https://opencode.ai) - via **SAP GUI desktop** or **SAP Web GUI** (Chromium-based browser).
 Because it drives the real SAP UI (not a headless API), it is especially well-suited for **end-to-end testing**, **visual validation**, and **capturing screenshots for documentation**.
 The MCP server works with both SAP R/3 and S/4.
 
 ![Demo: chat with Claude on the left, SAP GUI reacting on the right — login, create a business partner, screenshot, SE16 verification](docs/readme-demo.gif)
+
 > [!TIP]
 > **Try it yourself:** this demo is a skill that ships with this repository -
 > clone it (or copy [`.claude/skills/readme-demo/`](.claude/skills/readme-demo) into your project), then ask
@@ -21,26 +22,30 @@ The MCP server works with both SAP R/3 and S/4.
 
 ### COM Desktop API vs. Web GUI
 
-The SAP COM Desktop API is Windows only and single threaded at core but well tested.
-This means after your agent clicks a button the MCP server has to wait until the GUI responds which takes some microseconds that might add up for batch processes.
-The Web GUI driver is OS independent but so far lacks the test coverage and maturity of the COM API driver.
-Its main benefit is that it can run truely async/concurrent workflows because you're agent/MCP client can switch to another tab in the browser while you wait for the first tab to update after e.g. a click.
+The SAP COM Desktop API is Windows-only and single-threaded at its core, but well tested.
+This means that after your agent clicks a button, the MCP server has to wait until the GUI responds, which takes some milliseconds that can add up for batch processes.
+The Web GUI driver is OS-independent but so far lacks the test coverage and maturity of the COM API driver.
+Its main benefit is that it can run truly async/concurrent workflows, because your agent/MCP client can switch to another browser tab while it waits for the first tab to update after, e.g., a click.
 
 ### Pairing with other MCPs
+
 You can easily pair this GUI MCP with e.g. an ADT MCP like [`aibap.mcp`](https://github.com/Hochfrequenz/aibap.mcp).
 ADT MCPs and this GUI MCP complement each other in a two-agent vibe-coding setup: one agent writes ABAP via ADT, while a second agent drives this server to test the generated code in the real SAP UI, captures screenshots, and reports failures back.
 
-### Batch process scripting support allows for n times the same click journey at the token costs of 1 tool call
+### Batch scripting: the same click journey n times for the token cost of one tool call
+
 > [!TIP]
 > **Save tokens with `sap_run_script`!** 🚀 Instead of dozens of back-and-forth tool calls, the AI agent can write and execute a single Python script that loops, branches, and collects results - all in one shot. You just describe what you need; the agent generates the script automatically. Perfect for repetitive workflows like reading 50 table rows or bulk-updating fields. Runs in a secure sandbox against the SAP GUI COM API. Desktop backend only. See [Capabilities](#capabilities).
 
-### Language Specific Behaviour for some Transactions
-The core of this MCP is _not_ language specific, meaning it generally works with any SAP logon language.
-However there is builtin support for specific transactions like `se16` or `st22`, too.
-The latter only works for certain languages, because the MCP server relies on specific button or column labels which vary.
-As of 2026-11-12 we support English `EN` and German `DE` but [Italian `IT` is being worked on](https://github.com/Hochfrequenz/sapgui.mcp/issues/1041).
+### Language-specific behaviour for some transactions
+
+The core of this MCP is _not_ language-specific, meaning it generally works with any SAP logon language.
+However, there is also built-in support for specific transactions like `SE16` or `ST22`.
+These transaction-specific tools only work for certain logon languages, because the MCP server relies on button or column labels, which vary by language.
+As of 2026-11-12 we support English (`EN`) and German (`DE`); [Italian `IT` is being worked on](https://github.com/Hochfrequenz/sapgui.mcp/issues/1041).
 
 ### Under the hood
+
 Are you a developer?
 Read [ARCHITECTURE.md](ARCHITECTURE.md) for codebase structure, request flow diagrams, and how to add new transaction tools.
 The **Development Setup** section at the bottom of this page covers running from source.
