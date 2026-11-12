@@ -90,7 +90,19 @@ IT = LanguagePack(
     status_type=StatusTypeSection(
         error=Text(("Errore", "non trovat", "non è stato trovato", "non valid")),
         warning=Text(("avvertiment",)),
-        success=Text(("salvat", "creat", "con successo", "correttamente")),
+        success=Text(
+            (
+                "salvat",
+                # Full phrases, not the stem "creat": status_type is merged over every pack, and the
+                # stem matches English messages that are no successes ("Failed to create job step").
+                "è stato creato",
+                "è stata creata",
+                "sono stati creati",
+                "sono state create",
+                "con successo",
+                "correttamente",
+            )
+        ),
         noise=Text(("Barra messaggi", "Visualizza dettagli", "Eseguire", "Evidenziato"), fold=False),
         success_prefix=Text(("Correttamente",), fold=False),
         error_prefix=Text(("Errore",), fold=False),
@@ -111,6 +123,9 @@ IT = LanguagePack(
         activation_denied=Text(
             (
                 "non è stato attivato",
+                "non è stata attivata",
+                "non sono stati attivati",
+                "non sono state attivate",
                 "non attiv",
                 "impossibile",
                 "non può",

@@ -64,10 +64,33 @@ def test_desktop_popup_type_in_every_language(title: str, message: str, expected
         ("Objekt konnte nicht aktiviert werden", False),
         ("Object could not be activated", False),
         ("Programm ZFOO gesichert", False),
+        ("Oggetto attivato", True),
+        ("La classe non è stata attivata", False),
+        ("Gli oggetti non sono stati attivati", False),
+        ("Le classi non sono state attivate", False),
     ],
 )
 def test_activation_confirmation_in_every_language(message: str, confirmed: bool) -> None:
     assert _confirms_activation(message) is confirmed
+
+
+@pytest.mark.usefixtures("any_session")
+@pytest.mark.parametrize(
+    "message",
+    [
+        "No authorization to create a change request or task",  # TK 601
+        "Failed to create job step & (see system log)",  # BT 027
+    ],
+)
+def test_other_packs_success_words_do_not_match_english_failures(message: str) -> None:
+    """status_type is merged over every pack: a success word of one language must not match another's failures."""
+    assert not lang.universal().status_type.success.contains(message)
+
+
+@pytest.mark.usefixtures("any_session")
+@pytest.mark.parametrize("message", ["Il programma ZFOO è stato creato", "La classe ZCL_FOO è stata creata"])
+def test_italian_creation_messages_are_successes(message: str) -> None:
+    assert lang.universal().status_type.success.contains(message)
 
 
 @pytest.mark.usefixtures("any_session")
