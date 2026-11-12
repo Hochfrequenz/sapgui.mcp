@@ -111,17 +111,25 @@ def test_shortcuts_come_back_with_canonical_key_names(title: str, shortcut: str)
 
 
 def test_settings_button_selector_is_unchanged() -> None:
-    """The test-only selector is exactly the one of before the packs (English first, EN aria-label)."""
+    """The test-only selector keeps the order of before the packs (English first, EN aria-label).
+
+    The stems of packs added later (Italian) follow the German one.
+    """
     assert SELECTORS["settings_button"] == (
-        '[id*="settingsButton"], [title*="Setting" i], [title*="Einstellung" i], '
+        '[id*="settingsButton"], [title*="Setting" i], [title*="Einstellung" i], [title*="Impostazion" i], '
         'button[id*="gear" i], [aria-label*="Setting" i]'
     )
 
 
 def test_popup_close_titles_keep_the_old_order() -> None:
-    """check_popup.js tries [title*='Close'] before [title*='Schlie'], as before the packs."""
+    """check_popup.js tries [title*='Close'] before [title*='Schlie'], as before the packs; Italian comes after."""
     universal = lang.universal().popup.close
-    assert lang.english_first(universal, lang.pack_for("EN").popup.close).variants == ("Close", "Schlie")
+    assert lang.english_first(universal, lang.pack_for("EN").popup.close).variants == (
+        "Close",
+        "Schlie",
+        "Chiudere",
+        "Chiudi",
+    )
 
 
 # ---------------------------------------------------------------------------
