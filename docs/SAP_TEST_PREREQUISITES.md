@@ -35,8 +35,11 @@ Install via abapGit pull, or create manually:
 | ------------------------- | ----------- | ------------------------------------------------------------------ |
 | Report `ZTEST_MCP_EDIT`   | SE38        | Must contain `REPORT ZTEST_MCP_EDIT.` + `WRITE 'MCP test report'.` |
 | Class `ZCL_TEST_MCP_EDIT` | SE24        | Public class with method `DO_SOMETHING`                            |
+| Class `ZCL_SAPGUIMCP_ORIGLANG_TEST` | SE24 | Local (`$TMP`) class with original language **EN**, i.e. different from the DE logon language of the test user (optional: the language dialog test skips without it) |
 
 Creating these objects generates **transport requests** owned by the test user (needed for SE09 tests).
+
+Create `ZCL_SAPGUIMCP_ORIGLANG_TEST` **logged on in EN** (SE24, Create, Local Object, activate), because SAP takes the original language from the logon language. Creating it through ADT does not work: ADT uses the configured DE logon language, so `TADIR-MASTERLANG` would be `D`. Verify with `SELECT MASTERLANG FROM TADIR WHERE PGMID = 'R3TR' AND OBJECT = 'CLAS' AND OBJ_NAME = 'ZCL_SAPGUIMCP_ORIGLANG_TEST'` (expected `E`). Switching it to change mode in a DE session shows the dialog `SAPLSETX` 0100 ("Abweichende Original- und Anmeldesprache", #1087).
 
 > **Note**: The ABAP editor exists in two flavours, selected per user in
 > _SE38 → Hilfsmittel/Utilities → Einstellungen/Settings → ABAP Editor → Editor_:
