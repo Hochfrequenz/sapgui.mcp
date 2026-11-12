@@ -210,8 +210,9 @@ async def _confirm_language_dialog_desktop(
     """Confirm the "Different original and logon languages" dialog if it is open; the text of any other popup.
 
     The dialog only exists for some classes and users: without it there is nothing to wait for. Only that dialog
-    is confirmed (with Enter); any other popup is left alone and reported, since Enter could accept its default
-    action. ``before_title`` / ``before_status`` are read right before the action that led to the popup.
+    is confirmed (see :meth:`DesktopBackend.dismiss_language_dialog`); any other popup is left alone and reported,
+    since Enter could accept its default action. ``before_title`` / ``before_status`` are read right before the
+    action that led to the popup.
     """
     if await backend.check_popup() is None:
         return None
