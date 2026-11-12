@@ -69,7 +69,7 @@ IT = LanguagePack(
         no_entries=Text(("Non sono stati trovati inserimenti",)),
         row_select_hint=Text(("Per selezionare",)),
         user=Text(("Utente",)),
-        program=Text(("Progr.",)),
+        program=Text(("Programma", "Progr.")),
     ),
     popup=PopupSection(
         type_error=Text(("Errore",)),
@@ -311,7 +311,7 @@ IT = LanguagePack(
             }
         ),
         col_status=Text(("Stato",)),
-        job_name=Text(("Nome job",), fold=False),
+        job_name=Text(("Nome job", "Nm. job"), fold=False),  # "Nm. job": header of the job list
         user_name=Text(("Nome utente",), fold=False),
         from_date=Text(("Da data",)),
         to_date=Text(("A data",)),
