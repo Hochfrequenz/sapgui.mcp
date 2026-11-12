@@ -50,6 +50,9 @@ IT = LanguagePack(
             "se24.interfaces_tab",
             "se37.function_builder",
             "sm30.display_view",
+            "st22.col_error_type",
+            "st22.col_time",
+            "st22.date_field",
         }
     ),
     common=CommonSection(
@@ -309,28 +312,14 @@ IT = LanguagePack(
         auth_object=Text(("Ogg. di autorizz.",)),
     ),
     slg1=Slg1Section(
-        initial_screen=Text(
-            ("Analyze Application Log",)
-        ),  # TODO translate (Manual: window title of the log selection screen (titlebar, not in the supported text tables))
-        log_list_screen=Text(("Display Logs",)),  # TODO fragment of: Reg. applicazione: vis. registri
-        no_logs_found=Text(
-            ("No log found in the database", "No logs", "No application log")
-        ),  # TODO fragment of: Il log non è stato trovato nel database
-        log_object=Text(
-            ("Object",)
-        ),  # TODO translate (Manual: selection text of report SBAL_DISPLAY (text pool), not in D021T)
-        log_subobject=Text(
-            ("Subobject",)
-        ),  # TODO translate (Manual: selection text of report SBAL_DISPLAY (text pool), not in D021T)
-        external_id=Text(
-            ("External ID",)
-        ),  # TODO translate (Manual: selection text of report SBAL_DISPLAY (text pool), not in D021T)
-        from_datetime=Text(
-            ("From (Date/Time)",)
-        ),  # TODO translate (Manual: selection text of report SBAL_DISPLAY (text pool), not in D021T)
-        to_datetime=Text(
-            ("To (Date/Time)",)
-        ),  # TODO translate (Manual: selection text of report SBAL_DISPLAY (text pool), not in D021T)
+        initial_screen=Text(("Valutare reg. applicazione",)),
+        log_list_screen=Text(("Visualizzare registri", "vis. registri")),
+        no_logs_found=Text(("Il log non è stato trovato nel database", "log non è stato trovato")),
+        log_object=Text(("Oggetto",)),
+        log_subobject=Text(("Sottooggetto",)),
+        external_id=Text(("Identif.esterno",)),
+        from_datetime=Text(("Da (data/ora)",)),
+        to_datetime=Text(("A (data/ora)",)),
         log_number=Text(("Log Number",)),  # TODO translate (Manual: list column title of the log grid, not looked up)
         col_date=Text(("Date",)),  # TODO translate (Manual: list column title of the log grid, not looked up)
         col_time=Text(("Time",)),  # TODO translate (Manual: list column title of the log grid, not looked up)
@@ -352,15 +341,15 @@ IT = LanguagePack(
     sm37=Sm37Section(
         status=canonical(
             {
-                JobStatus.SCHEDULED: Text(("Pian.",)),
+                JobStatus.SCHEDULED: Text(("Pian.", "Pianif.")),
                 JobStatus.RELEASED: Text(("Rilasciato",)),
                 JobStatus.READY: Text(("Pronto",)),
-                JobStatus.ACTIVE: Text(("Attivo",)),
-                JobStatus.FINISHED: Text(("Term.",)),
+                JobStatus.ACTIVE: Text(("Attivo", "att.")),
+                JobStatus.FINISHED: Text(("Term.", "Completo")),
                 JobStatus.CANCELED: Text(("Interrotto",)),
             }
         ),
-        col_status=Text(("Status",)),  # TODO translate (Manual: list column title of the job overview, not looked up)
+        col_status=Text(("Stato",)),
         job_name=Text(("Nome job",), fold=False),
         user_name=Text(("Nome utente",), fold=False),
         from_date=Text(
@@ -370,139 +359,72 @@ IT = LanguagePack(
             ("To Date",)
         ),  # TODO translate (Manual: WebGUI label: 'bis' / 'To' (SAPLBTCH 2170 TO) plus the date field's own label)
         job_log_button=Text(("Registro job", "Visualizzare registro job")),
-        job_log_heading=Text(
-            ("Job Log Entries",), fold=False
-        ),  # TODO translate (Manual: title of the job log list, not in the GUI status)
-        job_log_title_ecc=Text(
-            ("Job Log for Job",)
-        ),  # TODO translate (Manual: title of the job log screen on the ECC release, not looked up)
-        job_list_heading=Text(
-            ("Job Overview",), fold=False
-        ),  # TODO translate (Manual: title of the job overview list, not looked up)
-        no_jobs=Text(
-            ("No job match", "No jobs found")
-        ),  # TODO fragment of: Nessun job corrisponde alle condizioni di selezione indicate
+        job_log_heading=Text(("Riepilogo reg. job",), fold=False),
+        job_log_title_ecc=Text(("Registro job per job",)),
+        job_list_heading=Text(("Riepilogo job",), fold=False),
+        no_jobs=Text(("Nessun job corrisponde",)),
         select_hint=Text(
             ("To select",), fold=False
         ),  # TODO translate (Manual: hint line of the classic list, not looked up)
-        selected_hint=Text(
-            ("Selected",), fold=False
-        ),  # TODO translate (Manual: footer line of the classic list, not looked up)
-        event_driven=Text(
-            ("event-driven",), fold=False
-        ),  # TODO translate (Manual: start condition line of the classic list, not looked up)
-        abap_program=Text(
-            ("ABAP Program",), fold=False
-        ),  # TODO translate (Manual: step line of the classic list, not looked up)
-        col_start_date=Text(
-            ("Start Date",)
-        ),  # TODO translate (Manual: list column title of the job overview, not looked up)
-        col_start_time=Text(
-            ("Start Time",)
-        ),  # TODO translate (Manual: list column title of the job overview, not looked up)
-        col_duration=Text(
-            ("Duration", "Duration(sec.)")
-        ),  # TODO translate (Manual: list column title of the job overview, not looked up)
-        col_created_by=Text(
-            ("Created By", "Job Created By", "Job CreatedB")
-        ),  # TODO translate (Manual: list column title of the job overview, not looked up)
-        col_client=Text(
-            ("Client", "Cli")
-        ),  # TODO translate (Manual: list column title of the job overview, not looked up)
+        selected_hint=Text(("selezionati",), fold=False),
+        event_driven=Text(("Contr.da evento",), fold=False),
+        abap_program=Text(("Progr. ABAP",), fold=False),
+        col_start_date=Text(("Data avvio",)),
+        col_start_time=Text(("Ora avvio",)),
+        col_duration=Text(("Durata", "Durata (sec.)")),
+        col_created_by=Text(("Autore job",)),
+        col_client=Text(("Man",)),
     ),
     spro=SproSection(
-        initial_screen=Text(
-            ("Customizing: Execute Project",)
-        ),  # TODO translate (Manual: SAP text differs: transaction SPRO is 'Customizing - Edit Project' in both languages; pack has the screen titles 'Customizing: Projektbearbeitung' / 'Customizing: Execute Project')
-        sap_reference_img=Text(
-            ("SAP Reference IMG",)
-        ),  # TODO translate (Manual: IMG tree and toolbar texts of the customizing tool, not found in the supported text tables)
+        initial_screen=Text(("Customizing: elaborazione progetto",)),
+        sap_reference_img=Text(("IMG di riferim. SAP", "IMG di riferimento SAP")),
         search_button=Text(
             ("Find (Ctrl+F)",)
         ),  # TODO translate (Manual: IMG tree and toolbar texts of the customizing tool, not found in the supported text tables)
-        search_dialog=Text(
-            ("Search in the structure",)
-        ),  # TODO translate (Manual: IMG search dialog texts, not found in the supported text tables)
-        search_field=Text(
-            ("Search Term",)
-        ),  # TODO translate (Manual: IMG search dialog texts, not found in the supported text tables)
-        results_dialog=Text(
-            ("Hit List",)
-        ),  # TODO translate (Manual: IMG search dialog texts, not found in the supported text tables)
-        column_hits=Text(
-            ("Hits",)
-        ),  # TODO translate (Manual: IMG search dialog texts, not found in the supported text tables)
-        column_parent=Text(
-            ("Parent Node",)
-        ),  # TODO translate (Manual: IMG search dialog texts, not found in the supported text tables)
-        column_area=Text(
-            ("In area",)
-        ),  # TODO translate (Manual: IMG search dialog texts, not found in the supported text tables)
-        img_heading=Text(
-            ("Display IMG",)
-        ),  # TODO translate (Manual: window title of the IMG display (titlebar, not in the supported text tables))
+        search_dialog=Text(("Ricerca nella struttura",)),
+        search_field=Text(("Chiave ric.",)),
+        results_dialog=Text(("Lista ris.",)),
+        column_hits=Text(("Hit trovati",)),
+        column_parent=Text(("Nodo sovraordinato",)),
+        column_area=Text(("Nell'area",)),
+        img_heading=Text(("Visualizzare IMG",)),
     ),
     st22=St22Section(
         section=canonical(
             {
-                DumpSection.WHAT_HAPPENED: Text(
-                    ("What happened?",)
-                ),  # TODO translate (Manual: heading of the dump detail text (spec section 9))
-                DumpSection.HOW_TO_CORRECT: Text(
-                    ("How to Correct the Error", "What can you do?")
-                ),  # TODO translate (Manual: heading of the dump detail text (spec section 9))
-                DumpSection.ERROR_ANALYSIS: Text(
-                    ("Error Analysis",)
-                ),  # TODO translate (Manual: heading of the dump detail text (spec section 9))
+                DumpSection.WHAT_HAPPENED: Text(("Causa dell'errore",)),
+                DumpSection.HOW_TO_CORRECT: Text(("Possibili soluzioni", "Indic. per la correzione")),
+                DumpSection.ERROR_ANALYSIS: Text(("Analisi errori",)),
             }
         ),
-        today=Text(
-            ("Today",)
-        ),  # TODO translate (Manual: pushbutton text of report RSSHOWRABAX (selection screen), not in D021T)
-        yesterday=Text(
-            ("Yesterday",)
-        ),  # TODO translate (Manual: pushbutton text of report RSSHOWRABAX (selection screen), not in D021T)
-        date_field=Text(
-            ("Date",)
-        ),  # TODO translate (Manual: selection text of report RSSHOWRABAX (text pool), not in D021T)
-        runtime_errors=Text(
-            ("Runtime Errors", "Runtime Error")
-        ),  # TODO translate (Manual: button and heading text of report RSSHOWRABAX, not in D021T)
-        no_dumps=Text(
-            ("No entries found", "No short dumps", "No dumps")
-        ),  # TODO translate (Manual: union of the former tool and parser lists, status text of the ST22 list)
-        col_time=Text(("Time",)),  # TODO translate (Manual: list column title of the dump list, not looked up)
-        col_program=Text(
-            ("Program", "Terminated Program")
-        ),  # TODO translate (Manual: list column title of the dump list, not looked up)
-        col_error_type=Text(
-            ("Runtime Errors", "Runtime Error")
-        ),  # TODO translate (Manual: list column title of the dump list, not looked up)
+        today=Text(("Oggi",)),
+        yesterday=Text(("Ieri",)),
+        date_field=Text(("Date",)),
+        runtime_errors=Text(("Errore run-time", "Errore di run-time")),
+        no_dumps=Text(("dumps brevi selezionati non esistono",)),
+        col_time=Text(("Time",)),
+        col_program=Text(("Canceled Program",)),
+        col_error_type=Text(("Runtime Errors", "Runtime Error")),
         col_short_text=Text(
             ("Short Text",)
         ),  # TODO translate (Manual: list column title of the dump list, not looked up)
-        call_stack_heading=Text(
-            ("Active Calls/Events", "Active Calls", "Call Stack")
-        ),  # TODO translate (Manual: heading of the dump detail text (spec section 9))
+        call_stack_heading=Text(("Chiamate/eventi attivi",)),
         other_headings=Text(
             (
-                "System Environment",
-                "User-Specific System Environment",
-                "Information on Where Terminated",
-                "Source Code Extract",
-                "Contents of System Fields",
-                "Chosen Variables",
-                "Active Calls in SAP Kernel",
-                "User and Transaction",
-                "Short Text",
-                "Internal Notes",
+                "Ambiente sistema",
+                "Utente e transazione",
+                "Informazioni punto di interr.",
+                "Dett. testo sorgente",
+                "Contenuto campi sistema",
+                "Variabili selezionate",
+                "Chiam. attive in kernel SAP",
+                "Testo breve",
+                "Note interne",
             )
-        ),  # TODO translate (Manual: headings of the dump detail text (spec section 9))
+        ),
         source_code_of=RegexText(("Source Code of",)),  # TODO translate (Manual: text of the dump detail)
-        source_code_start=RegexText(
-            ("Source Code",)
-        ),  # TODO translate (Manual: heading of the dump detail text (spec section 9))
+        source_code_start=RegexText(("Dett\\. testo sorgente",)),
         source_line=Text(("Source Code Line",)),  # TODO translate (Manual: text of the dump detail)
-        line=Text(("Line",)),  # TODO translate (Manual: text of the dump detail)
+        line=Text(("Riga",)),
     ),
 )
