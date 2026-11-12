@@ -45,6 +45,8 @@ IT = LanguagePack(
             "keys.names[Alt]",
             "keys.names[Ctrl]",
             "keys.names[Escape]",
+            "popup.abapgit_no_task",
+            "popup.abapgit_transport_required",
             "se09.organizer_title",
             "se24.class_builder",
             "se24.interface_label",
@@ -64,9 +66,7 @@ IT = LanguagePack(
         initial_screen=Text(("videata iniziale",)),
         not_found=Text(("non è stato trovato", "non trovati")),
         does_not_exist=Text(("inesistente", "non esiste")),
-        no_entries=Text(
-            ("No entries found",)
-        ),  # TODO translate (Manual: SAP text differs: ECC release has 'Es wurden keine Einträge gemäß Selektion gefunden' (SV 004), pack DE has 'Keine Einträge gefunden')
+        no_entries=Text(("Non sono stati trovati inserimenti",)),
         row_select_hint=Text(("Per selezionare",)),
         user=Text(("Utente",)),
         program=Text(("Progr.",)),
@@ -89,32 +89,45 @@ IT = LanguagePack(
         ),  # TODO translate (Manual: popup button text seen live; not found in D021T or RSMPTEXTS)
         button_labels=Text(("Sì", "No", "OK", "Interrompere")),
         close=Text(("Chiudere", "Chiudi"), fold=False),
-        abapgit_error_keywords=Text(("not found",)),  # TODO translate (Manual: abapGit UI text)
+        abapgit_error_keywords=Text(("not found", "non trovat", "errore", "fallit")),
         abapgit_button_labels=Text(("Interrompere", "Sì", "No")),
         abapgit_inactive_objects=Text(("Inactive Objects",)),  # TODO translate (Manual: abapGit UI text)
-        abapgit_transport_required=Text(("transport required",)),  # TODO translate (Manual: abapGit UI text)
-        abapgit_no_task=Text(("no modifiable task", "has no task")),  # TODO translate (Manual: abapGit UI text)
+        abapgit_transport_required=Text(("transport required",)),
+        abapgit_no_task=Text(("no modifiable task", "has no task")),
     ),
     status_type=StatusTypeSection(
-        error=Text(
-            ("Error", "not found", "invalid")
-        ),  # TODO translate (Manual: keyword list inferring the message type from its text)
-        warning=Text(("Warning",)),  # TODO translate (Manual: keyword list inferring the message type from its text)
-        success=Text(
-            ("saved", "created", "successful")
-        ),  # TODO translate (Manual: keyword list inferring the message type from its text)
+        error=Text(("Errore", "non trovat", "non è stato trovato", "non valid")),
+        warning=Text(("avvertiment",)),
+        success=Text(("salvat", "creat", "con successo", "correttamente")),
         noise=Text(("Barra messaggi", "Visualizza dettagli", "Eseguire", "Evidenziato"), fold=False),
         success_prefix=Text(("Correttamente",), fold=False),
         error_prefix=Text(("Errore",), fold=False),
         message_bar=Text(("Barra messaggi",), fold=False),
         check_success=Text(
-            ("No syntax errors", "Object activated", "generated successfully")
-        ),  # TODO translate (Manual: fragments of several syntax check and activation messages)
-        check_error=Text(("syntax error",)),  # TODO translate (Manual: fragment of several syntax check messages)
-        activation_confirmed=Text(("activated",)),  # TODO translate (Manual: fragment of several activation messages)
+            (
+                "Nessun errore di sintassi",
+                "non riporta errori di sintassi",
+                "Non sono stati individuati errori di sintassi",
+                "Oggetto attivo generato",
+                "Oggetto attivato",
+                "generato correttamente",
+                "generato senza errori",
+            )
+        ),
+        check_error=Text(("errore di sintassi", "errori di sintassi", "errore sintattico")),
+        activation_confirmed=Text(("attivato", "attivati", "attivata")),
         activation_denied=Text(
-            ("not activated", "not active", "could not", "cannot", "can't", "failed")
-        ),  # TODO translate (Manual: negating fragments of activation messages)
+            (
+                "non è stato attivato",
+                "non attiv",
+                "impossibile",
+                "non può",
+                "non possibile",
+                "fallit",
+                "disattiv",
+                "inattiv",
+            )
+        ),
     ),
     session_pages=SessionPagesSection(
         already_logged_on=Text(("già effettuato il logon",)),
@@ -138,8 +151,8 @@ IT = LanguagePack(
         ),
     ),
     abapgit=AbapgitSection(
-        status_error=Text(("not found",)),  # TODO translate (Manual: abapGit UI text)
-        screen_errors=Text(("transport required",)),  # TODO translate (Manual: abapGit UI text)
+        status_error=Text(("not found", "non trovat", "errore")),
+        screen_errors=Text(("transport required", "non trovat")),
         se38_initial_title=Text(("videata iniziale",)),
     ),
     catalog=CatalogSection(
@@ -147,11 +160,16 @@ IT = LanguagePack(
     ),
     quick_report=QuickReportSection(
         empty_patterns=Text(
-            ("no data", "no entries", "no job", "no documents")
-        ),  # TODO translate (Manual: keyword list recognising an empty result in a quick report, our own report text)
-        execute_button=Text(
-            ("Execute", "Execute Highlighted")
-        ),  # TODO translate (Manual: button labels of the quick report selection screen, differ per report)
+            (
+                "nessun dato",
+                "nessun inserimento",
+                "non esistono inserimenti",
+                "nessun job",
+                "non esistono valori",
+                "trovato nessun dato",
+            )
+        ),
+        execute_button=Text(("Eseguire", "Eseguire Evidenziato")),
     ),
     se09=Se09Section(
         status=canonical(
