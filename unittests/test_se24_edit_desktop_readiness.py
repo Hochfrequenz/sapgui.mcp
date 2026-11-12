@@ -87,6 +87,97 @@ async def test_open_class_leaves_an_unrelated_popup_alone_and_reports_it(lang_de
     assert "Enter" not in [call.args[0] for call in backend.press_key.await_args_list]
 
 
+def _toggled(backend: Any) -> bool:
+    return "Ctrl+F1" in [call.args[0] for call in backend.press_key.await_args_list]
+
+
+@pytest.mark.anyio
+async def test_open_class_confirms_the_language_dialog_that_comes_with_change_mode(lang_de: LanguagePack) -> None:
+    # SAP asks about the original language on Ctrl+F1, not on display (seen on S/4HANA 2023, Italian logon)
+    popup = PopupInfo(title="Lingua", text="Lingua originale e lingua di Logon diverse", buttons=[])
+    backend = _backend(titles=["Class Builder: Einstieg", "Class Builder: Klasse CL_X anzeigen"])
+    backend.check_popup = AsyncMock(
+        side_effect=lambda: popup if _toggled(backend) and not backend.dismiss_language_dialog.await_count else None
+    )
+    assert await _open_class_in_change_mode_desktop(backend, "CL_X", lang_de) is None
+    backend.dismiss_language_dialog.assert_awaited_once()
+    # F7, Ctrl+F1, popup gone after the dismissal
+    assert backend.wait_for_condition.await_count == 3
+
+
+@pytest.mark.anyio
+async def test_open_class_reports_an_unrelated_popup_after_change_mode(lang_de: LanguagePack) -> None:
+    popup = PopupInfo(message="Object is locked by another user", buttons=[])
+    backend = _backend(titles=["Class Builder: Einstieg", "Class Builder: Klasse CL_X anzeigen"])
+    backend.check_popup = AsyncMock(side_effect=lambda: popup if _toggled(backend) else None)
+    error = await _open_class_in_change_mode_desktop(backend, "CL_X", lang_de)
+    assert error == "Unexpected popup while switching class 'CL_X' to change mode: Object is locked by another user"
+    assert "Enter" not in [call.args[0] for call in backend.press_key.await_args_list]
+
+
+class _FakeComThread:
+    """Runs the callable passed to backend.com.run() inline."""
+
+    async def run(self, fn: Any) -> Any:
+        return fn()
+
+
+class _LanguageDialogSession:
+    """Session whose wnd[1] is the original-language dialog (dynpro SAPLSETX 0100) with ``buttons``."""
+
+    def __init__(self, title: str, buttons: list[str]) -> None:
+        self.pressed: list[str] = []
+        self.v_keys: list[int] = []
+        elements = [
+            SimpleNamespace(id=f"wnd[1]/usr/btnPUSH{index}", type_as_number=40, text=text, children=[])
+            for index, text in enumerate(buttons, start=1)
+        ]
+        self.popup = SimpleNamespace(text=title, dump_tree=lambda: elements, send_v_key=self.v_keys.append)
+
+    def find_by_id(self, element_id: str, **_: Any) -> Any:
+        if element_id == "wnd[1]":
+            return self.popup
+        return SimpleNamespace(press=lambda: self.pressed.append(element_id))
+
+
+def _dialog_backend(session: _LanguageDialogSession) -> DesktopBackend:
+    backend = DesktopBackend(com_thread=_FakeComThread())  # type: ignore[arg-type]
+    backend.require_session = lambda: session  # type: ignore[method-assign,assignment,return-value]
+    return backend
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("title", "buttons"),
+    [
+        ("Different original and logon languages", ["Maint. in orig. lang.", "Change orig.language"]),
+        ("Lingua originale e lingua di Logon diverse", ["Agg. in lingua orig.", "Mod. in lingua orig."]),
+    ],
+)
+async def test_dismiss_language_dialog_presses_maintain_in_original(title: str, buttons: list[str]) -> None:
+    # Enter does not close this dialog: its button has to be pressed, and only that one
+    session = _LanguageDialogSession(title, buttons)
+    await _dialog_backend(session).dismiss_language_dialog()
+    assert session.pressed == ["wnd[1]/usr/btnPUSH1"]
+    assert session.v_keys == []
+
+
+@pytest.mark.anyio
+async def test_dismiss_language_dialog_falls_back_to_enter_without_the_button() -> None:
+    session = _LanguageDialogSession("Different original and logon languages", [])
+    await _dialog_backend(session).dismiss_language_dialog()
+    assert session.pressed == []
+    assert session.v_keys == [0]
+
+
+@pytest.mark.anyio
+async def test_dismiss_language_dialog_leaves_other_popups_alone() -> None:
+    session = _LanguageDialogSession("Object is locked", ["Maint. in orig. lang."])
+    await _dialog_backend(session).dismiss_language_dialog()
+    assert session.pressed == []
+    assert session.v_keys == []
+
+
 @pytest.mark.anyio
 async def test_open_class_that_stays_on_the_initial_screen_reports_the_status_text(lang_de: LanguagePack) -> None:
     backend = _backend(titles=["Class Builder: Einstieg"])
