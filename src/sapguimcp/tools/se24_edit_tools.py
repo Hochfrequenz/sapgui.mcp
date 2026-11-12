@@ -178,22 +178,9 @@ async def _open_class_in_change_mode_desktop(
     await backend.wait_for_ready()
     await backend.wait_for_condition(screen_changed(before_title, before_status), timeout_ms=_SE24_DISPLAY_WAIT_MS)
 
-    # Dismiss language dialog ("Different original and logon languages"), which only exists for some classes
-    # and users: without it there is nothing to wait for. Only that dialog is confirmed (with Enter); any other
-    # popup is left alone and reported, since Enter could accept its default action.
-    if await backend.check_popup() is not None:
-        try:
-            await backend.dismiss_language_dialog()
-            await backend.wait_for_ready()
-            # screen_changed is already true because of the popup itself: wait until it is gone as well.
-            await backend.wait_for_condition(
-                popup_closed_and_screen_changed(before_title, before_status), timeout_ms=_SE24_DISPLAY_WAIT_MS
-            )
-        except Exception:  # pylint: disable=broad-exception-caught
-            pass
-        popup = await backend.check_popup()
-        if popup is not None:
-            return f"Unexpected popup while displaying class '{class_name}': {popup.message or popup.popup_type}"  # lang-ok: our own message  # noqa: E501
+    popup_error = await _confirm_language_dialog_desktop(backend, before_title, before_status)
+    if popup_error is not None:
+        return f"Unexpected popup while displaying class '{class_name}': {popup_error}"  # lang-ok: our own message
 
     # Verify we left the initial screen
     screen = await backend.get_screen_info()
@@ -205,10 +192,41 @@ async def _open_class_in_change_mode_desktop(
     # so toggle_to_change_mode's label-based click_button won't find it).
     session = backend.require_session()
     display_title = await backend.com.run(lambda: str(cast(Any, session.find_by_id("wnd[0]")).text).strip())
+    before_status = (await backend.get_status_bar()).message.strip()
     await backend.press_key("Ctrl+F1")
     await backend.wait_for_ready()
     if not await backend.wait_for_condition(window_title_changed(display_title), timeout_ms=_SE24_TOGGLE_WAIT_MS):
         logger.debug("SE24 edit: the window title did not change after Ctrl+F1 within %d ms", _SE24_TOGGLE_WAIT_MS)
+    # SAP asks about the original language when switching to change mode, not when displaying.
+    popup_error = await _confirm_language_dialog_desktop(backend, display_title, before_status)
+    if popup_error is not None:
+        return f"Unexpected popup while switching class '{class_name}' to change mode: {popup_error}"  # lang-ok: our own message  # noqa: E501
+    return None
+
+
+async def _confirm_language_dialog_desktop(
+    backend: DesktopBackend, before_title: str, before_status: str
+) -> str | None:
+    """Confirm the "Different original and logon languages" dialog if it is open; the text of any other popup.
+
+    The dialog only exists for some classes and users: without it there is nothing to wait for. Only that dialog
+    is confirmed (with Enter); any other popup is left alone and reported, since Enter could accept its default
+    action. ``before_title`` / ``before_status`` are read right before the action that led to the popup.
+    """
+    if await backend.check_popup() is None:
+        return None
+    try:
+        await backend.dismiss_language_dialog()
+        await backend.wait_for_ready()
+        # screen_changed is already true because of the popup itself: wait until it is gone as well.
+        await backend.wait_for_condition(
+            popup_closed_and_screen_changed(before_title, before_status), timeout_ms=_SE24_DISPLAY_WAIT_MS
+        )
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass
+    popup = await backend.check_popup()
+    if popup is not None:
+        return popup.message or popup.popup_type
     return None
 
 

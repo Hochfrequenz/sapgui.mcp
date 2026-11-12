@@ -2550,20 +2550,29 @@ class DesktopBackend:
         """Dismiss the 'Different original and logon languages' dialog if present.
 
         Checks for modal wnd[1] whose title matches ``popup.original_language_hint`` of any
-        language ("originalsprache", or "original" and "language"), and presses Enter to confirm.
+        language ("originalsprache", or "original" and "language"), and presses its
+        ``popup.maintain_in_original`` button. Enter is only the fallback: the dialog of SAPLSETX
+        has no Enter function and stays open (seen on S/4HANA 2023 with an Italian logon).
         """
         session = self.require_session()
-        hint = lang.universal().popup.original_language_hint.pattern
+        popup_texts = lang.universal().popup
+        hint = popup_texts.original_language_hint.pattern
 
         def _dismiss() -> bool:
             popup = session.find_by_id("wnd[1]", raise_error=False)
             if popup is None:
                 return False
             text = str(cast(Any, popup).text).lower()
-            if hint.search(text):
-                cast(Any, popup).send_v_key(0)  # Enter to confirm
-                return True
-            return False
+            if not hint.search(text):
+                return False
+            for elem in _flatten(cast(Any, popup).dump_tree()):
+                if elem.type_as_number == 40 and popup_texts.maintain_in_original.equals(
+                    elem.text.strip()
+                ):  # GuiButton
+                    cast(Any, session.find_by_id(elem.id)).press()
+                    return True
+            cast(Any, popup).send_v_key(0)  # Enter, for a dialog without that button
+            return True
 
         dismissed = await self.com.run(_dismiss)
         logger.info("dismiss_language_dialog", extra={"dismissed": dismissed})
