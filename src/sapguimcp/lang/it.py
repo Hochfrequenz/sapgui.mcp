@@ -40,21 +40,7 @@ IT = LanguagePack(
     html_lang="it",
     logon_dropdown="Italiano",  # TODO verify in the WebGUI logon dropdown (task 3)
     date_format="%d.%m.%Y",  # T005X-DATFM = 1 for country IT
-    same_as_en=frozenset(
-        {
-            "keys.names[Alt]",
-            "keys.names[Ctrl]",
-            "keys.names[Shift]",
-            "se24.class_builder",
-            "se24.interface_label",
-            "se24.interfaces_tab",
-            "se37.function_builder",
-            "sm30.display_view",
-            "st22.col_error_type",
-            "st22.col_time",
-            "st22.date_field",
-        }
-    ),
+    same_as_en=frozenset({"keys.names[Alt]", "keys.names[Ctrl]", "keys.names[Shift]", "se09.organizer_title", "se24.class_builder", "se24.interface_label", "se24.interfaces_tab", "se37.function_builder", "sm30.display_view", "st22.col_error_type", "st22.col_time", "st22.date_field", "st22.source_code_of", "st22.source_line"}),
     common=CommonSection(
         display=Text(("Visualizzare",)),
         display_change_toggle=Text(("Visualizzare <-> Modificare",)),
@@ -71,11 +57,9 @@ IT = LanguagePack(
         program=Text(("Progr.",)),
     ),
     popup=PopupSection(
-        type_error=Text(("Error",)),  # TODO translate (Manual: keyword list classifying popups by title or text)
-        type_info=Text(("Information",)),  # TODO translate (Manual: keyword list classifying popups by title or text)
-        type_confirm=Text(
-            ("Confirm", "Yes", "No")
-        ),  # TODO translate (Manual: keyword list classifying popups by title or text)
+        type_error=Text(("Errore",)),
+        type_info=Text(("Informazione",)),
+        type_confirm=Text(("Confermare", "Sì", "No")),
         inactive_objects=Text(
             ("Inactive Objects",), fold=False
         ),  # TODO translate (Manual: popup title seen live; no matching text in D021T, T100 or RSMPTEXTS)
@@ -88,14 +72,12 @@ IT = LanguagePack(
         maintain_in_original=Text(
             ("Maint. in orig. lang.",)
         ),  # TODO translate (Manual: popup button text seen live; not found in D021T or RSMPTEXTS)
-        button_labels=Text(
-            ("Yes", "No", "OK", "Cancel")
-        ),  # TODO translate (Manual: standard popup button labels, several GUI statuses)
+        button_labels=Text(("Sì", "No", "OK", "Interrompere")),
         close=Text(
             ("Close",), fold=False
         ),  # TODO translate (Manual: WebGUI framework tooltip of a popup's close control)
         abapgit_error_keywords=Text(("not found",)),  # TODO translate (Manual: abapGit UI text)
-        abapgit_button_labels=Text(("OK", "Cancel", "Yes", "No")),  # TODO translate (Manual: abapGit UI text)
+        abapgit_button_labels=Text(("Interrompere", "Sì", "No")),
         abapgit_inactive_objects=Text(("Inactive Objects",)),  # TODO translate (Manual: abapGit UI text)
         abapgit_transport_required=Text(("transport required",)),  # TODO translate (Manual: abapGit UI text)
         abapgit_no_task=Text(("no modifiable task", "has no task")),  # TODO translate (Manual: abapGit UI text)
@@ -146,9 +128,7 @@ IT = LanguagePack(
         okcode_option=Text(
             ("OK-Code", "Transaction Field")
         ),  # TODO translate (Manual: WebGUI framework settings menu entry)
-        debugger_window=Text(
-            ("ABAP Debugger",), fold=False
-        ),  # TODO translate (Manual: SAP GUI window title of the ABAP debugger)
+        debugger_window=Text(("ABAP debugger", "ABAP Debugger"), fold=False),
     ),
     keys=KeysSection(
         names=canonical(
@@ -191,24 +171,16 @@ IT = LanguagePack(
                 TransportStatus.RELEASED: Text(("Rilasciato",)),
             }
         ),
-        display_button=Text(("Display",), fold=False),  # TODO fragment of: @10@ Visualizzare
-        workbench_requests=Text(
-            ("Workbench Requests",)
-        ),  # TODO translate (Manual: SAP text differs: TRFUNCTION K is the singular 'Workbench-Auftrag' / 'Workbench Request'; the SE09 tree node holds the plural)
-        customizing_requests=Text(
-            ("Customizing Requests",)
-        ),  # TODO translate (Manual: SAP text differs: TRFUNCTION W is the singular 'Customizing-Auftrag' / 'Customizing Request'; the SE09 tree node holds the plural)
-        expand=Text(("Expand",)),  # TODO translate (Manual: tree toolbar tooltip, generic text of many GUI statuses)
-        compress=Text(
-            ("Compress",)
-        ),  # TODO translate (Manual: tree toolbar tooltip, generic text of many GUI statuses)
+        display_button=Text(("Visualizzare",), fold=False),
+        workbench_requests=Text(("Richieste workbench",)),
+        customizing_requests=Text(("Richieste customizing",)),
+        expand=Text(("Esplodere",)),
+        compress=Text(("Comprimere",)),
         list_region=Text(
             ("List",)
         ),  # TODO translate (Manual: WebGUI ARIA label of the ABAP list region; EN value not yet read live (#1044))
         organizer_title=Text(("Transport Organizer",)),
-        request_word=Text(
-            ("Request",)
-        ),  # TODO translate (Manual: word inside SE09 list texts and messages, no single source)
+        request_word=Text(("Richiesta", "Rich.")),
     ),
     se11=Se11Section(
         database_table=Text(("Tabella database",)),
@@ -405,9 +377,7 @@ IT = LanguagePack(
         col_time=Text(("Time",)),
         col_program=Text(("Canceled Program",)),
         col_error_type=Text(("Runtime Errors", "Runtime Error")),
-        col_short_text=Text(
-            ("Short Text",)
-        ),  # TODO translate (Manual: list column title of the dump list, not looked up)
+        col_short_text=Text(("Short Text", "Testo breve")),
         call_stack_heading=Text(("Chiamate/eventi attivi",)),
         other_headings=Text(
             (
@@ -422,9 +392,9 @@ IT = LanguagePack(
                 "Note interne",
             )
         ),
-        source_code_of=RegexText(("Source Code of",)),  # TODO translate (Manual: text of the dump detail)
+        source_code_of=RegexText(("Source Code of",)),
         source_code_start=RegexText(("Dett\\. testo sorgente",)),
-        source_line=Text(("Source Code Line",)),  # TODO translate (Manual: text of the dump detail)
+        source_line=Text(("Source Code Line",)),
         line=Text(("Riga",)),
     ),
 )
