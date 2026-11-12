@@ -1,7 +1,7 @@
 """IT language pack (#1041, #1044).
 
 Texts come from SAP (``scripts/harvest_lang_texts.py IT --draft`` and ``--verify``) or from the screen read with an
-Italian logon. Every ``TODO`` comment marks a field a person still has to settle; remove it afterwards.
+Italian logon. Adding a language: see ``ADDING_A_LANGUAGE.md``.
 """
 
 from sapguimcp.lang.schema import (
@@ -75,23 +75,15 @@ IT = LanguagePack(
         type_error=Text(("Errore",)),
         type_info=Text(("Informazione",)),
         type_confirm=Text(("Confermare", "Sì", "No")),
-        inactive_objects=Text(
-            ("Inactive Objects",), fold=False
-        ),  # TODO translate (Manual: popup title seen live; no matching text in D021T, T100 or RSMPTEXTS)
-        original_language_title=Text(
-            ("Different original and logon languages",), fold=False
-        ),  # TODO translate (Manual: popup title seen live; the T100 messages about the original language have other wording)
-        original_language_hint=RegexText(
-            ("original[\\s\\S]*language", "language[\\s\\S]*original")
-        ),  # TODO translate (Manual: regex over the desktop window title of the same popup)
-        maintain_in_original=Text(
-            ("Maint. in orig. lang.",)
-        ),  # TODO translate (Manual: popup button text seen live; not found in D021T or RSMPTEXTS)
+        inactive_objects=Text(("Oggetti inattivi",), fold=False),
+        original_language_title=Text(("Lingua originale e lingua di Logon diverse",), fold=False),
+        original_language_hint=RegexText(("originale[\\s\\S]*lingua", "lingua[\\s\\S]*originale")),
+        maintain_in_original=Text(("Agg. in lingua orig.",)),
         button_labels=Text(("Sì", "No", "OK", "Interrompere")),
         close=Text(("Chiudere", "Chiudi"), fold=False),
         abapgit_error_keywords=Text(("not found", "non trovat", "errore", "fallit")),
         abapgit_button_labels=Text(("Interrompere", "Sì", "No")),
-        abapgit_inactive_objects=Text(("Inactive Objects",)),  # TODO translate (Manual: abapGit UI text)
+        abapgit_inactive_objects=Text(("Oggetti inattivi", "Inactive Objects")),
         abapgit_transport_required=Text(("transport required",)),
         abapgit_no_task=Text(("no modifiable task", "has no task")),
     ),
