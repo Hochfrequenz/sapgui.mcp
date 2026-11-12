@@ -30,6 +30,9 @@ if TYPE_CHECKING:
 TEST_REPORT = "ZTEST_MCP_EDIT"
 TEST_CLASS = "ZCL_TEST_MCP_EDIT"
 TEST_METHOD = "DO_SOMETHING"
+# Local ($TMP) class whose original language (EN) differs from the DE logon language of the test user.
+# Provokes the SAPLSETX 0100 dialog in change mode. See docs/SAP_TEST_PREREQUISITES.md.
+TEST_CLASS_ORIGLANG = "ZCL_SAPGUIMCP_ORIGLANG_TEST"
 TEST_TABLE = "TSTC"  # Standard SAP table (exists on all systems)
 
 # ---------------------------------------------------------------------------

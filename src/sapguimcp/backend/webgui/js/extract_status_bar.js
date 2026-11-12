@@ -2,6 +2,7 @@
     // Texts come from the language packs, merged over every language (#1044):
     // texts.noise - message-bar control texts (its label, buttons) that are not part of the message
     // texts.error / texts.warning / texts.success - keywords that infer the message type
+    // texts.checkSuccess - syntax check success messages that contain error words, tested before error
     const { texts } = params;
     const matches = (text, message) => new RegExp(text.source, text.flags).test(message);
 
@@ -132,7 +133,11 @@
     // Also check message content for common patterns (case-insensitive substrings)
     if (type === 'I') {
         // Only override if not already detected
-        if (matches(texts.error, message)) {
+        // checkSuccess first: "No syntax errors found" contains an error keyword (#1088);
+        // "No syntax errors, but some warnings exist" is still a warning
+        if (matches(texts.checkSuccess, message)) {
+            type = matches(texts.warning, message) ? 'W' : 'S';
+        } else if (matches(texts.error, message)) {
             type = 'E';
         } else if (matches(texts.warning, message)) {
             type = 'W';
