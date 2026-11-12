@@ -127,10 +127,11 @@ SOURCES: Mapping[str, Source] = MappingProxyType(
         "popup.type_confirm": Manual("keyword list classifying popups by title or text"),
         "popup.inactive_objects": Manual("popup title seen live; no matching text in D021T, T100 or RSMPTEXTS"),
         "popup.original_language_title": Manual(
-            "popup title seen live; the T100 messages about the original language have other wording"
+            "GUI title of screen SAPLSETX 0100 (title bar, not a D021T text); the T100 messages about the"
+            " original language have other wording"
         ),
         "popup.original_language_hint": Manual("regex over the desktop window title of the same popup"),
-        "popup.maintain_in_original": Manual("popup button text seen live; not found in D021T or RSMPTEXTS"),
+        "popup.maintain_in_original": ScreenText("SAPLSETX", "0100", "PUSH1"),
         "popup.button_labels": Manual("standard popup button labels, several GUI statuses"),
         "popup.close": Manual("WebGUI framework tooltip of a popup's close control"),
         "status_type.error": Manual("keyword list inferring the message type from its text"),
