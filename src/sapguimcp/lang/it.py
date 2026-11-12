@@ -136,7 +136,7 @@ IT = LanguagePack(
                 Key.CTRL: Text(("Ctrl",), word=True),
                 Key.SHIFT: Text(("Shift",), word=True),
                 Key.ALT: Text(("Alt",), word=True),
-                Key.ENTER: Text(("Invio",), word=True),
+                Key.ENTER: Text(("Invio", "Enter"), word=True),
                 Key.DELETE: Text(
                     ("Delete",), word=True
                 ),  # TODO translate (Manual: keyboard key name of the SAP GUI client, not in SAP's text tables)
@@ -216,16 +216,18 @@ IT = LanguagePack(
         object_type=Text(("Tipo oggetto",)),
         class_label=Text(("Classe",)),
         interface_label=Text(("Interface",)),
+        # The methods/attributes table controls show the DDIC domain texts in English on IT logons too
+        # (live check on both releases), so the English words are variants of the IT pack.
         visibility=canonical(
             {
-                Visibility.PUBLIC: Text(("Pubblico",)),
-                Visibility.PROTECTED: Text(("Protetto",)),
-                Visibility.PRIVATE: Text(("Privato",)),
+                Visibility.PUBLIC: Text(("Pubblico", "Public")),
+                Visibility.PROTECTED: Text(("Protetto", "Protected")),
+                Visibility.PRIVATE: Text(("Privato", "Private")),
             }
         ),
-        static=Text(("Statico",)),
-        abstract=Text(("Astratto",)),
-        constant=Text(("Costante",)),
+        static=Text(("Statico", "Static")),
+        abstract=Text(("Astratto", "Abstract")),
+        constant=Text(("Costante", "Constant")),
         class_field_label=Text(("Tipo oggetto", "Classe/interface")),
         methods_tab=Text(("Metodi",)),
         attributes_tab=Text(("Attributi",)),
@@ -301,7 +303,7 @@ IT = LanguagePack(
         empty_cell=Text(("Empty",)),  # TODO translate (Manual: WebGUI framework text for an empty grid cell)
     ),
     sm30=Sm30Section(
-        initial_screen=Text(("Aggiornamento view tabella",)),
+        initial_screen=Text(("Aggiornamento view tabella", "Agg. view tab.")),
         maintain=Text(("Agg.",)),
         table_view=Text(("Tabella/view",)),
         display_view=Text(("View",)),
