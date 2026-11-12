@@ -5,35 +5,48 @@
 [![Linting](https://github.com/Hochfrequenz/sapgui.mcp/workflows/Linting/badge.svg)](https://github.com/Hochfrequenz/sapgui.mcp/actions)
 [![Formatting](https://github.com/Hochfrequenz/sapgui.mcp/workflows/Formatting/badge.svg)](https://github.com/Hochfrequenz/sapgui.mcp/actions)
 
-An MCP (Model Context Protocol) server for SAP automation.
-Control SAP through Claude Desktop, Claude Code, or [opencode](https://opencode.ai) - via **SAP GUI desktop** or **SAP Web GUI** (browser).
-Because it drives the real SAP UI (not a headless API), it is especially well-suited for **end-to-end testing**, **visual validation**, and **capturing screenshots for documentation** - tasks a pure REST-API client cannot do.
-The MCP works with both SAP R/3 and S/4.
+A MCP (Model Context Protocol) server for SAP automation.
+It allows you to control SAP through Claude Desktop, Claude Code, or [OpenCode](https://opencode.ai) - via **SAP GUI desktop** or **SAP Web GUI** (chromium browser).
+Because it drives the real SAP UI (not a headless API), it is especially well-suited for **end-to-end testing**, **visual validation**, and **capturing screenshots for documentation**.
+The MCP server works with both SAP R/3 and S/4.
 
 ![Demo: chat with Claude on the left, SAP GUI reacting on the right — login, create a business partner, screenshot, SE16 verification](docs/readme-demo.gif)
-
 > [!TIP]
 > **Try it yourself:** this demo is a skill that ships with this repository -
-> clone it (or copy `.claude/skills/readme-demo/` into your project), then ask
+> clone it (or copy [`.claude/skills/readme-demo/`](.claude/skills/readme-demo) into your project), then ask
 > your agent to _run the readme demo_ (or invoke `/readme-demo` in Claude
 > Code) - it logs into your system, creates a business partner, screenshots
 > it, and verifies it in SE16. It needs the desktop backend (SAP GUI for Windows
 > with scripting enabled), because the screenshots are saved via `sap_run_script`.
 
-> [!NOTE]
-> **Pairs with [`aibap.mcp`](https://github.com/Hochfrequenz/aibap.mcp).** The two servers complement each other in a two-agent vibe-coding setup: one agent writes ABAP via `aibap.mcp` (ADT REST), while a second agent drives this server to test the generated code in the real SAP UI, capture screenshots, and report failures back. See [`AIBAP_TEMPLATE_REPOSITORY`](https://github.com/Hochfrequenz/AIBAP_TEMPLATE_REPOSITORY) for a template that documents this workflow end-to-end.
+### COM Desktop API vs. Web GUI
 
+The SAP COM Desktop API is Windows only and single threaded at core but well tested.
+This means after your agent clicks a button the MCP server has to wait until the GUI responds which takes some microseconds that might add up for batch processes.
+The Web GUI driver is OS independent but so far lacks the test coverage and maturity of the COM API driver.
+Its main benefit is that it can run truely async/concurrent workflows because you're agent/MCP client can switch to another tab in the browser while you wait for the first tab to update after e.g. a click.
+
+### Pairing with other MCPs
+You can easily pair this GUI MCP with e.g. an ADT MCP like [`aibap.mcp`](https://github.com/Hochfrequenz/aibap.mcp).
+ADT MCPs and this GUI MCP complement each other in a two-agent vibe-coding setup: one agent writes ABAP via ADT, while a second agent drives this server to test the generated code in the real SAP UI, captures screenshots, and reports failures back.
+
+### Batch process scripting support allows for n times the same click journey at the token costs of 1 tool call
 > [!TIP]
 > **Save tokens with `sap_run_script`!** 🚀 Instead of dozens of back-and-forth tool calls, the AI agent can write and execute a single Python script that loops, branches, and collects results - all in one shot. You just describe what you need; the agent generates the script automatically. Perfect for repetitive workflows like reading 50 table rows or bulk-updating fields. Runs in a secure sandbox against the SAP GUI COM API. Desktop backend only. See [Capabilities](#capabilities).
 
-> **Developer?** See [ARCHITECTURE.md](ARCHITECTURE.md) for codebase structure, request flow diagrams, and how to add new transaction tools. The **Development Setup** section at the bottom of this page covers running from source.
+### Under the hood
+Are you a developer?
+Read [ARCHITECTURE.md](ARCHITECTURE.md) for codebase structure, request flow diagrams, and how to add new transaction tools.
+The **Development Setup** section at the bottom of this page covers running from source.
 
 ## Setup
 
-Pick an installation method below - each one walks you through two things: creating your SAP credentials file (`systems.json`) and registering the MCP server with your AI client.
+Pick an installation method below - each one walks you through two things: creating your SAP credentials file (`systems.json`) and/or enviroment variables and registering the MCP server with your AI client.
 
 > [!NOTE]
-> **Why a separate credentials file?** Most MCP servers put SAP credentials directly in the per-project MCP config (`env` block), which means re-entering them for every tool. Here, credentials live in a single shared file (`systems.json`) that all Hochfrequenz SAP MCP servers read automatically - so this server and [`aibap.mcp`](https://github.com/Hochfrequenz/aibap.mcp) both work with the same credentials without duplication.
+> **Why a separate credentials file?** Most MCP servers put SAP credentials directly in the per-project MCP config (`env` block), which means re-entering them for every project.
+> Here, credentials and SAP settings live in a single shared file (`systems.json`) that all Hochfrequenz SAP MCP servers read automatically - so this server and [`aibap.mcp`](https://github.com/Hochfrequenz/aibap.mcp) both work with the same credentials without duplication.
+> You **can** store credentials in plain text, but you can also refer to an environment variable.
 
 Choose one of these three approaches:
 
@@ -44,13 +57,13 @@ Choose one of these three approaches:
 - **[opencode](https://opencode.ai)** - add to `opencode.json` in your project root. Each section below includes a ready-to-use `opencode.json` snippet alongside the Claude Code snippet.
 
 > [!WARNING]
-> **Special characters in passwords:** If your SAP password contains `"` or `\` characters, you must escape them in the JSON config files: `"` becomes `\"` and `\` becomes `\\`. For example, `pass"word` becomes `"pass\"word"` and `do\main` becomes `"do\\main"`. Unescaped special characters will silently break the JSON and the MCP server will fail to start.
+> **Special characters in passwords stored in a `.json` file:** If your SAP password contains `"` or `\` characters, you must escape them in the JSON config files: `"` becomes `\"` and `\` becomes `\\`. For example, `pass"word` becomes `"pass\"word"` and `do\main` becomes `"do\\main"`. Unescaped special characters will silently break the JSON and the MCP server will fail to start.
 
 > [!TIP]
 > **Windows file extensions:** If file extensions are hidden in Windows Explorer, creating `.mcp.json` via right-click → New → Text File will produce `.mcp.json.txt` (or `.mcp.json.json` if you rename). Make sure "File name extensions" is checked in Explorer's View tab, then rename the file.
 
 <details>
-<summary><strong>📦 Standalone Executable (recommended - no Docker, no Python)</strong></summary>
+<summary><strong>📦 Standalone Executable (recommended for Windows - no Docker, no Python)</strong></summary>
 <br>
 
 Download the binary for your platform from
