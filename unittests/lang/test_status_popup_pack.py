@@ -278,3 +278,33 @@ async def test_discover_fields_keeps_the_logon_language_dropdown() -> None:
     """Only read-only screen dropdowns are skipped; the logon page's language dropdown is reported as before."""
     ids = await _on_snapshot("", _field_ids, html=_DROPDOWNS)
     assert ids == ["sap-language-dropdown", "M0:46:::2:17"]
+
+
+_REAL_TITLES = (
+    "Abweichende Original- und Anmeldesprache",
+    "Originalsprache und Anmeldesprache",
+    "Different original and logon languages",
+)
+
+
+@pytest.mark.usefixtures("any_session")
+@pytest.mark.parametrize("title", _REAL_TITLES)
+def test_original_language_hint_matches_the_real_dialog_titles(title: str) -> None:
+    """#1087: the desktop dismiss matches the lower-cased window title against the hint."""
+    assert lang.universal().popup.original_language_hint.pattern.search(title.lower())
+
+
+@pytest.mark.usefixtures("any_session")
+@pytest.mark.parametrize(
+    "title", ["anlegen klasse", "sprachen abgleichen original", "originaltext in der fremdsprache anzeigen"]
+)
+def test_original_language_hint_ignores_unrelated_titles(title: str) -> None:
+    """Desktop presses Enter on a match, so near-miss titles must not match."""
+    assert not lang.universal().popup.original_language_hint.pattern.search(title)
+
+
+@pytest.mark.usefixtures("any_session")
+def test_webgui_original_language_texts_contain_the_real_de_texts() -> None:
+    popup = lang.universal().popup
+    assert "Abweichende Original- und Anmeldesprache" in popup.original_language_title
+    assert "In Orig.spr. pflegen" in popup.maintain_in_original

@@ -11,7 +11,8 @@ import sys
 
 import pytest
 
-from unittests.desktop.conftest import skip_no_sap
+from sapguimcp import lang
+from unittests.desktop.conftest import TEST_CLASS_ORIGLANG, go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="SAP GUI COM is Windows-only")
 
@@ -90,6 +91,47 @@ async def test_dismiss_language_dialog_no_op_when_absent(backend):
     """dismiss_language_dialog is a no-op when no language dialog is present."""
     # Should not raise — just does nothing
     await backend.dismiss_language_dialog()
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_original_language_dialog_is_recognised(backend, pack):
+    """The SAPLSETX 0100 dialog of a class with a foreign original language is recognised (#1087).
+
+    Recognition is the check ``dismiss_language_dialog`` uses: the lower-cased title of ``wnd[1]`` against
+    ``popup.original_language_hint``. The dialog is then closed explicitly (not via Enter: it has no default
+    button), the class stays unchanged and the lock is released. Needs ``TEST_CLASS_ORIGLANG``, see
+    docs/SAP_TEST_PREREQUISITES.md.
+    """
+    await backend.enter_transaction("SE24")
+    await backend.wait_for_ready()
+    assert await backend.focus_and_type("SEOCLASS-CLSNAME", TEST_CLASS_ORIGLANG)
+    await backend.press_key("F7")  # Display
+    await backend.wait_for_ready()
+    if pack.se24.initial_screen.contains((await backend.get_screen_info()).title or ""):
+        await go_home(backend)
+        pytest.skip(f"Test class {TEST_CLASS_ORIGLANG} is missing (see docs/SAP_TEST_PREREQUISITES.md)")
+    session = backend.require_session()
+    try:
+        # The display of a class does not show the dialog; the switch to change mode does.
+        assert await backend.check_popup() is None
+        await backend.press_key("Ctrl+F1")
+        await backend.wait_for_ready()
+        popup = await backend.check_popup()
+        assert popup is not None, "Expected the original-language dialog after switching to change mode"
+        hint = lang.universal().popup.original_language_hint.pattern
+        title = (await backend.com.run(lambda: str(session.find_by_id("wnd[1]").text))).lower()
+        assert hint.search(title), f"Dialog title {title!r} is not recognised by popup.original_language_hint"
+        # Close it by its button "maintain in original language" (the contributor PR adds this to the dismiss).
+        await backend.com.run(lambda: session.find_by_id("wnd[1]/usr/btnPUSH1").press())
+        await backend.wait_for_ready()
+        assert await backend.check_popup() is None
+        # Back to display mode without saving: releases the lock, nothing was changed.
+        await backend.press_key("Ctrl+F1")
+        await backend.wait_for_ready()
+        assert await backend.check_popup() is None
+    finally:
+        await go_home(backend)
 
 
 # ---------------------------------------------------------------------------
