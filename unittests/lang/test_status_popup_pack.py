@@ -280,7 +280,11 @@ async def test_discover_fields_keeps_the_logon_language_dropdown() -> None:
     assert ids == ["sap-language-dropdown", "M0:46:::2:17"]
 
 
-_REAL_TITLES = ("Abweichende Original- und Anmeldesprache", "Different original and logon languages")
+_REAL_TITLES = (
+    "Abweichende Original- und Anmeldesprache",
+    "Originalsprache und Anmeldesprache",
+    "Different original and logon languages",
+)
 
 
 @pytest.mark.usefixtures("any_session")
@@ -291,9 +295,12 @@ def test_original_language_hint_matches_the_real_dialog_titles(title: str) -> No
 
 
 @pytest.mark.usefixtures("any_session")
-def test_original_language_hint_ignores_unrelated_titles() -> None:
-    hint = lang.universal().popup.original_language_hint.pattern
-    assert not hint.search("anlegen klasse")
+@pytest.mark.parametrize(
+    "title", ["anlegen klasse", "sprachen abgleichen original", "originaltext in der fremdsprache anzeigen"]
+)
+def test_original_language_hint_ignores_unrelated_titles(title: str) -> None:
+    """Desktop presses Enter on a match, so near-miss titles must not match."""
+    assert not lang.universal().popup.original_language_hint.pattern.search(title)
 
 
 @pytest.mark.usefixtures("any_session")

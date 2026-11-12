@@ -68,7 +68,7 @@ DE = LanguagePack(
         original_language_title=Text(
             ("Abweichende Original- und Anmeldesprache", "Originalsprache und Anmeldesprache"), fold=False
         ),
-        original_language_hint=RegexText(("originalsprache", r"original-?[\s\S]*sprache")),
+        original_language_hint=RegexText(("originalsprache", r"original-\s*und\s+anmeldesprache")),
         maintain_in_original=Text(("In Orig.spr. pflegen", "Pflege in Originalsprache")),
         button_labels=Text(("Ja", "Nein", "OK", "Abbrechen")),
         # The stem, as before: matches "Schließen" without depending on the encoding of ß.
