@@ -31,11 +31,11 @@ The required test objects are maintained in an abapGit repository:
 
 Install via abapGit pull, or create manually:
 
-| Object                    | Transaction | Details                                                            |
-| ------------------------- | ----------- | ------------------------------------------------------------------ |
-| Report `ZTEST_MCP_EDIT`   | SE38        | Must contain `REPORT ZTEST_MCP_EDIT.` + `WRITE 'MCP test report'.` |
-| Class `ZCL_TEST_MCP_EDIT` | SE24        | Public class with method `DO_SOMETHING`                            |
-| Class `ZCL_SAPGUIMCP_ORIGLANG_TEST` | SE24 | Local (`$TMP`) class with original language **EN**, i.e. different from the DE logon language of the test user (optional: the language dialog test skips without it) |
+| Object                              | Transaction | Details                                                                                                                                                              |
+| ----------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Report `ZTEST_MCP_EDIT`             | SE38        | Must contain `REPORT ZTEST_MCP_EDIT.` + `WRITE 'MCP test report'.`                                                                                                   |
+| Class `ZCL_TEST_MCP_EDIT`           | SE24        | Public class with method `DO_SOMETHING`                                                                                                                              |
+| Class `ZCL_SAPGUIMCP_ORIGLANG_TEST` | SE24        | Local (`$TMP`) class with original language **EN**, i.e. different from the DE logon language of the test user (optional: the language dialog test skips without it) |
 
 Creating these objects generates **transport requests** owned by the test user (needed for SE09 tests).
 
