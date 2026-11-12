@@ -34,6 +34,12 @@ ADT MCPs and this GUI MCP complement each other in a two-agent vibe-coding setup
 > [!TIP]
 > **Save tokens with `sap_run_script`!** 🚀 Instead of dozens of back-and-forth tool calls, the AI agent can write and execute a single Python script that loops, branches, and collects results - all in one shot. You just describe what you need; the agent generates the script automatically. Perfect for repetitive workflows like reading 50 table rows or bulk-updating fields. Runs in a secure sandbox against the SAP GUI COM API. Desktop backend only. See [Capabilities](#capabilities).
 
+### Language Specific Behaviour for some Transactions
+The core of this MCP is _not_ language specific, meaning it generally works with any SAP logon language.
+However there is builtin support for specific transactions like `se16` or `st22`, too.
+The latter only works for certain languages, because the MCP server relies on specific button or column labels which vary.
+As of 2026-11-12 we support English `EN` and German `DE` but [Italian `IT` is being worked on](https://github.com/Hochfrequenz/sapgui.mcp/issues/1041).
+
 ### Under the hood
 Are you a developer?
 Read [ARCHITECTURE.md](ARCHITECTURE.md) for codebase structure, request flow diagrams, and how to add new transaction tools.
