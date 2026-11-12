@@ -83,3 +83,10 @@ stderr
 asyncio
 pydantic
 variablen
+
+# Italian terms (IT language pack texts read from SAP)
+nome
+classe
+impossibile
+possibile
+stati
