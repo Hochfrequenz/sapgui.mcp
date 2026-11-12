@@ -142,9 +142,20 @@ def _parse_toolbar_note(snapshot_text: str) -> tuple[bool, str]:
 
 
 def _status_bar_arg() -> dict[str, object]:
-    """The argument of ``extract_status_bar.js``: noise and type keywords of every language."""
+    """The argument of ``extract_status_bar.js``: noise and type keywords of every language.
+
+    ``checkSuccess`` holds the syntax check success messages that contain error words (#1088).
+    """
     st = lang.universal().status_type
-    return script_arg({"noise": st.noise, "error": st.error, "warning": st.warning, "success": st.success})
+    return script_arg(
+        {
+            "noise": st.noise,
+            "error": st.error,
+            "warning": st.warning,
+            "success": st.success,
+            "checkSuccess": st.check_success,
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
