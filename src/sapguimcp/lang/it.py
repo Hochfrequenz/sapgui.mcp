@@ -38,9 +38,26 @@ from sapguimcp.lang.text import RegexText, Template, Text
 IT = LanguagePack(
     code="IT",
     html_lang="it",
-    logon_dropdown="Italiano",  # TODO verify in the WebGUI logon dropdown (task 3)
+    logon_dropdown="Italiano",
     date_format="%d.%m.%Y",  # T005X-DATFM = 1 for country IT
-    same_as_en=frozenset({"keys.names[Alt]", "keys.names[Ctrl]", "keys.names[Shift]", "se09.organizer_title", "se24.class_builder", "se24.interface_label", "se24.interfaces_tab", "se37.function_builder", "sm30.display_view", "st22.col_error_type", "st22.col_time", "st22.date_field", "st22.source_code_of", "st22.source_line"}),
+    same_as_en=frozenset(
+        {
+            "keys.names[Alt]",
+            "keys.names[Ctrl]",
+            "keys.names[Escape]",
+            "se09.organizer_title",
+            "se24.class_builder",
+            "se24.interface_label",
+            "se24.interfaces_tab",
+            "se37.function_builder",
+            "sm30.display_view",
+            "st22.col_error_type",
+            "st22.col_time",
+            "st22.date_field",
+            "st22.source_code_of",
+            "st22.source_line",
+        }
+    ),
     common=CommonSection(
         display=Text(("Visualizzare",)),
         display_change_toggle=Text(("Visualizzare <-> Modificare",)),
@@ -50,9 +67,7 @@ IT = LanguagePack(
         no_entries=Text(
             ("No entries found",)
         ),  # TODO translate (Manual: SAP text differs: ECC release has 'Es wurden keine Einträge gemäß Selektion gefunden' (SV 004), pack DE has 'Keine Einträge gefunden')
-        row_select_hint=Text(
-            ("To select a row", "To select")
-        ),  # TODO translate (Manual: WebGUI framework text: ARIA hint of a selectable table row)
+        row_select_hint=Text(("Per selezionare",)),
         user=Text(("Utente",)),
         program=Text(("Progr.",)),
     ),
@@ -73,9 +88,7 @@ IT = LanguagePack(
             ("Maint. in orig. lang.",)
         ),  # TODO translate (Manual: popup button text seen live; not found in D021T or RSMPTEXTS)
         button_labels=Text(("Sì", "No", "OK", "Interrompere")),
-        close=Text(
-            ("Close",), fold=False
-        ),  # TODO translate (Manual: WebGUI framework tooltip of a popup's close control)
+        close=Text(("Chiudere", "Chiudi"), fold=False),
         abapgit_error_keywords=Text(("not found",)),  # TODO translate (Manual: abapGit UI text)
         abapgit_button_labels=Text(("Interrompere", "Sì", "No")),
         abapgit_inactive_objects=Text(("Inactive Objects",)),  # TODO translate (Manual: abapGit UI text)
@@ -90,18 +103,10 @@ IT = LanguagePack(
         success=Text(
             ("saved", "created", "successful")
         ),  # TODO translate (Manual: keyword list inferring the message type from its text)
-        noise=Text(
-            ("Message Bar", "View Details", "Execute", "Emphasized"), fold=False
-        ),  # TODO translate (Manual: WebGUI framework texts of the message bar (label, buttons, emphasis))
-        success_prefix=Text(
-            ("Success",), fold=False
-        ),  # TODO translate (Manual: WebGUI framework text: message type in the message-bar ARIA label)
-        error_prefix=Text(
-            ("Error",), fold=False
-        ),  # TODO translate (Manual: WebGUI framework text: message type in the message-bar ARIA label)
-        message_bar=Text(
-            ("Message Bar",), fold=False
-        ),  # TODO translate (Manual: WebGUI framework text: the message bar's ARIA label)
+        noise=Text(("Barra messaggi", "Visualizza dettagli", "Eseguire", "Evidenziato"), fold=False),
+        success_prefix=Text(("Correttamente",), fold=False),
+        error_prefix=Text(("Errore",), fold=False),
+        message_bar=Text(("Barra messaggi",), fold=False),
         check_success=Text(
             ("No syntax errors", "Object activated", "generated successfully")
         ),  # TODO translate (Manual: fragments of several syntax check and activation messages)
@@ -112,37 +117,23 @@ IT = LanguagePack(
         ),  # TODO translate (Manual: negating fragments of activation messages)
     ),
     session_pages=SessionPagesSection(
-        already_logged_on=Text(
-            ("already logged",)
-        ),  # TODO translate (Manual: WebGUI logon page (ICF), not in SAP's text tables)
-        continue_button=Text(
-            ("Continue",)
-        ),  # TODO translate (Manual: WebGUI logon page (ICF), not in SAP's text tables)
-        timed_out=Text(
-            ("session timeout", "session expired", "logged off")
-        ),  # TODO translate (Manual: WebGUI timeout and logoff pages (ICF), not in SAP's text tables)
-        settings_menu=Text(
-            ("Settings",), fold=False
-        ),  # TODO translate (Manual: WebGUI framework tooltip of the settings menu)
-        settings_stem=Text(("Setting",)),  # TODO translate (Manual: stem of the WebGUI settings menu tooltip)
-        okcode_option=Text(
-            ("OK-Code", "Transaction Field")
-        ),  # TODO translate (Manual: WebGUI framework settings menu entry)
+        already_logged_on=Text(("già effettuato il logon",)),
+        continue_button=Text(("Continuare", "Proseguire")),
+        timed_out=Text(("sessione è scaduta", "Timeout sessione", "eseguito il logoff")),
+        settings_menu=Text(("Impostazioni",), fold=False),
+        settings_stem=Text(("Impostazion",)),
+        okcode_option=Text(("codice OK",)),
         debugger_window=Text(("ABAP debugger", "ABAP Debugger"), fold=False),
     ),
     keys=KeysSection(
         names=canonical(
             {
                 Key.CTRL: Text(("Ctrl",), word=True),
-                Key.SHIFT: Text(("Shift",), word=True),
+                Key.SHIFT: Text(("Shift", "Maiusc"), word=True),
                 Key.ALT: Text(("Alt",), word=True),
-                Key.ENTER: Text(("Invio", "Enter"), word=True),
-                Key.DELETE: Text(
-                    ("Delete",), word=True
-                ),  # TODO translate (Manual: keyboard key name of the SAP GUI client, not in SAP's text tables)
-                Key.ESCAPE: Text(
-                    ("Escape", "Esc"), word=True
-                ),  # TODO translate (Manual: keyboard key name of the SAP GUI client, not in SAP's text tables)
+                Key.ENTER: Text(("Invio", "Enter", "Inserimento"), word=True),
+                Key.DELETE: Text(("Cancellare", "Delete"), word=True),
+                Key.ESCAPE: Text(("Escape", "Esc"), word=True),
             }
         ),
     ),
@@ -152,9 +143,7 @@ IT = LanguagePack(
         se38_initial_title=Text(("videata iniziale",)),
     ),
     catalog=CatalogSection(
-        screen_header=Text(
-            ("Screen number",)
-        ),  # TODO translate (Manual: SE16 column header of the TSTC screen number (DYPNO); EN seen in a WebGUI capture)
+        screen_header=Text(("Dynpro", "N.dynpro")),
     ),
     quick_report=QuickReportSection(
         empty_patterns=Text(
@@ -176,9 +165,7 @@ IT = LanguagePack(
         customizing_requests=Text(("Richieste customizing",)),
         expand=Text(("Esplodere",)),
         compress=Text(("Comprimere",)),
-        list_region=Text(
-            ("List",)
-        ),  # TODO translate (Manual: WebGUI ARIA label of the ABAP list region; EN value not yet read live (#1044))
+        list_region=Text(("Lista",)),
         organizer_title=Text(("Transport Organizer",)),
         request_word=Text(("Richiesta", "Rich.")),
     ),
@@ -189,22 +176,16 @@ IT = LanguagePack(
         transparent_table=Text(("Tabella trasp.",)),
         structure=Text(("Struttura",)),
         short_description=Text(("Descrizione breve",)),
-        row_select_full=RegexText(
-            ("To select a row, press the space bar\\.",)
-        ),  # TODO translate (Manual: WebGUI framework text: ARIA hint of a selectable table row)
-        data_type_name_label=Text(
-            ("Name of Dictionary Type",)
-        ),  # TODO translate (Manual: quick info of the DDIC type name field, WebGUI input title)
+        row_select_full=RegexText((r'Per selezionare[^"]*barra spaziatrice\.',)),
+        data_type_name_label=Text(("Nome del tipo Dictionary",)),
     ),
     se16=Se16Section(
         hit_count_label=Text(("N. risultati",)),
-        column_selection=Text(
-            ("Column for row selection",)
-        ),  # TODO translate (Manual: ALV list framework text (row selection column), not in D021T)
+        column_selection=Text(("Colonna per selezione riga",)),
         no_values_found=Text(("Valori non trovati",)),
         table_label=Text(("Tabella",)),
         max_hits_label=Text(("N. massimo risultati",)),
-        empty_cell=Text(("Empty",)),  # TODO translate (Manual: WebGUI framework text of empty grid rows)
+        empty_cell=Text(("Vuoto",)),
         table_not_found=Text(("inesistente", "non esiste", "non è attiva nel Dictionary")),
         selection_columns=Text(("Nm.campo", "Da val.", "A valore", "Nome tecnico")),
         results_title=Text(("hit", "inserimenti trovati")),
@@ -266,9 +247,7 @@ IT = LanguagePack(
     ),
     se38=Se38Section(
         initial_screen=Text(("videata iniziale",)),
-        program_field_title=Text(
-            ("ABAP Program Name", "Program")
-        ),  # TODO translate (Manual: title attribute of the program name input)
+        program_field_title=Text(("Nome programma ABAP", "Programma")),
     ),
     se93=Se93Section(
         initial_screen=Text(("Agg. transazioni",)),
@@ -294,13 +273,11 @@ IT = LanguagePack(
         external_id=Text(("Identif.esterno",)),
         from_datetime=Text(("Da (data/ora)",)),
         to_datetime=Text(("A (data/ora)",)),
-        log_number=Text(("Log Number",)),  # TODO translate (Manual: list column title of the log grid, not looked up)
-        col_date=Text(("Date",)),  # TODO translate (Manual: list column title of the log grid, not looked up)
-        col_time=Text(("Time",)),  # TODO translate (Manual: list column title of the log grid, not looked up)
-        col_messages=Text(
-            ("No. Messages",)
-        ),  # TODO translate (Manual: list column title of the log grid, not looked up)
-        empty_cell=Text(("Empty",)),  # TODO translate (Manual: WebGUI framework text for an empty grid cell)
+        log_number=Text(("Numero registro", "N. registro")),
+        col_date=Text(("Data",)),
+        col_time=Text(("Ora",)),
+        col_messages=Text(("Messaggi totali",)),
+        empty_cell=Text(("Vuoto",)),
     ),
     sm30=Sm30Section(
         initial_screen=Text(("Aggiornamento view tabella", "Agg. view tab.")),
@@ -326,20 +303,14 @@ IT = LanguagePack(
         col_status=Text(("Stato",)),
         job_name=Text(("Nome job",), fold=False),
         user_name=Text(("Nome utente",), fold=False),
-        from_date=Text(
-            ("From Date",)
-        ),  # TODO translate (Manual: WebGUI label: 'von' / 'From' (SAPLBTCH 2170 FROM) plus the date field's own label)
-        to_date=Text(
-            ("To Date",)
-        ),  # TODO translate (Manual: WebGUI label: 'bis' / 'To' (SAPLBTCH 2170 TO) plus the date field's own label)
+        from_date=Text(("Da data",)),
+        to_date=Text(("A data",)),
         job_log_button=Text(("Registro job", "Visualizzare registro job")),
         job_log_heading=Text(("Riepilogo reg. job",), fold=False),
         job_log_title_ecc=Text(("Registro job per job",)),
         job_list_heading=Text(("Riepilogo job",), fold=False),
         no_jobs=Text(("Nessun job corrisponde",)),
-        select_hint=Text(
-            ("To select",), fold=False
-        ),  # TODO translate (Manual: hint line of the classic list, not looked up)
+        select_hint=Text(("Per selezionare",), fold=False),
         selected_hint=Text(("selezionati",), fold=False),
         event_driven=Text(("Contr.da evento",), fold=False),
         abap_program=Text(("Progr. ABAP",), fold=False),
@@ -352,9 +323,7 @@ IT = LanguagePack(
     spro=SproSection(
         initial_screen=Text(("Customizing: elaborazione progetto",)),
         sap_reference_img=Text(("IMG di riferim. SAP", "IMG di riferimento SAP")),
-        search_button=Text(
-            ("Find (Ctrl+F)",)
-        ),  # TODO translate (Manual: IMG tree and toolbar texts of the customizing tool, not found in the supported text tables)
+        search_button=Text(("Cercare (Ctrl+F)",)),
         search_dialog=Text(("Ricerca nella struttura",)),
         search_field=Text(("Chiave ric.",)),
         results_dialog=Text(("Lista ris.",)),
