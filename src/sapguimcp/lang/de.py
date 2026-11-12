@@ -85,7 +85,9 @@ DE = LanguagePack(
         success_prefix=Text(("Erfolgreich",), fold=False),
         error_prefix=Text(("Fehler",), fold=False),
         message_bar=Text(("Meldungsleiste",), fold=False),
-        check_success=Text(("keine Syntaxfehler", "Aktives Objekt wurde generiert", "Objekt wurde aktiviert")),
+        check_success=Text(
+            ("keine Syntaxfehler", "kein Syntaxfehler", "Aktives Objekt wurde generiert", "Objekt wurde aktiviert")
+        ),
         check_error=Text(("Syntaxfehler",)),
         activation_confirmed=Text(("aktiviert",)),
         activation_denied=Text(("nicht aktiv", "konnte nicht", "kann nicht", "fehlgeschlagen", "deaktiv", "inaktiv")),
