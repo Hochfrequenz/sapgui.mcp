@@ -42,7 +42,7 @@ def _write(path: Path, **overrides: str) -> None:
 
 
 def test_supported_languages_come_from_the_language_packs() -> None:
-    assert supported_languages() == ("DE", "EN")
+    assert supported_languages() == ("DE", "EN", "IT")
     assert not hasattr(config_module, "SUPPORTED_LANGUAGES")  # no second copy of the list
 
 
@@ -62,12 +62,12 @@ def test_config_accepts_every_registered_pack_language(monkeypatch: pytest.Monke
     monkeypatch.setattr(config_module, "load_sap_config", fake_load)
     with _register_for_tests(synthetic_pack()):
         config_module.get_sap_config()
-    assert seen == [("DE", "EN", "XX")]
+    assert seen == [("DE", "EN", "IT", "XX")]
 
 
 def test_unsupported_language_fails_loudly(config_file: Path) -> None:
-    _write(config_file, language="IT")
-    with pytest.raises(ValueError, match=r'language must be one of "DE", "EN"') as excinfo:
+    _write(config_file, language="FR")
+    with pytest.raises(ValueError, match=r'language must be one of "DE", "EN", "IT"') as excinfo:
         config_module.get_sap_config()
     assert "not-a-real-password" not in str(excinfo.value)
     assert config_module._sap_config is None  # failure is not cached  # pylint: disable=protected-access

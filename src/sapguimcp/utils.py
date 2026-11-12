@@ -12,13 +12,13 @@ from typing import Any, Literal
 
 logger = logging.getLogger(__name__)
 
-SapLanguage = Literal["DE", "EN"]
+SapLanguage = Literal["DE", "EN", "IT"]
 
 
 def as_sap_language(value: str) -> SapLanguage:
-    """Narrow a configured language string to the two values date formatting handles.
+    """Narrow a configured language string to the values date formatting handles.
 
-    The configured language is only guaranteed to be ``DE`` or ``EN`` because
+    The configured language is only guaranteed to be ``DE``, ``EN`` or ``IT`` because
     ``sapguimcp.models.config`` passes this module's :data:`SapLanguage` values
     to ``sap-mcp-config`` as ``supported_languages`` when loading (since
     sap-mcp-config 2.0.0 the library no longer hardcodes the list).  The check
@@ -35,6 +35,8 @@ def as_sap_language(value: str) -> SapLanguage:
     normalized = value.strip().upper()
     if normalized == "DE":
         return "DE"
+    if normalized == "IT":
+        return "IT"
     if normalized != "EN":
         logger.warning(
             "unexpected configured language, falling back to EN",
@@ -49,17 +51,17 @@ def format_sap_date(iso_date: str, language: SapLanguage) -> str:
 
     Args:
         iso_date: Date string in YYYY-MM-DD format (e.g., "2026-02-22")
-        language: SAP language code ("DE" or "EN")
+        language: SAP language code ("DE", "EN" or "IT")
 
     Returns:
         Formatted date string:
-        - DE: DD.MM.YYYY (e.g., "22.02.2026")
+        - DE, IT: DD.MM.YYYY (e.g., "22.02.2026")
         - EN: MM/DD/YYYY (e.g., "02/22/2026")
 
     Raises:
         ValueError: If iso_date is not in YYYY-MM-DD format
     """
-    return format_sap_date_as(iso_date, "%d.%m.%Y" if language == "DE" else "%m/%d/%Y")
+    return format_sap_date_as(iso_date, "%d.%m.%Y" if language in ("DE", "IT") else "%m/%d/%Y")
 
 
 def format_sap_date_as(iso_date: str, date_format: str) -> str:

@@ -1,7 +1,7 @@
-"""IT language pack: DRAFT from scripts/harvest_lang_texts.py --draft (#1044).
+"""IT language pack (#1041, #1044).
 
-Every ``TODO`` comment marks a field a person has to settle; remove it afterwards. Not registered:
-follow ``ADDING_A_LANGUAGE.md`` (format with ruff, then register in ``__init__.py``).
+Texts come from SAP (``scripts/harvest_lang_texts.py IT --draft`` and ``--verify``) or from the screen read with an
+Italian logon. Every ``TODO`` comment marks a field a person still has to settle; remove it afterwards.
 """
 
 from sapguimcp.lang.schema import (
