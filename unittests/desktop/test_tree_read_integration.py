@@ -20,8 +20,8 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 # Standard FI view cluster that exists on S/4HANA and ECC.
 SM34_CLUSTER = "VC_055_D"
-# Standard IMG area, in English and German logon languages.
-IMG_AREA_TEXTS = ("Enterprise Structure", "Unternehmensstruktur")
+# Standard IMG area, in English, German and Italian logon languages.
+IMG_AREA_TEXTS = ("Enterprise Structure", "Unternehmensstruktur", "Struttura impresa")
 
 
 async def _read(backend, **kwargs: Any) -> dict[str, Any]:  # type: ignore[no-untyped-def]

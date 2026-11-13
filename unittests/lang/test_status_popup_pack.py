@@ -64,10 +64,33 @@ def test_desktop_popup_type_in_every_language(title: str, message: str, expected
         ("Objekt konnte nicht aktiviert werden", False),
         ("Object could not be activated", False),
         ("Programm ZFOO gesichert", False),
+        ("Oggetto attivato", True),
+        ("La classe non è stata attivata", False),
+        ("Gli oggetti non sono stati attivati", False),
+        ("Le classi non sono state attivate", False),
     ],
 )
 def test_activation_confirmation_in_every_language(message: str, confirmed: bool) -> None:
     assert _confirms_activation(message) is confirmed
+
+
+@pytest.mark.usefixtures("any_session")
+@pytest.mark.parametrize(
+    "message",
+    [
+        "No authorization to create a change request or task",  # TK 601
+        "Failed to create job step & (see system log)",  # BT 027
+    ],
+)
+def test_other_packs_success_words_do_not_match_english_failures(message: str) -> None:
+    """status_type is merged over every pack: a success word of one language must not match another's failures."""
+    assert not lang.universal().status_type.success.contains(message)
+
+
+@pytest.mark.usefixtures("any_session")
+@pytest.mark.parametrize("message", ["Il programma ZFOO è stato creato", "La classe ZCL_FOO è stata creata"])
+def test_italian_creation_messages_are_successes(message: str) -> None:
+    assert lang.universal().status_type.success.contains(message)
 
 
 @pytest.mark.usefixtures("any_session")
@@ -111,17 +134,25 @@ def test_shortcuts_come_back_with_canonical_key_names(title: str, shortcut: str)
 
 
 def test_settings_button_selector_is_unchanged() -> None:
-    """The test-only selector is exactly the one of before the packs (English first, EN aria-label)."""
+    """The test-only selector keeps the order of before the packs (English first, EN aria-label).
+
+    The stems of packs added later (Italian) follow the German one.
+    """
     assert SELECTORS["settings_button"] == (
-        '[id*="settingsButton"], [title*="Setting" i], [title*="Einstellung" i], '
+        '[id*="settingsButton"], [title*="Setting" i], [title*="Einstellung" i], [title*="Impostazion" i], '
         'button[id*="gear" i], [aria-label*="Setting" i]'
     )
 
 
 def test_popup_close_titles_keep_the_old_order() -> None:
-    """check_popup.js tries [title*='Close'] before [title*='Schlie'], as before the packs."""
+    """check_popup.js tries [title*='Close'] before [title*='Schlie'], as before the packs; Italian comes after."""
     universal = lang.universal().popup.close
-    assert lang.english_first(universal, lang.pack_for("EN").popup.close).variants == ("Close", "Schlie")
+    assert lang.english_first(universal, lang.pack_for("EN").popup.close).variants == (
+        "Close",
+        "Schlie",
+        "Chiudere",
+        "Chiudi",
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -42,7 +42,7 @@ ADT MCPs and this GUI MCP complement each other in a two-agent vibe-coding setup
 The core of this MCP is _not_ language-specific, meaning it generally works with any SAP logon language.
 However, there is also built-in support for specific transactions like `SE16` or `ST22`.
 These transaction-specific tools only work for certain logon languages, because the MCP server relies on button or column labels, which vary by language.
-As of 2026-11-12 we support English (`EN`) and German (`DE`); [Italian `IT` is being worked on](https://github.com/Hochfrequenz/sapgui.mcp/issues/1041).
+We support English (`EN`), German (`DE`) and Italian (`IT`).
 
 ### Under the hood
 
@@ -868,7 +868,7 @@ Your AI client automatically discovers all individual tools and their schemas dy
 
 ### SAP Credentials (via `systems.json`)
 
-SAP credentials (user, password, client, language, host) are configured in `systems.json` (or `systems.yaml`), **not** via server environment variables. See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the file format. Override the config file path with `SAP_CONFIG_FILE`. The `language` of each system must be `DE` or `EN` (case-insensitive; omitted means `EN`) - these are the languages this server supports, and any other value, such as `IT`, is rejected when the config is loaded with `language must be one of "DE", "EN"`. Older versions read `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`, `SAP_LANGUAGE`, `SAP_CONNECTION_NAME` and `SAP_CREDENTIALS` from the MCP config's `env` block; these are ignored now and can be removed from existing configs.
+SAP credentials (user, password, client, language, host) are configured in `systems.json` (or `systems.yaml`), **not** via server environment variables. See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the file format. Override the config file path with `SAP_CONFIG_FILE`. The `language` of each system must be `DE`, `EN` or `IT` (case-insensitive; omitted means `EN`) - these are the languages this server supports, and any other value, such as `FR`, is rejected when the config is loaded with `language must be one of "DE", "EN", "IT"`. Older versions read `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`, `SAP_LANGUAGE`, `SAP_CONNECTION_NAME` and `SAP_CREDENTIALS` from the MCP config's `env` block; these are ignored now and can be removed from existing configs.
 
 Individual fields may still be sourced from the environment with an `${env:VAR}` placeholder - e.g. `"password": "${env:SAP_DEV_PASSWORD}"` - which keeps secrets out of the file while the structure stays in it. Placeholders work in `connection_name`, `host`, `client`, `user`, `password`, `language`, `oauth2_client_id` and the top-level `default_system`.
 

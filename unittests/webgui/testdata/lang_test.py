@@ -159,7 +159,43 @@ TEST_EN = UiTestPack(
     ),
 )
 
-UI_TEST_PACKS: dict[str, UiTestPack] = {pack.code: pack for pack in (TEST_DE, TEST_EN)}
+TEST_IT = UiTestPack(
+    code="IT",
+    # SAP keeps the EN short text of BP role 000000 in Italian (TB003T: "Business Partner (Gen.)").
+    same_as_en=frozenset({"buttons.ok", "bp.no_button", "bp.gp_role_default"}),
+    bp=BpTexts(
+        postal_code=Text(("CAP",)),
+        city=Text(("Località",)),
+        street=Text(("Via",)),
+        gp_role_label=Text(("Ruolo BP",)),
+        grouping_label=Text(("Raggruppamento", "Raggrupp.")),
+        gp_role_default=Text(("Business Partner",)),
+        yes_button=Text(("Sì",), word=True),
+        no_button=Text(("No",), word=True),
+    ),
+    sm30=Sm30Texts(
+        maintain_button=Text(("Aggiorna", "Agg.")),
+        table_view_label=Text(("Tabella/view",)),
+    ),
+    se38=Se38Texts(
+        create_button=Text(("Creare",)),
+        continue_button=Text(("Continuare", "Continua", "Proseguire")),
+        long_doc_button=Text(("Testo esteso",)),
+    ),
+    se16=Se16Texts(
+        online_manual_action=Text(("Manuale online",)),
+        table_contents_action=Text(("Contenuto tabella",)),
+    ),
+    spro=SproTexts(img_area_search=Text(("Contabilità",))),
+    buttons=ButtonTexts(
+        cancel=Text(("Interrompere",)),
+        ok=Text(("OK",)),
+        save=Text(("Salva",)),
+        back=Text(("Indietro",)),
+    ),
+)
+
+UI_TEST_PACKS: dict[str, UiTestPack] = {pack.code: pack for pack in (TEST_DE, TEST_EN, TEST_IT)}
 """Test packs by SAP language key; the completeness test requires one per registered language."""
 
 

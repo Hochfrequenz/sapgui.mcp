@@ -28,6 +28,7 @@ from typing import TYPE_CHECKING
 from sapguimcp.lang.de import DE
 from sapguimcp.lang.en import EN
 from sapguimcp.lang.invariant import INVARIANT, Invariant
+from sapguimcp.lang.it import IT
 from sapguimcp.lang.schema import LanguagePack, UniversalView, merge, sections
 from sapguimcp.lang.text import HasAlt, RegexText, Template, Text, alt_of
 from sapguimcp.session_language import current_language, normalize_language, set_session_language, use_language
@@ -59,7 +60,7 @@ __all__ = [
 
 FALLBACK_LANGUAGE = "EN"
 
-_PACKS: dict[str, LanguagePack] = {pack.code: pack for pack in (DE, EN)}
+_PACKS: dict[str, LanguagePack] = {pack.code: pack for pack in (DE, EN, IT)}
 """Registered packs in registration order (the order of :func:`supported_languages`)."""
 
 _views: dict[str, LanguagePack] = {}
@@ -84,7 +85,7 @@ class UnsupportedLanguageError(RuntimeError):
 
 
 def supported_languages() -> tuple[str, ...]:
-    """SAP language keys that have a pack, in registration order (``("DE", "EN")``)."""
+    """SAP language keys that have a pack, in registration order (``("DE", "EN", "IT")``)."""
     return tuple(_PACKS)
 
 

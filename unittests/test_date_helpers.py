@@ -20,11 +20,15 @@ class TestFormatSapDate:
     def test_en_single_digit_month(self) -> None:
         assert format_sap_date("2026-01-05", "EN") == "01/05/2026"
 
+    def test_it_matches_de_format(self) -> None:
+        """IT uses DD.MM.YYYY (T005X-DATFM 1 for Italy), like DE."""
+        assert format_sap_date("2026-02-22", "IT") == "22.02.2026"
+
     def test_invalid_date_raises(self) -> None:
         with pytest.raises(ValueError):
             format_sap_date("not-a-date", "DE")
 
     def test_lowercase_language_not_supported(self) -> None:
-        """Lowercase language codes are not valid SapLanguage values (Literal['DE', 'EN'])."""
+        """Lowercase language codes are not valid SapLanguage values (Literal['DE', 'EN', 'IT'])."""
         # "de" doesn't match "DE", so it falls through to EN format
         assert format_sap_date("2026-02-22", "de") == "02/22/2026"  # type: ignore[arg-type]

@@ -28,7 +28,7 @@ def _write_it(path: Path) -> None:
         "client": "100",
         "user": "testuser",
         "password": "not-a-real-password",
-        "language": "IT",
+        "language": "FR",
     }
     path.write_text(json.dumps({"default_system": "dev", "systems": {"dev": system}}), encoding="utf-8")
 
@@ -63,7 +63,7 @@ def test_missing_file_is_silent(config_file: Path) -> None:
 
 def test_valid_config_returned(config_file: Path) -> None:
     _write_it(config_file)
-    text = config_file.read_text(encoding="utf-8").replace('"IT"', '"DE"')
+    text = config_file.read_text(encoding="utf-8").replace('"FR"', '"DE"')
     config_file.write_text(text, encoding="utf-8")
     cfg, message = config_module.try_get_sap_config()
     assert message is None
