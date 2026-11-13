@@ -311,7 +311,7 @@ All settings are in `src/sapguimcp/models/config.py` and loaded from environment
 | Variable       | Description           | Default  |
 | -------------- | --------------------- | -------- |
 | `BACKEND_TYPE` | `desktop` or `webgui` | `webgui` |
-| `SAP_LANGUAGE` | `DE` or `EN`          | `EN`     |
+| `SAP_LANGUAGE` | `DE`, `EN` or `IT`    | `EN`     |
 
 **Desktop-only:** Connection name is configured in `~/.config/sap-mcp/systems.json`
 
