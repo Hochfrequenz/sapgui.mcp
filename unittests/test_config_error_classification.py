@@ -1,6 +1,7 @@
 """Config load errors are classified in one helper and never crash the server."""
 
 import json
+import traceback
 from pathlib import Path
 from unittest.mock import patch
 
@@ -9,6 +10,7 @@ import pytest
 from sapguimcp import server
 from sapguimcp.models import config as config_module
 from sapguimcp.tools.sap_list_connections_impl import _get_configured_systems
+from sapguimcp.tools.sap_login_impl import sap_login_impl
 
 
 @pytest.fixture(name="config_file")
@@ -149,3 +151,51 @@ def test_multiple_errors_joined_by_newline(config_file: Path) -> None:
     assert message
     assert "\n" in message
     assert "; " not in message
+
+
+@pytest.fixture(name="secret_yaml_config")
+def _secret_yaml_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A malformed YAML config whose broken line holds a password."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(config_module, "_sap_config", None)
+    monkeypatch.setenv("SAP_CONFIG_FILE", str(_write_malformed_yaml_with_secret(tmp_path / "x")))
+
+
+def _assert_clean(exc: BaseException) -> None:
+    assert isinstance(exc, ValueError)
+    assert "line 3" in str(exc)
+    assert _SECRET not in str(exc)
+    # Not even a logged traceback may show PyYAML's original message.
+    assert _SECRET not in "".join(traceback.format_exception(exc))
+
+
+@pytest.mark.usefixtures("secret_yaml_config")
+def test_get_sap_config_raises_without_echoing_content() -> None:
+    """#1045: callers of get_sap_config get the sanitised message, not PyYAML's."""
+    with pytest.raises(ValueError, match="invalid YAML") as info:
+        config_module.get_sap_config()
+    _assert_clean(info.value)
+
+
+@pytest.mark.usefixtures("secret_yaml_config")
+def test_credentials_for_raises_without_echoing_content() -> None:
+    with pytest.raises(ValueError, match="invalid YAML") as info:
+        config_module.SapGuiSettings(_env_file=None).credentials_for("dev")
+    _assert_clean(info.value)
+
+
+@pytest.mark.anyio
+@pytest.mark.usefixtures("secret_yaml_config")
+async def test_sap_login_raises_without_echoing_content() -> None:
+    with pytest.raises(ValueError, match="invalid YAML") as info:
+        await sap_login_impl()
+    _assert_clean(info.value)
+
+
+def test_invalid_content_raises_clean_value_error(config_file: Path) -> None:
+    """A pydantic error reaches direct callers as <location>: <message>, without its noise."""
+    _write_it(config_file)
+    with pytest.raises(ValueError, match="language must be one of") as info:
+        config_module.get_sap_config()
+    assert "validation error for Config" not in str(info.value)
+    assert "not-a-real-password" not in "".join(traceback.format_exception(info.value))
