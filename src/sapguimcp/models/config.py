@@ -41,14 +41,50 @@ def get_sap_config() -> SapMcpConfig:
     """Load the shared SAP system config (singleton).
 
     A system whose ``language`` has no language pack (``lang.supported_languages()``) makes this
-    raise a ``ValueError`` (pydantic ``ValidationError``) instead of letting the
-    language through.  An omitted language defaults to ``EN``.  A failed load is
-    not cached, so fixing the file takes effect on the next call.
+    raise a ``ValueError`` instead of letting the language through.  An omitted
+    language defaults to ``EN``.  A failed load is not cached, so fixing the file
+    takes effect on the next call.
+
+    Invalid content and malformed YAML are raised as a plain ``ValueError``
+    carrying the message of :func:`_describe_config_error`, with no original
+    exception attached (neither ``__cause__`` nor ``__context__``), because
+    PyYAML's own message quotes the offending source line, which may hold a
+    password, and a tool's error reaches the MCP client (#1045).  A missing or
+    unreadable file keeps its ``OSError``.
     """
     global _sap_config  # pylint: disable=global-statement
-    if _sap_config is None:
+    if _sap_config is not None:
+        return _sap_config
+    message = ""
+    try:
         _sap_config = load_sap_config(supported_languages=supported_languages())
-    return _sap_config
+        return _sap_config
+    except (ValidationError, yaml.YAMLError) as exc:
+        message = _describe_config_error(exc)
+    # Raised outside the except block, so the original stays unreachable.
+    raise ValueError(message)
+
+
+def _describe_config_error(exc: ValidationError | yaml.YAMLError) -> str:
+    """Describe a config load error without quoting YAML source lines or secret values.
+
+    YAML errors are reduced to a fixed text plus line/column, because PyYAML's own
+    message quotes the source line, which may hold a password, and pydantic errors
+    to ``<location>: <message>`` (the location holds keys only).
+    sap-mcp-config's own messages deliberately quote the offending value of
+    non-secret fields (host, client, language, default_system), e.g.
+    ``got "IT"``, so the user sees what to fix.
+    """
+    if isinstance(exc, ValidationError):
+        lines = []
+        for err in exc.errors():
+            loc = ".".join(str(part) for part in err["loc"])
+            msg = str(err["msg"]).removeprefix("Value error, ")
+            lines.append(f"{loc}: {msg}" if loc else msg)
+        return "\n".join(lines)
+    mark = getattr(exc, "problem_mark", None)
+    where = f" (line {mark.line + 1}, column {mark.column + 1})" if mark else ""
+    return "invalid YAML in the SAP config file" + where
 
 
 def try_get_sap_config() -> tuple[SapMcpConfig | None, str | None]:
@@ -57,31 +93,15 @@ def try_get_sap_config() -> tuple[SapMcpConfig | None, str | None]:
     Returns ``(config, None)`` on success, ``(None, None)`` when no config file
     exists (a legitimate landscape-only setup, stays silent) and
     ``(None, <message>)`` for every other load failure: invalid content
-    (``ValueError``, including pydantic ``ValidationError``), unreadable path
+    (``ValueError``), unreadable path
     (``OSError`` such as ``IsADirectoryError`` / ``PermissionError``) and
     malformed YAML.  The message never quotes YAML source lines or secret
-    values: YAML errors are reduced to a fixed text plus line/column, because
-    PyYAML's own message quotes the source line, which may hold a password, and
-    pydantic errors to ``<location>: <message>`` (the location holds keys only).
-    sap-mcp-config's own messages deliberately quote the offending value of
-    non-secret fields (host, client, language, default_system), e.g.
-    ``got "IT"``, so the user sees what to fix.
+    values, see :func:`_describe_config_error`.
     """
     try:
         return get_sap_config(), None
     except FileNotFoundError:
         return None, None
-    except ValidationError as exc:
-        lines = []
-        for err in exc.errors():
-            loc = ".".join(str(part) for part in err["loc"])
-            msg = str(err["msg"]).removeprefix("Value error, ")
-            lines.append(f"{loc}: {msg}" if loc else msg)
-        return None, "\n".join(lines)
-    except yaml.YAMLError as exc:
-        mark = getattr(exc, "problem_mark", None)
-        where = f" (line {mark.line + 1}, column {mark.column + 1})" if mark else ""
-        return None, "invalid YAML in the SAP config file" + where
     except (ValueError, OSError) as exc:
         return None, str(exc) or type(exc).__name__
 
