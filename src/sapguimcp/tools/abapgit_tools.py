@@ -232,14 +232,25 @@ async def _check_for_error_popup_desktop(backend: "WebGuiBackend | DesktopBacken
     return popup.message
 
 
+async def _read_screen_text_desktop(backend: "WebGuiBackend | DesktopBackend") -> str:
+    """The text to scan for errors on the desktop backend: the COM snapshot of the screen."""
+    snapshot = await backend.get_snapshot()
+    return str(snapshot)
+
+
+async def _read_screen_text_webgui(backend: "WebGuiBackend") -> str:
+    """The text to scan for errors on the WebGUI backend: the inner text of the page body."""
+    body_text: str = await backend.evaluate_javascript("() => document.body.innerText || ''")
+    return body_text
+
+
 async def _check_screen_for_errors(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> str | None:
     """Check the entire screen for error indicators as a fallback."""
     try:
         if backend.backend_type == "desktop":
-            snapshot = await backend.get_snapshot()
-            body_text = str(snapshot)
+            body_text = await _read_screen_text_desktop(backend)
         else:
-            body_text = await cast("WebGuiBackend", backend).evaluate_javascript("() => document.body.innerText || ''")
+            body_text = await _read_screen_text_webgui(cast("WebGuiBackend", backend))
         body_lower = body_text.lower()
 
         for pattern in (*t.abapgit.screen_errors, *INVARIANT.abapgit_screen_errors):
@@ -921,16 +932,25 @@ def _apply_list_filters(
 async def _read_report_screen(backend: "WebGuiBackend | DesktopBackend", read_problems: list[str]) -> str:
     """Read the report's WRITE output from the screen (after F8)."""
     if backend.backend_type == "desktop":
-        # On the desktop backend, WRITE output appears as labels (GuiLabel) in a classic list that is only as
-        # big as the window: read all of it, not just what is visible.
-        desktop = cast("DesktopBackend", backend)
-        await desktop.wait_for_ready()
-        if not await desktop.wait_for_condition(_abapgit_list_displayed, timeout_ms=5000):
-            logger.warning("The abapGit list did not show within 5 s, reading the screen as it is")
-        session = desktop.require_session()
-        return "\n".join(await desktop.com.run(lambda: _read_list_lines(session, read_problems)))
+        return await _read_report_screen_desktop(cast("DesktopBackend", backend), read_problems)
+    return await _read_report_screen_webgui(cast("WebGuiBackend", backend))
+
+
+async def _read_report_screen_desktop(desktop: "DesktopBackend", read_problems: list[str]) -> str:
+    """Read the report's WRITE output on the desktop backend."""
+    # On the desktop backend, WRITE output appears as labels (GuiLabel) in a classic list that is only as
+    # big as the window: read all of it, not just what is visible.
+    await desktop.wait_for_ready()
+    if not await desktop.wait_for_condition(_abapgit_list_displayed, timeout_ms=5000):
+        logger.warning("The abapGit list did not show within 5 s, reading the screen as it is")
+    session = desktop.require_session()
+    return "\n".join(await desktop.com.run(lambda: _read_list_lines(session, read_problems)))
+
+
+async def _read_report_screen_webgui(backend: "WebGuiBackend") -> str:
+    """Read the report's WRITE output on the WebGUI backend."""
     await backend.wait(3000)
-    text = await cast("WebGuiBackend", backend).evaluate_javascript("""
+    text = await backend.evaluate_javascript("""
         () => {
             const body = document.querySelector('#sapwd_main_window_root_contents') || document.body;
             return body.innerText || body.textContent || '';

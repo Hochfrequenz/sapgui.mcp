@@ -16,7 +16,6 @@ graph TD
     Server["FastMCP Server<br/>server.py"]
     Tools["Tools Layer<br/>tools/*.py — ~27 tool modules"]
     Manager["Backend Manager<br/>backend/manager.py"]
-    Protocol["SapUiBackend Protocol<br/>backend/protocol.py"]
     WebGUI["WebGuiBackend<br/>backend/webgui/backend.py<br/>(Playwright + Chrome)"]
     Desktop["DesktopBackend<br/>backend/desktop/__init__.py<br/>(COM + sapsucker)"]
     Parsers["HTML Parsers<br/>backend/webgui/parsers/*.py"]
@@ -25,9 +24,8 @@ graph TD
     Client -->|stdio/SSE| Server
     Server --> Tools
     Tools --> Manager
-    Manager --> Protocol
-    Protocol --> WebGUI
-    Protocol --> Desktop
+    Manager --> WebGUI
+    Manager --> Desktop
     WebGUI --> Parsers
     Tools --> Models
     WebGUI --> Models
@@ -39,11 +37,10 @@ graph TD
 | Layer               | Key Files                                        | What It Does                                                                                                                                                                                           |
 | ------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Server**          | `server.py`                                      | Creates the FastMCP app, registers all tools/resources/prompts, manages lifecycle                                                                                                                      |
-| **Tools**           | `tools/sap_tools.py`, `tools/se16_tools.py`, ... | Define MCP tools the LLM can call. Each tool gets a backend via `get_backend()`, calls protocol methods, returns a Pydantic result model                                                               |
+| **Tools**           | `tools/sap_tools.py`, `tools/se16_tools.py`, ... | Define MCP tools the LLM can call. Each tool gets a backend via `get_backend()` (typed `WebGuiBackend | DesktopBackend`), calls its methods, returns a Pydantic result model                                                               |
 | **Backend Manager** | `backend/manager.py`                             | Singleton that creates/caches the right backend based on `BACKEND_TYPE`. Routes session IDs to backend instances                                                                                       |
-| **Protocol**        | `backend/protocol.py`                            | Structural typing protocol (`SapUiBackend`) with 5 sub-protocols: Navigation, Primitives, Inspection, Editor, Popup. Both backends implement this — tools never import a concrete backend              |
-| **WebGUI Backend**  | `backend/webgui/backend.py`, `browser.py`        | Implements protocol via Playwright page automation. Fills fields with JavaScript, reads screens with ARIA snapshots                                                                                    |
-| **Desktop Backend** | `backend/desktop/__init__.py`                    | Implements protocol via COM scripting through [sapsucker](https://github.com/Hochfrequenz/sapsucker). Dispatches all COM calls to a dedicated thread (`_com_thread.py`) for apartment-threading safety |
+| **WebGUI Backend**  | `backend/webgui/backend.py`, `browser.py`        | Playwright page automation (`WebGuiBackend`). Fills fields with JavaScript, reads screens with ARIA snapshots                                                                                    |
+| **Desktop Backend** | `backend/desktop/__init__.py`                    | `DesktopBackend`: COM scripting through [sapsucker](https://github.com/Hochfrequenz/sapsucker). Dispatches all COM calls to a dedicated thread (`_com_thread.py`) for apartment-threading safety |
 | **Parsers**         | `backend/webgui/parsers/*.py`                    | WebGUI-specific HTML-to-structured-data extraction. One parser per transaction (e.g., `se16_parser.py`, `se24_parser.py`)                                                                              |
 | **Models**          | `models/*.py`                                    | Pydantic models for tool results, screen state, and config. Shared by both backends. Result models never import from backend or tools                                                                  |
 
@@ -89,7 +86,6 @@ src/sapguimcp/
     se24_models.py             # SE24-specific result models
     ...                        # One model file per transaction
   backend/
-    protocol.py                # SapUiBackend protocol definition
     manager.py                 # Backend factory + session routing
     types.py                   # ScreenSnapshot, AriaSnapshot, ComTreeSnapshot aliases
     webgui/
@@ -117,7 +113,6 @@ src/sapguimcp/
     se37_edit_tools.py         # SE37 function module editing
     se38_edit_tools.py         # SE38 report editing
     ...                        # More transaction tools (se09, se11, se93, sm30, sm37, slg1, spro, st22)
-    _backend_utils.py          # _is_desktop_backend() helper
     field_helpers.py           # Shared field-filling logic
     table_helpers.py           # Shared table-reading logic
     session_tools.py           # Multi-session management (list/close/detach/bind/release/reset)
@@ -250,18 +245,18 @@ def register_se99_tools(mcp: FastMCP) -> None:
         return SE99Result(data=[...])
 ```
 
-### 3. Add desktop-specific path (if needed)
+### 3. Add a desktop and a WebGUI path (if the backends differ)
 
-If the desktop backend needs different logic (e.g., COM table reading instead of HTML parsing), add a helper:
+`get_backend()` returns `WebGuiBackend | DesktopBackend`. If the backends need different logic (e.g., COM table reading instead of HTML parsing), dispatch once at the top of the tool to one function per backend, so that nothing interleaves the two paths and either side can be deleted on its own:
 
 ```python
-from sapguimcp.tools._backend_utils import _is_desktop_backend
-
-if _is_desktop_backend(backend):
-    result = await _query_se99_desktop(backend, param)
+if backend.backend_type == "desktop":
+    result = await _query_se99_desktop(cast("DesktopBackend", backend), param)
 else:
-    result = await _query_se99_webgui(backend, param)
+    result = await _query_se99_webgui(cast("WebGuiBackend", backend), param)
 ```
+
+Steps both paths share (argument checks, building the result) stay in the dispatching function.
 
 ### 4. Add a WebGUI parser (if needed)
 
