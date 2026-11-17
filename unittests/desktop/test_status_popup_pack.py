@@ -2,7 +2,7 @@
 
 These checks read ``lang.universal()``: they must work without a session language, on an
 unsupported one, and match every registered language. The WebGUI counterparts are in
-``unittests/webgui/test_status_popup_pack.py``.
+the WebGUI test directory.
 """
 
 from __future__ import annotations

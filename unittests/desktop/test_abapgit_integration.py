@@ -2,7 +2,7 @@
 Desktop backend integration tests for abapGit tools.
 
 Tests verify that the abapGit pull and list operations work via SAP GUI COM automation.
-Mirrors the WebGUI tests in unittests/webgui/test_abapgit_tools.py.
+Mirrors the WebGUI abapGit tool tests.
 """
 
 import os
