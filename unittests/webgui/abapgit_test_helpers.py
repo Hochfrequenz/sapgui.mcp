@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-ABAPGIT_REPOS_DIR = Path(__file__).parent / "abapgit_repos"
+ABAPGIT_REPOS_DIR = Path(__file__).parent.parent / "testdata" / "abapgit_repos"
 
 # Test repository configurations
 # Transport request can be overridden via SAP_TEST_TRANSPORT environment variable

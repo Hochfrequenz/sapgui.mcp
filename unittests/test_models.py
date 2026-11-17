@@ -1,11 +1,8 @@
 """Unit tests for Pydantic result models."""
 
-from datetime import timedelta
-
 import pytest
 from pydantic import ValidationError
 
-from sapguimcp.backend.webgui.models.browser_results import ClickResult, WaitResult
 from sapguimcp.models import (
     CapabilitiesResult,
     DiscoveredFields,
@@ -60,36 +57,6 @@ class TestToolResultBase:
         assert result.success is True
         assert result.extra_field == "extra_value"  # type: ignore[attr-defined]
         assert result.another == 123  # type: ignore[attr-defined]
-
-
-class TestTimedeltaSerialization:
-    """Tests for ISO 8601 timedelta serialization."""
-
-    def test_timedelta_seconds(self) -> None:
-        """Test timedelta serializes to ISO 8601 format (seconds)."""
-        result = WaitResult(timeout=timedelta(seconds=30))
-        json_data = result.model_dump_json()
-        assert '"timeout":"PT30S"' in json_data
-
-    def test_timedelta_minutes(self) -> None:
-        """Test timedelta serializes to ISO 8601 format (minutes)."""
-        result = WaitResult(timeout=timedelta(minutes=2))
-        json_data = result.model_dump_json()
-        assert '"timeout":"PT2M"' in json_data or '"timeout":"PT120S"' in json_data
-
-    def test_timedelta_complex(self) -> None:
-        """Test timedelta serializes complex durations."""
-        result = WaitResult(timeout=timedelta(minutes=2, seconds=30))
-        json_data = result.model_dump_json()
-        # Could be PT2M30S or PT150S depending on implementation
-        assert "PT" in json_data
-        assert "timeout" in json_data
-
-    def test_timedelta_milliseconds(self) -> None:
-        """Test timedelta with milliseconds."""
-        result = WaitResult(timeout=timedelta(milliseconds=500))
-        json_data = result.model_dump_json()
-        assert "PT" in json_data
 
 
 class TestTransactionCodeValidation:
@@ -201,13 +168,6 @@ class TestSubclassFailureMethod:
         assert result.success is False
         assert result.error == "Transaction failed"
         assert result.tcode == "SE16"
-
-    def test_click_result_failure(self) -> None:
-        """Test ClickResult.failure() preserves selector."""
-        result = ClickResult.failure("Element not found", selector="#button1")
-        assert result.success is False
-        assert result.error == "Element not found"
-        assert result.selector == "#button1"
 
 
 class TestModelSerialization:

@@ -7,7 +7,7 @@ from sapguimcp.models import (
     LoginResult,
     ShortcutsResult,
 )
-from unittests.webgui.testdata.lang_test import UiTestPack
+from unittests.testdata.lang_test import UiTestPack
 
 from .conftest import call_tool_typed
 from .integration_helpers import _wait_for_transaction_screen

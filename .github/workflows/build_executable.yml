@@ -180,7 +180,7 @@ jobs:
         shell: bash
 
       - name: Smoke Test
-        run: uv run --no-project --python 3.15 python unittests/webgui/smoke_test_exe.py dist/${{ matrix.binary }}
+        run: uv run --no-project --python 3.15 python scripts/smoke_test_exe.py dist/${{ matrix.binary }}
 
   release:
     needs: [build, build_with_remote_logging, smoke_test]

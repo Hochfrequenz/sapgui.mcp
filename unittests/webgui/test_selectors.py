@@ -37,13 +37,13 @@ from bs4.element import Tag
 # Import the selectors we want to test
 from sapguimcp.backend.webgui.utils import escape_css_selector
 from sapguimcp.tools.sap_tools import SELECTORS, parse_shortcut_from_title
-from unittests.webgui.testdata.lang_test import UiTestPack
+from unittests.testdata.lang_test import UiTestPack
 
 
 @pytest.fixture
 def html_snapshots_path() -> Path:
     """Return the path to the HTML snapshots directory."""
-    return Path(__file__).parent / "testdata" / "html_snapshots"
+    return Path(__file__).parent.parent / "testdata" / "html_snapshots"
 
 
 def get_snapshot_path(base_dir: Path, base_name: str, lang: str | None = None) -> Path | None:

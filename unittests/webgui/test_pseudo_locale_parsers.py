@@ -48,10 +48,9 @@ from sapguimcp.backend.webgui.parsers.screen_state_parser import parse_selection
 from sapguimcp.lang.schema import LanguagePack
 from sapguimcp.models import SE37ParameterCategory
 from sapguimcp.tools.se11_tools import _parse_se11_fields, _parse_se11_yaml
+from unittests.lang import pseudo_fixtures as pf
 
-from . import pseudo_fixtures as pf
-
-TESTDATA = Path(__file__).parent.parent / "webgui" / "testdata"
+TESTDATA = Path(__file__).parent / "testdata"
 
 Probe = Callable[[str, LanguagePack, Path], Any]
 """``(snapshot, t, fixture path) -> result``; runs with the session language set."""

@@ -15,12 +15,10 @@ import pytest
 from playwright.async_api import async_playwright
 
 from sapguimcp import lang
-from sapguimcp.backend.desktop import _classify_popup, _confirms_activation
 from sapguimcp.backend.webgui.backend import WebGuiBackend, _parse_toolbar_note
-from sapguimcp.models.base import PopupType
 from sapguimcp.tools.sap_tools import SELECTORS, parse_shortcut_from_title
 
-SNAPSHOTS = Path(__file__).resolve().parents[1] / "webgui" / "testdata" / "html_snapshots"
+SNAPSHOTS = Path(__file__).resolve().parents[1] / "testdata" / "html_snapshots"
 
 
 @pytest.fixture(params=[None, "XX", "DE", "EN"], ids=["no-session", "unsupported", "DE", "EN"])
@@ -28,50 +26,6 @@ def any_session(request: pytest.FixtureRequest) -> Any:
     """Every session state the universal sections must work in."""
     with lang.use(request.param):
         yield request.param
-
-
-# ---------------------------------------------------------------------------
-# Session-free: popups, status type, key names
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.usefixtures("any_session")
-@pytest.mark.parametrize(
-    ("title", "message", "expected"),
-    [
-        ("Fehler", "", PopupType.ERROR),
-        ("Error", "", PopupType.ERROR),
-        ("Hinweis", "", PopupType.INFO),
-        ("Information", "", PopupType.INFO),
-        ("Bestätigung", "", PopupType.CONFIRM),
-        ("Sichern bestätigen", "", PopupType.UNKNOWN),  # "bestätigen" is not "Bestätigung", as before
-        ("Confirm", "", PopupType.CONFIRM),
-        ("Daten sichern?", "Ja", PopupType.CONFIRM),
-        ("Inaktive Objekte", "", PopupType.UNKNOWN),
-        ("Inactive Objects", "", PopupType.UNKNOWN),
-    ],
-)
-def test_desktop_popup_type_in_every_language(title: str, message: str, expected: PopupType) -> None:
-    assert _classify_popup(title, message) == expected
-
-
-@pytest.mark.usefixtures("any_session")
-@pytest.mark.parametrize(
-    ("message", "confirmed"),
-    [
-        ("Objekt wurde aktiviert", True),
-        ("Object activated", True),
-        ("Objekt konnte nicht aktiviert werden", False),
-        ("Object could not be activated", False),
-        ("Programm ZFOO gesichert", False),
-        ("Oggetto attivato", True),
-        ("La classe non è stata attivata", False),
-        ("Gli oggetti non sono stati attivati", False),
-        ("Le classi non sono state attivate", False),
-    ],
-)
-def test_activation_confirmation_in_every_language(message: str, confirmed: bool) -> None:
-    assert _confirms_activation(message) is confirmed
 
 
 @pytest.mark.usefixtures("any_session")
@@ -254,8 +208,14 @@ async def test_webgui_popup_close_control_in_both_languages(snapshot: str, close
 
 
 _MESSAGE_TEXT = '<div id="LSMSG_AREA"><span class="lsMsgText">{}</span></div>'
+
+
 """The dedicated message-text element: its text is the message, never noise-filtered."""
+
+
 _CONTAINER_TEXT = '<div id="LSMSG_AREA"><span>{}</span></div>'
+
+
 """A generic span, as in the snapshots: its text carries the message bar's label and buttons."""
 
 

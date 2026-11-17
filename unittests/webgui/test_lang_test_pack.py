@@ -7,7 +7,7 @@ import pytest
 
 from sapguimcp import lang
 from sapguimcp.lang import Text
-from unittests.webgui.testdata.lang_test import TEST_DE, UI_TEST_PACKS, UiTestPack, resolve_sap_language
+from unittests.testdata.lang_test import TEST_DE, UI_TEST_PACKS, UiTestPack, resolve_sap_language
 
 EN = UI_TEST_PACKS["EN"]
 

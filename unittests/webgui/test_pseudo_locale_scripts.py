@@ -23,14 +23,14 @@ from playwright.async_api import Page, async_playwright
 
 from sapguimcp import lang
 from sapguimcp.backend.webgui.backend import WebGuiBackend
+from unittests.lang import pseudo_fixtures as pf
 
-from . import pseudo_fixtures as pf
 from .test_pseudo_locale_parsers import _difference, _plain
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-SNAPSHOTS = Path(__file__).parent.parent / "webgui" / "testdata" / "html_snapshots"
+SNAPSHOTS = Path(__file__).parent.parent / "testdata" / "html_snapshots"
 NAMES = sorted(path.name for path in SNAPSHOTS.glob("*.html"))
 
 _CALLS: dict[str, Callable[[WebGuiBackend], Awaitable[Any]]] = {

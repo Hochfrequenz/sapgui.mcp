@@ -3,7 +3,7 @@
 Starts the exe, sends an MCP initialize request (line-delimited JSON on stdin),
 and verifies the response (line-delimited JSON on stdout).
 
-Usage: python unittests/smoke_test_exe.py <path-to-exe>
+Usage: python scripts/smoke_test_exe.py <path-to-exe>
 """
 
 import json

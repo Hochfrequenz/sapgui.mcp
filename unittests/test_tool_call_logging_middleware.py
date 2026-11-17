@@ -83,16 +83,6 @@ def test_format_args_masks_credential_arguments(key):
     assert ToolCallLoggingMiddleware()._format_args({key: "sensitive-value"}) == {key: "***"}
 
 
-def test_extract_sap_user_js_exists():
-    """The JS file should be loadable and contain expected selectors."""
-    from importlib import resources
-
-    content = resources.files("sapguimcp.backend.webgui.js").joinpath("extract_sap_user.js").read_text(encoding="utf-8")
-    assert "sysInfoAreaMenuItemSAPITS_MBAR_USER" in content
-    assert "lsdata" in content
-    assert "aria-label" in content
-
-
 # ---------------------------------------------------------------------------
 # on_call_tool: identity fields in log records
 # ---------------------------------------------------------------------------

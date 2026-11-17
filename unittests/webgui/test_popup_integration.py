@@ -14,13 +14,13 @@ from sapguimcp.models import (
     ScreenInfo,
     TransactionResult,
 )
+from unittests.testdata.lang_test import UiTestPack
 
 from .conftest import call_tool_typed
 from .integration_helpers import (
     _wait_for_transaction_screen,
     capture_html_snapshot,
 )
-from .testdata.lang_test import UiTestPack
 
 
 @pytest.mark.anyio

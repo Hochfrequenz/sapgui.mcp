@@ -14,7 +14,7 @@ from sapguimcp.backend.webgui.models.browser_results import WaitResult
 from .conftest import call_tool_typed, get_html_content
 
 # HTML snapshot directory for offline selector tests
-HTML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "html_snapshots"
+HTML_SNAPSHOTS_DIR = Path(__file__).parent.parent / "testdata" / "html_snapshots"
 
 
 async def capture_html_snapshot(

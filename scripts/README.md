@@ -17,6 +17,7 @@ They are NOT shipped with the package and NOT used at runtime.
 | `add_inline_results.py`   | Add inline SE16 results to catalog               | When SE16 returned results inline (not to file)                                    |
 | `recapture-snapshots.ps1` | Recapture HTML test snapshots in DE/EN           | When SAP UI changes or adding new tests                                            |
 | `render_readme_demo.py`   | Render README demo composites + concat file      | Rebuilding the README GIF (see below)                                              |
+| `smoke_test_exe.py`       | Start a built binary and send an MCP initialize  | `build_executable.yml` runs it for every release binary                            |
 | `harvest_lang_texts.py`   | Compare a language pack with SAP's own texts     | After an SAP upgrade, after changing a sourced pack text, before adding a language |
 
 ## Language Pack Verification
@@ -123,6 +124,7 @@ sapgui.mcp/
 ├── scripts/                    # DEVELOPMENT ONLY - NOT shipped
 │   ├── consolidate_catalog.py
 │   ├── add_inline_results.py
+│   ├── smoke_test_exe.py
 │   └── recapture-snapshots.ps1
 │
 └── unittests/                  # Tests - NOT shipped
