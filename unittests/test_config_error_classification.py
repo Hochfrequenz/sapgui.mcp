@@ -165,8 +165,11 @@ def _assert_clean(exc: BaseException) -> None:
     assert isinstance(exc, ValueError)
     assert "line 3" in str(exc)
     assert _SECRET not in str(exc)
-    # Not even a logged traceback may show PyYAML's original message.
+    # Not even a logged traceback may show PyYAML's original message, and the
+    # original must not be reachable as cause or context either.
     assert _SECRET not in "".join(traceback.format_exception(exc))
+    assert exc.__cause__ is None
+    assert exc.__context__ is None
 
 
 @pytest.mark.usefixtures("secret_yaml_config")

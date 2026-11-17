@@ -41,22 +41,27 @@ def get_sap_config() -> SapMcpConfig:
     """Load the shared SAP system config (singleton).
 
     A system whose ``language`` has no language pack (``lang.supported_languages()``) makes this
-    raise a ``ValueError`` (pydantic ``ValidationError``) instead of letting the
-    language through.  An omitted language defaults to ``EN``.  A failed load is
-    not cached, so fixing the file takes effect on the next call.
+    raise a ``ValueError`` instead of letting the language through.  An omitted
+    language defaults to ``EN``.  A failed load is not cached, so fixing the file
+    takes effect on the next call.
 
-    Invalid content and malformed YAML are re-raised as a plain ``ValueError``
-    carrying the message of :func:`_describe_config_error`, without the original
-    exception chained, because PyYAML's own message quotes the offending source
-    line, which may hold a password, and a tool's error reaches the MCP client
-    (#1045).  A missing or unreadable file keeps its ``OSError``.
+    Invalid content and malformed YAML are raised as a plain ``ValueError``
+    carrying the message of :func:`_describe_config_error`, with no original
+    exception attached (neither ``__cause__`` nor ``__context__``), because
+    PyYAML's own message quotes the offending source line, which may hold a
+    password, and a tool's error reaches the MCP client (#1045).  A missing or
+    unreadable file keeps its ``OSError``.
     """
     global _sap_config  # pylint: disable=global-statement
     if _sap_config is None:
+        message = None
         try:
             _sap_config = load_sap_config(supported_languages=supported_languages())
         except (ValidationError, yaml.YAMLError) as exc:
-            raise ValueError(_describe_config_error(exc)) from None
+            message = _describe_config_error(exc)
+        if message is not None:
+            # Raised outside the except block, so the original stays unreachable.
+            raise ValueError(message)
     return _sap_config
 
 
@@ -88,7 +93,7 @@ def try_get_sap_config() -> tuple[SapMcpConfig | None, str | None]:
     Returns ``(config, None)`` on success, ``(None, None)`` when no config file
     exists (a legitimate landscape-only setup, stays silent) and
     ``(None, <message>)`` for every other load failure: invalid content
-    (``ValueError``, including pydantic ``ValidationError``), unreadable path
+    (``ValueError``), unreadable path
     (``OSError`` such as ``IsADirectoryError`` / ``PermissionError``) and
     malformed YAML.  The message never quotes YAML source lines or secret
     values, see :func:`_describe_config_error`.
