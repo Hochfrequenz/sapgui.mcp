@@ -10,15 +10,24 @@ texts mechanically:
 - a field nothing reads fails, unless it is listed in ``KNOWN_UNUSED`` (shrink-only).
 
 How a read is found: an attribute access ``<section>.<field>`` on a pack, either spelled out
-(``t.se16.hit_count_label``) or through a local alias (``popup = lang.universal().popup`` and later
-``popup.close``). A read counts for a backend by where it sits:
+(``t.se16.hit_count_label``) or through a local alias (``popup = lang.universal().popup``, also
+``popup: Popup = ...``, and later ``popup.close``). Aliases are scoped to the outermost function
+that binds them, so a name that is rebound to something else in another function is not confused.
+A read counts for a backend by where it sits:
 
-- ``backend/desktop/``, ``tools/desktop_wait_predicates.py``, ``tools/table_helpers.py`` and any
-  function whose name ends in ``_desktop`` (or has ``_desktop_`` in it): desktop,
+- ``backend/desktop/`` and any function whose name ends in ``_desktop`` (or has ``_desktop_`` in
+  it): desktop,
 - ``backend/webgui/`` (Python and the JS texts it passes through ``for_js()``),
-  ``tools/screen_state_helpers.py``, ``tools/browser_tools.py``, ``tools/se37_edit_tools.py``,
-  ``tools/quick_report_tools.py`` and any function named ``*_webgui``: webgui,
+  ``tools/browser_tools.py``, ``tools/se37_edit_tools.py``, ``tools/quick_report_tools.py`` (the
+  WebGUI-only tools) and any function named ``*_webgui``: webgui,
 - everything else (shared tool code, scrapers, models): both.
+
+Shared code also calls into the backend folders (tool code imports the WebGUI parsers, for example
+``map_visibility``, and calls them for both backends). So a function under ``backend/desktop/`` or
+``backend/webgui/`` is *exposed* when its name is referenced, by a name or attribute access, from
+code of another context, and its reads then count as shared (both). Exposure is transitive: the
+functions an exposed function references are exposed too. This is a plain name match across
+files, so a name collision only makes a field ``both``, which is the safe side.
 
 A field is ``desktop`` or ``webgui`` when every read is of that kind, otherwise ``both``. When a tool
 function without a backend suffix reads a field for one backend only, the field is ``both``: shared
@@ -37,9 +46,7 @@ from sapguimcp.lang.schema import iter_leaves, sections
 
 SRC = Path(__file__).resolve().parents[2] / "src" / "sapguimcp"
 
-DESKTOP_FILES = {"tools/desktop_wait_predicates.py", "tools/table_helpers.py"}
 WEBGUI_FILES = {
-    "tools/screen_state_helpers.py",
     "tools/browser_tools.py",
     "tools/se37_edit_tools.py",
     "tools/quick_report_tools.py",
@@ -68,8 +75,8 @@ for _section_name, _section in sections(EN):
 
 
 def _context(rel_path: str, function: str) -> str:
-    """``desktop``, ``webgui`` or ``shared`` for a read in ``function`` of the file at ``rel_path``."""
-    if rel_path.startswith(DESKTOP_DIR) or rel_path in DESKTOP_FILES:
+    """``desktop``, ``webgui`` or ``shared`` for code in ``function`` of the file at ``rel_path``."""
+    if rel_path.startswith(DESKTOP_DIR):
         return "desktop"
     if rel_path.startswith(WEBGUI_DIR) or rel_path in WEBGUI_FILES:
         return "webgui"
@@ -80,51 +87,126 @@ def _context(rel_path: str, function: str) -> str:
     return "shared"
 
 
-def _section_aliases(tree: ast.AST) -> dict[str, str]:
-    """Local names bound to a pack section: ``popup = lang.universal().popup`` -> ``{"popup": "popup"}``."""
+def _is_function(node: ast.AST) -> bool:
+    return isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
+
+
+def _units(tree: ast.AST) -> list[tuple[str, list[ast.AST], bool]]:
+    """Outermost functions (methods too) as ``(name, nodes, is_module_level)``, plus ``""`` for the rest."""
+    units: list[tuple[str, list[ast.AST], bool]] = []
+    rest: list[ast.AST] = []
+
+    def walk(node: ast.AST) -> None:
+        for child in ast.iter_child_nodes(node):
+            if _is_function(child):
+                units.append((getattr(child, "name"), [child], node is tree))  # noqa: B009
+            else:
+                rest.append(child)
+                walk(child)  # reaches the methods of a class and the functions of a ``with`` or ``if``
+
+    walk(tree)
+    units.append(("", rest, False))
+    return units
+
+
+def _walk(root: ast.AST, skip_functions: bool) -> list[ast.AST]:
+    """``ast.walk``, optionally without entering functions (the module-level rest has none of its own)."""
+    nodes = [root]
+    for node in nodes:
+        nodes.extend(child for child in ast.iter_child_nodes(node) if not (skip_functions and _is_function(child)))
+    return nodes
+
+
+def _aliases(nodes: list[ast.AST], skip_functions: bool) -> dict[str, str]:
+    """Names bound to a pack section: ``popup = lang.universal().popup`` -> ``{"popup": "popup"}``."""
     aliases: dict[str, str] = {}
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Attribute) and node.value.attr in SECTION_NAMES:
-            for target in node.targets:
-                if isinstance(target, ast.Name):
-                    aliases[target.id] = node.value.attr
+    for root in nodes:
+        for node in _walk(root, skip_functions):
+            value: ast.AST | None = None
+            targets: list[ast.expr] = []
+            if isinstance(node, ast.Assign):
+                value, targets = node.value, node.targets
+            elif isinstance(node, ast.AnnAssign):
+                value, targets = node.value, [node.target]
+            if isinstance(value, ast.Attribute) and value.attr in SECTION_NAMES:
+                for target in targets:
+                    if isinstance(target, ast.Name):
+                        aliases[target.id] = value.attr
     return aliases
 
 
-def _reads_in(rel_path: str, tree: ast.AST) -> dict[str, set[str]]:
-    """``"section.field"`` -> the contexts (``desktop`` / ``webgui`` / ``shared``) reading it in this file."""
-    aliases = _section_aliases(tree)
-    found: dict[str, set[str]] = defaultdict(set)
+@dataclasses.dataclass
+class _Unit:
+    """One outermost function (or the module-level rest) of a file."""
 
-    def visit(node: ast.AST, function: str) -> None:
-        for child in ast.iter_child_nodes(node):
-            inner = function
-            if not function and isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef):
-                inner = child.name  # the outermost function names the context
-            if isinstance(child, ast.Attribute) and child.attr in FIELDS_BY_NAME:
-                owner = child.value
-                section = None
-                if isinstance(owner, ast.Attribute) and owner.attr in SECTION_NAMES:
-                    section = owner.attr
-                elif isinstance(owner, ast.Name):
-                    section = aliases.get(owner.id)
-                if section in FIELDS_BY_NAME[child.attr]:
-                    found[f"{section}.{child.attr}"].add(_context(rel_path, inner))
-            visit(child, inner)
-
-    visit(tree, "")
-    return found
+    rel_path: str
+    name: str
+    context: str
+    reads: set[str]
+    references: set[str]
+    module_level: bool
 
 
-def derive_tags() -> dict[str, Backend | None]:
-    """The tag each field gets from the code; ``None`` for a field nothing reads."""
-    contexts: dict[str, set[str]] = defaultdict(set)
+def _scan() -> list[_Unit]:
+    found: list[_Unit] = []
     for path in sorted(SRC.rglob("*.py")):
         rel_path = path.relative_to(SRC).as_posix()
         if rel_path.startswith("lang/"):
             continue
-        for key, found in _reads_in(rel_path, ast.parse(path.read_text(encoding="utf-8"))).items():
-            contexts[key] |= found
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for name, nodes, module_level in _units(tree):
+            aliases = _aliases(nodes, skip_functions=not name)
+            unit = _Unit(rel_path, name, _context(rel_path, name), set(), set(), module_level)
+            for root in nodes:
+                for node in _walk(root, skip_functions=not name):
+                    if isinstance(node, ast.Name):
+                        unit.references.add(node.id)
+                    elif isinstance(node, ast.Attribute):
+                        unit.references.add(node.attr)
+                        if node.attr in FIELDS_BY_NAME:
+                            owner = node.value
+                            section = None
+                            if isinstance(owner, ast.Attribute) and owner.attr in SECTION_NAMES:
+                                section = owner.attr
+                            elif isinstance(owner, ast.Name):
+                                section = aliases.get(owner.id)
+                            if section in FIELDS_BY_NAME[node.attr]:
+                                unit.reads.add(f"{section}.{node.attr}")
+            found.append(unit)
+    return found
+
+
+def _exposed_names(units: list[_Unit]) -> set[str]:
+    """Names of backend-folder functions that code of another context references, transitively."""
+    defined: dict[str, list[_Unit]] = defaultdict(list)
+    for unit in units:
+        if unit.module_level and unit.rel_path.startswith((DESKTOP_DIR, WEBGUI_DIR)):
+            defined[unit.name].append(unit)
+    exposed: set[str] = set()
+    for unit in units:
+        for name in unit.references & defined.keys():
+            if any(target.context != unit.context for target in defined[name]):
+                exposed.add(name)
+    pending = list(exposed)
+    while pending:
+        for target in defined[pending.pop()]:
+            for name in target.references & defined.keys():
+                if name not in exposed:
+                    exposed.add(name)
+                    pending.append(name)
+    return exposed
+
+
+def derive_tags() -> dict[str, Backend | None]:
+    """The tag each field gets from the code; ``None`` for a field nothing reads."""
+    units = _scan()
+    exposed = _exposed_names(units)
+    contexts: dict[str, set[str]] = defaultdict(set)
+    for unit in units:
+        in_backend = unit.rel_path.startswith((DESKTOP_DIR, WEBGUI_DIR))
+        context = "shared" if in_backend and unit.module_level and unit.name in exposed else unit.context
+        for key in unit.reads:
+            contexts[key].add(context)
     tags: dict[str, Backend | None] = {}
     for section_name, section in sections(EN):
         for field in dataclasses.fields(section):
