@@ -53,16 +53,16 @@ def get_sap_config() -> SapMcpConfig:
     unreadable file keeps its ``OSError``.
     """
     global _sap_config  # pylint: disable=global-statement
-    if _sap_config is None:
-        message = None
-        try:
-            _sap_config = load_sap_config(supported_languages=supported_languages())
-        except (ValidationError, yaml.YAMLError) as exc:
-            message = _describe_config_error(exc)
-        if message is not None:
-            # Raised outside the except block, so the original stays unreachable.
-            raise ValueError(message)
-    return _sap_config
+    if _sap_config is not None:
+        return _sap_config
+    message = ""
+    try:
+        _sap_config = load_sap_config(supported_languages=supported_languages())
+        return _sap_config
+    except (ValidationError, yaml.YAMLError) as exc:
+        message = _describe_config_error(exc)
+    # Raised outside the except block, so the original stays unreachable.
+    raise ValueError(message)
 
 
 def _describe_config_error(exc: ValidationError | yaml.YAMLError) -> str:
