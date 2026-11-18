@@ -105,16 +105,22 @@ def _config_with(**systems: str) -> object:
     )
 
 
-def test_system_without_connection_name_adds_notice(caplog: pytest.LogCaptureFixture) -> None:
-    """A former WebGUI user with default settings sets no legacy key, only systems without connection_name."""
+def test_config_without_any_connection_name_adds_notice(caplog: pytest.LogCaptureFixture) -> None:
+    """A former WebGUI user with default settings sets no legacy key, and no system has a connection_name."""
     with (
         caplog.at_level(logging.WARNING, logger=server.logger.name),
-        patch.object(server, "try_get_sap_config", return_value=(_config_with(sysA="", sysB="SAP Logon B"), None)),
+        patch.object(server, "try_get_sap_config", return_value=(_config_with(sysA="", sysB=""), None)),
     ):
         instructions = server._build_instructions()
     assert instructions.count("sapwebgui.mcp (https://github.com/Hochfrequenz/sapwebgui.mcp)") == 1
-    assert "sysA" in caplog.text
-    assert "sysB" not in caplog.text
+    assert "connection_name" in caplog.text
+
+
+def test_one_system_without_connection_name_adds_no_notice() -> None:
+    """systems.json is shared with other tools (e.g. ADT); a system without connection_name is normal there."""
+    config = _config_with(sysA="", sysB="SAP Logon B")
+    with patch.object(server, "try_get_sap_config", return_value=(config, None)):
+        assert "sapwebgui.mcp" not in server._build_instructions()
 
 
 def test_systems_with_connection_name_add_no_notice() -> None:

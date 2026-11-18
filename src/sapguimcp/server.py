@@ -273,14 +273,14 @@ def _build_instructions() -> str:
         return base
     keys = list(sap_cfg.systems.keys())
     default = sap_cfg.default_system
-    without_connection = [key for key, system in sap_cfg.systems.items() if not system.connection_name]
-    if without_connection and _WEBGUI_MOVED_NOTICE not in base:
-        # A former WebGUI user with default settings sets none of the legacy keys; a system
-        # without connection_name is the remaining sign that this config was written for WebGUI.
+    has_connection_name = any(system.connection_name for system in sap_cfg.systems.values())
+    if not has_connection_name and _WEBGUI_MOVED_NOTICE not in base:
+        # A former WebGUI user with default settings sets none of the legacy keys; a config in which
+        # no system has a connection_name is the remaining sign that it was written for WebGUI.
+        # One system without it is normal: systems.json is shared with other tools (e.g. ADT).
         logger.warning(
-            "Systems without connection_name (SAP GUI for Windows needs it): %s. "
-            "If they were used with SAP WebGUI, use sapwebgui.mcp.",
-            without_connection,
+            "No system in systems.json has a connection_name, which SAP GUI for Windows needs. "
+            "If you used SAP WebGUI before v1.0.0, use sapwebgui.mcp."
         )
         base += "\n" + _WEBGUI_MOVED_NOTICE + "\n"
     return (
