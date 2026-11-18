@@ -1,15 +1,16 @@
 """
-MCP Server for SAP Web GUI browser automation.
+MCP Server for SAP GUI for Windows automation.
 
 This module provides the main entry point for the MCP server using FastMCP.
 Tools are organized in separate modules under sapguimcp.tools.
 """
 
 import logging
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-import httpx
+from dotenv import dotenv_values
 from fastmcp import FastMCP
 from fastmcp.apps.choice import Choice
 from fastmcp.server.middleware.logging import LoggingMiddleware
@@ -18,7 +19,7 @@ from sapguimcp.backend.manager import close_backend
 from sapguimcp.logging_config import configure_logging
 from sapguimcp.middleware import ToolCallLoggingMiddleware
 from sapguimcp.middleware.logging import masked_payload_serializer
-from sapguimcp.models.config import get_settings, try_get_sap_config
+from sapguimcp.models.config import _env_files, get_settings, try_get_sap_config
 from sapguimcp.prompts import register_prompts
 from sapguimcp.resources import (
     register_feedback_resources,
@@ -28,14 +29,12 @@ from sapguimcp.resources import (
 from sapguimcp.tools import (
     register_abapgit_tools,
     register_breakpoint_tools,
-    register_browser_tools,
     register_catalog_tools,
     register_class_tools,
     register_com_tools,
     register_feedback_tools,
     register_fm_tools,
     register_intent_tools,
-    register_quick_report_tools,
     register_sap_tools,
     register_script_tools,
     register_se09_tools,
@@ -43,7 +42,6 @@ from sapguimcp.tools import (
     register_se16_tools,
     register_se24_edit_tools,
     register_se24_tools,
-    register_se37_edit_tools,
     register_se37_tools,
     register_se38_edit_tools,
     register_se93_tools,
@@ -74,19 +72,49 @@ logger = logging.getLogger(__name__)
 # Note: GitHub issue creation is handled directly in log_feedback tool (async)
 
 
-async def _check_cdp_available(cdp_url: str) -> bool:
-    """Check Chrome CDP availability. If not reachable, log that auto-launch will be attempted."""
-    try:
-        async with httpx.AsyncClient() as client:
-            await client.get(f"{cdp_url}/json/version", timeout=2.0)
-        logger.info("[OK] Chrome CDP reachable at %s", cdp_url)
-        return True
-    except (httpx.ConnectError, httpx.TimeoutException, OSError):
-        logger.info(
-            "Chrome not detected at %s. Will attempt auto-launch when browser is needed.",
-            cdp_url,
+_WEBGUI_MOVED_NOTICE = (
+    "NOTICE: SAP WebGUI support moved to a separate project, sapwebgui.mcp "
+    "(https://github.com/Hochfrequenz/sapwebgui.mcp). This server only drives SAP GUI for Windows and "
+    "ignores the legacy WebGUI settings. Use sapwebgui.mcp for browser-based SAP WebGUI automation."
+)
+
+
+def _legacy_setting_values() -> dict[str, str]:
+    """The legacy WebGUI settings from the .env files the settings load, overridden by the process environment."""
+    values: dict[str, str] = {}
+    for env_file in _env_files():
+        try:
+            loaded = dotenv_values(env_file)
+        except OSError:
+            continue
+        values.update({k.upper(): v for k, v in loaded.items() if v is not None})
+    values.update({k.upper(): v for k, v in os.environ.items()})
+    return values
+
+
+def _legacy_webgui_settings() -> list[str]:
+    """Names of the legacy WebGUI settings that are set (BACKEND_TYPE=webgui, SAP_URL, CDP_URL), in env or .env."""
+    values = _legacy_setting_values()
+    found: list[str] = []
+    if values.get("BACKEND_TYPE", "").strip().lower() == "webgui":
+        found.append("BACKEND_TYPE=webgui")
+    for name in ("SAP_URL", "CDP_URL"):
+        if values.get(name, "").strip():
+            found.append(name)
+    return found
+
+
+def _warn_legacy_webgui_settings() -> list[str]:
+    """Log a warning when legacy WebGUI settings are present. Never fails; returns the settings found."""
+    found = _legacy_webgui_settings()
+    if found:
+        logger.warning(
+            "Legacy WebGUI settings detected (%s). WebGUI support moved to the separate project sapwebgui.mcp "
+            "(https://github.com/Hochfrequenz/sapwebgui.mcp); this server uses SAP GUI for Windows only and "
+            "ignores them.",
+            ", ".join(found),
         )
-        return False
+    return found
 
 
 @asynccontextmanager
@@ -101,15 +129,8 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
         from _sapguimcp_version import version as _server_version  # pylint: disable=import-outside-toplevel
     except (ImportError, SyntaxError):
         _server_version = "unknown"
-    logger.info("[STARTING] SAP MCP Server v%s initializing (backend=%s)...", _server_version, _settings.backend_type)
-    if _settings.backend_type == "webgui":
-        cdp_ok = await _check_cdp_available(_settings.cdp_url)
-        if cdp_ok:
-            logger.info("[READY] Server started successfully. Waiting for MCP client connection on stdio.")
-        else:
-            logger.info("[READY] Server started. Chrome not detected yet — will auto-launch when browser is needed.")
-    else:
-        logger.info("[READY] Server started (backend=%s). Waiting for MCP client connection.", _settings.backend_type)
+    logger.info("[STARTING] SAP MCP Server v%s initializing...", _server_version)
+    logger.info("[READY] Server started. Waiting for MCP client connection.")
 
     # Validate GitHub PAT if configured (non-blocking, warns only)
     _current_settings = get_settings()
@@ -135,47 +156,7 @@ async def app_lifespan(_server: FastMCP) -> AsyncIterator[None]:
         logger.info("[STOPPED] Server shutdown complete.")
 
 
-# Instructions for the LLM about this MCP server — backend-specific
-_WEBGUI_INSTRUCTIONS = """
-SAP Web GUI automation server. Controls SAP through a Chrome browser with remote debugging enabled.
-
-BROWSER SETUP:
-Chrome is auto-launched with debugging flags when not already running.
-If Chrome cannot be found automatically, set CHROME_PATH in the .env file.
-The user may also pre-launch Chrome manually with --remote-debugging-port=9222.
-
-IMPORTANT: Do NOT attempt to install Chrome or any browser.
-
-PREREQUISITES:
-- Chrome installed (auto-detected, or CHROME_PATH set in .env)
-- VPN connected (if SAP system is on internal network)
-- CDP proxy running (for Docker setups)
-
-IF CONNECTION FAILS:
-Do NOT try to install browsers. Instead, ask the user to verify:
-1. "Is Chrome installed?" (set CHROME_PATH in .env if not auto-detected)
-2. "Is your VPN connected?" (for internal SAP systems)
-3. "Is the CDP proxy running?" (docker compose up -d)
-
-COMMON ERROR CAUSES:
-- "Chrome not found" / "Chrome konnte nicht ... gefunden werden": Set CHROME_PATH in .env
-- "SAP URL not reachable": VPN not connected
-- Login fails: Check user/password/client in ~/.config/sap-mcp/systems.json
-
-WORKFLOW:
-1. Call sap_login first to open SAP and authenticate
-2. Use sap_transaction to navigate to transactions (e.g., VA01, SE16, BP)
-3. Use browser_snapshot to see current screen state
-4. Use browser_fill/browser_click for interactions
-5. Prefer SAP-specific tools (sap_fill_form, sap_click_button) over browser_* tools when available
-
-ESCAPE HATCHES (when SAP-specific tools are insufficient):
-- browser_snapshot: See current DOM/ARIA tree
-- browser_evaluate: Execute arbitrary JavaScript
-- browser_click / browser_fill: Interact with elements by CSS selector
-- browser_navigate: Navigate to a URL (e.g., SAP Help Portal)
-"""
-
+# Instructions for the LLM about this MCP server
 _CROSS_SERVER_GUIDANCE = """
 WHEN TO USE THIS SERVER vs sap-adt MCP:
 If sap-adt (SAP ADT MCP) tools are available, prefer them for:
@@ -187,7 +168,7 @@ If sap-adt (SAP ADT MCP) tools are available, prefer them for:
 - Debugging (breakpoints, stepping, variable inspection)
 - DDIC lookups (get_object_info, get_ddic_info)
 
-Use THIS server (sap-desktop/sap-webgui) for:
+Use THIS server (sap-desktop) for:
 - Customizing transactions (SPRO, SM30, SM34)
 - Transport release on ECC (SE09 — ADT release may silently fail on ECC)
 - Complex GUI interactions (popups, drag-and-drop, tree navigation)
@@ -254,8 +235,7 @@ runs sequentially through it. A long sap_run_script blocks all other calls
 on that connection until it finishes; if calls hang, sap_session_list
 reports the running call in its com_engine field. Run SAP work of multiple
 agents sequentially, not in parallel. Parallelism helps only across
-separate connections or separate systems (or on the WebGUI backend, which
-can use several browser tabs).
+separate connections or separate systems.
 
 ESCAPE HATCHES (when SAP-specific tools are insufficient):
 - sap_com_snapshot: Get element tree with IDs (e.g., wnd[0]/usr/txtFIELD_NAME)
@@ -275,8 +255,9 @@ ESCAPE HATCHES (when SAP-specific tools are insufficient):
 
 
 def _build_instructions() -> str:
-    base = _DESKTOP_INSTRUCTIONS if _settings.backend_type == "desktop" else _WEBGUI_INSTRUCTIONS
-    base = _CROSS_SERVER_GUIDANCE + base
+    base = _CROSS_SERVER_GUIDANCE + _DESKTOP_INSTRUCTIONS
+    if _warn_legacy_webgui_settings():
+        base += "\n" + _WEBGUI_MOVED_NOTICE + "\n"
     sap_cfg, config_error = try_get_sap_config()
     if config_error:  # invalid config: don't crash startup, but say why
         logger.error("SAP config file could not be loaded, no systems listed: %s", config_error)
@@ -305,7 +286,7 @@ def _build_instructions() -> str:
 SERVER_INSTRUCTIONS = _build_instructions()
 
 # Create the FastMCP server instance with strict input validation
-_SERVER_NAME = "sap-desktop-mcp" if _settings.backend_type == "desktop" else "sap-webgui-mcp"
+_SERVER_NAME = "sap-desktop-mcp"
 mcp = FastMCP(
     _SERVER_NAME,
     instructions=SERVER_INSTRUCTIONS,
@@ -324,10 +305,9 @@ mcp.add_middleware(
     LoggingMiddleware(include_payloads=True, max_payload_length=1000, payload_serializer=masked_payload_serializer)
 )
 
-# Register tools — conditionally based on backend type
-_backend = _settings.backend_type
+# Register tools (desktop only)
 
-# Always available: SAP tools + transaction-specific tools
+# SAP tools + transaction-specific tools
 register_sap_tools(mcp)
 register_se11_tools(mcp)
 register_se16_tools(mcp)
@@ -353,17 +333,10 @@ register_intent_tools(mcp)
 register_feedback_tools(mcp)
 register_abapgit_tools(mcp)
 
-# WebGUI only: browser escape hatches, SE37 editor (no desktop impl)
-if _backend == "webgui":
-    register_browser_tools(mcp)
-    register_se37_edit_tools(mcp)
-    register_quick_report_tools(mcp)
-
-if _backend == "desktop":
-    register_com_tools(mcp)
-    register_tree_tools(mcp)
-    register_script_tools(mcp)
-    register_sandbox_resources(mcp)
+register_com_tools(mcp)
+register_tree_tools(mcp)
+register_script_tools(mcp)
+register_sandbox_resources(mcp)
 
 # Register prompts
 register_prompts(mcp)

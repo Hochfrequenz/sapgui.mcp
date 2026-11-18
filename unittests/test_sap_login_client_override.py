@@ -31,7 +31,6 @@ def _make_sap_config(default_system: str = "sysA", client: str = "100", connecti
 
 def _make_settings() -> MagicMock:
     settings = MagicMock()
-    settings.backend_type = "desktop"
     settings.sap_url = ""
     return settings
 

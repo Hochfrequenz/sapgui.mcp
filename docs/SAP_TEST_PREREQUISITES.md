@@ -101,7 +101,6 @@ SAP credentials are configured in `~/.config/sap-mcp/systems.json` (see [sap-mcp
 `.env` only needs the backend type and language:
 
 ```env
-BACKEND_TYPE=desktop
 SAP_LANGUAGE=DE
 ```
 
@@ -162,7 +161,6 @@ SAP credentials are configured in `~/.config/sap-mcp/systems.json` (see [sap-mcp
 `.env` only needs the backend type, URL, and browser settings:
 
 ```env
-BACKEND_TYPE=webgui
 SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui
 SAP_LANGUAGE=DE
 BROWSER_MODE=connect

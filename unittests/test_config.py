@@ -24,7 +24,6 @@ class TestSapGuiSettings:
         with patch.dict(os.environ, {}, clear=True):
             settings = SapGuiSettings(_env_file=None)
 
-        assert settings.backend_type == "webgui"
         assert settings.sap_url == ""
         assert settings.browser_mode == BrowserMode.CONNECT
         assert settings.browser_type == BrowserType.CHROMIUM
