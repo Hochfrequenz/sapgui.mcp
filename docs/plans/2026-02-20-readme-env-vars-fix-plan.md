@@ -377,26 +377,26 @@ Replace the existing table with:
 ```markdown
 ## Configuration Reference
 
-| Variable           | Required                    | Description                                                  | Default                      |
-| ------------------ | --------------------------- | ------------------------------------------------------------ | ---------------------------- |
-| `SAP_URL`          | **Yes**                     | SAP Web GUI URL                                              | —                            |
-| `SAP_USER`         | **Yes**                     | SAP username for auto-login                                  | —                            |
-| `SAP_PASSWORD`     | **Yes**                     | SAP password for auto-login                                  | —                            |
-| `SAP_MANDANT`      | **Yes**                     | SAP client (3-digit, e.g., `100`)                            | —                            |
-| `SAP_LANGUAGE`     | No                          | Login language (`DE` or `EN`)                                | `EN`                         |
-| `BROWSER_MODE`     | No                          | `connect` (existing Chrome) or `launch` (Playwright)         | `connect`                    |
-| `BROWSER_TYPE`     | No                          | `chromium`, `firefox`, or `webkit`                           | `chromium`                   |
-| `BROWSER_HEADLESS` | No                          | Run browser in headless mode                                 | `false`                      |
-| `CDP_URL`          | When `BROWSER_MODE=connect` | Chrome DevTools Protocol URL                                 | `http://localhost:9222`      |
-| `AUDIT_LOG_DIR`    | No                          | Directory for audit logs (JSONL)                             | —                            |
-| `GITHUB_PAT`       | No                          | GitHub PAT for `log_feedback` issues and abapGit auth        | —                            |
-| `GITHUB_USER`      | No                          | GitHub username for abapGit (falls back to `x-access-token`) | —                            |
+| Variable           | Required                    | Description                                                  | Default                   |
+| ------------------ | --------------------------- | ------------------------------------------------------------ | ------------------------- |
+| `SAP_URL`          | **Yes**                     | SAP Web GUI URL                                              | —                         |
+| `SAP_USER`         | **Yes**                     | SAP username for auto-login                                  | —                         |
+| `SAP_PASSWORD`     | **Yes**                     | SAP password for auto-login                                  | —                         |
+| `SAP_MANDANT`      | **Yes**                     | SAP client (3-digit, e.g., `100`)                            | —                         |
+| `SAP_LANGUAGE`     | No                          | Login language (`DE` or `EN`)                                | `EN`                      |
+| `BROWSER_MODE`     | No                          | `connect` (existing Chrome) or `launch` (Playwright)         | `connect`                 |
+| `BROWSER_TYPE`     | No                          | `chromium`, `firefox`, or `webkit`                           | `chromium`                |
+| `BROWSER_HEADLESS` | No                          | Run browser in headless mode                                 | `false`                   |
+| `CDP_URL`          | When `BROWSER_MODE=connect` | Chrome DevTools Protocol URL                                 | `http://localhost:9222`   |
+| `AUDIT_LOG_DIR`    | No                          | Directory for audit logs (JSONL)                             | —                         |
+| `GITHUB_PAT`       | No                          | GitHub PAT for `log_feedback` issues and abapGit auth        | —                         |
+| `GITHUB_USER`      | No                          | GitHub username for abapGit (falls back to `x-access-token`) | —                         |
 | `GITHUB_REPO`      | No                          | Repository for feedback issues                               | `Hochfrequenz/sapgui.mcp` |
-| `ABAPGIT_PAT`      | No                          | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)     | —                            |
-| `PAPERTRAIL_HOST`  | No                          | Papertrail syslog host (empty to disable)                    | `logs5.papertrailapp.com`    |
-| `PAPERTRAIL_PORT`  | No                          | Papertrail syslog port                                       | `35329`                      |
-| `LOG_FORMAT`       | No                          | Set to `json` for JSON log output                            | human-readable               |
-| `LOG_LEVEL`        | No                          | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                       | `INFO`                       |
+| `ABAPGIT_PAT`      | No                          | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)     | —                         |
+| `PAPERTRAIL_HOST`  | No                          | Papertrail syslog host (empty to disable)                    | `logsN.papertrailapp.com` |
+| `PAPERTRAIL_PORT`  | No                          | Papertrail syslog port                                       | `<port>`                  |
+| `LOG_FORMAT`       | No                          | Set to `json` for JSON log output                            | human-readable            |
+| `LOG_LEVEL`        | No                          | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                       | `INFO`                    |
 ```
 
 **Step 2: Verify**
