@@ -1,12 +1,12 @@
 {
   "name": "sapguimcp",
   "private": true,
-  "description": "JavaScript and Markdown formatting for SAP Web GUI MCP Server",
+  "description": "Markdown formatting for the SAP GUI for Windows MCP Server",
   "devDependencies": {
     "prettier": "3.9.10"
   },
   "scripts": {
-    "format": "prettier --write src/**/*.js **/*.md",
-    "format:check": "prettier --check src/**/*.js **/*.md"
+    "format": "prettier --write **/*.md",
+    "format:check": "prettier --check **/*.md"
   }
 }

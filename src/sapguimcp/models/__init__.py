@@ -26,10 +26,6 @@ from sapguimcp.models.intent_models import (
     IntentEntry,
     IntentLogResult,
 )
-from sapguimcp.models.quick_report_models import (
-    QuickReportResult,
-    ScreenClassification,
-)
 from sapguimcp.models.sap_results import (
     ButtonInfo,
     CapabilitiesResult,
@@ -169,8 +165,6 @@ __all__ = [
     "get_sap_config",
     "get_settings",
     # Quick report models
-    "QuickReportResult",
-    "ScreenClassification",
     # SAP results
     "ButtonInfo",
     "CapabilitiesResult",

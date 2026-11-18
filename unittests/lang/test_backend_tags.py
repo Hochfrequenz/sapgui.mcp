@@ -90,6 +90,7 @@ KNOWN_UNUSED = {
     # Read only by backend/webgui, deleted in #1107; removed together with the WebGUI texts (#1108).
     "common.display_change_toggle",
     "common.initial_screen",
+    "session_pages.settings_stem",
     "common.row_select_hint",
     "popup.button_labels",
     "popup.close",

@@ -32,7 +32,6 @@ from mcp.types import ToolAnnotations
 
 from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
-from sapguimcp.lang import english_first
 from sapguimcp.lang.schema import Key
 from sapguimcp.mcp_session import get_mcp_session_id
 from sapguimcp.models import (
@@ -81,7 +80,7 @@ from sapguimcp.tools.session_tools import (
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
 
-__all__ = ["register_sap_tools", "SELECTORS", "parse_shortcut_from_title"]
+__all__ = ["register_sap_tools", "parse_shortcut_from_title"]
 
 logger = logging.getLogger(__name__)
 
@@ -174,32 +173,6 @@ def parse_shortcut_from_title(title: str) -> ShortcutInfo | None:
         return None
 
     return ShortcutInfo(action=action, shortcut=canonical)
-
-
-# =============================================================================
-# SAP Selectors (kept for backward-compatible test imports)
-# =============================================================================
-
-SELECTORS: dict[str, str] = {
-    "okcode_field": (
-        'input[id*="ToolbarOkCode"], input[name*="okcode" i], input[id*="okcd" i], input[id*="OkCodeField" i]'
-    ),
-    # The id/gear entries match no captured snapshot, so the localized titles stay (#1044).
-    # English first and the English aria-label only, exactly the selector of before the packs.
-    "settings_button": ", ".join(
-        [
-            '[id*="settingsButton"]',
-            *(
-                f'[title*="{stem}" i]'
-                for stem in english_first(
-                    lang.universal().session_pages.settings_stem, lang.pack_for("EN").session_pages.settings_stem
-                )
-            ),
-            'button[id*="gear" i]',
-            *(f'[aria-label*="{stem}" i]' for stem in lang.pack_for("EN").session_pages.settings_stem),
-        ]
-    ),
-}
 
 
 # =============================================================================

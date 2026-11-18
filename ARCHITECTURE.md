@@ -289,7 +289,7 @@ Tests are marked `integration` automatically when they use a live SAP fixture (`
 
 - A test that imports `sapguimcp.backend.desktop` lives in `unittests/desktop/`, one that imports `sapguimcp.backend.webgui` in `unittests/webgui/`. A file never imports from the other backend's test directory.
 - Backend-neutral tests stay in `unittests/` and `unittests/lang/`.
-- Assets shared by both backends sit in `unittests/testdata/` (`lang_test.py`, `html_snapshots/`, the abapGit submodules in `abapgit_repos/`). Assets of one backend stay in that backend's `testdata/` directory.
+- Assets shared by both backends sit in `unittests/testdata/` (`lang_test.py`, the abapGit submodules in `abapgit_repos/`). Assets of one backend stay in that backend's `testdata/` directory.
 - The release smoke test of the binary is `scripts/smoke_test_exe.py`.
 
 ### Skip Mechanism

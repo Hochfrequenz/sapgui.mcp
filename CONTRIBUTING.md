@@ -37,7 +37,7 @@ To run integration tests, you need a configured SAP system. See **[docs/SAP_TEST
 
 This project uses [uv](https://docs.astral.sh/uv/) to run all tests and checks. The test suite includes:
 
-- **Unit tests**: Offline tests using HTML snapshots and mocked COM (no SAP required)
+- **Unit tests**: Offline tests using mocked COM (no SAP required)
 - **WebGUI integration tests**: Tests against real SAP Web GUI (auto-skipped on non-SAP machines)
 - **Desktop integration tests**: Tests against SAP GUI via COM (auto-skipped without SAP credentials)
 
@@ -77,35 +77,6 @@ You can run tests directly in PyCharm. Settings are loaded from your `.env` file
 To change language, edit `SAP_LANGUAGE` in your `.env` file.
 
 **uv vs PyCharm**: uv creates an isolated virtualenv (good for CI), PyCharm uses your current interpreter (faster for development).
-
-### HTML Snapshot Testing
-
-We use HTML snapshots captured from real SAP Web GUI sessions to test CSS selectors offline. This approach:
-
-1. **Captures real HTML** during integration tests (when SAP is available)
-2. **Validates selectors** against snapshots in fast unit tests (no SAP needed)
-3. **Supports multiple languages** (snapshots named `*_en.html`, `*_de.html`)
-
-To capture new snapshots, set `SAP_LANGUAGE` in your `.env` file and run integration tests:
-
-```bash
-uv run --group tests python -m pytest unittests/ -m integration   # Captures snapshots in configured language
-uv run --group tests python -m pytest unittests/ -m "not integration"  # Run offline selector tests (no SAP needed)
-```
-
-Snapshots are stored in `unittests/testdata/html_snapshots/`.
-
-#### Why Not Syrupy?
-
-We considered [syrupy](https://github.com/tophat/syrupy) (a pytest snapshot testing library) but chose a simpler approach because:
-
-1. **SAP HTML is huge** (~300KB per page) - syrupy's diff output would be unreadable
-2. **We don't compare full HTML** - we only validate that specific selectors find elements
-3. **Selector validation is the goal** - not detecting HTML changes
-4. **BeautifulSoup is sufficient** - we parse HTML and test CSS selectors, no need for snapshot diffing
-5. **Multi-language support** - we capture EN/DE variants; syrupy would create separate snapshot dirs
-
-Our approach: capture HTML once, then write focused assertions about selector behavior. If SAP's HTML structure changes, the selector tests fail with clear messages about which selector broke.
 
 ### WebGUI Integration Tests
 
@@ -148,16 +119,10 @@ See [docs/SAP_TEST_PREREQUISITES.md](docs/SAP_TEST_PREREQUISITES.md) for system 
 
 ### Unit Tests
 
-Unit tests use HTML snapshots (WebGUI) or mocked COM objects (Desktop). No SAP connection needed.
+Unit tests use mocked COM objects. No SAP connection needed.
 
 ```python
-# WebGUI: HTML snapshot tests
-def test_my_parser():
-    html = load_snapshot("bp_person_form_de.html")
-    result = parse_something(html)
-    assert result == expected
-
-# Desktop: mocked COM tests
+# Mocked COM tests
 def test_my_com_feature():
     session = MagicMock()
     result = my_function(session)
