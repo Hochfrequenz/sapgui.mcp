@@ -744,7 +744,15 @@ class DesktopBackend:
         """
 
         if not connection_name:
-            return LoginResult(success=False, error="No connection_name configured for this system in systems.json")
+            return LoginResult(
+                success=False,
+                error=(
+                    "No connection_name configured for this system in systems.json. "
+                    "This server drives SAP GUI for Windows and needs connection_name (the SAP Logon entry). "
+                    "If you used SAP WebGUI (browser) before v1.0.0, use sapwebgui.mcp: "
+                    "https://github.com/Hochfrequenz/sapwebgui.mcp"
+                ),
+            )
 
         # Hold the mutation lock for the entire login flow so two parallel
         # ``sap_login`` calls don't race on the registry counter or stomp

@@ -16,6 +16,17 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 class TestDesktopBackendLogin:
     @pytest.mark.anyio
+    async def test_login_without_connection_name_points_former_webgui_users_to_sapwebgui(self):
+        from sapguimcp.backend.desktop import DesktopBackend
+
+        backend = DesktopBackend(com_thread=MagicMock())
+        result = await backend.login("ignored", "user", "pass", "100", "EN", connection_name="")
+        assert result.success is False
+        assert result.error is not None
+        assert "No connection_name configured" in result.error
+        assert "https://github.com/Hochfrequenz/sapwebgui.mcp" in result.error
+
+    @pytest.mark.anyio
     async def test_login_calls_login_helper(self):
         from sapguimcp.backend.desktop import DesktopBackend
 
