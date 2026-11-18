@@ -2,14 +2,11 @@
 
 A pseudo pack replaces every text variant of EN with a unique marker ``⟦section.field[key]#n⟧`` that
 no real DE/EN spelling resembles. Every field must then round-trip through the helper that code
-uses to match, click, search or ship it to JavaScript (``contains`` / ``equals`` / ``alt`` /
-``pattern`` / ``for_js`` / ``format``), and the session view of the pseudo language must hold only
-markers plus the EN fallback.
+uses to match, click or search it (``contains`` / ``equals`` / ``alt`` / ``pattern`` /
+``format``), and the session view of the pseudo language must hold only markers plus the EN
+fallback.
 
-Scope note: the spec also describes rewriting the parser fixtures and running the parsers against
-a pseudo pack. That harness lives in the WebGUI test directory (``test_pseudo_locale_parsers.py`` for the ARIA parsers,
-``test_pseudo_locale_scripts.py`` for the page scripts), on top of ``unittests/lang/pseudo_fixtures.py``; this
-unit test covers the pack and helper side only.
+Scope note: this unit test covers the pack and helper side only.
 """
 
 import dataclasses
@@ -31,7 +28,7 @@ def _marker(path: str, index: int) -> str:
 
 
 def _regex_marker(path: str, index: int) -> str:
-    """A marker without regex metacharacters, so the pattern is its own literal and portable to JS."""
+    """A marker without regex metacharacters, so the pattern is its own literal."""
     return re.sub(r"[^\w⟦⟧]", "_", _marker(path, index))
 
 
@@ -61,9 +58,7 @@ def pseudo_pack() -> LanguagePack:
             else:
                 values[field.name] = _pseudo_leaf(path, value)
         replaced[section_name] = type(section)(**values)
-    return dataclasses.replace(
-        reference, code=CODE, html_lang="ps", logon_dropdown="Pseudo", same_as_en=frozenset(), **replaced
-    )
+    return dataclasses.replace(reference, code=CODE, same_as_en=frozenset(), **replaced)
 
 
 PSEUDO = pseudo_pack()
@@ -104,13 +99,9 @@ def test_leaf_round_trips_through_its_helpers(path: str) -> None:
         assert merged.pattern.search(f"before {first} after") is not None
         assert compiled(merged.alt).search(first) is not None
         assert merged.first_key({first: 1}) == 1
-        js = merged.for_js()
-        assert js["variants"][0] == first
-        assert isinstance(js["source"], str)
     elif isinstance(own, RegexText):
         assert isinstance(merged, RegexText)
         assert merged.pattern.search(own.patterns[0]) is not None
-        assert isinstance(merged.for_js()["source"], str)
     else:
         assert isinstance(own, Template)
         assert isinstance(merged, Template)

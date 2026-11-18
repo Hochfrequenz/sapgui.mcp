@@ -50,8 +50,6 @@ def synthetic_pack(code: str = CODE, same_as_en: frozenset[str] = SAME_AS_EN) ->
     return dataclasses.replace(
         reference,
         code=code,
-        html_lang=code.lower(),
-        logon_dropdown="Synthetisch",
         date_format="%Y-%m-%d",
         same_as_en=same_as_en,
         **replaced,

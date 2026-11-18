@@ -1,6 +1,6 @@
 """No SAP UI literal outside the language packs (#1044, spec section 10).
 
-Scans ``src/sapguimcp/**/*.py`` (outside ``lang/``) and ``backend/webgui/js/*.js`` for string
+Scans ``src/sapguimcp/**/*.py`` (outside ``lang/``) for string
 literals that look like SAP screen text, with three rules:
 
 1. **Sink rule** (AST): a literal passed to a UI sink (``click_button``, ``get_by_role(name=...)``,
@@ -58,7 +58,6 @@ from sapguimcp.lang.text import Template, Text
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "sapguimcp"
 LANG_DIR = SRC / "lang"
-JS_DIR = SRC / "backend" / "webgui" / "js"
 BASELINE = Path(__file__).with_name("lang_baseline.json")
 
 MIN_VALUE_LENGTH = 5
@@ -67,13 +66,8 @@ GENERIC_WORDS = frozenset(
         "popup.type_error",
         "popup.type_info",
         "popup.type_confirm",
-        "status_type.error",
-        "status_type.warning",
-        "status_type.success",
         "status_type.activation_confirmed",
         "status_type.activation_denied",
-        "status_type.error_prefix",
-        "status_type.success_prefix",
     }
 )
 """Pack fields made of generic words (#1044, area 2): keyword lists that infer a message or popup type
@@ -515,12 +509,8 @@ def _js_tokens(source: str) -> tuple[list[_Tok], set[int]]:
     return tokens, ok_lines
 
 
-def scan_js(path: Path, relative: str) -> tuple[list[Hit], Counter[str]]:
-    return scan_js_source(path.read_text(encoding="utf-8"), relative)
-
-
 def scan_js_source(source: str, relative: str, first_line: int = 1) -> tuple[list[Hit], Counter[str]]:
-    """JS rule and value rule over JS source: a ``.js`` file or a JS function inside a Python string."""
+    """JS rule and value rule over JS source: a JS function inside a Python string."""
     tokens, ok_lines = _js_tokens(source)
     counts: Counter[str] = Counter()
     hits: list[Hit] = []
@@ -593,8 +583,7 @@ def _in_array_receiver(tokens: list[_Tok], index: int) -> bool:
 
 
 def scanned_files() -> list[Path]:
-    python = [p for p in SRC.rglob("*.py") if not p.is_relative_to(LANG_DIR)]
-    return sorted([*python, *JS_DIR.glob("*.js")])
+    return sorted(p for p in SRC.rglob("*.py") if not p.is_relative_to(LANG_DIR))
 
 
 def scan() -> tuple[list[Hit], dict[str, Counter[str]]]:
@@ -603,7 +592,7 @@ def scan() -> tuple[list[Hit], dict[str, Counter[str]]]:
     counts: dict[str, Counter[str]] = {}
     for path in scanned_files():
         relative = path.relative_to(ROOT).as_posix()
-        file_hits, file_counts = (scan_js if path.suffix == ".js" else scan_python)(path, relative)
+        file_hits, file_counts = scan_python(path, relative)
         hits.extend(file_hits)
         counts[relative] = file_counts
     return sorted(hits), counts
@@ -752,7 +741,10 @@ def _js(source: str) -> list[tuple[str, str]]:
         ('m = re.search("Eintrag", status_text)', [("Eintrag", "regex")]),
         ('value = row.get("Methode", row.get("Method"))', [("Methode", "row-key"), ("Method", "row-key")]),
         ("SELECTOR = \"span[title*='Einstellungen']\"", [("span[title*='Einstellungen']", "selector")]),
-        ('LABELS = ("Anzahl Treffer", "Number of Hits")', [("Anzahl Treffer", "value"), ("Number of Hits", "value")]),
+        (
+            'LABELS = ("Workbench-Aufträge", "Workbench Requests")',
+            [("Workbench-Aufträge", "value"), ("Workbench Requests", "value")],
+        ),
     ],
 )
 def test_python_rules_flag_screen_text(source: str, expected: list[tuple[str, str]]) -> None:
@@ -762,10 +754,10 @@ def test_python_rules_flag_screen_text(source: str, expected: list[tuple[str, st
 @pytest.mark.parametrize(
     "source",
     [
-        '"""Anzahl Treffer is read from the SE16 screen."""',
-        'logger.info("Number of Hits: %s", hits)',
-        'x = Field(default=None, description="Number of Hits shown by SE16")',
-        'raise ValueError("Number of Hits not found")',
+        '"""Workbench-Aufträge is read from the SE16 screen."""',
+        'logger.info("Workbench Requests: %s", hits)',
+        'x = Field(default=None, description="Workbench Requests shown by SE16")',
+        'raise ValueError("Workbench Requests not found")',
         'result = Result(error=f"Program {name} not found")',
         'ok = "Sichern" in data',
         'ok = status == "E"',
@@ -818,7 +810,7 @@ def test_js_rule_flags_screen_text(source: str, expected: list[tuple[str, str]])
         "if (style.display === 'none') {}",
         r"const t = text.replace(/\s+/g, ' ');",
         "throw new Error('Program not found');",
-        "return {error: 'Number of Hits not found'};",
+        "return {error: 'Workbench Requests not found'};",
         "// if (t === 'Anzeigen') {}",
         "if (t === 'Anzeigen') {}  // lang-ok: test fixture text",
     ],
@@ -831,7 +823,7 @@ def test_js_rule_skips_code_and_messages(source: str) -> None:
     ("source", "expected"),
     [
         ('click_button(s, f"Sichern {x}")', [("Sichern ", "sink-call")]),
-        ('LABEL = f"Anzahl Treffer {n}"', [("Anzahl Treffer ", "value")]),
+        ('LABEL = f"Workbench-Aufträge {n}"', [("Workbench-Aufträge ", "value")]),
         ('ok = any(k in title for k in ("Pflegen", "Maintain"))', [("Pflegen", "compare"), ("Maintain", "compare")]),
         (
             'for k in ("Pflegen", "Maintain"):\n    if title.startswith(k):\n        break',
@@ -849,8 +841,8 @@ def test_python_rules_stronger(source: str, expected: list[tuple[str, str]]) -> 
 @pytest.mark.parametrize(
     "source",
     [
-        'raise ValueError(f"Number of Hits {n} not found")',
-        'result = Result(error=f"Number of Hits {n}")',
+        'raise ValueError(f"Workbench Requests {n} not found")',
+        'result = Result(error=f"Workbench Requests {n}")',
         'ok = any(k in data for k in ("Zzzzzz", "Yyyyyy"))',
         "ok = any(k in title for k in kinds)",
         'ok = "Sichern" in _ALL_STATUSES',
@@ -872,22 +864,22 @@ def test_python_lang_ok_does_not_exempt_inline_javascript() -> None:
 @pytest.mark.parametrize(
     ("source", "expected"),
     [
-        ("const re = /Anzahl Treffer|Number of Hits/;", [("/Anzahl Treffer|Number of Hits/", "value")]),
-        ("const s = `Anzahl Treffer`;", [("Anzahl Treffer", "value")]),
+        ("const re = /Workbench-Aufträge|Workbench Requests/;", [("/Workbench-Aufträge|Workbench Requests/", "value")]),
+        ("const s = `Workbench-Aufträge`;", [("Workbench-Aufträge", "value")]),
     ],
 )
 def test_js_value_rule_covers_regex_and_templates(source: str, expected: list[tuple[str, str]]) -> None:
     assert _js(source) == expected
 
 
-@pytest.mark.parametrize("source", ["const s = `Anzahl Treffer ${n}`;", r"const re = /\d+\s*(?:abc)/;"])
+@pytest.mark.parametrize("source", ["const s = `Workbench-Aufträge ${n}`;", r"const re = /\d+\s*(?:abc)/;"])
 def test_js_value_rule_skips_interpolated_templates_and_code_regex(source: str) -> None:
     assert _js(source) == []
 
 
 def test_value_rule_matches_whole_words_only() -> None:
-    assert matches_pack("Number of Hits")
-    assert not matches_pack("Number of Hitsfoo")
+    assert matches_pack("Workbench Requests")
+    assert not matches_pack("Workbench Requestsfoo")
     assert not matches_pack("SEOCLASS-CLSNAME")  # "class" inside a technical name
 
 

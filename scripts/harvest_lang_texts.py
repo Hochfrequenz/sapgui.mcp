@@ -20,7 +20,7 @@ JSON and pass it with ``--sap-texts``.
 (any 2-character SAP language key of T002; ``--print-sql`` accepts such a key too). The draft has the
 structure of the EN pack. Fields with a SAP source hold SAP's text; ``Manual`` fields, ``fragment``
 fields and ``Template`` / ``RegexText`` fields keep the EN value with a ``# TODO`` comment, as do
-``html_lang``, ``logon_dropdown`` and ``date_format``. Flags and kinds stay those of EN. It never
+``date_format``. Flags and kinds stay those of EN. It never
 registers the pack. Output goes to stdout or ``--out`` (an existing file is not overwritten).
 
 Exit code: 0 without drift, 1 with drift, 2 on usage errors.
@@ -274,8 +274,6 @@ def draft(language: str, fetch: Callable[[str, Source], Sequence[str]]) -> str:
     constant = language if language.isidentifier() else f"PACK_{language}"
     emit(0, f"{constant} = LanguagePack(")
     emit(4, f"code={_q(language)},")
-    emit(4, f"html_lang={_q(en.html_lang)},", f"TODO ISO code of <html lang> in the WebGUI for {language}")
-    emit(4, f"logon_dropdown={_q(en.logon_dropdown)},", "TODO language name in the WebGUI logon dropdown")
     emit(4, f"date_format={_q(en.date_format)},", "TODO strftime pattern of the default date input format")
     emit(4, "same_as_en=frozenset(),", "TODO field paths that deliberately equal EN")
     for section_name, section in sections(en):

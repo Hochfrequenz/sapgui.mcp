@@ -72,8 +72,6 @@ def _placeholders(leaf: Leaf) -> frozenset[str]:
 
 
 def _check_scalars(pack: LanguagePack) -> None:
-    assert pack.html_lang == pack.html_lang.lower()
-    assert pack.logon_dropdown.strip()
     assert date(2026, 2, 22).strftime(pack.date_format)
 
 
@@ -160,10 +158,6 @@ def test_pack_scalars(code: str) -> None:
     pack = lang.pack_for(code)
     assert pack.code == code
     _check_scalars(pack)
-
-
-def test_html_lang_codes_are_unique() -> None:
-    assert len({pack.html_lang for pack in _packs()}) == len(LANGUAGES)
 
 
 @pytest.mark.parametrize("code", LANGUAGES)
@@ -258,7 +252,7 @@ def test_guard_rejects_a_same_as_en_entry_without_a_field() -> None:
 
 def test_guard_rejects_a_same_as_en_entry_that_no_longer_equals_en() -> None:
     with pytest.raises(AssertionError):
-        _check_same_as_en_entries(_broken(same_as_en=DE.same_as_en | {"se16.hit_count_label"}), EN)
+        _check_same_as_en_entries(_broken(same_as_en=DE.same_as_en | {"se16.results_title"}), EN)
 
 
 def test_guard_rejects_a_flag_that_differs_from_en() -> None:
@@ -268,9 +262,9 @@ def test_guard_rejects_a_flag_that_differs_from_en() -> None:
 
 
 def test_guard_rejects_a_text_kind_that_differs_from_en() -> None:
-    changed = dataclasses.replace(DE.se11, row_select_full=Text(("Dictionary-Typ",)))
+    changed = dataclasses.replace(DE.popup, original_language_hint=Text(("Originalsprache",)))
     with pytest.raises(AssertionError):
-        _check_same_shape_as(_broken(se11=changed), EN)
+        _check_same_shape_as(_broken(popup=changed), EN)
 
 
 def test_guard_rejects_a_canonical_mapping_without_a_member() -> None:
@@ -286,7 +280,7 @@ def test_guard_rejects_a_variant_that_maps_to_two_members() -> None:
 
 
 def test_guard_rejects_a_template_with_other_placeholders_than_en() -> None:
-    changed = dataclasses.replace(DE.se24, display_title=Template(("Klassenpflege: {object} anzeigen",)))
+    changed = dataclasses.replace(DE.se24, initial_screen=Template(("Klassenpflege: {object} anzeigen",)))
     with pytest.raises(AssertionError):
         _check_same_placeholders(_broken(se24=changed), EN)
 
