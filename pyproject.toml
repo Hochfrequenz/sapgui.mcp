@@ -55,7 +55,7 @@ spell_check = [
     "codespell==2.4.2",
 ]
 coverage = [
-    "coverage==7.17.2",
+    "coverage==7.17.3",
     { include-group = "tests" },
 ]
 build_executable = [
