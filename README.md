@@ -9,7 +9,7 @@ An MCP (Model Context Protocol) server for SAP automation.
 It allows you to control SAP through Claude Desktop, Claude Code, or [opencode](https://opencode.ai) - via **SAP GUI for Windows** (COM scripting).
 
 > [!IMPORTANT]
-> **SAP Web GUI support moved** to the separate project [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp). v0.20.0 was the last release of this project with both backends. Starting with this version, the server only drives SAP GUI for Windows. If you use SAP Web GUI (browser), macOS or Linux, use [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp) instead.
+> **SAP Web GUI support moved** to the separate project [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp). v0.20.0 was the last release of this project with both backends. Releases after v0.20.0 only drive SAP GUI for Windows. If you use SAP Web GUI (browser), macOS or Linux, use [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp) instead.
 
 Because it drives the real SAP UI (not a headless API), it is especially well-suited for **end-to-end testing**, **visual validation**, and **capturing screenshots for documentation**.
 The MCP server works with both SAP R/3 and S/4.
@@ -26,7 +26,7 @@ The MCP server works with both SAP R/3 and S/4.
 
 ### Windows only
 
-This server uses the SAP GUI COM scripting API. It is Windows-only and single-threaded at its core, but well tested.
+This server uses the SAP GUI COM scripting API. It is Windows-only and single-threaded at its core, but well tested. It uses [sapsucker](https://github.com/Hochfrequenz/sapsucker) for typed SAP GUI Scripting access.
 This means that after your agent clicks a button, the MCP server has to wait until the GUI responds, which takes some milliseconds that can add up for batch processes.
 The Web GUI driver, which is OS-independent and can run concurrent workflows in several browser tabs, lives in [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp).
 
@@ -51,7 +51,7 @@ We support English (`EN`), German (`DE`) and Italian (`IT`).
 
 Are you a developer?
 Read [ARCHITECTURE.md](ARCHITECTURE.md) for codebase structure, request flow diagrams, and how to add new transaction tools.
-The **Development Setup** section at the bottom of this page covers running from source.
+The [Development Setup](#development-setup-from-source) section covers running from source.
 
 ## Setup
 
@@ -64,9 +64,9 @@ Setup has three steps (plus one-time prerequisites): download the executable, cr
 
 **Where to register the MCP server:**
 
-- **Claude Code** - register once for all projects with `claude mcp add --scope user` (recommended), or per project in `.mcp.json` in the project root. Each section below shows both.
-- **Claude Desktop** - add to `claude_desktop_config.json` (global config, path varies by OS - shown in each section below)
-- **[opencode](https://opencode.ai)** - add to `opencode.json` in your project root. Each section below includes a ready-to-use `opencode.json` snippet alongside the Claude Code snippet.
+- **Claude Code** - register once with `claude mcp add --scope user` (recommended) or per project in `.mcp.json`. [Step 3](#step-3-configure-your-mcp-client) shows both.
+- **Claude Desktop** - `claude_desktop_config.json` in `%APPDATA%\Claude`.
+- **[opencode](https://opencode.ai)** - `opencode.json` in the project root.
 
 > [!WARNING]
 > **Special characters in passwords stored in a `.json` file:** If your SAP password contains `"` or `\` characters, you must escape them in the JSON config files: `"` becomes `\"` and `\` becomes `\\`. For example, `pass"word` becomes `"pass\"word"` and `do\main` becomes `"do\\main"`. Unescaped special characters will silently break the JSON and the MCP server will fail to start.
@@ -74,24 +74,9 @@ Setup has three steps (plus one-time prerequisites): download the executable, cr
 > [!TIP]
 > **Windows file extensions:** If file extensions are hidden in Windows Explorer, creating `.mcp.json` via right-click → New → Text File will produce `.mcp.json.txt` (or `.mcp.json.json` if you rename). Make sure "File name extensions" is checked in Explorer's View tab, then rename the file.
 
-### Step 1: Download the executable
-
-Download `sapgui_mcp_windows_<version>.exe` from [GitHub Releases](https://github.com/Hochfrequenz/sapgui.mcp/releases/latest). It is a single file - no Python needed.
-
-#### Smart App and other Security Tools
-
-> **Tip**
->
-> **Windows blocks the `.exe`?** Windows may flag an executable as downloaded from another computer.
-> If you trust the file downloaded from our GitHub Releases, right-click it → **Properties** (**Eigenschaften**) → **General** (**Allgemein**).
-> Under **Security** (**Sicherheit**), check **Unblock** (**Zulassen**), then **Apply** (**Übernehmen**) and try again.
->
-> The checkbox only appears when Windows has marked the file as downloaded from another computer. This removes that download block; it does not override Smart App Control.
-> If Smart App Control still blocks execution, contact your IT administrator rather than disabling protection.
-
-![Screenshot: the Unblock checkbox in Windows file properties](https://github.com/user-attachments/assets/a27c7638-f0b9-4819-a99e-327a27161eee)
-
 ### Prerequisites
+
+Ask your SAP basis team for the server-side setting early - it is the only step you cannot do yourself.
 
 - SAP GUI for Windows installed (standard path - the server finds it automatically via Windows registry)
 - SAP GUI Scripting enabled (one-time setup, see below)
@@ -117,6 +102,23 @@ Download `sapgui_mcp_windows_<version>.exe` from [GitHub Releases](https://githu
 > The two notification checkboxes **must** be unchecked. If left checked, every COM connection triggers a modal popup that blocks automation.
 
 </details>
+
+### Step 1: Download the executable
+
+Download `sapgui_mcp_windows_<version>.exe` (for example `sapgui_mcp_windows_v1.0.0.exe`) from [GitHub Releases](https://github.com/Hochfrequenz/sapgui.mcp/releases/latest). It is a single file - no Python needed. Do not use the `sapgui_mcp_windows_with_remote_logging_<version>.exe` variant: it sends logs to a remote log service and is meant for the maintainers. To verify the download, compare its SHA-256 hash with `checksums.txt` from the same release.
+
+#### Smart App and other Security Tools
+
+> **Tip**
+>
+> **Windows blocks the `.exe`?** Windows may flag an executable as downloaded from another computer.
+> If you trust the file downloaded from our GitHub Releases, right-click it → **Properties** (**Eigenschaften**) → **General** (**Allgemein**).
+> Under **Security** (**Sicherheit**), check **Unblock** (**Zulassen**), then **Apply** (**Übernehmen**) and try again.
+>
+> The checkbox only appears when Windows has marked the file as downloaded from another computer. This removes that download block; it does not override Smart App Control.
+> If Smart App Control still blocks execution, contact your IT administrator rather than disabling protection.
+
+![Screenshot: the Unblock checkbox in Windows file properties](https://github.com/user-attachments/assets/a27c7638-f0b9-4819-a99e-327a27161eee)
 
 ### Step 2: Create the SAP config file (`systems.json`)
 
@@ -183,7 +185,7 @@ See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the com
 ### Step 3: Configure your MCP client
 
 > [!TIP]
-> Note the full path to the downloaded `.exe`. For example, if you saved `sapgui_mcp_windows_1.5.0.exe` to your Downloads folder, the path is `C:/Users/YourName/Downloads/sapgui_mcp_windows_1.5.0.exe`. Always use forward slashes (`/`) in JSON, not backslashes (`\`).
+> Note the full path to the downloaded `.exe`. For example, if you saved `sapgui_mcp_windows_v1.0.0.exe` to your Downloads folder, the path is `C:/Users/YourName/Downloads/sapgui_mcp_windows_v1.0.0.exe`. Always use forward slashes (`/`) in JSON, not backslashes (`\`).
 
 #### Claude Desktop
 
@@ -207,7 +209,15 @@ Add to `claude_desktop_config.json`. To open the file: press **Win+R**, type `%A
 claude mcp add --scope user sap-desktop '--' C:/path/to/sapgui_mcp_windows_<version>.exe
 ```
 
-Together with `systems.json`, this is all Claude Code needs - no `.mcp.json` in any project folder. Two details matter:
+Together with `systems.json`, this is all Claude Code needs - no `.mcp.json` in any project folder.
+
+Optional server settings (see [environment variables](#environment-variables-server-specific)) go as `-e` options between the server name and `'--'`:
+
+```powershell
+claude mcp add --scope user sap-desktop -e GITHUB_PAT=your_github_pat -e OUTPUT_DIR=C:/sap-output '--' C:/path/to/sapgui_mcp_windows_<version>.exe
+```
+
+A PAT typed on the command line ends up in your shell history. In Claude Desktop and in `.mcp.json`, put the same variables in an `"env": { ... }` block next to `command`; in `opencode.json` use `"environment": { ... }`. Two details matter:
 
 - **Keep the server name (`sap-desktop`) before `-e`.** The `-e` option accepts several values, so a name placed after it is read as a second environment variable and the command fails with `error: missing required argument 'commandOrUrl'`.
 - **Keep the quotes around `'--'`.** If Claude Code was installed through npm, `claude` is a PowerShell script, and PowerShell silently drops an unquoted `--` before passing the arguments on. `-e` then swallows the `.exe` path and the command fails with the same error. This works in PowerShell, bash and zsh (in bash or zsh, `'--'` and `--` are equivalent). In cmd.exe, single quotes are not quoting characters, so write a plain `--` instead.
@@ -320,7 +330,7 @@ For Claude Code, with a user-scope registration there is no config file to edit:
 
 ## Development Setup (from source)
 
-For contributors who want to run from source. Prerequisites: Python 3.11+, [uv](https://docs.astral.sh/uv/getting-started/installation/), and SAP GUI for Windows with scripting enabled (see above).
+For contributors who want to run from source. Prerequisites: Python 3.11+, [uv](https://docs.astral.sh/uv/getting-started/installation/), and SAP GUI for Windows with scripting enabled (see [Prerequisites](#prerequisites)).
 
 ```bash
 git clone https://github.com/Hochfrequenz/sapgui.mcp.git
@@ -369,22 +379,22 @@ Your AI client automatically discovers all individual tools and their schemas dy
 
 SAP credentials (user, password, client, language, host) are configured in `systems.json` (or `systems.yaml`), **not** via server environment variables. See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the file format. Override the config file path with `SAP_CONFIG_FILE`. The `language` of each system must be `DE`, `EN` or `IT` (case-insensitive; omitted means `EN`) - these are the languages this server supports, and any other value, such as `FR`, is rejected when the config is loaded with `language must be one of "DE", "EN", "IT"`. Older versions read `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`, `SAP_LANGUAGE`, `SAP_CONNECTION_NAME` and `SAP_CREDENTIALS` from the MCP config's `env` block; these are ignored now and can be removed from existing configs.
 
+The WebGUI settings are ignored. The server checks `BACKEND_TYPE=webgui`, `SAP_URL` and `CDP_URL` in the environment and in `.env`: if one is set, it logs a warning and adds a note to its instructions that points to [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp). Other old WebGUI settings, such as `BROWSER_*` and `CHROME_*`, are silently ignored.
+
 Individual fields may still be sourced from the environment with an `${env:VAR}` placeholder - e.g. `"password": "${env:SAP_DEV_PASSWORD}"` - which keeps secrets out of the file while the structure stays in it. Placeholders work in `connection_name`, `host`, `client`, `user`, `password`, `language`, `oauth2_client_id` and the top-level `default_system`.
 
 An unset or empty variable makes the config invalid, so the first tool call that needs a credential - `sap_login`, for instance - fails with an error naming the variable, never a silently empty credential. Note that the server itself still starts: config loading is lazy, so the failure surfaces on first use rather than at launch. Tools that only _list_ configuration, such as `sap_list_connections`, do not fail on an invalid config but report the reason in a `config_error` field of their result instead of returning a silently empty list; the server instructions carry the same message. Text that only _looks_ like a placeholder is used verbatim, so a typo such as `${SAP_PASSWORD}` (missing the `env:` prefix) becomes your literal password rather than an error - see the [placeholder rules](https://github.com/Hochfrequenz/sap-mcp-config#keeping-secrets-out-of-the-config-file) for the exact forms.
 
-| OS      | Default path                                 |
-| ------- | -------------------------------------------- |
-| Windows | `%USERPROFILE%\.config\sap-mcp\systems.json` |
+Default path: `%USERPROFILE%\.config\sap-mcp\systems.json`.
 
 ### Environment Variables (server-specific)
 
 | Variable              | Required | Description                                                                                                                                                                                                                                                                                                                                                                                                           | Default                          |
 | --------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| `SAP_CONFIG_FILE`     | No       | Path to systems.json (see table above for default per OS)                                                                                                                                                                                                                                                                                                                                                             | (see above)                      |
+| `SAP_CONFIG_FILE`     | No       | Path to systems.json (default: see above)                                                                                                                                                                                                                                                                                                                                                                             | (see above)                      |
 | `OUTPUT_DIR`          | No       | Directory that `output_file` tool arguments (e.g. `sap_se16_query`) are sandboxed to. Set this when the server's cwd isn't your project directory.                                                                                                                                                                                                                                                                    | `""` (current working directory) |
 | `SCRIPT_ROOTS`        | No       | Allowed root directories for `sap_run_script`'s `script_path` parameter, separated by `os.pathsep` (`;` on Windows). Roots must be absolute paths (relative entries are skipped with a warning); a UNC/network root is allowed if you configure one, whereas UNC/device paths in the caller's `script_path` are rejected. Relative `script_path` values are resolved against these roots in order (first match wins). | `""` (`script_path` disabled)    |
-| `COM_MIN_INTERVAL_MS` | No       | Minimum ms between COM calls (prevents overload). Desktop only.                                                                                                                                                                                                                                                                                                                                                       | `100`                            |
+| `COM_MIN_INTERVAL_MS` | No       | Minimum ms between COM calls (prevents overload).                                                                                                                                                                                                                                                                                                                                                                     | `100`                            |
 | `GITHUB_PAT`          | No       | GitHub PAT for `log_feedback` issues and abapGit auth                                                                                                                                                                                                                                                                                                                                                                 | -                                |
 | `GITHUB_USER`         | No       | GitHub username for abapGit (falls back to `x-access-token`)                                                                                                                                                                                                                                                                                                                                                          | -                                |
 | `GITHUB_REPO`         | No       | Repository for feedback issues                                                                                                                                                                                                                                                                                                                                                                                        | `Hochfrequenz/sapgui.mcp`        |
@@ -402,7 +412,7 @@ The server logs to **stdout** by default using a structured text format. Set `LO
 
 Remote logging to [Papertrail](https://www.papertrail.com/) is **disabled by default**. No telemetry is sent unless you explicitly opt in.
 
-To enable it, set both `PAPERTRAIL_HOST` and `PAPERTRAIL_PORT` in your `.env` file or environment:
+To enable it, set both `PAPERTRAIL_HOST` and `PAPERTRAIL_PORT` as environment variables (in the MCP client's `env` block, see [Step 3](#step-3-configure-your-mcp-client)) or in a `.env` file in the server's working directory:
 
 ```
 PAPERTRAIL_HOST=logs.example.com
@@ -413,12 +423,12 @@ When enabled, tool call names, SAP hostnames, and operational metadata are sent 
 
 Each release publishes two Windows binaries:
 
-| Binary                                       | Papertrail default                           | Intended audience         |
-| -------------------------------------------- | -------------------------------------------- | ------------------------- |
-| `sapgui_mcp_windows.exe`                     | **off** - no defaults bundled                | Public / external users   |
-| `sapgui_mcp_windows_with_remote_logging.exe` | Hochfrequenz endpoint baked in at build time | Hochfrequenz-internal use |
+| Binary                                                 | Papertrail default                           | Intended audience         |
+| ------------------------------------------------------ | -------------------------------------------- | ------------------------- |
+| `sapgui_mcp_windows_<version>.exe`                     | **off** - no defaults bundled                | Public / external users   |
+| `sapgui_mcp_windows_with_remote_logging_<version>.exe` | Hochfrequenz endpoint baked in at build time | Hochfrequenz-internal use |
 
-Both binaries honour user overrides via `.env` or environment variables.
+Both binaries honour user overrides as environment variables or in a `.env` file in the server's working directory.
 
 ## Troubleshooting
 
@@ -438,7 +448,7 @@ To find and remove the stale entry (shown for `sap-desktop`):
 - Run `claude mcp get sap-desktop` from the project directory. The `Scope:` line shows which registration Claude Code actually uses.
 - Remove a local-scope entry with `claude mcp remove sap-desktop -s local`, or the entry in the project's `.mcp.json` with `claude mcp remove sap-desktop -s project`. Always pass `-s`: without it, `remove` deletes the server from whichever scope it finds it in, which may be your global registration. (The `-s project` variant edits the project's possibly shared `.mcp.json`, so commit that change only if the whole team should lose the entry.)
 
-When cleaning up configs from older versions, you can also drop the old `SAP_*` credential variables from any `env` block - see [SAP Credentials](#sap-credentials-via-systemsjson) for the list. Credentials are configured only via `systems.json` (optionally with `${env:VAR}` placeholders). `SAP_CONFIG_FILE` is still supported.
+When cleaning up configs from older versions, you can also drop the old `SAP_*` credential variables from any `env` block - see [SAP Credentials](#sap-credentials-via-systemsjson) for the list. Credentials are configured only via `systems.json` (optionally with `${env:VAR}` placeholders). `SAP_CONFIG_FILE` is still supported; `SAP_URL`, `CDP_URL` and `BACKEND_TYPE` are ignored (see [SAP Credentials](#sap-credentials-via-systemsjson)).
 
 ### Tools timeout or hang
 
