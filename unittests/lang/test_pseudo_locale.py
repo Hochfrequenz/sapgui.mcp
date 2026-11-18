@@ -7,9 +7,9 @@ uses to match, click, search or ship it to JavaScript (``contains`` / ``equals``
 markers plus the EN fallback.
 
 Scope note: the spec also describes rewriting the parser fixtures and running the parsers against
-a pseudo pack. That harness lives in ``unittests/webgui/test_pseudo_locale_parsers.py`` (ARIA parsers) and
-``unittests/webgui/test_pseudo_locale_scripts.py`` (page scripts), on top of ``pseudo_fixtures.py``; this unit test
-covers the pack and helper side only.
+a pseudo pack. That harness lives in the WebGUI test directory (``test_pseudo_locale_parsers.py`` for the ARIA parsers,
+``test_pseudo_locale_scripts.py`` for the page scripts), on top of ``unittests/lang/pseudo_fixtures.py``; this
+unit test covers the pack and helper side only.
 """
 
 import dataclasses

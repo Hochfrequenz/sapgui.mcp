@@ -30,7 +30,7 @@ from .integration_helpers import (
     capture_html_snapshot,
 )
 
-HTML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "html_snapshots"
+HTML_SNAPSHOTS_DIR = Path(__file__).parent.parent / "testdata" / "html_snapshots"
 YAML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "yaml_snapshots"
 
 
