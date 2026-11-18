@@ -19,14 +19,14 @@ from mcp.types import ToolAnnotations
 from sapguimcp import lang
 from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RERAISE_COM_ERRORS, _get_com_error_code
 from sapguimcp.backend.manager import get_backend
-from sapguimcp.backend.webgui.parsers.se24_parser import map_visibility
+from sapguimcp.lang.schema import Visibility
 from sapguimcp.models import (
     SE24Entry,
     SE24Error,
     SE24FileSummary,
     SE24Result,
 )
-from sapguimcp.models.se24_models import SE24Attribute, SE24Method, SE24ObjectType
+from sapguimcp.models.se24_models import SE24Attribute, SE24Method, SE24ObjectType, SE24Visibility
 from sapguimcp.tools.desktop_wait_predicates import (
     named_text_field_present,
     popup_closed_and_screen_changed,
@@ -42,6 +42,28 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+_VISIBILITY_LITERALS: dict[Visibility, SE24Visibility] = {
+    Visibility.PUBLIC: "public",
+    Visibility.PROTECTED: "protected",
+    Visibility.PRIVATE: "private",
+}
+
+
+def map_visibility(t: LanguagePack, raw: str | None, *, exact: bool = True) -> SE24Visibility:
+    """Map a visibility text in any pack language to the canonical value; unknown or empty is public.
+
+    ``exact`` compares the whole text; otherwise a text that merely contains the visibility word counts
+    (the desktop table control cell).
+    """
+    if not raw:
+        return "public"
+    for member in (Visibility.PRIVATE, Visibility.PROTECTED):
+        text = t.se24.visibility[member]
+        if text.equals(raw) if exact else text.contains(raw):
+            return _VISIBILITY_LITERALS[member]
+    return "public"
+
 
 __all__ = ["register_se24_tools"]
 

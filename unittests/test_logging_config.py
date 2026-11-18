@@ -10,7 +10,6 @@ import pytest
 
 from sapguimcp.logging_config import (
     COMMIT_UNKNOWN,
-    BrowserLogContext,
     QueryLogContext,
     StructuredFormatter,
     ToolLogContext,
@@ -245,11 +244,6 @@ class TestLogContextModels:
         assert d["table"] == "MARA"
         assert d["rows"] == 100
         assert d["total_hits"] == 500
-
-    def test_browser_log_context(self) -> None:
-        ctx = BrowserLogContext(tool="browser_click", selector="#btn1")
-        d = ctx.model_dump(mode="json", exclude_none=True)
-        assert d == {"tool": "browser_click", "selector": "#btn1"}
 
     def test_exclude_none_drops_empty_fields(self) -> None:
         ctx = ToolLogContext(tool="test", session=None, agent_id=None)

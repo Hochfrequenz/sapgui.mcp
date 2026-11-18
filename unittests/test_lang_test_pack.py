@@ -1,4 +1,4 @@
-"""Completeness of the WebGUI test packs (#1044, spec section 10, "Language in the test suite")."""
+"""Completeness of the UI test packs (#1044, spec section 10, "Language in the test suite")."""
 
 import dataclasses
 from collections.abc import Iterator

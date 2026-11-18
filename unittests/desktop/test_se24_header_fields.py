@@ -9,7 +9,7 @@ import pytest
 
 from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RETRYABLE_COM_ERRORS
 from sapguimcp.tools.desktop_wait_predicates import named_text_field_present
-from sapguimcp.tools.se24_tools import _HEADER_DESCRIPTION_FIELDS, _read_se24_header
+from sapguimcp.tools.se24_tools import _HEADER_DESCRIPTION_FIELDS, _read_se24_header, map_visibility
 
 if TYPE_CHECKING:
     from sapguimcp.lang import LanguagePack
@@ -83,6 +83,14 @@ def test_the_text_decides_when_the_key_cannot_be_read(lang_de: LanguagePack, tex
         raise OSError("key not readable")
 
     assert _read_se24_header(SimpleNamespace(find_by_id=find_by_id), _flatten, lang_de)["is_abstract"] is True
+
+
+def test_map_visibility_exact_versus_contains(lang_de: LanguagePack) -> None:
+    assert map_visibility(lang_de, "Privat") == "private"
+    assert map_visibility(lang_de, "Privat (Geschützt)", exact=True) == "public"  # not the whole cell text
+    assert map_visibility(lang_de, "Privat (Geschützt)", exact=False) == "private"
+    assert map_visibility(lang_de, None) == "public"
+    assert map_visibility(lang_de, "") == "public"
 
 
 def test_a_subclass_names_its_superclass_and_a_class_without_one_has_no_key(lang_de: LanguagePack) -> None:

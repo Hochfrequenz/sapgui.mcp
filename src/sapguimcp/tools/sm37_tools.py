@@ -18,9 +18,6 @@ from mcp.types import ToolAnnotations
 
 from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
-from sapguimcp.backend.webgui.parsers.sm37_parser import (
-    normalize_job_status,
-)
 from sapguimcp.lang.schema import JobStatus
 from sapguimcp.models import TableData
 from sapguimcp.models.sm37_models import SM37Job, SM37JobListResult, SM37JobLog
@@ -54,6 +51,18 @@ _STATUS_PARAMS: dict[str, JobStatus] = {
     "canceled": JobStatus.CANCELED,  # lang-ok: tool parameter value
 }
 """The ``status`` values of the tool and the job status each one selects."""
+
+
+def normalize_job_status(status_text: str, t: LanguagePack) -> str:
+    """Normalize a status text of the session's language to the canonical ``JobStatus`` value.
+
+    Texts of no known status are returned trimmed.
+    """
+    stripped = status_text.strip()
+    for status, text in t.sm37.status.items():
+        if text.equals(stripped):
+            return status.value
+    return stripped
 
 
 def _first(data: dict[str, str], names: Iterable[str], default: str | None = "") -> str | None:

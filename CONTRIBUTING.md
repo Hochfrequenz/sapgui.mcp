@@ -21,9 +21,6 @@ uv sync --group dev
 source .venv/bin/activate  # Linux/macOS
 # or
 .venv\Scripts\activate  # Windows
-
-# Install Playwright browsers (WebGUI backend only)
-uv run playwright install chromium
 ```
 
 `uv sync --group dev` installs everything needed to run the unit tests (`dev` includes the `tests` group and the runtime dependencies such as `fastmcp`). If a bare `pytest` or `import mcp` fails with a missing module, you are most likely in a stale or different virtual environment: run commands through `uv run ...` (e.g. `uv run pytest --version`) instead of relying on an activated older venv.
@@ -74,8 +71,8 @@ uv run --group spell_check codespell --ignore-words=domain-specific-terms.txt sr
 
 You can run tests directly in PyCharm. Settings are loaded from your `.env` file automatically.
 
-1. **Unit tests**: Right-click `unittests/webgui/test_selectors.py` → Run
-2. **Integration tests**: Right-click any `unittests/webgui/test_*_integration.py` file → Run
+1. **Unit tests**: Right-click `unittests/desktop/test_element_finder.py` → Run
+2. **Integration tests**: Right-click any `unittests/desktop/test_*_integration.py` file → Run
 
 To change language, edit `SAP_LANGUAGE` in your `.env` file.
 

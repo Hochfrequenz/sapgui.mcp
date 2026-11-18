@@ -15,19 +15,15 @@ import pytest
 from unittests.conftest import _DESKTOP_DIR, is_live_sap_item, pytest_collection_modifyitems
 
 _UNITTESTS = Path(__file__).parent
-_WEBGUI = _UNITTESTS / "webgui"
 
 
 @pytest.mark.parametrize(
     ("fixtures", "path", "expected"),
     [
         (["backend"], _DESKTOP_DIR / "test_x.py", True),
-        (["sap_mcp_client"], _WEBGUI / "test_x.py", True),
-        (["sap_mcp_client"], _DESKTOP_DIR / "test_x.py", True),
         (["backend"], _UNITTESTS / "test_x.py", False),
-        (["backend"], _WEBGUI / "test_x.py", False),
         (["tmp_path", "monkeypatch"], _DESKTOP_DIR / "test_x.py", False),
-        ([], _WEBGUI / "test_x.py", False),
+        ([], _DESKTOP_DIR / "test_x.py", False),
     ],
 )
 def test_is_live_sap_item(fixtures, path, expected):
@@ -65,7 +61,6 @@ def _defined_fixtures(conftest: Path) -> set[str]:
 
 def test_live_fixtures_still_exist():
     assert "backend" in _defined_fixtures(_DESKTOP_DIR / "conftest.py")
-    assert "sap_mcp_client" in _defined_fixtures(_WEBGUI / "conftest.py")
 
 
 def test_breakpoint_integration_test_imports_existing_names():

@@ -108,17 +108,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest]
-        chrome: [true, false]
+        os: [windows-latest]
         include:
           - os: windows-latest
             artifact: sapgui_mcp_windows
             binary: sapgui_mcp_windows.exe
-          - os: macos-latest
-            artifact: sapgui_mcp_macos_arm64
-            binary: sapgui_mcp_macos_arm64
     runs-on: ${{ matrix.os }}
-    name: "Smoke Test (${{ matrix.os }}, Chrome: ${{ matrix.chrome }})"
+    name: "Smoke Test (${{ matrix.os }})"
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -133,51 +129,6 @@ jobs:
         with:
           name: ${{ matrix.artifact }}
           path: dist
-
-      # Chrome is pre-installed on GitHub Actions windows-latest runners
-      - name: Start Chrome headless (Windows)
-        if: matrix.chrome && matrix.os == 'windows-latest'
-        run: |
-          Start-Process -FilePath "C:\Program Files\Google\Chrome\Application\chrome.exe" `
-            -ArgumentList "--headless", "--disable-gpu", "--remote-debugging-port=9222", "--user-data-dir=$env:TEMP\chrome-debug"
-          # Wait up to 15s for CDP endpoint to come up (avoids fixed-sleep race)
-          $ok = $false
-          for ($i = 0; $i -lt 15; $i++) {
-            try {
-              Invoke-WebRequest -Uri "http://localhost:9222/json/version" -UseBasicParsing | Out-Null
-              $ok = $true
-              break
-            } catch {
-              Start-Sleep -Seconds 1
-            }
-          }
-          if (-not $ok) { throw "Chrome CDP endpoint did not come up within 15s" }
-        shell: pwsh
-
-      # Chrome is pre-installed on GitHub Actions macos-latest runners
-      - name: Start Chrome headless (macOS)
-        if: matrix.chrome && matrix.os == 'macos-latest'
-        run: |
-          "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
-            --headless --disable-gpu --remote-debugging-port=9222 \
-            --user-data-dir="$RUNNER_TEMP/chrome-debug" &
-          # Wait up to 15s for CDP endpoint to come up (avoids fixed-sleep race)
-          for i in $(seq 1 15); do
-            if curl -sSf http://localhost:9222/json/version >/dev/null 2>&1; then
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "Chrome CDP endpoint did not come up within 15s" >&2
-          exit 1
-        shell: bash
-
-      # actions/upload-artifact zips contents and the zip format does not
-      # reliably preserve Unix mode bits on download — restore +x.
-      - name: Make binary executable (macOS)
-        if: matrix.os == 'macos-latest'
-        run: chmod +x dist/${{ matrix.binary }}
-        shell: bash
 
       - name: Smoke Test
         run: uv run --no-project --python 3.15 python scripts/smoke_test_exe.py dist/${{ matrix.binary }}

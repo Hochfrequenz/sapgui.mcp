@@ -766,7 +766,6 @@ git clone https://github.com/Hochfrequenz/sapgui.mcp.git
 cd sapgui.mcp
 # Install uv: https://docs.astral.sh/uv/getting-started/installation/
 uv sync --group dev
-uv run playwright install chromium
 ```
 
 Run tools through `uv run ...` (not a bare `pytest` from an older venv).

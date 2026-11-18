@@ -22,7 +22,6 @@ classifiers = [
 dependencies = [
     "fastmcp[apps]>=4.0.3,<5.0.0",  # v4 required: snake_case ToolAnnotations (mcp 2.x) and InputRequiredResult (SEP-2322)
     "httpx>=0.27.0",  # HTTP client for GitHub API (feedback issue handler)
-    "playwright>=1.40.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
     "pywin32>=306; sys_platform == 'win32'",
@@ -41,8 +40,6 @@ tests = [
     "pytest==9.2.0",
     "anyio==4.16.0",  # includes pytest-anyio plugin for proper async fixture teardown
     "python-dotenv>=1.0.0",
-    "beautifulsoup4==4.15.0",  # HTML parsing for selector unit tests
-    "lxml==6.1.3",  # Fallback parser for Python 3.13+ (html.parser has stricter nesting rules)
     "respx==0.23.1",  # Mock httpx requests in tests
     "pillow==13.0.0",  # README demo composite renderer (layout-math unit tests import it)
 ]
@@ -147,20 +144,6 @@ known-third-party = ["sap_mcp_config", "sapsucker"]
 "src/sapguimcp/backend/desktop/_snapshot_render.py" = ["TC002"] # typing-only-third-party-import
 "src/sapguimcp/backend/desktop/_truncation.py" = ["TC002"] # typing-only-third-party-import
 "src/sapguimcp/backend/manager.py" = ["S101", "SIM102"] # assert, collapsible-if
-"src/sapguimcp/backend/webgui/backend.py" = ["ARG002", "PIE810", "PLC0207", "PLR0911", "RUF019", "S110", "SIM105", "SIM108"] # unused-method-argument, multiple-starts-ends-with, missing-maxsplit-arg, too-many-return-statements, unnecessary-key-check, try-except-pass, suppressible-exception, if-else-block-instead-of-if-exp
-"src/sapguimcp/backend/webgui/browser.py" = ["PLW0603", "RUF022", "UP045"] # global-statement, unsorted-dunder-all, non-pep604-annotation-optional
-"src/sapguimcp/backend/webgui/chrome_finder.py" = ["RUF003", "S603", "S607", "UP045"] # ambiguous-unicode-character-comment, subprocess-without-shell-equals-true, start-process-with-partial-path, non-pep604-annotation-optional
-"src/sapguimcp/backend/webgui/models/session_registry.py" = ["RUF022", "UP035", "UP037"] # unsorted-dunder-all, deprecated-import, quoted-annotation
-"src/sapguimcp/backend/webgui/parsers/se09_parser.py" = ["ARG001", "PIE810"] # unused-function-argument, multiple-starts-ends-with
-"src/sapguimcp/backend/webgui/parsers/se16_parser.py" = ["SIM108"] # if-else-block-instead-of-if-exp
-"src/sapguimcp/backend/webgui/parsers/se24_parser.py" = ["RET504", "RUF002", "RUF022"] # unnecessary-assign, ambiguous-unicode-character-docstring, unsorted-dunder-all
-"src/sapguimcp/backend/webgui/parsers/se37_parser.py" = ["RET504", "RUF022"] # unnecessary-assign, unsorted-dunder-all
-"src/sapguimcp/backend/webgui/parsers/se93_parser.py" = ["RET504"] # unnecessary-assign
-"src/sapguimcp/backend/webgui/parsers/sm30_parser.py" = ["PIE810", "RUF022"] # multiple-starts-ends-with, unsorted-dunder-all
-"src/sapguimcp/backend/webgui/parsers/sm37_parser.py" = ["PIE810", "RUF022"] # multiple-starts-ends-with, unsorted-dunder-all
-"src/sapguimcp/backend/webgui/parsers/spro_parser.py" = ["PIE810"] # multiple-starts-ends-with
-"src/sapguimcp/backend/webgui/parsers/st22_parser.py" = ["PIE810", "PLR0911", "PLW2901", "RUF022", "SIM102", "SIM212"] # multiple-starts-ends-with, too-many-return-statements, redefined-loop-name, unsorted-dunder-all, collapsible-if, if-expr-with-twisted-arms
-"src/sapguimcp/backend/webgui/utils.py" = ["SIM110"] # reimplemented-builtin
 "src/sapguimcp/catalog/__init__.py" = ["RUF022"] # unsorted-dunder-all
 "src/sapguimcp/catalog/loader.py" = ["PTH123"] # builtin-open
 "src/sapguimcp/catalog/scraper.py" = ["PLC0415", "PTH123", "UP035"] # import-outside-top-level, builtin-open, deprecated-import
@@ -272,58 +255,6 @@ known-third-party = ["sap_mcp_config", "sapsucker"]
 "unittests/test_system_selection_integration.py" = ["F401", "F841", "PLC0415", "PT001", "PT019"] # unused-import, unused-variable, import-outside-top-level, pytest-fixture-incorrect-parentheses-style, pytest-fixture-param-without-value
 "unittests/test_tables.py" = ["PLC0415"] # import-outside-top-level
 "unittests/test_tool_call_logging_middleware.py" = ["E402", "PLC0415", "SIM117"] # module-import-not-at-top-of-file, import-outside-top-level, multiple-with-statements
-"unittests/webgui/abapgit_test_helpers.py" = ["F841", "PLC0415", "S603", "S607"] # unused-variable, import-outside-top-level, subprocess-without-shell-equals-true, start-process-with-partial-path
-"unittests/webgui/conftest.py" = ["PIE810", "PLC0415", "RET505", "S110", "SIM117"] # multiple-starts-ends-with, import-outside-top-level, superfluous-else-return, try-except-pass, multiple-with-statements
-"unittests/webgui/explore_se16.py" = ["F541", "F811", "PLC0415", "RET508", "RUF059"] # f-string-missing-placeholders, redefined-while-unused, import-outside-top-level, superfluous-else-break, unused-unpacked-variable
-"unittests/webgui/test_abapgit_tools.py" = ["ARG001", "PLC0415"] # unused-function-argument, import-outside-top-level
-"unittests/webgui/test_agent_binding_integration.py" = ["PLC0415"] # import-outside-top-level
-"unittests/webgui/test_backend_manager_webgui.py" = ["ARG001", "PT022"] # unused-function-argument, pytest-useless-yield-fixture
-"unittests/webgui/test_backend_protocol.py" = ["PLC0415"] # import-outside-top-level
-"unittests/webgui/test_bp_integration.py" = ["PT018"] # pytest-composite-assertion
-"unittests/webgui/test_browser_reconnect_integration.py" = ["F541"] # f-string-missing-placeholders
-"unittests/webgui/test_checkbox_radio_integration.py" = ["E741", "RUF015"] # ambiguous-variable-name, unnecessary-iterable-allocation-for-first-element
-"unittests/webgui/test_chrome_finder.py" = ["PLC0415"] # import-outside-top-level
-"unittests/webgui/test_emmacl_integration.py" = ["F541"] # f-string-missing-placeholders
-"unittests/webgui/test_ensure_screen_state.py" = ["F401"] # unused-import
-"unittests/webgui/test_enter_transaction_title.py" = ["F401", "PLC0415"] # unused-import, import-outside-top-level
-"unittests/webgui/test_get_session_status_per_id.py" = ["ARG001", "PLC0415", "RUF100"] # unused-function-argument, import-outside-top-level, unused-noqa
-"unittests/webgui/test_intent_logging_integration.py" = ["ARG001"] # unused-function-argument
-"unittests/webgui/test_models.py" = ["PLC0415"] # import-outside-top-level
-"unittests/webgui/test_navigation_integration.py" = ["F841", "PT018"] # unused-variable, pytest-composite-assertion
-"unittests/webgui/test_quick_report_classifier.py" = ["F401"] # unused-import
-"unittests/webgui/test_quick_report_models.py" = ["F401"] # unused-import
-"unittests/webgui/test_quick_report_pipeline.py" = ["ARG001", "F401", "F841", "PLC0415"] # unused-function-argument, unused-import, unused-variable, import-outside-top-level
-"unittests/webgui/test_sap_login_identity.py" = ["F401", "F821", "PLC0415"] # unused-import, undefined-name, import-outside-top-level
-"unittests/webgui/test_screen_state_parser.py" = ["PLC0415"] # import-outside-top-level
-"unittests/webgui/test_se09_exploration.py" = ["F401", "F841", "PLC0415", "S110", "SIM105"] # unused-import, unused-variable, import-outside-top-level, try-except-pass, suppressible-exception
-"unittests/webgui/test_se11_integration.py" = ["F811", "PTH123"] # redefined-while-unused, builtin-open
-"unittests/webgui/test_se16_integration.py" = ["F401", "PT018", "PTH123"] # unused-import, pytest-composite-assertion, builtin-open
-"unittests/webgui/test_se16_parser.py" = ["PLC0415"] # import-outside-top-level
-"unittests/webgui/test_se24_edit.py" = ["PLC0415", "RUF059"] # import-outside-top-level, unused-unpacked-variable
-"unittests/webgui/test_se24_edit_exploration.py" = ["PLC0415"] # import-outside-top-level
-"unittests/webgui/test_se24_integration.py" = ["PLC0415"] # import-outside-top-level
-"unittests/webgui/test_se37_edit.py" = ["E501", "PLC0415", "RUF059"] # line-too-long, import-outside-top-level, unused-unpacked-variable
-"unittests/webgui/test_se37_edit_exploration.py" = ["PLC0415"] # import-outside-top-level
-"unittests/webgui/test_se37_integration.py" = ["PLC0415"] # import-outside-top-level
-"unittests/webgui/test_se38_edit.py" = ["PLC0415"] # import-outside-top-level
-"unittests/webgui/test_se38_edit_exploration.py" = ["F841", "PLC0415"] # unused-variable, import-outside-top-level
-"unittests/webgui/test_se93_integration.py" = ["PLC0415"] # import-outside-top-level
-"unittests/webgui/test_selectors.py" = ["ARG002", "F401", "F841", "PLC0415", "PLW2901", "PT018", "RUF012", "S112"] # unused-method-argument, unused-import, unused-variable, import-outside-top-level, redefined-loop-name, pytest-composite-assertion, mutable-class-default, try-except-continue
-"unittests/webgui/test_session_bind_strict.py" = ["PLC0415"] # import-outside-top-level
-"unittests/webgui/test_session_integration.py" = ["PLC0415", "RUF043"] # import-outside-top-level, pytest-raises-ambiguous-pattern
-"unittests/webgui/test_session_registry.py" = ["PLC0415"] # import-outside-top-level
-"unittests/webgui/test_session_sap_integration.py" = ["PLC0415", "PT018"] # import-outside-top-level, pytest-composite-assertion
-"unittests/webgui/test_session_tools.py" = ["ARG004", "N806", "PLC0415", "SIM117", "SIM910"] # unused-static-method-argument, non-lowercase-variable-in-function, import-outside-top-level, multiple-with-statements, dict-get-with-none-default
-"unittests/webgui/test_shortcut_parser.py" = ["PT001"] # pytest-fixture-incorrect-parentheses-style
-"unittests/webgui/test_slg1_exploration.py" = ["S110", "SIM105"] # try-except-pass, suppressible-exception
-"unittests/webgui/test_sm30_exploration.py" = ["F401", "PLC0415"] # unused-import, import-outside-top-level
-"unittests/webgui/test_sm37_exploration.py" = ["F401"] # unused-import
-"unittests/webgui/test_sm37_integration.py" = ["F541", "PLC0415"] # f-string-missing-placeholders, import-outside-top-level
-"unittests/webgui/test_sm37_parser.py" = ["PLC0415", "PT011"] # import-outside-top-level, pytest-raises-too-broad
-"unittests/webgui/test_spro_exploration.py" = ["F401", "PLC0415"] # unused-import, import-outside-top-level
-"unittests/webgui/test_st22_exploration.py" = ["E501", "F841", "S110", "SIM105"] # line-too-long, unused-variable, try-except-pass, suppressible-exception
-"unittests/webgui/test_st22_parser.py" = ["F401"] # unused-import
-"unittests/webgui/test_tool_call_logging_middleware.py" = ["E402", "PLC0415", "SIM117"] # module-import-not-at-top-of-file, import-outside-top-level, multiple-with-statements
 
 [mypy]
 truethy-bool = true
