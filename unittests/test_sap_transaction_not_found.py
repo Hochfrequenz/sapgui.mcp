@@ -11,9 +11,8 @@ from sapguimcp.models import StatusBarInfo, TransactionResult
 from sapguimcp.tools.sap_tools import register_sap_tools
 
 
-async def _call(status: StatusBarInfo, backend_type: str = "desktop") -> dict[str, Any]:
+async def _call(status: StatusBarInfo) -> dict[str, Any]:
     backend = MagicMock()
-    backend.backend_type = backend_type
     backend.check_popup = AsyncMock(return_value=None)
     backend.wait = AsyncMock()
     backend.enter_transaction = AsyncMock(return_value=TransactionResult(tcode="NOSUCH1", page_title="SAP Easy Access"))

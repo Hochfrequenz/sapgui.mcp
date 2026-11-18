@@ -1,8 +1,7 @@
 """Unit tests for the elicitation-based confirmation gate on sap_breakpoint_set.
 
 Uses a real DesktopBackend instance (with a fake COM thread that just runs the
-passed callable inline) so `isinstance(backend, DesktopBackend)` and the
-`backend_type` property behave exactly as in production, without touching real
+passed callable inline) so `isinstance(backend, DesktopBackend)` behaves exactly as in production, without touching real
 SAP GUI COM objects.
 """
 

@@ -23,10 +23,9 @@ from sapguimcp.server import mcp
 _PATCH_GET_BACKEND = "sapguimcp.tools.sap_tools.get_backend"
 
 
-def _make_backend(backend_type: str = "webgui", **overrides) -> AsyncMock:
+def _make_backend(**overrides) -> AsyncMock:
     """Create a mock backend with sensible defaults for general-purpose tools."""
     backend = AsyncMock()
-    backend.backend_type = backend_type
     backend.check_popup = AsyncMock(return_value=overrides.get("popup", None))
     backend.click_button = AsyncMock(return_value=None)
     backend.click_tab = AsyncMock(return_value=None)
@@ -174,7 +173,7 @@ class TestSapClickButton:
     @pytest.mark.anyio
     async def test_desktop_backend_skips_popup_check(self) -> None:
         """Desktop backend should not call check_popup (it manages windows differently)."""
-        backend = _make_backend(backend_type="desktop")
+        backend = _make_backend()
         with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
             async with Client(mcp) as client:
                 raw = await client.call_tool("sap_click_button", {"label": "Save"})
@@ -239,7 +238,7 @@ class TestSapSelectTab:
 
     @pytest.mark.anyio
     async def test_desktop_backend_skips_popup_check(self) -> None:
-        backend = _make_backend(backend_type="desktop")
+        backend = _make_backend()
         with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
             async with Client(mcp) as client:
                 raw = await client.call_tool("sap_select_tab", {"label": "Details"})
@@ -304,7 +303,7 @@ class TestSapSelectDropdown:
 
     @pytest.mark.anyio
     async def test_desktop_backend_skips_popup_check(self) -> None:
-        backend = _make_backend(backend_type="desktop")
+        backend = _make_backend()
         with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
             async with Client(mcp) as client:
                 raw = await client.call_tool("sap_select_dropdown", {"label": "Country", "value": "DE"})

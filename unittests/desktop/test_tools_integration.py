@@ -42,13 +42,6 @@ async def test_screen_info_round_trip(backend):
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_backend_detected_as_desktop(backend):
-    """backend_type property returns 'desktop' for DesktopBackend."""
-    assert backend.backend_type == "desktop"
-
-
-@skip_no_sap
-@pytest.mark.anyio
 async def test_enter_transaction_slash_n_does_not_crash(backend):
     """GH-555: enter_transaction('/n') must succeed, not fail TCode validation."""
     result = await backend.enter_transaction("/n")

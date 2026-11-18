@@ -209,7 +209,6 @@ def test_online_row_without_url_is_still_skipped_and_an_offline_row_without_anyt
 
 def _backend(*, status: StatusBarInfo | None = None) -> Any:
     backend = MagicMock(spec=DesktopBackend)
-    backend.backend_type = "desktop"
     backend.enter_transaction = AsyncMock(return_value=SimpleNamespace(success=True, error=None))
     backend.get_status_bar = AsyncMock(return_value=status or StatusBarInfo(type="S", message=""))
     backend.press_key = AsyncMock()

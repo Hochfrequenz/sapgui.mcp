@@ -893,7 +893,6 @@ class TestSapRunScriptTool:
 
         mock_backend = MagicMock()
         mock_backend.__class__ = DesktopBackend  # lets isinstance() pass
-        mock_backend.backend_type = "desktop"
         mock_backend.com.run = AsyncMock(side_effect=asyncio.TimeoutError)
 
         mcp = FastMCP("test")
@@ -917,7 +916,6 @@ class TestSapRunScriptTool:
 
         mock_backend = MagicMock()
         mock_backend.__class__ = DesktopBackend
-        mock_backend.backend_type = "desktop"
 
         async def fake_run(fn):
             clock.now += 7.0  # time spent queued before the COM thread picks the job up
@@ -1088,7 +1086,6 @@ class TestSapRunScriptTool:
         mock_session = MagicMock()
         mock_backend = MagicMock()
         mock_backend.__class__ = DesktopBackend  # lets isinstance() pass
-        mock_backend.backend_type = "desktop"
         mock_backend.require_session.return_value = mock_session
 
         async def fake_com_run(fn):
