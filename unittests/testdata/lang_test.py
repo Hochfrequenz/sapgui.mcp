@@ -1,11 +1,10 @@
-"""Test-only SAP texts of the UI tests (WebGUI, and the desktop SPRO test), as one test pack per logon language (#1044).
+"""Test-only SAP texts of the UI tests (the desktop SPRO test), as one test pack per logon language (#1044).
 
 The same mechanism as the language packs in ``sapguimcp.lang``: frozen dataclass sections with
 required fields only, every value a ``Text``, and a completeness test
-(``unittests/webgui/test_lang_test_pack.py``) that checks every registered language has a test
+(``unittests/test_lang_test_pack.py``) that checks every registered language has a test
 pack with the same fields, kinds and flags. A field whose value deliberately equals EN is listed
-in ``same_as_en``. The ``ui_texts`` fixture in ``unittests/webgui/conftest.py`` selects the pack
-for ``SAP_LANGUAGE``.
+in ``same_as_en``. ``resolve_sap_language()`` selects the pack for ``SAP_LANGUAGE``.
 
 These texts belong to the tests, not to the server, so they live here and not in a language pack.
 """
@@ -200,7 +199,7 @@ UI_TEST_PACKS: dict[str, UiTestPack] = {pack.code: pack for pack in (TEST_DE, TE
 
 
 def resolve_sap_language() -> str:
-    """The WebGUI tests' logon language from ``SAP_LANGUAGE``; DE when unset or without a pack.
+    """The tests' logon language from ``SAP_LANGUAGE``; DE when unset or without a pack.
 
     Unchanged behaviour from the former ``("DE", "EN")`` check, with the list now coming from the
     registered language packs.

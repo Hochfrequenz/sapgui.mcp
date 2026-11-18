@@ -12,8 +12,7 @@ from sapguimcp.lang.text import Text
 
 
 def test_packs_carry_their_language() -> None:
-    assert (DE.code, DE.html_lang, DE.logon_dropdown) == ("DE", "de", "Deutsch")
-    assert (EN.code, EN.html_lang, EN.logon_dropdown) == ("EN", "en", "English")
+    assert (DE.code, EN.code) == ("DE", "EN")
 
 
 def test_canonical_mappings_are_read_only() -> None:
@@ -29,7 +28,7 @@ def test_sections_skip_scalar_pack_fields() -> None:
     names = [name for name, _ in sections(DE)]
     assert "code" not in names
     assert names[0] == "common"
-    assert len(names) == len(dataclasses.fields(LanguagePack)) - 5
+    assert len(names) == len(dataclasses.fields(LanguagePack)) - 3
 
 
 def test_iter_leaves_and_resolve() -> None:

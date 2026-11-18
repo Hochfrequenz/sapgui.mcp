@@ -34,9 +34,7 @@ verification. Design and rationale: `docs/superpowers/specs/2026-11-10-language-
    sourced `Text` fields hold SAP's text; `Manual`, fragment and `Template` / `RegexText` fields
    keep the EN value with a `# TODO` comment, and flags and kinds stay those of EN. It never
    registers the pack. Without direct access (OAuth2 systems), collect the texts as in step 3 and
-   pass `--sap-texts <file>`. Then set `html_lang` (the ISO code the WebGUI page reports in
-   `<html lang>`, e.g. `"it"`), `logon_dropdown` (the language's name in the WebGUI logon
-   dropdown) and `date_format`, and run `ruff format` on the file.
+   pass `--sap-texts <file>`. Then set `date_format`, and run `ruff format` on the file.
 2. **Register the pack** in `__init__.py` (`_PACKS`). Do this before verifying: `--verify` and the
    config accept only registered codes (`--draft` and `--print-sql` accept any 2-character key; with direct ADT access `--draft` rejects a key missing from `T002`). The
    code is then accepted as `language` in `systems.json`, because the config takes its list from
@@ -44,21 +42,19 @@ verification. Design and rationale: `docs/superpowers/specs/2026-11-10-language-
 3. **Settle every `TODO` from SAP, not from a dictionary.** The source of most fields is recorded
    in `sources.py`, so the lookup is a query: `--print-sql` prints the SQL for every sourced field.
    Run it through ADT (`run_query`; these tables are development metadata). For `Manual` fields,
-   log on in the new language and read the screen (window titles, WebGUI framework texts). Fields
+   log on in the new language and read the screen (window titles, framework texts). Fields
    that are deliberately identical to EN go into `same_as_en`; the untranslated-field test rejects
    any other value equal to EN. Remove each `TODO` comment once settled.
 4. **Verify against SAP** on every release you support:
    `uv run python scripts/harvest_lang_texts.py IT --verify --system "<key>"`. If a system is not
    reachable directly, use `--sap-texts <file>` with the results of `--print-sql`. Fix every
    drift, or turn the field into `Manual("SAP text differs: ...")` with the exact difference.
-5. **Test pack and fixtures.** Add the language to `unittests/testdata/lang_test.py`. Capture
-   WebGUI snapshots in the new language next to the existing `*_de` / `*_en` files and add parser
-   tests for them. Set `SAP_LANGUAGE=<XX>` while capturing: the WebGUI tests take their test texts
-   and the snapshot file suffix from it.
+5. **Test pack and fixtures.** Add the language to `unittests/testdata/lang_test.py`. The desktop
+   tests take their test texts from it, selected by `SAP_LANGUAGE=<XX>`.
 6. **Run the guards:**
    `uv run --group tests pytest unittests/lang unittests/test_no_ui_literals.py -q`. This covers
    completeness, equal flags across packs, the pseudo-locale tests and the no-literal scanner.
-7. **Live tests logged on in the new language**, on desktop and WebGUI and on every release you
+7. **Live tests logged on in the new language**, on every release you
    support. Point `SAP_CONFIG_FILE` at a copy of `systems.json` whose system has the new logon
    language, set `SAP_LANGUAGE=<XX>` as well, and run the integration tests of every transaction. Compare each failure with the
    same test in DE or EN before calling it a language problem.

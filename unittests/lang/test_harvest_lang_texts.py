@@ -172,7 +172,7 @@ class TestDraft:
 
     def test_scalars_are_placeholders(self) -> None:
         source = harvest.draft("ZZ", self._fake_fetch)
-        for marker in ("html_lang=", "logon_dropdown=", "date_format=", "same_as_en=frozenset()"):
+        for marker in ("date_format=", "same_as_en=frozenset()"):
             assert any(marker in line and "TODO" in line for line in source.splitlines()), marker
 
     def test_rejects_a_bad_language_key(self) -> None:

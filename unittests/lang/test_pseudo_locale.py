@@ -58,9 +58,7 @@ def pseudo_pack() -> LanguagePack:
             else:
                 values[field.name] = _pseudo_leaf(path, value)
         replaced[section_name] = type(section)(**values)
-    return dataclasses.replace(
-        reference, code=CODE, html_lang="ps", logon_dropdown="Pseudo", same_as_en=frozenset(), **replaced
-    )
+    return dataclasses.replace(reference, code=CODE, same_as_en=frozenset(), **replaced)
 
 
 PSEUDO = pseudo_pack()

@@ -36,8 +36,6 @@ from sapguimcp.lang.text import RegexText, Text
 
 IT = LanguagePack(
     code="IT",
-    html_lang="it",
-    logon_dropdown="Italiano",
     date_format="%d.%m.%Y",  # T005X-DATFM = 1 for country IT
     same_as_en=frozenset(
         {
@@ -94,7 +92,6 @@ IT = LanguagePack(
         ),
     ),
     session_pages=SessionPagesSection(
-        settings_stem=Text(("Impostazion",)),
         debugger_window=Text(("ABAP debugger", "ABAP Debugger"), fold=False),
     ),
     keys=KeysSection(

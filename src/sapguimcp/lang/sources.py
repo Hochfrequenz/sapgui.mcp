@@ -120,7 +120,6 @@ SOURCES: Mapping[str, Source] = MappingProxyType(
         "popup.maintain_in_original": ScreenText("SAPLSETX", "0100", "PUSH1"),
         "status_type.activation_confirmed": Manual("fragment of several activation messages"),
         "status_type.activation_denied": Manual("negating fragments of activation messages"),
-        "session_pages.settings_stem": Manual("stem of the WebGUI settings menu tooltip"),
         "session_pages.debugger_window": Manual("SAP GUI window title of the ABAP debugger"),
         "keys.names[Ctrl]": Manual("keyboard key name of the SAP GUI client, not in SAP's text tables"),
         "keys.names[Shift]": Manual("keyboard key name of the SAP GUI client, not in SAP's text tables"),

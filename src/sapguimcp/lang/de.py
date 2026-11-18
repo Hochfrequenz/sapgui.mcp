@@ -32,8 +32,6 @@ from sapguimcp.lang.text import RegexText, Text
 
 DE = LanguagePack(
     code="DE",
-    html_lang="de",
-    logon_dropdown="Deutsch",
     date_format="%d.%m.%Y",
     same_as_en=frozenset(
         {
@@ -74,7 +72,6 @@ DE = LanguagePack(
         activation_denied=Text(("nicht aktiv", "konnte nicht", "kann nicht", "fehlgeschlagen", "deaktiv", "inaktiv")),
     ),
     session_pages=SessionPagesSection(
-        settings_stem=Text(("Einstellung",)),
         # The DE window title reads "ABAP Debugger(1)  (exklusiv) ..."; other releases hyphenate it.
         debugger_window=Text(("ABAP Debugger", "ABAP-Debugger"), fold=False),
     ),

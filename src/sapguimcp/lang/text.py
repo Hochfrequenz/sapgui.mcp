@@ -21,7 +21,7 @@ T = TypeVar("T")
 _PLACEHOLDER = re.compile(r"\{([A-Za-z_]\w*)\}")
 _NUMERIC_GROUP_REF = re.compile(r"\\[1-9]|\(\?\(\d")  # \1 … \9 and (?(1)…) conditionals
 _DEFAULT_GROUP = r".+?"
-_TRAILING_GROUP = r'[^"\n]+'  # stops at an ARIA snapshot's closing quote
+_TRAILING_GROUP = r'[^"\n]+'  # stops at a closing quote
 """A placeholder that ends a variant captures the whole rest of the line, not a lazy fragment."""
 
 
@@ -116,7 +116,7 @@ def template_patterns(
 
     ``groups`` maps placeholder names to the regex source of their capture group; placeholders
     without an entry capture ``.+?``, or ``[^"\n]+`` at the very end of a variant, so the closing
-    quote of an ARIA snapshot stays outside. Each literal part is scoped on its own with the case
+    quote stays outside. Each literal part is scoped on its own with the case
     flag, so the capture groups stay outside the fold.
     """
     sources = dict(groups)

@@ -35,8 +35,6 @@ from sapguimcp.lang.text import RegexText, Text
 
 EN = LanguagePack(
     code="EN",
-    html_lang="en",
-    logon_dropdown="English",
     date_format="%m/%d/%Y",
     same_as_en=frozenset(),
     common=CommonSection(
@@ -66,7 +64,6 @@ EN = LanguagePack(
         activation_denied=Text(("not activated", "not active", "could not", "cannot", "can't", "failed")),
     ),
     session_pages=SessionPagesSection(
-        settings_stem=Text(("Setting",)),
         debugger_window=Text(("ABAP Debugger",), fold=False),
     ),
     keys=KeysSection(

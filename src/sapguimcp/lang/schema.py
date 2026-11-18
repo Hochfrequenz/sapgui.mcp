@@ -130,11 +130,9 @@ class StatusTypeSection:
 
 @dataclass(frozen=True, slots=True)
 class SessionPagesSection:
-    """Login, logoff and timeout page texts, and the WebGUI frame used while setting up a session."""
+    """Login, logoff and timeout page texts."""
 
     MERGE: ClassVar[MergeMode] = "all"
-    settings_stem: Text
-    """Stem of that title for the case-insensitive ``SELECTORS["settings_button"]`` (test selector)."""
     debugger_window: Text
     """Start of the window title of an ABAP debugger session (case-sensitive prefix)."""
 
@@ -357,10 +355,6 @@ class LanguagePack:
 
     code: str
     """SAP language key, e.g. ``"DE"``."""
-    html_lang: str
-    """ISO code the WebGUI page reports in ``<html lang>``, e.g. ``"de"``."""
-    logon_dropdown: str
-    """Text of the WebGUI logon language dropdown, e.g. ``"Deutsch"``."""
     date_format: str
     """Default date input format as a ``strftime`` pattern (#1043 reads the user's own)."""
     same_as_en: frozenset[str]
@@ -468,7 +462,7 @@ def merge(items: Sequence[S]) -> S:
     """Field-wise merge of packs or sections, first item first.
 
     Texts concatenate their variants (de-duplicated, order kept); canonical mappings merge per
-    key; nested dataclasses merge field by field; anything else (pack code, ``html_lang``,
+    key; nested dataclasses merge field by field; anything else (pack code,
     ``same_as_en``, ...) is taken from the first item.
     """
     if not items:

@@ -53,7 +53,6 @@ _TAGS: dict[str, Backend] = {
     "status_type.activation_confirmed": Backend.DESKTOP,
     "status_type.activation_denied": Backend.DESKTOP,
     # session_pages
-    "session_pages.settings_stem": Backend.BOTH,
     "session_pages.debugger_window": Backend.DESKTOP,
     # keys
     "keys.names": Backend.BOTH,

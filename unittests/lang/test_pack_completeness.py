@@ -72,8 +72,6 @@ def _placeholders(leaf: Leaf) -> frozenset[str]:
 
 
 def _check_scalars(pack: LanguagePack) -> None:
-    assert pack.html_lang == pack.html_lang.lower()
-    assert pack.logon_dropdown.strip()
     assert date(2026, 2, 22).strftime(pack.date_format)
 
 
@@ -160,10 +158,6 @@ def test_pack_scalars(code: str) -> None:
     pack = lang.pack_for(code)
     assert pack.code == code
     _check_scalars(pack)
-
-
-def test_html_lang_codes_are_unique() -> None:
-    assert len({pack.html_lang for pack in _packs()}) == len(LANGUAGES)
 
 
 @pytest.mark.parametrize("code", LANGUAGES)

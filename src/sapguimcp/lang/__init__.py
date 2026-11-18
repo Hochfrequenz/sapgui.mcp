@@ -9,7 +9,6 @@ Public API:
 - :data:`INVARIANT` - texts that are the same in every logon language (an :class:`Invariant`).
 - :func:`use` / :func:`set_session_language` - set the session language (tests, login).
 - :func:`pack_for`, :func:`supported_languages` - the registry.
-- :func:`language_for_html_lang` - the SAP language key for a page's ``<html lang>``.
 - ``_register_for_tests`` - registers an extra pack inside a ``with`` block (tests only).
 
 Adding a login language: see ``ADDING_A_LANGUAGE.md`` in this package (procedure and pitfalls).
@@ -48,8 +47,6 @@ __all__ = [
     "UnsupportedLanguageError",
     "alt_of",
     "current",
-    "english_first",
-    "language_for_html_lang",
     "pack_for",
     "set_session_language",
     "supported_languages",
@@ -98,22 +95,6 @@ def pack_for(code: str) -> LanguagePack:
     return pack
 
 
-def language_for_html_lang(tag: str) -> str | None:
-    """SAP language key for an HTML language tag (``"de-DE"`` -> ``"DE"``).
-
-    Matches the registered packs' ``html_lang``: the whole tag first (``zh-tw``), then the primary
-    subtag (``de``), case-insensitively, ``_`` read as ``-``. A tag without a pack falls back to
-    its upper-cased primary subtag, so an unsupported language is still reported by name; an empty
-    tag gives ``None``.
-    """
-    normalized = tag.strip().lower().replace("_", "-")
-    if not normalized:
-        return None
-    primary = normalized.split("-", 1)[0]
-    by_html_lang = {pack.html_lang.lower(): pack.code for pack in _PACKS.values()}
-    return by_html_lang.get(normalized) or by_html_lang.get(primary) or normalize_language(primary)
-
-
 def _build_view(code: str) -> LanguagePack:
     """Merge each section per its ``MERGE`` mode; scalar pack fields come from the session pack."""
     session = _PACKS[code]
@@ -157,17 +138,6 @@ def universal() -> UniversalView:
             for field in dataclasses.fields(UniversalView)
         }
     )
-
-
-def english_first(text: Text, english: Text) -> Text:
-    """``text`` (usually from :func:`universal`) with the variants of ``english`` (the same field of
-    the EN pack) moved to the front.
-
-    For call sites whose try order was English first before the packs, where the registration order
-    (DE first) would change which element a first-match lookup picks.
-    """
-    first = tuple(variant for variant in text.variants if variant in english.variants)
-    return dataclasses.replace(text, variants=(*first, *(v for v in text.variants if v not in first)))
 
 
 @contextmanager
