@@ -38,7 +38,7 @@ graph TD
 | ------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Server**          | `server.py`                                      | Creates the FastMCP app, registers all tools/resources/prompts, manages lifecycle                                                                                                                |
 | **Tools**           | `tools/sap_tools.py`, `tools/se16_tools.py`, ... | Define MCP tools the LLM can call. Each tool gets a backend via `get_backend()` (typed `WebGuiBackend \| DesktopBackend`), calls its methods, returns a Pydantic result model                    |
-| **Backend Manager** | `backend/manager.py`                             | Singleton that creates/caches the right backend based on `BACKEND_TYPE`. Routes session IDs to backend instances                                                                                 |
+| **Backend Manager** | `backend/manager.py`                             | Singleton that creates/caches the desktop backend (the backend is fixed; `BACKEND_TYPE` no longer exists). Routes session IDs to backend instances                                               |
 | **WebGUI Backend**  | `backend/webgui/backend.py`, `browser.py`        | Playwright page automation (`WebGuiBackend`). Fills fields with JavaScript, reads screens with ARIA snapshots                                                                                    |
 | **Desktop Backend** | `backend/desktop/__init__.py`                    | `DesktopBackend`: COM scripting through [sapsucker](https://github.com/Hochfrequenz/sapsucker). Dispatches all COM calls to a dedicated thread (`_com_thread.py`) for apartment-threading safety |
 | **Parsers**         | `backend/webgui/parsers/*.py`                    | WebGUI-specific HTML-to-structured-data extraction. One parser per transaction (e.g., `se16_parser.py`, `se24_parser.py`)                                                                        |
@@ -319,10 +319,9 @@ All settings are in `src/sapguimcp/models/config.py` and loaded from environment
 
 ### Core (have defaults, but needed for SAP operations)
 
-| Variable       | Description           | Default  |
-| -------------- | --------------------- | -------- |
-| `BACKEND_TYPE` | `desktop` or `webgui` | `webgui` |
-| `SAP_LANGUAGE` | `DE`, `EN` or `IT`    | `EN`     |
+| Variable       | Description        | Default |
+| -------------- | ------------------ | ------- |
+| `SAP_LANGUAGE` | `DE`, `EN` or `IT` | `EN`    |
 
 **Desktop-only:** Connection name is configured in `~/.config/sap-mcp/systems.json`
 

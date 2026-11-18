@@ -194,7 +194,7 @@ async def test_detach_unwatches_even_when_the_registry_held_the_only_reference()
 async def test_backend_manager_close_never_closes_sap_sessions() -> None:
     backend, com = _backend()
     # Construct neutrally (desktop is rejected off Windows), then select the desktop branch of close().
-    manager = BackendManager(backend_type="webgui")
+    manager = BackendManager()
     manager.backend_type = "desktop"
     manager._com_thread = com  # type: ignore[assignment]  # pylint: disable=protected-access
     conn = MagicMock()

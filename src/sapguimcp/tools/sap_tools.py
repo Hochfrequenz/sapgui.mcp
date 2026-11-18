@@ -67,7 +67,6 @@ from sapguimcp.models import (
     TableData,
     ToolInfo,
     TransactionResult,
-    get_settings,
 )
 from sapguimcp.tools.sap_list_connections_impl import ConnectionListResult, sap_list_connections_impl
 from sapguimcp.tools.sap_login_impl import sap_login_impl
@@ -1088,9 +1087,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         """
         tcode_upper = transaction.upper().strip()
 
-        if get_settings().backend_type == "desktop":
-            return _lookup_fields_desktop(tcode_upper)
-        return _lookup_fields_webgui(tcode_upper)
+        return _lookup_fields_desktop(tcode_upper)
 
     @mcp.tool(
         description=(

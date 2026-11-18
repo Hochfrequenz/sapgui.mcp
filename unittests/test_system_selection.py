@@ -63,9 +63,8 @@ def _two_host_config() -> Config:
     )
 
 
-def _make_settings(backend_type: str = "desktop", sap_url: str = "") -> MagicMock:
+def _make_settings(sap_url: str = "") -> MagicMock:
     settings = MagicMock()
-    settings.backend_type = backend_type
     settings.sap_url = sap_url
     return settings
 
@@ -89,7 +88,7 @@ class TestSystemKeyResolution:
         backend = _make_backend()
 
         with (
-            patch(_PATCH_GET_SETTINGS, return_value=_make_settings("desktop")),
+            patch(_PATCH_GET_SETTINGS, return_value=_make_settings()),
             patch(_PATCH_GET_SAP_CONFIG, return_value=cfg),
             patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         ):
@@ -109,7 +108,7 @@ class TestSystemKeyResolution:
         backend = _make_backend()
 
         with (
-            patch(_PATCH_GET_SETTINGS, return_value=_make_settings("desktop")),
+            patch(_PATCH_GET_SETTINGS, return_value=_make_settings()),
             patch(_PATCH_GET_SAP_CONFIG, return_value=cfg),
             patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         ):
@@ -130,7 +129,7 @@ class TestSystemKeyResolution:
         for key, expected_client in [("dev-100", "100"), ("dev-200", "200")]:
             backend = _make_backend()
             with (
-                patch(_PATCH_GET_SETTINGS, return_value=_make_settings("desktop")),
+                patch(_PATCH_GET_SETTINGS, return_value=_make_settings()),
                 patch(_PATCH_GET_SAP_CONFIG, return_value=cfg),
                 patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
             ):
@@ -149,7 +148,7 @@ class TestSystemKeyResolution:
         backend = _make_backend()
 
         with (
-            patch(_PATCH_GET_SETTINGS, return_value=_make_settings("webgui")),
+            patch(_PATCH_GET_SETTINGS, return_value=_make_settings()),
             patch(_PATCH_GET_SAP_CONFIG, return_value=cfg),
             patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         ):
@@ -166,7 +165,7 @@ class TestSystemKeyResolution:
         cfg = _multi_system_config()
 
         with (
-            patch(_PATCH_GET_SETTINGS, return_value=_make_settings("desktop")),
+            patch(_PATCH_GET_SETTINGS, return_value=_make_settings()),
             patch(_PATCH_GET_SAP_CONFIG, return_value=cfg),
         ):
             result = await sap_login_impl(system_key="nonexistent")
@@ -197,7 +196,6 @@ class TestUrlPrecedenceForNonDefaultSystem:
 
         cfg = _two_host_config()
         settings = _make_settings(
-            "webgui",
             sap_url="https://dev-sap.example.com:44300/sap/bc/gui/sap/its/webgui?sap-client=100",
         )
         backend = _make_backend()
@@ -229,7 +227,6 @@ class TestUrlPrecedenceForNonDefaultSystem:
 
         cfg = _two_host_config()
         settings = _make_settings(
-            "webgui",
             sap_url="https://stale-legacy.example.com/sap/bc/gui/sap/its/webgui",
         )
         backend = _make_backend()
@@ -252,7 +249,6 @@ class TestUrlPrecedenceForNonDefaultSystem:
 
         cfg = _two_host_config()
         settings = _make_settings(
-            "webgui",
             sap_url="https://dev-sap.example.com:44300/sap/bc/gui/sap/its/webgui",
         )
         backend = _make_backend()
@@ -296,7 +292,6 @@ class TestUrlPrecedenceForNonDefaultSystem:
         cfg = cfg.model_copy(update={"systems": {"legacy": legacy_system_no_host}})
 
         settings = _make_settings(
-            "webgui",
             sap_url="https://from-env.example.com/sap/bc/gui/sap/its/webgui",
         )
         backend = _make_backend()

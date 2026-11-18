@@ -59,13 +59,6 @@ async def sap_login_impl(
     effective_url = url or _webgui_url_from_host(system.host) or settings.sap_url
     language = system.language
 
-    # URL check only applies to WebGUI -- Desktop uses the SAP Logon entry instead
-    if settings.backend_type == "webgui" and not effective_url:
-        return LoginResult.failure(
-            "No SAP URL provided. Either pass a URL parameter or set SAP_URL, "
-            "or configure 'host' in ~/.config/sap-mcp/systems.json."
-        )
-
     if not all([user, password, effective_client]):
         return LoginResult.failure(
             "Credentials not configured. Check user/password/client in ~/.config/sap-mcp/systems.json."

@@ -29,7 +29,7 @@ from sapguimcp.session_language import current_language, use_language
 #: Field set BackendManager.__init__ produces, captured from a real (webgui)
 #: instance at import time. Used by ``_make_desktop_manager`` to detect when
 #: ``__init__`` gains a new field that the test helper has forgotten.
-_BACKEND_MANAGER_INIT_FIELDS = set(vars(BackendManager(backend_type="webgui")).keys())
+_BACKEND_MANAGER_INIT_FIELDS = set(vars(BackendManager()).keys())
 
 
 def _make_desktop_manager() -> BackendManager:
@@ -42,7 +42,6 @@ def _make_desktop_manager() -> BackendManager:
     manager = BackendManager.__new__(BackendManager)
     manager.backend_type = "desktop"
     manager._backends = {}
-    manager._page_ids = {}
     manager._com_thread = None
     manager._desktop_recovery_lock = asyncio.Lock()
     actual = set(vars(manager).keys())

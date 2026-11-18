@@ -5,11 +5,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import sys
-from typing import TYPE_CHECKING, Any, get_args
+from typing import TYPE_CHECKING, Any
 
 from sapguimcp.backend.webgui.backend import WebGuiBackend
-from sapguimcp.backend.webgui.browser import close_browser_manager, get_browser_manager
-from sapguimcp.models.config import BackendType, get_settings
+from sapguimcp.models.config import get_settings
 from sapguimcp.session_language import set_session_language
 
 if sys.platform == "win32" or TYPE_CHECKING:
@@ -18,23 +17,13 @@ if sys.platform == "win32" or TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_VALID_BACKEND_TYPES: set[str] = set(get_args(BackendType))
-
 
 class BackendManager:  # pylint: disable=too-few-public-methods
     """Manages backend instances across sessions."""
 
-    def __init__(self, backend_type: BackendType = "webgui") -> None:
-        if backend_type not in _VALID_BACKEND_TYPES:
-            raise ValueError(f"Unknown backend type '{backend_type}'. Valid types: {_VALID_BACKEND_TYPES}")
-        if backend_type == "desktop" and sys.platform != "win32":
-            raise RuntimeError(
-                "BACKEND_TYPE=desktop requires Windows with SAP GUI installed. "
-                "On macOS/Linux, use BACKEND_TYPE=webgui (the default) instead."
-            )
-        self.backend_type = backend_type
+    def __init__(self) -> None:
+        self.backend_type = "desktop"
         self._backends: dict[str, WebGuiBackend | DesktopBackend] = {}  # Cache by session ID
-        self._page_ids: dict[str, int] = {}  # Track page identity for cache invalidation
         self._com_thread: Any = None  # Lazy-init ComThread for desktop backend
         # Serializes desktop dead-thread recovery so concurrent callers don't
         # all rebuild the ComThread + DesktopBackend at once. Safe to construct
@@ -47,48 +36,31 @@ class BackendManager:  # pylint: disable=too-few-public-methods
         agent_id: str | None = None,
         tool_name: str = "",
     ) -> WebGuiBackend | DesktopBackend:
-        """Get or create a backend instance for the given session.
-
-        Caches WebGuiBackend instances by session ID. Returns cached instance
-        if the underlying page is still the same, creates a new one otherwise.
-        """
-        if self.backend_type == "webgui":
-            browser_manager = await get_browser_manager()
-            page = await browser_manager.get_or_create_session_page_checked(session, agent_id, tool_name)
-            session_key = session or browser_manager.registry.primary_session
-            # Same registry WebGuiBackend._get_registry() records the language in.
-            set_session_language(browser_manager.registry.language_of(session_key))
-            cached = self._backends.get(session_key)
-            if cached is not None and self._page_ids.get(session_key) == id(page):
-                return cached
-            backend = WebGuiBackend(page)
-            self._backends[session_key] = backend
-            self._page_ids[session_key] = id(page)
-            return backend
-        if self.backend_type == "desktop":
-            # Single shared DesktopBackend — session routing via ContextVar.
-            # If the cached ComThread's worker has died, the cached backend
-            # is unusable: drop it and rebuild before serving the request.
-            await self._recover_desktop_if_dead()
-            cached = self._backends.get("desktop")
-            if cached is not None:
-                assert isinstance(cached, DesktopBackend)
-                effective = session or cached.registry.primary_session
-                _current_session_id.set(effective)
-                cached.registry.check_binding(effective, agent_id, tool_name)
-                set_session_language(cached.registry.language_of(effective))
-                return cached
-            if self._com_thread is None:
-                interval = get_settings().com_min_interval_ms
-                self._com_thread = ComThread(min_interval_ms=interval)
-            new_backend = DesktopBackend(com_thread=self._com_thread)
-            self._backends["desktop"] = new_backend
-            effective = session or new_backend.registry.primary_session
+        """Get or create the desktop backend for the given session."""
+        if sys.platform != "win32":
+            raise RuntimeError("sapgui.mcp requires Windows with SAP GUI for Windows installed.")
+        # Single shared DesktopBackend — session routing via ContextVar.
+        # If the cached ComThread's worker has died, the cached backend
+        # is unusable: drop it and rebuild before serving the request.
+        await self._recover_desktop_if_dead()
+        cached = self._backends.get("desktop")
+        if cached is not None:
+            assert isinstance(cached, DesktopBackend)
+            effective = session or cached.registry.primary_session
             _current_session_id.set(effective)
-            # The fresh registry is empty, so this clears any stale value.
-            set_session_language(new_backend.registry.language_of(effective))
-            return new_backend
-        raise ValueError(f"No implementation for backend '{self.backend_type}'")
+            cached.registry.check_binding(effective, agent_id, tool_name)
+            set_session_language(cached.registry.language_of(effective))
+            return cached
+        if self._com_thread is None:
+            interval = get_settings().com_min_interval_ms
+            self._com_thread = ComThread(min_interval_ms=interval)
+        new_backend = DesktopBackend(com_thread=self._com_thread)
+        self._backends["desktop"] = new_backend
+        effective = session or new_backend.registry.primary_session
+        _current_session_id.set(effective)
+        # The fresh registry is empty, so this clears any stale value.
+        set_session_language(new_backend.registry.language_of(effective))
+        return new_backend
 
     async def _recover_desktop_if_dead(self) -> None:
         """If the cached desktop ComThread worker died, drop and rebuild.
@@ -131,13 +103,9 @@ class BackendManager:  # pylint: disable=too-few-public-methods
 
     async def close(self) -> None:
         """Shut down the active backend and release resources."""
-        if self.backend_type == "webgui":
-            await close_browser_manager()
-        elif self.backend_type == "desktop":
-            if self._com_thread is not None:
-                self._com_thread.shutdown()
+        if self._com_thread is not None:
+            self._com_thread.shutdown()
         self._backends.clear()
-        self._page_ids.clear()
 
 
 # -- Singleton --
@@ -146,14 +114,10 @@ _backend_manager: BackendManager | None = None  # pylint: disable=invalid-name
 
 
 def get_backend_manager() -> BackendManager:
-    """Get the global BackendManager singleton (lazy init).
-
-    Reads ``backend_type`` from settings on first call.
-    """
+    """Get the global BackendManager singleton (lazy init)."""
     global _backend_manager  # noqa: PLW0603  # pylint: disable=global-statement
     if _backend_manager is None:
-        settings = get_settings()
-        _backend_manager = BackendManager(backend_type=settings.backend_type)
+        _backend_manager = BackendManager()
     return _backend_manager
 
 

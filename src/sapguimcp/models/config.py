@@ -21,7 +21,6 @@ from sap_mcp_config import load_default as load_sap_config
 from sapguimcp.lang import supported_languages
 
 __all__ = [
-    "BackendType",
     "BrowserMode",
     "BrowserType",
     "SapGuiSettings",
@@ -108,7 +107,6 @@ def try_get_sap_config() -> tuple[SapMcpConfig | None, str | None]:
 
 # Backend type: "webgui" for Playwright browser automation,
 # "desktop" for SAP GUI Scripting (COM) via sapsucker.
-BackendType = Literal["webgui", "desktop"]
 
 
 def _env_files() -> tuple[str, ...]:
@@ -197,12 +195,6 @@ class SapGuiSettings(BaseSettings):
     )
 
     # --- Shared fields (used by both backends) ---
-
-    backend_type: BackendType = Field(
-        default="webgui",
-        description="Backend type: 'webgui' (browser) or 'desktop' (SAP GUI COM)",
-        json_schema_extra={"env": "BACKEND_TYPE"},
-    )
 
     sap_url: str = Field(
         default="",

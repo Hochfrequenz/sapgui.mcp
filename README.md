@@ -80,9 +80,9 @@ Choose one of these three approaches:
 Download the binary for your platform from
 [GitHub Releases](https://github.com/Hochfrequenz/sapgui.mcp/releases/latest):
 
-| Platform         | Binary                                    |
-| ---------------- | ----------------------------------------- |
-| Windows (x64)    | `sapgui_mcp_windows_<version>.exe`        |
+| Platform              | Binary                             |
+| --------------------- | ---------------------------------- |
+| Windows (x64)         | `sapgui_mcp_windows_<version>.exe` |
 | macOS (Apple Silicon) | `sapgui_mcp_macos_arm64_<version>` |
 
 #### Smart App and other Security Tools
@@ -95,7 +95,6 @@ Download the binary for your platform from
 >
 > The checkbox only appears when Windows has marked the file as downloaded from another computer. This removes that download block; it does not override Smart App Control.
 > If Smart App Control still blocks execution, contact your IT administrator rather than disabling protection.
->
 
 ![Screenshot: the Unblock checkbox in Windows file properties](https://github.com/user-attachments/assets/a27c7638-f0b9-4819-a99e-327a27161eee)
 
@@ -160,17 +159,17 @@ Create the folder if it doesn't exist, then create a file called `systems.json` 
 
 There are two distinct identifiers per system - don't mix them up:
 
-| Concept | Example | Where it's used |
-| --- | --- | --- |
-| **System key** (dictionary key) | `"dev"`, `"qa"` | `sap_login(system_key="qa")` - selects which system to log into |
+| Concept                                       | Example                                    | Where it's used                                                  |
+| --------------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------- |
+| **System key** (dictionary key)               | `"dev"`, `"qa"`                            | `sap_login(system_key="qa")` - selects which system to log into  |
 | **SAP Logon entry** (`connection_name` field) | `"DEV S/4HANA"`, `"DEV - ERP Development"` | Must match the **bold description** in the SAP Logon pad exactly |
 
 The SAP Logon entry is _not_ the 3-character System ID (SID):
 
-| What you see in SAP Logon | `connection_name` value     | NOT this (SID) |
-| ------------------------- | --------------------------- | -------------- |
-| **DEV S/4HANA**          | `"DEV S/4HANA"`            | ~~`"XYZ"`~~    |
-| **DEV - ERP Development** | `"DEV - ERP Development"`   | ~~`"DEV"`~~    |
+| What you see in SAP Logon | `connection_name` value   | NOT this (SID) |
+| ------------------------- | ------------------------- | -------------- |
+| **DEV S/4HANA**           | `"DEV S/4HANA"`           | ~~`"XYZ"`~~    |
+| **DEV - ERP Development** | `"DEV - ERP Development"` | ~~`"DEV"`~~    |
 
 If the `connection_name` doesn't match exactly, you'll get _"SAP Logon connection entry not found"_.
 
@@ -221,10 +220,7 @@ Add to `claude_desktop_config.json`. To open the file: press **Win+R**, type `%A
 {
     "mcpServers": {
         "sap-desktop": {
-            "command": "C:/path/to/sapgui_mcp_windows_<version>.exe",
-            "env": {
-                "BACKEND_TYPE": "desktop"
-            }
+            "command": "C:/path/to/sapgui_mcp_windows_<version>.exe"
         }
     }
 }
@@ -235,7 +231,7 @@ Add to `claude_desktop_config.json`. To open the file: press **Win+R**, type `%A
 **Recommended: register once for all projects (user scope).** Run this in PowerShell:
 
 ```powershell
-claude mcp add --scope user sap-desktop -e BACKEND_TYPE=desktop '--' C:/path/to/sapgui_mcp_windows_<version>.exe
+claude mcp add --scope user sap-desktop '--' C:/path/to/sapgui_mcp_windows_<version>.exe
 ```
 
 Together with `systems.json`, this is all Claude Code needs - no `.mcp.json` in any project folder. Two details matter:
@@ -251,10 +247,7 @@ If Claude Code still starts an old or broken registration instead of the global 
 {
     "mcpServers": {
         "sap-desktop": {
-            "command": "C:/path/to/sapgui_mcp_windows_<version>.exe",
-            "env": {
-                "BACKEND_TYPE": "desktop"
-            }
+            "command": "C:/path/to/sapgui_mcp_windows_<version>.exe"
         }
     }
 }
@@ -271,10 +264,7 @@ Add to `opencode.json` in your project root:
         "sap-desktop": {
             "type": "local",
             "command": ["C:/path/to/sapgui_mcp_windows_<version>.exe"],
-            "enabled": true,
-            "environment": {
-                "BACKEND_TYPE": "desktop"
-            }
+            "enabled": true
         }
     }
 }
@@ -327,19 +317,25 @@ No Chrome, no browser setup required.
 Before your first prompt, check that the MCP server starts correctly. Open PowerShell and run:
 
 **Claude Code:**
+
 ```
 claude mcp list
 ```
+
 Expected output:
+
 ```
 sap-desktop: C:/path/to/sapgui_mcp_windows_<version>.exe ✓ Connected
 ```
 
 **opencode:**
+
 ```
 opencode mcp list
 ```
+
 Expected output:
+
 ```
 ● ✓ sap-desktop connected
 ```
@@ -353,7 +349,9 @@ For Claude Code, with a user-scope registration there is no config file to edit:
 
 ### Option B: WebGUI Backend (Browser)
 
-Automates SAP Web GUI through Chrome browser automation. Works on all platforms. This is the default - if you don't set `BACKEND_TYPE`, the server uses WebGUI.
+> **Moved:** WebGUI support has moved to the separate project [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp). This server always uses the desktop backend and ignores `BACKEND_TYPE`, `SAP_URL` and `CDP_URL` (it logs a warning if they are set). The WebGUI sections below are being removed.
+
+Automates SAP Web GUI through Chrome browser automation. Works on all platforms.
 
 #### Step 1: Start Chrome with remote debugging
 
@@ -471,19 +469,25 @@ No Docker, no CDP proxy, no Python required.
 Before your first prompt, check that the MCP server starts correctly. Open a terminal (PowerShell on Windows, Terminal on macOS/Linux) and run:
 
 **Claude Code:**
+
 ```
 claude mcp list
 ```
+
 Expected output:
+
 ```
 sap-webgui: C:/path/to/sapgui_mcp_windows_<version>.exe ✓ Connected
 ```
 
 **opencode:**
+
 ```
 opencode mcp list
 ```
+
 Expected output:
+
 ```
 ● ✓ sap-webgui connected
 ```
@@ -872,7 +876,7 @@ SAP credentials (user, password, client, language, host) are configured in `syst
 
 Individual fields may still be sourced from the environment with an `${env:VAR}` placeholder - e.g. `"password": "${env:SAP_DEV_PASSWORD}"` - which keeps secrets out of the file while the structure stays in it. Placeholders work in `connection_name`, `host`, `client`, `user`, `password`, `language`, `oauth2_client_id` and the top-level `default_system`.
 
-An unset or empty variable makes the config invalid, so the first tool call that needs a credential - `sap_login`, for instance - fails with an error naming the variable, never a silently empty credential. Note that the server itself still starts: config loading is lazy, so the failure surfaces on first use rather than at launch. Tools that only *list* configuration, such as `sap_list_connections`, do not fail on an invalid config but report the reason in a `config_error` field of their result instead of returning a silently empty list; the server instructions carry the same message. Text that only *looks* like a placeholder is used verbatim, so a typo such as `${SAP_PASSWORD}` (missing the `env:` prefix) becomes your literal password rather than an error - see the [placeholder rules](https://github.com/Hochfrequenz/sap-mcp-config#keeping-secrets-out-of-the-config-file) for the exact forms.
+An unset or empty variable makes the config invalid, so the first tool call that needs a credential - `sap_login`, for instance - fails with an error naming the variable, never a silently empty credential. Note that the server itself still starts: config loading is lazy, so the failure surfaces on first use rather than at launch. Tools that only _list_ configuration, such as `sap_list_connections`, do not fail on an invalid config but report the reason in a `config_error` field of their result instead of returning a silently empty list; the server instructions carry the same message. Text that only _looks_ like a placeholder is used verbatim, so a typo such as `${SAP_PASSWORD}` (missing the `env:` prefix) becomes your literal password rather than an error - see the [placeholder rules](https://github.com/Hochfrequenz/sap-mcp-config#keeping-secrets-out-of-the-config-file) for the exact forms.
 
 | OS          | Default path                                 |
 | ----------- | -------------------------------------------- |
@@ -881,28 +885,27 @@ An unset or empty variable makes the config invalid, so the first tool call that
 
 ### Environment Variables (server-specific)
 
-| Variable             | Required                    | Description                                                            | Default                      |
-| -------------------- | --------------------------- | ---------------------------------------------------------------------- | ---------------------------- |
-| `BACKEND_TYPE`       | No                          | `webgui` (browser automation) or `desktop` (SAP GUI COM, Windows only) | `webgui`                     |
-| `SAP_URL`            | No                          | Override WebGUI URL (default: derived from `host` in systems.json)     | `""`                         |
-| `SAP_CONFIG_FILE`    | No                          | Path to systems.json (see table above for default per OS)              | (see above)                  |
-| `OUTPUT_DIR`         | No                          | Directory that `output_file` tool arguments (e.g. `sap_se16_query`) are sandboxed to. Set this when the server's cwd isn't your project directory. | `""` (current working directory) |
-| `SCRIPT_ROOTS`       | No                          | Allowed root directories for `sap_run_script`'s `script_path` parameter, separated by `os.pathsep` (`;` on Windows, `:` on macOS/Linux). Roots must be absolute paths (relative entries are skipped with a warning); a UNC/network root is allowed if you configure one, whereas UNC/device paths in the caller's `script_path` are rejected. Relative `script_path` values are resolved against these roots in order (first match wins). Desktop backend only. | `""` (`script_path` disabled) |
-| `BROWSER_MODE`       | No                          | `connect` (existing Chrome) or `launch` (Playwright). WebGUI only.     | `connect`                    |
-| `BROWSER_TYPE`       | No                          | `chromium`, `firefox`, or `webkit`. WebGUI only.                       | `chromium`                   |
-| `BROWSER_HEADLESS`   | No                          | Run browser in headless mode. WebGUI only.                             | `false`                      |
-| `CDP_URL`            | When `BROWSER_MODE=connect` | Chrome DevTools Protocol URL. WebGUI only.                             | `http://localhost:9222`      |
-| `CHROME_PATH`        | No                          | Explicit path to Chrome binary. If empty, auto-detected. WebGUI only.  | `""` (auto-detect)           |
-| `CHROME_USER_DATA_DIR` | No                        | User data directory for auto-launched Chrome. WebGUI only.             | `<tempdir>/chrome-debug`     |
-| `COM_MIN_INTERVAL_MS` | No                         | Minimum ms between COM calls (prevents overload). Desktop only.        | `100`                        |
-| `GITHUB_PAT`         | No                          | GitHub PAT for `log_feedback` issues and abapGit auth                  | -                            |
-| `GITHUB_USER`        | No                          | GitHub username for abapGit (falls back to `x-access-token`)           | -                            |
-| `GITHUB_REPO`        | No                          | Repository for feedback issues                                         | `Hochfrequenz/sapgui.mcp` |
-| `ABAPGIT_PAT`        | No                          | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)               | -                            |
-| `PAPERTRAIL_HOST`    | No                          | Papertrail syslog host (empty to disable)                              | `""` (off)                   |
-| `PAPERTRAIL_PORT`    | No                          | Papertrail syslog port                                                 | `0` (off)                    |
-| `LOG_FORMAT`         | No                          | Set to `json` for JSON log output                                      | `""` (human-readable)        |
-| `LOG_LEVEL`          | No                          | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                                 | `INFO`                       |
+| Variable               | Required                    | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Default                          |
+| ---------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `SAP_URL`              | No                          | Override WebGUI URL (default: derived from `host` in systems.json)                                                                                                                                                                                                                                                                                                                                                                                              | `""`                             |
+| `SAP_CONFIG_FILE`      | No                          | Path to systems.json (see table above for default per OS)                                                                                                                                                                                                                                                                                                                                                                                                       | (see above)                      |
+| `OUTPUT_DIR`           | No                          | Directory that `output_file` tool arguments (e.g. `sap_se16_query`) are sandboxed to. Set this when the server's cwd isn't your project directory.                                                                                                                                                                                                                                                                                                              | `""` (current working directory) |
+| `SCRIPT_ROOTS`         | No                          | Allowed root directories for `sap_run_script`'s `script_path` parameter, separated by `os.pathsep` (`;` on Windows, `:` on macOS/Linux). Roots must be absolute paths (relative entries are skipped with a warning); a UNC/network root is allowed if you configure one, whereas UNC/device paths in the caller's `script_path` are rejected. Relative `script_path` values are resolved against these roots in order (first match wins). Desktop backend only. | `""` (`script_path` disabled)    |
+| `BROWSER_MODE`         | No                          | `connect` (existing Chrome) or `launch` (Playwright). WebGUI only.                                                                                                                                                                                                                                                                                                                                                                                              | `connect`                        |
+| `BROWSER_TYPE`         | No                          | `chromium`, `firefox`, or `webkit`. WebGUI only.                                                                                                                                                                                                                                                                                                                                                                                                                | `chromium`                       |
+| `BROWSER_HEADLESS`     | No                          | Run browser in headless mode. WebGUI only.                                                                                                                                                                                                                                                                                                                                                                                                                      | `false`                          |
+| `CDP_URL`              | When `BROWSER_MODE=connect` | Chrome DevTools Protocol URL. WebGUI only.                                                                                                                                                                                                                                                                                                                                                                                                                      | `http://localhost:9222`          |
+| `CHROME_PATH`          | No                          | Explicit path to Chrome binary. If empty, auto-detected. WebGUI only.                                                                                                                                                                                                                                                                                                                                                                                           | `""` (auto-detect)               |
+| `CHROME_USER_DATA_DIR` | No                          | User data directory for auto-launched Chrome. WebGUI only.                                                                                                                                                                                                                                                                                                                                                                                                      | `<tempdir>/chrome-debug`         |
+| `COM_MIN_INTERVAL_MS`  | No                          | Minimum ms between COM calls (prevents overload). Desktop only.                                                                                                                                                                                                                                                                                                                                                                                                 | `100`                            |
+| `GITHUB_PAT`           | No                          | GitHub PAT for `log_feedback` issues and abapGit auth                                                                                                                                                                                                                                                                                                                                                                                                           | -                                |
+| `GITHUB_USER`          | No                          | GitHub username for abapGit (falls back to `x-access-token`)                                                                                                                                                                                                                                                                                                                                                                                                    | -                                |
+| `GITHUB_REPO`          | No                          | Repository for feedback issues                                                                                                                                                                                                                                                                                                                                                                                                                                  | `Hochfrequenz/sapgui.mcp`        |
+| `ABAPGIT_PAT`          | No                          | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)                                                                                                                                                                                                                                                                                                                                                                                                        | -                                |
+| `PAPERTRAIL_HOST`      | No                          | Papertrail syslog host (empty to disable)                                                                                                                                                                                                                                                                                                                                                                                                                       | `""` (off)                       |
+| `PAPERTRAIL_PORT`      | No                          | Papertrail syslog port                                                                                                                                                                                                                                                                                                                                                                                                                                          | `0` (off)                        |
+| `LOG_FORMAT`           | No                          | Set to `json` for JSON log output                                                                                                                                                                                                                                                                                                                                                                                                                               | `""` (human-readable)            |
+| `LOG_LEVEL`            | No                          | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                                                                                                                                                                                                                                                                                                                                                                                                                          | `INFO`                           |
 
 ## Logging
 
@@ -923,11 +926,11 @@ When enabled, tool call names, SAP hostnames, and operational metadata are sent 
 
 Each release publishes binaries for Windows and macOS:
 
-| Binary | Papertrail default | Intended audience |
-|---|---|---|
-| `sapgui_mcp_windows.exe` | **off** - no defaults bundled | Public / external users |
-| `sapgui_mcp_windows_with_remote_logging.exe` | Hochfrequenz endpoint baked in at build time | Hochfrequenz-internal use |
-| `sapgui_mcp_macos_arm64` | **off** - no defaults bundled | Public / macOS (Apple Silicon) users |
+| Binary                                       | Papertrail default                           | Intended audience                    |
+| -------------------------------------------- | -------------------------------------------- | ------------------------------------ |
+| `sapgui_mcp_windows.exe`                     | **off** - no defaults bundled                | Public / external users              |
+| `sapgui_mcp_windows_with_remote_logging.exe` | Hochfrequenz endpoint baked in at build time | Hochfrequenz-internal use            |
+| `sapgui_mcp_macos_arm64`                     | **off** - no defaults bundled                | Public / macOS (Apple Silicon) users |
 
 Both binaries honour user overrides via `.env` or environment variables.
 
@@ -1090,9 +1093,9 @@ docker pull ghcr.io/hochfrequenz/sapgui.mcp:latest
 
 ## Architecture
 
-The server supports two backends. Choose one via `BACKEND_TYPE`.
+The server always uses the desktop backend (the WebGUI backend moved to [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp)).
 
-**WebGUI Backend** (`BACKEND_TYPE=webgui`, default):
+**WebGUI Backend** (legacy, moved to sapwebgui.mcp):
 
 ```mermaid
 graph BT
@@ -1106,7 +1109,7 @@ graph BT
     CDP -- "CDP (Chrome DevTools Protocol)" --> Chrome
 ```
 
-**Desktop Backend** (`BACKEND_TYPE=desktop`, Windows only):
+**Desktop Backend** (Windows only):
 
 ```mermaid
 graph BT
