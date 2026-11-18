@@ -282,7 +282,7 @@ def register_com_tools(mcp: FastMCP) -> None:
             open_world_hint=False,
         ),
         description=(
-            "Get the SAP GUI element tree with element IDs (desktop backend only). "
+            "Get the SAP GUI element tree with element IDs. "
             "Returns an indented tree of all elements on the current screen. "
             "Each line shows: type, name, and text value. "
             "Use the element paths as element_id in sap_com_evaluate.\n\n"
@@ -335,7 +335,7 @@ def register_com_tools(mcp: FastMCP) -> None:
             open_world_hint=False,
         ),
         description=(
-            "Execute COM operations on SAP GUI elements (desktop backend only). "
+            "Execute COM operations on SAP GUI elements. "
             "This is the general-purpose escape hatch — use it when no specific tool exists.\n\n"
             "**Workflow:** Call `sap_com_snapshot` to see element IDs, then use this tool.\n\n"
             "**Actions:**\n"
