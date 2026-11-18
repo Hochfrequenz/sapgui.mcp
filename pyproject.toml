@@ -1,10 +1,10 @@
 [project]
 name = "sapguimcp"
-description = "MCP server for SAP Web GUI browser automation"
+description = "MCP server for SAP GUI for Windows automation"
 license = "MIT"
 requires-python = ">=3.11"
 authors = [{ name = "Hochfrequenz Unternehmensberatung GmbH", email = "info+pip@hochfrequenz.de" }]
-keywords = ["mcp", "sap", "webgui", "browser", "automation", "playwright", "claude"]
+keywords = ["mcp", "sap", "sapgui", "sap-gui-scripting", "automation", "claude"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -169,13 +169,11 @@ known-third-party = ["sap_mcp_config", "sapsucker"]
 "src/sapguimcp/tools/__init__.py" = ["RUF022"] # unsorted-dunder-all
 "src/sapguimcp/tools/abapgit_tools.py" = ["PLC0415", "PLW2901", "S101", "S110", "S112", "SIM105", "TC002", "UP037"] # import-outside-top-level, redefined-loop-name, assert, try-except-pass, try-except-continue, suppressible-exception, typing-only-third-party-import, quoted-annotation
 "src/sapguimcp/tools/breakpoint_tools.py" = ["PLC0415", "PLR0911", "RUF100", "S101", "S110", "S112", "SIM102", "SIM105", "TC002", "TC006"] # import-outside-top-level, too-many-return-statements, unused-noqa, assert, try-except-pass, try-except-continue, collapsible-if, suppressible-exception, typing-only-third-party-import, runtime-cast-value
-"src/sapguimcp/tools/browser_tools.py" = ["UP045"] # non-pep604-annotation-optional
 "src/sapguimcp/tools/com_tools.py" = ["PLC0415", "PLR0911", "RUF022", "RUF100", "S101", "S110", "SIM201"] # import-outside-top-level, too-many-return-statements, unsorted-dunder-all, unused-noqa, assert, try-except-pass, negate-equal-op
 "src/sapguimcp/tools/confirmation_helpers.py" = ["PLR0911", "TC002"] # too-many-return-statements, typing-only-third-party-import
 "src/sapguimcp/tools/feedback_tools.py" = ["RUF006", "RUF022", "UP017"] # asyncio-dangling-task, unsorted-dunder-all, datetime-timezone-utc
 "src/sapguimcp/tools/field_helpers.py" = ["B009", "TC003"] # get-attr-with-constant, typing-only-standard-library-import
 "src/sapguimcp/tools/intent_tools.py" = ["RUF022", "UP017"] # unsorted-dunder-all, datetime-timezone-utc
-"src/sapguimcp/tools/quick_report_tools.py" = ["PLR0911", "S112", "TC002"] # too-many-return-statements, try-except-continue, typing-only-third-party-import
 "src/sapguimcp/tools/sap_list_connections_impl.py" = ["RUF022"] # unsorted-dunder-all
 "src/sapguimcp/tools/sap_login_impl.py" = ["UP045"] # non-pep604-annotation-optional
 "src/sapguimcp/tools/desktop_wait_predicates.py" = ["PLC0415"] # import-outside-top-level
@@ -186,7 +184,6 @@ known-third-party = ["sap_mcp_config", "sapsucker"]
 "src/sapguimcp/tools/se16_tools.py" = ["ARG001", "N814", "PLC0415", "PLR0911", "S101", "S110", "S112", "SIM105", "SIM108", "TC002"] # unused-function-argument, camelcase-imported-as-constant, import-outside-top-level, too-many-return-statements, assert, try-except-pass, try-except-continue, suppressible-exception, if-else-block-instead-of-if-exp, typing-only-third-party-import
 "src/sapguimcp/tools/se24_edit_tools.py" = ["PLC0415", "S110", "S112", "TC002", "TC006"] # import-outside-top-level, try-except-pass, try-except-continue, typing-only-third-party-import, runtime-cast-value
 "src/sapguimcp/tools/se24_tools.py" = ["PLC0415", "S110", "S112", "TC002"] # import-outside-top-level, try-except-pass, try-except-continue, typing-only-third-party-import
-"src/sapguimcp/tools/se37_edit_tools.py" = ["S112", "TC002"] # try-except-continue, typing-only-third-party-import
 "src/sapguimcp/tools/se37_tools.py" = ["PLC0415", "S112", "TC002"] # import-outside-top-level, try-except-continue, typing-only-third-party-import
 "src/sapguimcp/tools/se38_edit_tools.py" = ["N814", "PLC0415", "S101", "TC002"] # camelcase-imported-as-constant, import-outside-top-level, assert, typing-only-third-party-import
 "src/sapguimcp/tools/se93_tools.py" = ["PLC0415", "TC001", "TC002"] # import-outside-top-level, typing-only-first-party-import, typing-only-third-party-import
@@ -290,7 +287,7 @@ sources = ["src"]
 testpaths = ["unittests"]
 strict_markers = true
 markers = [
-    "integration: test talks to a live SAP system (SAP GUI desktop via COM or SAP WebGUI). Deselect with -m 'not integration'.",
+    "integration: test talks to a live SAP system (SAP GUI for Windows via COM). Deselect with -m 'not integration'.",
 ]
 log_cli = true
 log_cli_level = "INFO"

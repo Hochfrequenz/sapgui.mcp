@@ -7,7 +7,9 @@ on:
 jobs:
   pylint:
     name: Python Code Quality and Lint
-    runs-on: ubuntu-latest
+    # mypy runs on Windows: the COM code imports pywin32, which only installs there.
+    # The check names "Python Code Quality and Lint (<env>)" do not contain the OS.
+    runs-on: ${{ matrix.linter-env == 'type_check' && 'windows-latest' || 'ubuntu-latest' }}
     strategy:
       matrix:
         linter-env: ["linting", "type_check", "spell_check"]

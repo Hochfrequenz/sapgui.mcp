@@ -8,7 +8,9 @@ on:
 
 jobs:
   coverage:
-    runs-on: ubuntu-latest
+    # Windows, so that the desktop (COM) unit tests run instead of skipping.
+    # The job name stays "coverage" (required status check).
+    runs-on: windows-latest
 
     env:
       PYTHONPATH: src
@@ -22,6 +24,7 @@ jobs:
           python-version: "3.15"
 
       - name: Run coverage
+        shell: bash
         run: |
           uv run --locked --group coverage coverage run -m pytest -m "not integration"
           uv run --locked --group coverage coverage html --omit '.venv/*,unittests/*'
