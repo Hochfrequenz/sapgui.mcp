@@ -16,7 +16,6 @@ from mcp.types import ToolAnnotations
 
 from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
-from sapguimcp.backend.webgui.js_helpers import script_arg
 from sapguimcp.models.se38_edit_models import SE38EditResult
 from sapguimcp.tools.desktop_wait_predicates import editor_loaded_or_popup_open, screen_changed
 from sapguimcp.tools.edit_helpers import describe_failed_replace
@@ -24,7 +23,6 @@ from sapguimcp.tools.field_helpers import fill_field_with_keyboard
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
-    from sapguimcp.backend.webgui.backend import WebGuiBackend
     from sapguimcp.lang.schema import LanguagePack
 
 
@@ -37,59 +35,8 @@ _SE38_SCREEN_WAIT_MS = 3000
 _SE38_EDITOR_WAIT_MS = 5000
 
 
-async def _fill_program_field_js(backend: WebGuiBackend | DesktopBackend, program_name: str, t: LanguagePack) -> bool:
-    """Fill the program name using the standard JS-based fill_field (works on fresh screens)."""
-    for label in t.common.program:
-        try:
-            await backend.fill_field(label, program_name)
-            return True
-        except ValueError:
-            continue
-    return await backend.fill_main_input(program_name, list(t.common.program))
-
-
-async def _fill_program_field_keyboard(backend: WebGuiBackend, program_name: str, t: LanguagePack) -> bool:
-    """Fill the program name using real keyboard events (works after state resets).
-
-    Uses JavaScript to locate and focus the CBS field, then types with
-    real keyboard events. This survives SAP's post-navigation state where
-    Playwright locator clicks time out due to SAP's overlay mechanism.
-    """
-    # Try the shared helper first (matches by title attribute).
-    if await fill_field_with_keyboard(backend, list(t.se38.program_field_title), program_name):
-        return True
-
-    # Direct JS: find the CBS program field by known attributes and focus it.
-    focused = await backend.evaluate_javascript(
-        """({ texts }) => {
-        // Find the CBS input whose title holds a program name title of the pack.
-        const titles = texts.programTitle.variants;
-        const input = titles.map((v) => document.querySelector(`input[title*='${v}'][ct='CBS']`)).find(Boolean)
-            || document.querySelector("input[name='InputField'][ct='CBS']");
-        if (!input || input.offsetParent === null) return false;
-        input.focus();
-        input.click();
-        input.select();
-        return true;
-    }""",
-        script_arg({"programTitle": t.se38.program_field_title}),
-    )
-    if not focused:
-        return False
-
-    await backend.type_text(program_name)
-    return True
-
-
-async def _navigate_and_open_editor_desktop(
-    backend: WebGuiBackend | DesktopBackend, program_name: str, t: LanguagePack
-) -> str | None:
+async def _navigate_and_open_editor_desktop(backend: DesktopBackend, program_name: str, t: LanguagePack) -> str | None:
     """Desktop-specific: navigate to SE38, fill program name, enter change mode."""
-    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
-
-    if not isinstance(backend, DesktopBackend):
-        return "Requires DesktopBackend"
-
     await backend.enter_transaction("SE38")
     await backend.wait_for_ready()
 
@@ -134,50 +81,11 @@ async def _navigate_and_open_editor_desktop(
     )
 
 
-async def _navigate_and_open_editor(backend: WebGuiBackend, program_name: str, t: LanguagePack) -> str | None:
-    """Navigate to SE38 on the given page, fill program name, enter change mode, return error or None."""
-    await backend.enter_transaction("SE38")
-
-    for attempt in range(3):
-        if attempt > 0:
-            logger.info("Retrying fill+F6 for %s (attempt %d)", program_name, attempt + 1)
-            await asyncio.sleep(1.0)
-
-        # First attempt: fast JS fill. Retries: keyboard fill (survives state resets).
-        if attempt == 0:
-            filled = await _fill_program_field_js(backend, program_name, t)
-        else:
-            filled = await _fill_program_field_keyboard(backend, program_name, t)
-
-        if not filled:
-            logger.warning("Program name field not found (attempt %d)", attempt + 1)
-            continue
-
-        # Brief wait for SAP to register the typed value before pressing F6.
-        await asyncio.sleep(0.3)
-        await backend.press_key("F6")
-        await backend.wait_for_ready()
-
-        # Verify we left the initial screen.
-        snapshot = str(await backend.get_snapshot())
-        if not t.se38.initial_screen.contains(snapshot):
-            return None
-
-    return "Could not find or fill program name field after retries"
-
-
 async def _edit_check_activate(
-    backend: WebGuiBackend | DesktopBackend, program_name: str, new_source: str, t: LanguagePack
+    backend: DesktopBackend, program_name: str, new_source: str, t: LanguagePack
 ) -> SE38EditResult:
     """Core edit logic: read backup, replace, check, activate, revert on failure."""
-    # Navigate and open editor — use desktop or WebGUI path
-    if backend.backend_type == "desktop":
-        nav_error = await _navigate_and_open_editor_desktop(backend, program_name, t)
-    else:
-        from sapguimcp.backend.webgui.backend import WebGuiBackend as _WG  # pylint: disable=import-outside-toplevel
-
-        assert isinstance(backend, _WG)
-        nav_error = await _navigate_and_open_editor(backend, program_name, t)
+    nav_error = await _navigate_and_open_editor_desktop(backend, program_name, t)
     if nav_error:
         return SE38EditResult.failure(error=nav_error, program_name=program_name, backup_source="", activated=False)
 

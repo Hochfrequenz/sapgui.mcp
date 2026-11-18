@@ -13,7 +13,6 @@ from fastmcp.exceptions import ToolError
 from pydantic import ValidationError
 
 from sapguimcp.models import ClickButtonResult, SelectDropdownResult, SelectTabResult
-from sapguimcp.models.base import PopupInfo
 from sapguimcp.models.sap_results import DropdownFillResult
 from sapguimcp.server import mcp
 
@@ -173,18 +172,6 @@ class TestSapClickButton:
         assert "No backend" in data["error"]
 
     @pytest.mark.anyio
-    async def test_popup_blocking(self) -> None:
-        popup = PopupInfo(message="Save changes?")
-        backend = _make_backend(popup=popup)
-        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
-            async with Client(mcp) as client:
-                raw = await client.call_tool("sap_click_button", {"label": "OK"})
-        data = _parse_result(raw)
-        assert data["success"] is False
-        assert "popup" in data["error"].lower() or "Popup" in data["error"]
-        backend.click_button.assert_not_awaited()
-
-    @pytest.mark.anyio
     async def test_desktop_backend_skips_popup_check(self) -> None:
         """Desktop backend should not call check_popup (it manages windows differently)."""
         backend = _make_backend(backend_type="desktop")
@@ -251,17 +238,6 @@ class TestSapSelectTab:
         assert data["success"] is False
 
     @pytest.mark.anyio
-    async def test_popup_blocking(self) -> None:
-        popup = PopupInfo(message="Unsaved changes")
-        backend = _make_backend(popup=popup)
-        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
-            async with Client(mcp) as client:
-                raw = await client.call_tool("sap_select_tab", {"label": "Details"})
-        data = _parse_result(raw)
-        assert data["success"] is False
-        backend.click_tab.assert_not_awaited()
-
-    @pytest.mark.anyio
     async def test_desktop_backend_skips_popup_check(self) -> None:
         backend = _make_backend(backend_type="desktop")
         with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
@@ -325,17 +301,6 @@ class TestSapSelectDropdown:
                 raw = await client.call_tool("sap_select_dropdown", {"label": "X", "value": "Y"})
         data = _parse_result(raw)
         assert data["success"] is False
-
-    @pytest.mark.anyio
-    async def test_popup_blocking(self) -> None:
-        popup = PopupInfo(message="Confirm?")
-        backend = _make_backend(popup=popup)
-        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
-            async with Client(mcp) as client:
-                raw = await client.call_tool("sap_select_dropdown", {"label": "X", "value": "Y"})
-        data = _parse_result(raw)
-        assert data["success"] is False
-        backend.select_dropdown.assert_not_awaited()
 
     @pytest.mark.anyio
     async def test_desktop_backend_skips_popup_check(self) -> None:

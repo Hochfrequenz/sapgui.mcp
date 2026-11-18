@@ -27,7 +27,6 @@ from pathlib import Path
 from typing import Any
 
 from sapguimcp import lang
-from sapguimcp.lang.schema import LanguagePack
 from sapguimcp.tables.models import TableCatalog, TableField, TableInfo
 
 logger = logging.getLogger(__name__)
@@ -94,11 +93,11 @@ async def get_table_list_from_dd02l(
     return sorted(all_tables)
 
 
-async def _lookup_table_se11(table_name: str, t: LanguagePack) -> TableInfo | str:
+async def _lookup_table_se11(table_name: str) -> TableInfo | str:
     """Look up a single table in SE11 and return TableInfo or error string."""
     from sapguimcp.backend.manager import get_backend
     from sapguimcp.models.se11_models import SE11Entry
-    from sapguimcp.tools.se11_tools import _lookup_object_on_initial_screen
+    from sapguimcp.tools.se11_tools import _lookup_se11_desktop
 
     backend = await get_backend()
 
@@ -110,7 +109,7 @@ async def _lookup_table_se11(table_name: str, t: LanguagePack) -> TableInfo | st
         return f"Failed to navigate to SE11: {tx_result.error}"
     await backend.wait_for_ready()
 
-    result = await _lookup_object_on_initial_screen(backend, table_name, "table", t)
+    result = await _lookup_se11_desktop(backend, table_name, "table")
 
     if isinstance(result, SE11Entry):
         fields = [
@@ -190,9 +189,6 @@ async def scrape_table_catalog(
     logger.info("Fetching table list from DD02L")
     table_names = await get_table_list_from_dd02l(prefixes)
     logger.info("Found tables matching prefixes", extra={"count": len(table_names)})
-    # Resolved once, outside the per-table `except Exception`, so an unsupported session language
-    # reaches the caller instead of failing every table separately.
-    pack = lang.current("table_catalog_scrape")
 
     # Filter out already scraped
     to_scrape = [t for t in table_names if t not in existing_tables]
@@ -215,7 +211,7 @@ async def scrape_table_catalog(
             )
 
             try:
-                result = await _lookup_table_se11(table_name, pack)
+                result = await _lookup_table_se11(table_name)
 
                 if isinstance(result, TableInfo):
                     catalog.tables[table_name] = result

@@ -12,6 +12,7 @@ def _make_backend(**overrides: Any) -> AsyncMock:
     """Create a mock backend with default protocol method stubs."""
     backend = AsyncMock()
     backend.list_sessions.return_value = overrides.get("list_sessions", [])
+    backend.com_engine_state.return_value = overrides.get("com_engine_state")  # None: the COM engine is idle
     backend.has_session.return_value = overrides.get("has_session", False)
     backend.close_session.return_value = overrides.get("close_session", True)
     backend.bind_session.return_value = overrides.get("bind_session", None)
@@ -388,26 +389,11 @@ class TestSessionOwnership:
         backend.detach_session.assert_not_called()
 
     @pytest.mark.anyio
-    async def test_detach_not_supported_on_webgui(self) -> None:
-        from types import SimpleNamespace
-
-        from sapguimcp.tools.session_tools import sap_session_detach_impl
-
-        backend = SimpleNamespace()  # no detach_session, like WebGuiBackend
-        with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
-            result = await sap_session_detach_impl("s1")
-
-        assert result.success is False
-        assert result.error is not None
-        assert "WebGUI" in result.error
-
-    @pytest.mark.anyio
     async def test_list_shows_origin(self) -> None:
         from sapguimcp.tools.session_tools import sap_session_list_impl
 
         sessions = [SessionInfo(session_id="s1"), SessionInfo(session_id="s2", origin="attached")]
         backend = _make_backend(list_sessions=sessions)
-        backend.com_engine_state = None
         with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)):
             result = await sap_session_list_impl()
 

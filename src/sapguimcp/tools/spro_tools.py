@@ -8,39 +8,25 @@ activity names, parent nodes, and area context.
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
-from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
-from sapguimcp.backend.webgui.parsers.spro_parser import parse_spro_search_results
-from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.models.spro_models import SPROActivity, SPROFileSummary, SPROSearchResult
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
-    from sapguimcp.backend.webgui.backend import WebGuiBackend
-    from sapguimcp.lang.schema import LanguagePack
 
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["register_spro_tools"]
-
-# Maximum time to wait for search results (ms)
-_SEARCH_TIMEOUT_MS = 60_000
-_SEARCH_POLL_INTERVAL_MS = 2_000
-
-# F5 IMG tree loading can be slow — poll for heading
-_F5_POLL_INTERVAL_S = 1.0
-_F5_MAX_POLLS = 10  # 10 * 1s = 10 seconds max wait
 
 #: The desktop search reads the IMG tree itself, two levels deep; the WebGUI search covers the whole text index.
 _DESKTOP_SCOPE_NOTE = (
@@ -57,137 +43,6 @@ _SPRO_TREE_ID = "wnd[0]/usr/cntlTREE_CONTROL_CONTAINER/shellcont/shell"
 # =============================================================================
 
 
-async def _click_sap_ref_img(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> str | None:
-    """Open the SAP Reference IMG via F5.
-
-    On the SPRO initial screen, F5 triggers the SAP Reference IMG view.
-    The IMG tree can take several seconds to render, so we poll for the
-    heading instead of checking only once.
-
-    Returns error string or None on success.
-    """
-    # Verify we're on the SPRO initial screen before pressing F5
-    snapshot = await backend.get_snapshot()
-    snapshot_str = str(snapshot)
-    if not t.spro.initial_screen.contains(snapshot_str):
-        expected = "' or '".join(t.spro.initial_screen)
-        return f"Not on SPRO initial screen (expected '{expected}')"
-
-    await backend.press_key("F5")
-    await backend.wait_for_ready()
-
-    # Poll for the IMG heading — the tree can take a few seconds to render.
-    for poll in range(_F5_MAX_POLLS):
-        snapshot = await backend.get_snapshot()
-        snapshot_str = str(snapshot)
-        if t.spro.img_heading.contains(snapshot_str):
-            return None
-        logger.debug("IMG heading not found yet, poll %d/%d", poll + 1, _F5_MAX_POLLS)
-        await asyncio.sleep(_F5_POLL_INTERVAL_S)
-
-    return "Failed to enter IMG tree (heading not found after F5)"
-
-
-async def _open_search_dialog(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> str | None:
-    """Open the SPRO search dialog by clicking the search button.
-
-    Ctrl+F is intercepted by the browser, so we click the button directly
-    using the backend's click_button method.
-
-    Returns error string or None on success.
-    """
-    for label in t.spro.search_button:
-        try:
-            await backend.click_button(label)
-            await backend.wait_for_ready()
-            return None
-        except ValueError:
-            continue
-
-    return "Could not find search button in IMG toolbar"
-
-
-async def _fill_search_and_execute(backend: "WebGuiBackend", query: str) -> str | None:
-    """Fill the search term in the dialog and press Enter.
-
-    The search dialog textbox is a ct='CBS' field that requires real
-    keyboard input (Playwright fill/JS value assignment don't trigger
-    SAP's server-side state). We click the textbox to focus, then type
-    via keyboard and press Enter.
-
-    Returns error string or None on success.
-    """
-    # HACK: Raw JS querySelector + click() instead of Playwright's locator.click().
-    # We need this because the protocol has no CSS-selector-based click method,
-    # and the dialog textbox has no ARIA label usable with fill_field().
-    # Unlike Playwright's locator, JS click() skips actionability checks
-    # (visibility, stability), so this is less robust. The Tab fallback mitigates.
-    try:
-        focused = await backend.evaluate_javascript(
-            "(() => {"
-            "  const input = document.querySelector(\"[role='dialog'] input[role='textbox']\");"
-            "  if (input) { input.focus(); input.click(); return true; }"
-            "  return false;"
-            "})()"
-        )
-        if not focused:
-            logger.warning("Could not find search input, attempting Tab focus")
-            await backend.press_key("Tab")
-    except Exception:  # pylint: disable=broad-exception-caught
-        logger.warning("Could not click search input, attempting Tab focus")
-        await backend.press_key("Tab")
-
-    # Clear any existing text and type the query
-    await backend.press_key("Control+a")
-    await backend.press_key("Delete")
-    await backend.type_text(query)
-
-    # Press Enter to execute search
-    await backend.press_key("Enter")
-
-    return None
-
-
-async def _wait_for_results(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> str:
-    """Wait for SPRO search results dialog to appear.
-
-    Polls for the results dialog title which appears when search completes.
-    SPRO search can be slow (10-60+ seconds), especially on first run when
-    the text index needs to be built.
-
-    Returns the ARIA snapshot when results are ready, or the last snapshot on timeout.
-    """
-    elapsed_ms = 0
-
-    while elapsed_ms < _SEARCH_TIMEOUT_MS:
-        await asyncio.sleep(_SEARCH_POLL_INTERVAL_MS / 1000)
-        elapsed_ms += _SEARCH_POLL_INTERVAL_MS
-
-        snapshot = await backend.get_snapshot()
-        snapshot_str = str(snapshot)
-
-        # Check for results dialog
-        if t.spro.results_dialog.contains(snapshot_str):
-            logger.info(
-                "SPRO search results found after %d ms",
-                elapsed_ms,
-            )
-            return snapshot
-
-        # Check if we returned to the IMG tree (search dialog gone, no results)
-        if t.spro.img_heading.contains(snapshot_str):
-            if "dialog" not in snapshot_str.lower():
-                logger.info(
-                    "SPRO search completed with no results after %d ms",
-                    elapsed_ms,
-                )
-                return snapshot
-
-    # Timeout — return whatever we have
-    logger.warning("SPRO search timed out after %d ms", _SEARCH_TIMEOUT_MS)
-    return await backend.get_snapshot()
-
-
 def _spro_img_tree_loaded(session: Any) -> bool:
     """Predicate: True once the IMG tree control exists and has nodes, or a popup is open."""
     if session.find_by_id("wnd[1]", raise_error=False) is not None:
@@ -200,14 +55,13 @@ def _spro_img_tree_loaded(session: Any) -> bool:
 
 
 async def _search_img_desktop(  # pylint: disable=too-many-locals
-    backend: "WebGuiBackend | DesktopBackend", query: str
+    backend: "DesktopBackend", query: str
 ) -> SPROSearchResult:
     """Desktop-specific SPRO IMG search using tree control node reading.
 
     The desktop SAP GUI doesn't expose the SPRO search dialog available in WebGUI.
     Instead, we expand the IMG tree nodes (2 levels deep) and filter by query text.
     """
-    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
     now = datetime.now(UTC)
 
@@ -224,15 +78,6 @@ async def _search_img_desktop(  # pylint: disable=too-many-locals
     await backend.wait_for_ready()
 
     # Press F5 for SAP Reference IMG
-    if not isinstance(backend, DesktopBackend):
-        return SPROSearchResult.failure(
-            error="SPRO desktop search requires DesktopBackend",
-            query=query,
-            activities=[],
-            activity_count=0,
-            retrieved_at=now,
-        )
-
     await backend.press_key("F5")
     await backend.wait_for_ready()
     # The next step reads the IMG tree's node keys: wait until the tree is populated (or a popup blocks it).
@@ -302,63 +147,6 @@ async def _search_img_desktop(  # pylint: disable=too-many-locals
     )
 
 
-async def _search_img(backend: "WebGuiBackend", t: LanguagePack, query: str) -> SPROSearchResult:
-    """Execute a full SPRO IMG search."""
-    now = datetime.now(UTC)
-
-    # Navigate to SPRO
-    tx_result = await backend.enter_transaction("SPRO")
-    if not tx_result.success:
-        return SPROSearchResult.failure(
-            error=f"Failed to navigate to SPRO: {tx_result.error}",
-            query=query,
-            activities=[],
-            activity_count=0,
-            retrieved_at=now,
-        )
-
-    await backend.wait_for_ready()
-
-    # Enter IMG tree (F5)
-    img_error = await _click_sap_ref_img(backend, t)
-    if img_error:
-        return SPROSearchResult.failure(
-            error=img_error,
-            query=query,
-            activities=[],
-            activity_count=0,
-            retrieved_at=now,
-        )
-
-    # Open search dialog
-    dialog_error = await _open_search_dialog(backend, t)
-    if dialog_error:
-        return SPROSearchResult.failure(
-            error=dialog_error,
-            query=query,
-            activities=[],
-            activity_count=0,
-            retrieved_at=now,
-        )
-
-    # Fill search term and execute
-    search_error = await _fill_search_and_execute(backend, query)
-    if search_error:
-        return SPROSearchResult.failure(
-            error=search_error,
-            query=query,
-            activities=[],
-            activity_count=0,
-            retrieved_at=now,
-        )
-
-    # Wait for results
-    snapshot = AriaSnapshot(await _wait_for_results(backend, t))
-    logger.debug("SPRO search snapshot length=%d", len(str(snapshot)))
-
-    return parse_spro_search_results(snapshot, query, t)
-
-
 # =============================================================================
 # MCP Tool Registration
 # =============================================================================
@@ -415,34 +203,17 @@ def register_spro_tools(mcp: FastMCP) -> None:
                 retrieved_at=now,
             )
 
-        # Desktop backend: use tree control reading instead of ARIA parsing
-        if backend.backend_type == "desktop":
-            try:
-                result = await _search_img_desktop(backend, query)
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.exception("SPRO desktop search query=%r", query)
-                result = SPROSearchResult.failure(
-                    error=f"Error searching IMG for '{query}': {e}",
-                    query=query,
-                    activities=[],
-                    activity_count=0,
-                    retrieved_at=now,
-                )
-        else:
-            # Resolved outside the try: an unsupported session language must reach the caller (the desktop search
-            # reads the tree control and needs no texts).
-            t = lang.current("sap_spro_search")
-            try:
-                result = await _search_img(cast("WebGuiBackend", backend), t, query)
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.exception("SPRO search query=%r", query)
-                result = SPROSearchResult.failure(
-                    error=f"Error searching IMG for '{query}': {e}",
-                    query=query,
-                    activities=[],
-                    activity_count=0,
-                    retrieved_at=now,
-                )
+        try:
+            result = await _search_img_desktop(backend, query)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("SPRO desktop search query=%r", query)
+            result = SPROSearchResult.failure(
+                error=f"Error searching IMG for '{query}': {e}",
+                query=query,
+                activities=[],
+                activity_count=0,
+                retrieved_at=now,
+            )
 
         # Write to file if requested
         if output_file and result.success:

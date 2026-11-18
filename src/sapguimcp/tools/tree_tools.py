@@ -202,12 +202,6 @@ def register_tree_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return TreeReadResult.failure(str(e))
 
-        if backend.backend_type != "desktop":
-            return TreeReadResult.failure("sap_tree_read is only available on the desktop backend.")
-
-        from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
-
-        assert isinstance(backend, DesktopBackend)  # noqa: S101
         desktop_session = backend.require_session()
 
         def _run() -> dict[str, Any]:
@@ -304,12 +298,6 @@ def register_tree_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return TreeContextMenuResult.failure(str(e))
 
-        if backend.backend_type != "desktop":
-            return TreeContextMenuResult.failure("sap_tree_context_menu is only available on the desktop backend.")
-
-        from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
-
-        assert isinstance(backend, DesktopBackend)  # noqa: S101
         desktop_session = backend.require_session()
         com = backend.com
 

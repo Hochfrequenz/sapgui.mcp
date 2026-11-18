@@ -1,6 +1,6 @@
 """Unit tests for sap_login optional client override."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from pydantic import SecretStr
@@ -9,7 +9,6 @@ from sap_mcp_config import Config, SAPSystem
 from sapguimcp.models.sap_results import LoginResult
 
 _PATCH_GET_BACKEND = "sapguimcp.tools.sap_login_impl.get_backend"
-_PATCH_GET_SETTINGS = "sapguimcp.tools.sap_login_impl.get_settings"
 _PATCH_GET_SAP_CONFIG = "sapguimcp.tools.sap_login_impl.get_sap_config"
 
 
@@ -29,12 +28,6 @@ def _make_sap_config(default_system: str = "sysA", client: str = "100", connecti
     )
 
 
-def _make_settings() -> MagicMock:
-    settings = MagicMock()
-    settings.sap_url = ""
-    return settings
-
-
 def _make_backend(login_result: LoginResult | None = None) -> AsyncMock:
     backend = AsyncMock()
     backend.login.return_value = login_result or LoginResult(success=True, user="testuser")
@@ -51,11 +44,9 @@ class TestSapLoginClientOverride:
         from sapguimcp.tools.sap_login_impl import sap_login_impl as sap_login
 
         sap_cfg = _make_sap_config(client="100")
-        settings = _make_settings()
         backend = _make_backend()
 
         with (
-            patch(_PATCH_GET_SETTINGS, return_value=settings),
             patch(_PATCH_GET_SAP_CONFIG, return_value=sap_cfg),
             patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         ):
@@ -71,11 +62,9 @@ class TestSapLoginClientOverride:
         from sapguimcp.tools.sap_login_impl import sap_login_impl as sap_login
 
         sap_cfg = _make_sap_config(client="100")
-        settings = _make_settings()
         backend = _make_backend()
 
         with (
-            patch(_PATCH_GET_SETTINGS, return_value=settings),
             patch(_PATCH_GET_SAP_CONFIG, return_value=sap_cfg),
             patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         ):
@@ -95,11 +84,9 @@ class TestSapLoginSystemKeyOverride:
         from sapguimcp.tools.sap_login_impl import sap_login_impl as sap_login
 
         sap_cfg = _make_sap_config(default_system="sysA", connection_name="DEV S/4HANA")
-        settings = _make_settings()
         backend = _make_backend()
 
         with (
-            patch(_PATCH_GET_SETTINGS, return_value=settings),
             patch(_PATCH_GET_SAP_CONFIG, return_value=sap_cfg),
             patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         ):
@@ -135,11 +122,9 @@ class TestSapLoginSystemKeyOverride:
                 ),
             },
         )
-        settings = _make_settings()
         backend = _make_backend()
 
         with (
-            patch(_PATCH_GET_SETTINGS, return_value=settings),
             patch(_PATCH_GET_SAP_CONFIG, return_value=sap_cfg),
             patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=backend)),
         ):

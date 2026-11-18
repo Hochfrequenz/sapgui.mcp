@@ -6,7 +6,6 @@ from sapguimcp.backend.manager import (
     get_backend,
     get_backend_manager,
     get_desktop_backend,
-    get_webgui_backend,
     reset_backend_manager,
 )
 from sapguimcp.backend.webgui.types import AriaSnapshot
@@ -20,6 +19,5 @@ __all__ = [
     "get_backend",
     "get_backend_manager",
     "get_desktop_backend",
-    "get_webgui_backend",
     "reset_backend_manager",
 ]

@@ -186,11 +186,6 @@ async def test_open_class_that_stays_on_the_initial_screen_reports_the_status_te
     assert "Ctrl+F1" not in [call.args[0] for call in backend.press_key.await_args_list]
 
 
-@pytest.mark.anyio
-async def test_open_class_needs_a_desktop_backend(lang_de: LanguagePack) -> None:
-    assert await _open_class_in_change_mode_desktop(MagicMock(), "CL_X", lang_de) == "Requires DesktopBackend"
-
-
 def _method_table_session(method_names: list[str]) -> Any:
     """Session with one table control whose 'Methode' column lists ``method_names``."""
 

@@ -11,7 +11,7 @@ import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING, Literal
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -19,29 +19,22 @@ from mcp.types import ToolAnnotations
 from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.backend.webgui.parsers.sm37_parser import (
-    is_no_jobs_found,
     normalize_job_status,
-    parse_sm37_job_list,
-    parse_sm37_job_log,
 )
-from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.lang.schema import JobStatus
 from sapguimcp.models import TableData
-from sapguimcp.models.screen_state import SelectionScreenState
 from sapguimcp.models.sm37_models import SM37Job, SM37JobListResult, SM37JobLog
 from sapguimcp.tools.classic_list_helpers import (
     read_classic_list_lines,
     read_classic_list_table,
     select_first_classic_list_entry,
 )
-from sapguimcp.tools.screen_state_helpers import ensure_screen_state
 from sapguimcp.utils import format_sap_date_as
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from sapguimcp.backend.desktop import DesktopBackend
-    from sapguimcp.backend.webgui.backend import WebGuiBackend
     from sapguimcp.lang import LanguagePack
 
 
@@ -72,7 +65,7 @@ def _first(data: dict[str, str], names: Iterable[str], default: str | None = "")
     return default
 
 
-async def _fill_selection_field(backend: "WebGuiBackend | DesktopBackend", field_name: str, value: str) -> bool:
+async def _fill_selection_field(backend: "DesktopBackend", field_name: str, value: str) -> bool:
     """Fill a field of the SM37 selection screen by its technical name (``BTCH2170-*``, same on every release).
 
     A field that cannot be filled must be reported, or the lookup would return the default selection.
@@ -83,76 +76,14 @@ async def _fill_selection_field(backend: "WebGuiBackend | DesktopBackend", field
         return False
 
 
-async def _read_classic_job_list(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> TableData:
+async def _read_classic_job_list(backend: "DesktopBackend", t: LanguagePack) -> TableData:
     """Read the job overview as a classic list: SAP ERP 6.0 shows it as labels, not as an ALV grid."""
-    desktop = cast("DesktopBackend", backend)
+    desktop = backend
     session = desktop.require_session()
     header_titles = tuple(t.sm37.job_name)
     return await desktop.com.run(
         lambda: read_classic_list_table(session, header_titles, _MAX_JOBS), retry_server_fault=True
     )
-
-
-async def _fill_selection_screen(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals
-    backend: "WebGuiBackend | DesktopBackend",
-    t: LanguagePack,
-    job_name: str,
-    username: str | None,
-    statuses: list[str] | None,
-    from_date: str | None,
-    to_date: str | None,
-) -> list[str]:
-    """Fill the SM37 selection screen fields."""
-    errors: list[str] = []
-
-    # Build target for checkboxes + text fields in one declarative call. Every label of the session's view is a key:
-    # ensure_screen_state matches by label, a label that is not on the screen only gives a (harmless) warning.
-    effective_statuses = set(statuses) if statuses else set(_STATUS_PARAMS)
-    fields: dict[str, str] = dict.fromkeys(t.sm37.job_name, job_name)
-    if username is not None:
-        fields.update(dict.fromkeys(t.sm37.user_name, username))
-
-    target = SelectionScreenState(
-        checkboxes={
-            label: param in effective_statuses
-            for param, status in _STATUS_PARAMS.items()
-            for label in t.sm37.status[status]
-        },
-        fields=fields,
-    )
-    state_result = await ensure_screen_state(backend, target)
-    if not state_result.success:
-        errors.append(f"Failed to set selection screen state: {state_result.error}")  # lang-ok: our own message
-    errors.extend(state_result.warnings)
-
-    # Date fields are filled manually (not via ensure_screen_state) because they
-    # require the date format of the session's language.
-    # The ARIA snapshot values use SAP's display format which may differ from the
-    # input format, making snapshot-based verification unreliable for dates.
-    if from_date or to_date:
-        if from_date:
-            sap_from = format_sap_date_as(from_date, t.date_format)
-            for label in t.sm37.from_date:
-                try:
-                    await backend.fill_field(label, sap_from)
-                    break
-                except ValueError:
-                    continue
-            else:
-                errors.append("Could not set from_date: field not found")
-
-        if to_date:
-            sap_to = format_sap_date_as(to_date, t.date_format)
-            for label in t.sm37.to_date:
-                try:
-                    await backend.fill_field(label, sap_to)
-                    break
-                except ValueError:
-                    continue
-            else:
-                errors.append("Could not set to_date: field not found")
-
-    return errors
 
 
 def _is_job_log_screen(snapshot: str, t: LanguagePack) -> bool:
@@ -163,7 +94,7 @@ def _is_job_log_screen(snapshot: str, t: LanguagePack) -> bool:
     return t.sm37.job_log_heading.contains(snapshot) or t.sm37.job_log_title_ecc.contains(snapshot)
 
 
-async def _click_job_log_button(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> bool:
+async def _click_job_log_button(backend: "DesktopBackend", t: LanguagePack) -> bool:
     """Click the Job-Log button, trying each of its labels. False if the screen has none of them."""
     for label in t.sm37.job_log_button:
         try:
@@ -175,46 +106,8 @@ async def _click_job_log_button(backend: "WebGuiBackend | DesktopBackend", t: La
     return False
 
 
-async def _fetch_job_log(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> SM37JobLog | None:
-    """
-    Select the first job row and fetch its job log.
-
-    Clicks the Job-Log button, validates the screen changed, then parses the log.
-    """
-    try:
-        # Select the first job row before clicking Job-Log
-        await backend.click_table_cell(1, 0, "click")
-        await backend.wait_for_ready()
-
-        # Click the Job-Log button
-        if not await _click_job_log_button(backend, t):
-            return None
-
-        await backend.wait_for_ready()
-
-        snapshot = AriaSnapshot(await backend.get_snapshot())
-
-        if not _is_job_log_screen(str(snapshot), t):
-            logger.warning("Expected job log screen but got something else, skipping log parse")
-            await backend.press_key("F3")
-            await backend.wait_for_ready()
-            return None
-
-        job_log = parse_sm37_job_log(snapshot, "", t)
-
-        # Navigate back (F3)
-        await backend.press_key("F3")
-        await backend.wait_for_ready()
-
-        return job_log
-
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.exception("Fetching job log error=%s", e)
-        return None
-
-
 async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches,too-many-statements
-    backend: "WebGuiBackend | DesktopBackend",
+    backend: "DesktopBackend",
     t: LanguagePack,
     job_name: str,
     username: str | None,
@@ -323,7 +216,7 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
 
     # Read table data
     table_data: TableData = await backend.read_table(start_row=1, max_rows=_MAX_JOBS)
-    if not table_data.headers and backend.backend_type == "desktop":
+    if not table_data.headers:
         table_data = await _read_classic_job_list(backend, t)
 
     if not table_data.headers:
@@ -375,15 +268,15 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
     )
 
 
-async def _select_first_classic_job(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> bool:
+async def _select_first_classic_job(backend: "DesktopBackend", t: LanguagePack) -> bool:
     """Tick the first job of the classic job list (SAP ERP 6.0). False if the screen has no such list."""
-    desktop = cast("DesktopBackend", backend)
+    desktop = backend
     session = desktop.require_session()
     header_titles = tuple(t.sm37.job_name)
     return await desktop.com.run(lambda: select_first_classic_list_entry(session, header_titles))
 
 
-async def _fetch_job_log_desktop(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> SM37JobLog | None:
+async def _fetch_job_log_desktop(backend: "DesktopBackend", t: LanguagePack) -> SM37JobLog | None:
     """Desktop-specific: select the first job row and fetch its job log.
 
     Clicks the first row in the ALV grid, clicks the Job-Log button,
@@ -423,7 +316,7 @@ async def _fetch_job_log_desktop(backend: "WebGuiBackend | DesktopBackend", t: L
         # SAP ERP 6.0 shows the log as a classic list of labels: read that, the screen text would hold the menus. Only
         # there: any other log screen (an ALV grid on S/4) keeps the text path below.
         if t.sm37.job_log_title_ecc.contains(screen_text.title or ""):
-            desktop = cast("DesktopBackend", backend)
+            desktop = backend
             session = desktop.require_session()
             list_lines = await desktop.com.run(
                 lambda: read_classic_list_lines(session, _MAX_LOG_LINES), retry_server_fault=True
@@ -456,7 +349,7 @@ async def _fetch_job_log_desktop(backend: "WebGuiBackend | DesktopBackend", t: L
 
 
 async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,too-many-branches
-    backend: "WebGuiBackend | DesktopBackend",
+    backend: "DesktopBackend",
     t: LanguagePack,
     job_name: str,
     username: str | None,
@@ -466,80 +359,13 @@ async def _execute_sm37_lookup(  # pylint: disable=too-many-arguments,too-many-p
     include_log: bool,
 ) -> SM37JobListResult:
     """Execute the SM37 lookup workflow on the given backend."""
-    now = datetime.now(UTC)
-
-    # Desktop backend: use read_table instead of ARIA snapshot parsing
-    if backend.backend_type == "desktop":
-        result = await _execute_sm37_lookup_desktop(backend, t, job_name, username, statuses, from_date, to_date)
-        if include_log and result.success and len(result.jobs) == 1:
-            desktop_log = await _fetch_job_log_desktop(backend, t)
-            if desktop_log:
-                desktop_log.job_name = result.jobs[0].job_name
-                result.job_log = desktop_log
-        return result
-
-    tx_result = await backend.enter_transaction("SM37")
-    if not tx_result.success:
-        return SM37JobListResult.failure(
-            error=f"Failed to navigate to SM37: {tx_result.error}",
-            jobs=[],
-            job_count=0,
-            filters_applied={},
-            retrieved_at=now,
-        )
-
-    await backend.wait_for_ready()
-
-    fill_errors = await _fill_selection_screen(backend, t, job_name, username, statuses, from_date, to_date)
-    if fill_errors:
-        logger.warning("Selection field errors errors=%r", fill_errors)
-
-    filters_applied: dict[str, str] = {"job_name": job_name}
-    if username:
-        filters_applied["username"] = username
-    if statuses:
-        filters_applied["status"] = ",".join(statuses)
-    if from_date:
-        filters_applied["from_date"] = from_date
-    if to_date:
-        filters_applied["to_date"] = to_date
-
-    # Execute (F8)
-    await backend.press_key("F8")
-    await backend.wait_for_ready()
-
-    snapshot = AriaSnapshot(await backend.get_snapshot())
-
-    if is_no_jobs_found(snapshot, t):
-        return SM37JobListResult(
-            jobs=[],
-            job_count=0,
-            filters_applied=filters_applied,
-            retrieved_at=now,
-        )
-
-    jobs = parse_sm37_job_list(snapshot, t)
-
-    jobs_truncated = len(jobs) > _MAX_JOBS
-    if jobs_truncated:
-        logger.warning("Truncating job list total=%d max=%d", len(jobs), _MAX_JOBS)
-        jobs = jobs[:_MAX_JOBS]
-
-    # Fetch job log if requested and exactly one job
-    job_log: SM37JobLog | None = None
-    if include_log and len(jobs) == 1:
-        job_log = await _fetch_job_log(backend, t)
-        if job_log:
-            job_log.job_name = jobs[0].job_name
-
-    return SM37JobListResult(
-        jobs=jobs,
-        job_count=len(jobs),
-        jobs_truncated=jobs_truncated,
-        filters_applied=filters_applied,
-        job_log=job_log,
-        retrieved_at=now,
-    )
+    result = await _execute_sm37_lookup_desktop(backend, t, job_name, username, statuses, from_date, to_date)
+    if include_log and result.success and len(result.jobs) == 1:
+        desktop_log = await _fetch_job_log_desktop(backend, t)
+        if desktop_log:
+            desktop_log.job_name = result.jobs[0].job_name
+            result.job_log = desktop_log
+    return result
 
 
 def register_sm37_tools(mcp: FastMCP) -> None:

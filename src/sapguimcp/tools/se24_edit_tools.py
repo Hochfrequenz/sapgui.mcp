@@ -29,11 +29,10 @@ from sapguimcp.tools.desktop_wait_predicates import (
     window_title_changed,
 )
 from sapguimcp.tools.edit_helpers import describe_failed_replace
-from sapguimcp.tools.field_helpers import fill_field_with_keyboard, toggle_to_change_mode
+from sapguimcp.tools.field_helpers import fill_field_with_keyboard
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
-    from sapguimcp.backend.webgui.backend import WebGuiBackend
     from sapguimcp.lang.schema import LanguagePack
 
 
@@ -46,122 +45,8 @@ _SE24_TOGGLE_WAIT_MS = 1000
 _SE24_SOURCE_WAIT_MS = 10000
 
 
-async def _fill_class_field(
-    backend: WebGuiBackend | DesktopBackend, class_name: str, attempt: int, t: LanguagePack
-) -> bool:
-    """Fill the SE24 class name field. attempt==0 uses JS, retries use keyboard."""
-    if attempt == 0:
-        for label in t.se24.object_type:
-            try:
-                await backend.fill_field(label, class_name)
-                return True
-            except ValueError:
-                continue
-        return await backend.fill_main_input(class_name, list(t.se24.object_type))
-    return await fill_field_with_keyboard(backend, list(t.se24.object_type), class_name)
-
-
-async def _open_class_in_change_mode(
-    backend: WebGuiBackend | DesktopBackend, class_name: str, t: LanguagePack
-) -> str | None:
-    """Navigate to SE24, display class via F7, and toggle to change mode.
-
-    Returns error message or None on success.
-    """
-    # bring_to_front is required for SE24: without it, F7/field interactions fail silently
-    await backend.bring_to_front()
-
-    await backend.enter_transaction("SE24")
-
-    # Fill class name and press F7. First attempt uses JS fill (fast),
-    # retries use real keyboard events (survives SAP state resets after /n).
-    for attempt in range(3):
-        if attempt > 0:
-            logger.info("Retrying fill+F7 for %s (attempt %d)", class_name, attempt + 1)
-            await asyncio.sleep(1.0)
-
-        filled = await _fill_class_field(backend, class_name, attempt, t)
-        if not filled:
-            logger.warning("Class name field not found (attempt %d)", attempt + 1)
-            continue
-
-        # Brief wait for SAP to register the typed value before pressing F7.
-        await asyncio.sleep(0.3)
-        await backend.press_key("F7")
-        await backend.wait_for_ready()
-
-        # Check if we left the initial screen.
-        snapshot = str(await backend.get_snapshot())
-        if t.se24.class_builder.contains(snapshot):
-            break
-    else:
-        return "Could not find or fill class name field after retries"
-
-    await backend.dismiss_language_dialog()
-
-    return await toggle_to_change_mode(backend, t)
-
-
-async def _select_method_and_open_source(
-    backend: WebGuiBackend | DesktopBackend, class_name: str, method_name: str, t: LanguagePack
-) -> str | None:
-    """Select method in methods grid and open its source editor.
-
-    Returns error message or None on success.
-    """
-    # Ensure we're on the Methods tab
-    for tab_label in t.se24.methods_tab:
-        try:
-            await backend.click_tab(tab_label)
-            break
-        except ValueError:
-            continue
-    else:
-        return "Could not find the methods tab"  # lang-ok: our own message
-    await backend.wait_for_ready()
-
-    # Select the method in the grid by finding it in the table
-    table = await backend.read_table()
-    row_index = None
-    for i, row in enumerate(table.rows):
-        if any(method_name.upper() in v.upper() for v in row.data.values() if v):
-            row_index = i
-            break
-    if row_index is None:
-        snapshot = await backend.get_snapshot()
-        logger.warning(
-            "SE24 edit: method %s not found for %s. Screen: %s",
-            method_name,
-            class_name,
-            str(snapshot)[:200],
-        )
-        return f"Method '{method_name}' not found in class '{class_name}' methods grid"  # lang-ok: our own message
-    await backend.click_table_cell(row_index + 1, 0, "click")  # 1-based row index
-    await backend.wait_for_ready()
-
-    # Click the source code button to open the method source
-    for btn_name in t.se24.source_button:
-        try:
-            await backend.click_button(btn_name)
-            await backend.wait_for_ready()
-            break
-        except Exception:  # pylint: disable=broad-exception-caught
-            continue
-    else:
-        return "Could not find the source code button"  # lang-ok: our own message
-
-    return None
-
-
-async def _open_class_in_change_mode_desktop(
-    backend: WebGuiBackend | DesktopBackend, class_name: str, t: LanguagePack
-) -> str | None:
+async def _open_class_in_change_mode_desktop(backend: DesktopBackend, class_name: str, t: LanguagePack) -> str | None:
     """Desktop-specific: navigate to SE24, display class, toggle to change mode."""
-    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
-
-    if not isinstance(backend, DesktopBackend):
-        return "Requires DesktopBackend"
-
     await backend.enter_transaction("SE24")
     await backend.wait_for_ready()
 
@@ -232,14 +117,10 @@ async def _confirm_language_dialog_desktop(
 
 
 async def _select_method_and_open_source_desktop(  # pylint: disable=too-many-return-statements
-    backend: WebGuiBackend | DesktopBackend, class_name: str, method_name: str, t: LanguagePack
+    backend: DesktopBackend, class_name: str, method_name: str, t: LanguagePack
 ) -> str | None:
     """Desktop-specific: find method in table control and open its source editor."""
-    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
     from sapguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
-
-    if not isinstance(backend, DesktopBackend):
-        return "Requires DesktopBackend"
 
     # Ensure we're on the Methods tab. SAP instantiates a tab page lazily, so wait until the tab's own table
     # control is in the tree (it is already there when the tab was the active one).
@@ -327,7 +208,7 @@ async def _select_method_and_open_source_desktop(  # pylint: disable=too-many-re
 
 
 async def _navigate_to_method_editor_desktop(
-    backend: WebGuiBackend | DesktopBackend, class_name: str, method_name: str, t: LanguagePack
+    backend: DesktopBackend, class_name: str, method_name: str, t: LanguagePack
 ) -> str | None:
     """Desktop: navigate to SE24, open class in change mode, select method, open source."""
     error = await _open_class_in_change_mode_desktop(backend, class_name, t)
@@ -336,27 +217,11 @@ async def _navigate_to_method_editor_desktop(
     return await _select_method_and_open_source_desktop(backend, class_name, method_name, t)
 
 
-async def _navigate_to_method_editor(
-    backend: WebGuiBackend | DesktopBackend, class_name: str, method_name: str, t: LanguagePack
-) -> str | None:
-    """Navigate to SE24, open class in change mode, select method, open source editor.
-
-    Returns error message or None on success.
-    """
-    error = await _open_class_in_change_mode(backend, class_name, t)
-    if error:
-        return error
-    return await _select_method_and_open_source(backend, class_name, method_name, t)
-
-
 async def _edit_check_activate_method(
-    backend: WebGuiBackend | DesktopBackend, class_name: str, method_name: str, new_source: str, t: LanguagePack
+    backend: DesktopBackend, class_name: str, method_name: str, new_source: str, t: LanguagePack
 ) -> SE24EditResult:
     """Core edit logic: navigate, read backup, replace, check, activate, revert on failure."""
-    if backend.backend_type == "desktop":
-        nav_error = await _navigate_to_method_editor_desktop(backend, class_name, method_name, t)
-    else:
-        nav_error = await _navigate_to_method_editor(backend, class_name, method_name, t)
+    nav_error = await _navigate_to_method_editor_desktop(backend, class_name, method_name, t)
     if nav_error:
         return SE24EditResult.failure(
             error=nav_error, class_name=class_name, method_name=method_name, backup_source="", activated=False

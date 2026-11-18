@@ -8,8 +8,6 @@ and parses the flat text list from the ARIA snapshot.
 
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
 import re
 from datetime import UTC, datetime
@@ -20,19 +18,13 @@ from mcp.types import ToolAnnotations
 
 from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
-from sapguimcp.backend.webgui.js_helpers import script_arg
-from sapguimcp.backend.webgui.parsers.se09_parser import parse_se09_transport_list
-from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.lang.schema import LanguagePack, TransportStatus
-from sapguimcp.models.screen_state import SelectionScreenState
 from sapguimcp.models.se09_models import TransportListResult, TransportObject, TransportRequest, TransportTask
 from sapguimcp.tools.desktop_wait_predicates import screen_changed, usr_child_count_changed
-from sapguimcp.tools.screen_state_helpers import ensure_screen_state
 from sapguimcp.utils import resolve_output_file_path, write_json_output_file
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
-    from sapguimcp.backend.webgui.backend import WebGuiBackend
     from sapguimcp.lang.text import Text
 
 
@@ -46,140 +38,7 @@ __all__ = ["register_se09_tools"]
 # =============================================================================
 
 
-async def _click_display_button(backend: "WebGuiBackend", t: LanguagePack) -> None:
-    """Click the Display button to execute the search.
-
-    Uses JS to click the button by its element ID, which is more reliable
-    than Playwright's click() for SAP WebGUI custom button controls.
-    """
-    # Find the Display button by text and click it via JS,
-    # dispatching a proper mousedown+mouseup+click sequence
-    js_click_display = """({texts}) => {
-        const display = new RegExp('^(?:' + texts.display.source + ')$', texts.display.flags);
-        const buttons = document.querySelectorAll('[role="button"]');
-        for (const btn of buttons) {
-            const text = btn.textContent?.trim() || '';
-            if (display.test(text)) {
-                // SAP WebGUI needs mousedown+mouseup for proper event handling
-                btn.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true}));
-                btn.dispatchEvent(new MouseEvent('mouseup', {bubbles: true, cancelable: true}));
-                btn.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
-                return {clicked: text, id: btn.id};
-            }
-        }
-        return {clicked: null};
-    }"""
-    result = await backend.evaluate_javascript(js_click_display, script_arg({"display": t.se09.display_button}))
-    if isinstance(result, str):
-        result = json.loads(result)
-    if result and result.get("clicked"):
-        logger.info("Clicked display button '%s' (id=%s)", result["clicked"], result.get("id"))
-        await backend.wait_for_ready()
-        return
-
-    # Fallback: try Playwright click
-    for label in t.se09.display_button:
-        try:
-            await backend.click_button(label)
-            await backend.wait_for_ready()
-            return
-        except ValueError:
-            continue
-
-    logger.warning("Display button not found")
-
-
-_JS_CLICK_NEXT_EXPAND = """(skip) => {
-    const region = document.querySelector('[role="region"]');
-    if (!region) return {clicked: null, remaining: false};
-    const children = [...region.children];
-    const transportPattern = /^[A-Z0-9]{3}K\\d{6}(\\s+\\d{3})?$/;
-    const skipSet = new Set(skip);
-    for (let i = 0; i < children.length; i++) {
-        const el = children[i];
-        if (el.getAttribute('role') !== 'button') continue;
-        for (let j = 1; j <= 3 && i + j < children.length; j++) {
-            const sibText = children[i + j].textContent?.trim() || '';
-            if (transportPattern.test(sibText) && !skipSet.has(sibText)) {
-                el.click();
-                return {clicked: sibText, remaining: true};
-            }
-        }
-    }
-    return {clicked: null, remaining: false};
-}"""
-
-
-async def _expand_transport_nodes(backend: "WebGuiBackend") -> int:
-    """Expand all transport request/task nodes in the SE09 tree.
-
-    Clicks the expand button next to each transport number, one at a time,
-    re-querying the DOM after each click since SAP re-renders the list.
-    Returns the number of nodes expanded.
-    """
-    expanded: set[str] = set()
-    for _ in range(30):  # safety limit
-        result = await backend.evaluate_javascript(f"({_JS_CLICK_NEXT_EXPAND})({json.dumps(list(expanded))})")
-        if isinstance(result, str):
-            result = json.loads(result)
-        if not result or not result.get("remaining"):
-            break
-        expanded.add(result["clicked"])
-        await backend.wait_for_ready()
-    return len(expanded)
-
-
-async def _extract_tree_text_lines(backend: "WebGuiBackend") -> list[str]:
-    """Extract all text content from the SE09 tree region via JS.
-
-    Reads text from all children of the region element. Because the ABAP LIST
-    control only renders visible rows, this scrolls through the list to capture
-    everything.
-    """
-    js_extract = """() => {
-        const region = document.querySelector('[role="region"]');
-        if (!region) return [];
-        return [...region.children]
-            .filter(el => {
-                const role = el.getAttribute('role');
-                const text = el.textContent?.trim();
-                return text || role === 'button' || role === 'img';
-            })
-            .map(el => ({
-                role: el.getAttribute('role') || 'div',
-                text: el.textContent?.trim() || '',
-                id: el.id
-            }));
-    }"""
-
-    all_items: list[dict[str, str]] = []
-    seen_ids: set[str] = set()
-
-    # Extract visible content, scroll down, repeat until no new content
-    for _ in range(10):  # max 10 scroll pages
-        items = await backend.evaluate_javascript(f"({js_extract})()")
-        if isinstance(items, str):
-            items = json.loads(items)
-
-        new_count = 0
-        for item in items:
-            if item["id"] not in seen_ids:
-                seen_ids.add(item["id"])
-                all_items.append(item)
-                new_count += 1
-
-        if new_count == 0:
-            break  # no new content after scrolling
-
-        # Scroll down in the list
-        await backend.press_key("PageDown")
-        await backend.wait_for_ready()
-
-    # Convert to text lines, filtering out empty/button/img entries
-    return [item["text"] for item in all_items if item["text"]]
-
-
-async def _set_checkbox_by_labels(backend: "WebGuiBackend | DesktopBackend", labels: Text, checked: bool) -> None:
+async def _set_checkbox_by_labels(backend: "DesktopBackend", labels: Text, checked: bool) -> None:
     """Set a checkbox trying each label variant in turn, warn if none is found."""
     for label in labels:
         try:
@@ -191,7 +50,7 @@ async def _set_checkbox_by_labels(backend: "WebGuiBackend | DesktopBackend", lab
 
 
 async def _set_se09_selection_screen(
-    backend: "WebGuiBackend | DesktopBackend",
+    backend: "DesktopBackend",
     t: LanguagePack,
     username: str | None,
     request_type: str,
@@ -323,18 +182,11 @@ async def _wait_for_usr_tree_change(backend: "DesktopBackend", before_count: int
         logger.debug("SE09 list did not change within %d ms after the action on %s", _SE09_TREE_WAIT_MS, request_number)
 
 
-async def _expand_request_node_desktop(
-    backend: "WebGuiBackend | DesktopBackend", request_number: str, t: LanguagePack
-) -> bool:
+async def _expand_request_node_desktop(backend: "DesktopBackend", request_number: str, t: LanguagePack) -> bool:
     """Focus on a transport request label and expand it via Edit > Expand.
 
     Returns True if the expand was performed, False if the label wasn't found.
     """
-    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
-
-    if not isinstance(backend, DesktopBackend):
-        return False
-
     session = backend.require_session()
     before_count = -1
 
@@ -355,15 +207,8 @@ async def _expand_request_node_desktop(
     return result
 
 
-async def _collapse_request_node_desktop(
-    backend: "WebGuiBackend | DesktopBackend", request_number: str, t: LanguagePack
-) -> None:
+async def _collapse_request_node_desktop(backend: "DesktopBackend", request_number: str, t: LanguagePack) -> None:
     """Focus on a transport request label and collapse it via Edit > Compress."""
-    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
-
-    if not isinstance(backend, DesktopBackend):
-        return
-
     session = backend.require_session()
     before_count = -1
 
@@ -432,7 +277,7 @@ def _parse_tasks_from_expanded_labels(
 
 
 async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
-    backend: "WebGuiBackend | DesktopBackend",
+    backend: "DesktopBackend",
     t: LanguagePack,
     username: str | None,
     request_type: str,
@@ -442,13 +287,6 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
     """Desktop-specific SE09 lookup using get_screen_text / label parsing."""
     now = datetime.now(UTC)
     logger.info("SE09 desktop backend path")
-    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
-
-    if not isinstance(backend, DesktopBackend):
-        return TransportListResult.failure(
-            error="Requires DesktopBackend", requests=[], request_count=0, retrieved_at=now
-        )
-
     tx_result = await backend.enter_transaction("SE09")
     if not tx_result.success:
         return TransportListResult.failure(
@@ -504,152 +342,6 @@ async def _lookup_transports_desktop(  # pylint: disable=too-many-locals
         request_count=len(requests),
         retrieved_at=now,
     )
-
-
-async def _lookup_transports(  # pylint: disable=too-many-locals
-    backend: "WebGuiBackend | DesktopBackend",
-    t: LanguagePack,
-    username: str | None,
-    request_type: str,
-    status: str,
-    include_objects: bool = False,
-) -> TransportListResult:
-    """Look up transports in SE09."""
-    now = datetime.now(UTC)
-
-    # Desktop backend: use label parsing instead of ARIA snapshot parsing
-    if backend.backend_type == "desktop":
-        return await _lookup_transports_desktop(backend, t, username, request_type, status, include_objects)
-
-    from sapguimcp.backend.webgui.backend import WebGuiBackend as _WG  # pylint: disable=import-outside-toplevel
-
-    assert isinstance(backend, _WG)
-
-    # Navigate to SE09 using session-aware helper
-    tx_result = await backend.enter_transaction("SE09")
-    if not tx_result.success:
-        return TransportListResult.failure(
-            error=f"Failed to navigate to SE09: {tx_result.error}",
-            requests=[],
-            request_count=0,
-            retrieved_at=now,
-        )
-
-    await backend.wait_for_ready()
-
-    # Verify SE09 selection screen loaded (not results screen).
-    # The selection screen has the Display button; the results
-    # screen title contains a colon ("Transport Organizer: ...").
-    verify_snap = await backend.get_snapshot()
-    on_selection_screen = t.se09.organizer_title.contains(verify_snap) and t.se09.display_button.contains(verify_snap)
-    if not on_selection_screen:
-        logger.warning("SE09 selection screen not loaded, retrying")
-        await backend.enter_transaction("SE09")
-        await backend.wait_for_ready()
-        await backend.wait_for_ready(timeout_ms=3000)
-
-    # Build target state for selection screen
-    wb_checked = request_type in ("all", "workbench")  # lang-ok: tool parameter values
-    cust_checked = request_type in ("all", "customizing")  # lang-ok: tool parameter values
-    mod_checked = status in ("all", "modifiable")  # lang-ok: tool parameter values
-    rel_checked = status in ("all", "released")  # lang-ok: tool parameter values
-    target = SelectionScreenState(
-        checkboxes={
-            **dict.fromkeys(t.se09.workbench_requests, wb_checked),
-            **dict.fromkeys(t.se09.customizing_requests, cust_checked),
-            **dict.fromkeys(t.se09.status[TransportStatus.MODIFIABLE], mod_checked),
-            **dict.fromkeys(t.se09.status[TransportStatus.RELEASED], rel_checked),
-        },
-        fields=dict.fromkeys(t.common.user, username.upper()) if username else {},
-    )
-    state_result = await ensure_screen_state(backend, target)
-    if not state_result.success:
-        return TransportListResult.failure(
-            error=f"Failed to set SE09 selection screen: {state_result.error}",
-            requests=[],
-            request_count=0,
-            retrieved_at=now,
-        )
-
-    # Click the Display button
-    await _click_display_button(backend, t)
-
-    # SE09 results may take a moment to render, especially with wildcard user.
-    # The results screen title is "Transport Organizer: Aufträge" (DE) or
-    # "Transport Organizer: Requests" (EN), while the initial screen is just
-    # "Transport Organizer".
-    # Poll for up to 10 seconds for the results screen to appear.
-    snapshot = AriaSnapshot("")
-    for attempt in range(5):
-        snapshot = AriaSnapshot(await backend.get_snapshot())
-        if any(f"{title}:" in str(snapshot) for title in t.se09.organizer_title):
-            break
-        logger.info("SE09 results not yet loaded (attempt %d), waiting 2s", attempt + 1)
-        await asyncio.sleep(2)
-
-    result = parse_se09_transport_list(snapshot, t)
-
-    if not include_objects or not result.requests:
-        return result
-
-    # Expand transport nodes to reveal tasks
-    request_numbers = {r.request_number for r in result.requests}
-    expanded_count = await _expand_transport_nodes(backend)
-    logger.info("Expanded %d transport tree nodes", expanded_count)
-
-    # Extract all text from the expanded tree
-    text_lines = await _extract_tree_text_lines(backend)
-
-    # Map tasks to their parent requests
-    _assign_tasks_from_expanded_text(result.requests, request_numbers, text_lines)
-
-    return result
-
-
-def _assign_tasks_from_expanded_text(
-    requests: list[TransportRequest],
-    request_numbers: set[str],
-    text_lines: list[str],
-) -> None:
-    """Assign tasks to their parent requests from the expanded tree text.
-
-    After expanding transport nodes, the text lines contain both requests
-    and tasks interleaved. Tasks appear between their parent request and
-    the next request. Any transport number NOT in ``request_numbers`` is a task.
-    """
-    transport_re = re.compile(r"^([A-Z0-9]{3}K\d{6})(?:\s+\d{3})?$")
-    request_map = {r.request_number: r for r in requests}
-
-    current_request = None
-    i = 0
-    while i < len(text_lines):
-        line = text_lines[i]
-
-        m = transport_re.match(line)
-        if m:
-            transport_num = m.group(1)  # 10-char transport number without client suffix
-            if transport_num in request_numbers:
-                # This is a request — set as current parent
-                current_request = request_map.get(transport_num)
-            elif current_request is not None:
-                # This is a task under the current request
-                owner = ""
-                description = ""
-                if i + 1 < len(text_lines) and not transport_re.match(text_lines[i + 1]):
-                    parts = text_lines[i + 1].split(None, 1)
-                    if parts:
-                        owner = parts[0]
-                        description = parts[1] if len(parts) > 1 else ""
-                    i += 1
-
-                current_request.tasks.append(
-                    TransportTask(
-                        task_number=transport_num,
-                        owner=owner,
-                        description=description,
-                    )
-                )
-        i += 1
 
 
 # =============================================================================
@@ -731,7 +423,7 @@ def register_se09_tools(mcp: FastMCP) -> None:
         t = lang.current("sap_se09_lookup")
 
         try:
-            result = await _lookup_transports(
+            result = await _lookup_transports_desktop(
                 backend=backend,
                 t=t,
                 username=username,

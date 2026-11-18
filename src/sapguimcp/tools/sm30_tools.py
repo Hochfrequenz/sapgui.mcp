@@ -16,8 +16,6 @@ from mcp.types import ToolAnnotations
 
 from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
-from sapguimcp.backend.webgui.parsers.sm30_parser import parse_sm30_snapshot
-from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.lang.schema import LanguagePack
 from sapguimcp.models import TableData
 from sapguimcp.models.sm30_models import SM30FileSummary, SM30Row, SM30ViewResult
@@ -25,7 +23,6 @@ from sapguimcp.utils import resolve_output_file_path, write_json_output_file
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
-    from sapguimcp.backend.webgui.backend import WebGuiBackend
 
 
 logger = logging.getLogger(__name__)
@@ -38,7 +35,7 @@ __all__ = ["register_sm30_tools"]
 # =============================================================================
 
 
-async def _fill_view_field(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack, view_name: str) -> str | None:
+async def _fill_view_field(backend: "DesktopBackend", t: LanguagePack, view_name: str) -> str | None:
     """Fill the view name field in SM30. Returns error string or None."""
     for label in t.sm30.table_view:
         try:
@@ -50,7 +47,7 @@ async def _fill_view_field(backend: "WebGuiBackend | DesktopBackend", t: Languag
     return "Could not find Table/View field in SM30"
 
 
-async def _click_display_button(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> str | None:
+async def _click_display_button(backend: "DesktopBackend", t: LanguagePack) -> str | None:
     """
     Click the Display button in SM30.
 
@@ -71,9 +68,7 @@ async def _click_display_button(backend: "WebGuiBackend | DesktopBackend", t: La
     return "Could not find the Display button in SM30"
 
 
-async def _lookup_view_desktop(
-    backend: "WebGuiBackend | DesktopBackend", t: LanguagePack, view_name: str
-) -> SM30ViewResult:
+async def _lookup_view_desktop(backend: "DesktopBackend", t: LanguagePack, view_name: str) -> SM30ViewResult:
     """Desktop-specific SM30 lookup using read_table instead of ARIA parsing."""
     now = datetime.now(UTC)
     logger.info("SM30 desktop backend path", extra={"view_name": view_name})
@@ -147,68 +142,9 @@ async def _lookup_view_desktop(
     )
 
 
-async def _lookup_view(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack, view_name: str) -> SM30ViewResult:
+async def _lookup_view(backend: "DesktopBackend", t: LanguagePack, view_name: str) -> SM30ViewResult:
     """Look up a single SM30 view."""
-    now = datetime.now(UTC)
-
-    # Desktop backend: use read_table instead of ARIA snapshot parsing
-    if backend.backend_type == "desktop":
-        return await _lookup_view_desktop(backend, t, view_name)
-
-    # Navigate to SM30
-    tx_result = await backend.enter_transaction("SM30")
-    if not tx_result.success:
-        return SM30ViewResult.failure(
-            error=f"Failed to navigate to SM30: {tx_result.error}",
-            view_name=view_name,
-            description="",
-            view_type="unsupported",
-            columns=[],
-            rows=[],
-            row_count=0,
-            retrieved_at=now,
-        )
-
-    # Wait for SM30 screen to be ready
-    await backend.wait_for_ready()
-
-    # Fill view name
-    fill_error = await _fill_view_field(backend, t, view_name)
-    if fill_error:
-        return SM30ViewResult.failure(
-            error=fill_error,
-            view_name=view_name,
-            description="",
-            view_type="unsupported",
-            columns=[],
-            rows=[],
-            row_count=0,
-            retrieved_at=now,
-        )
-
-    # Click Display button
-    click_error = await _click_display_button(backend, t)
-    if click_error:
-        return SM30ViewResult.failure(
-            error=click_error,
-            view_name=view_name,
-            description="",
-            view_type="unsupported",
-            columns=[],
-            rows=[],
-            row_count=0,
-            retrieved_at=now,
-        )
-
-    # Get snapshot and parse
-    snapshot = AriaSnapshot(await backend.get_snapshot())
-    logger.debug(
-        "Got SM30 snapshot view=%r length=%d",
-        view_name,
-        len(str(snapshot)),
-    )
-
-    return parse_sm30_snapshot(snapshot, view_name, t)
+    return await _lookup_view_desktop(backend, t, view_name)
 
 
 # =============================================================================

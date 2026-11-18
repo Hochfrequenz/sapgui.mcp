@@ -43,7 +43,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from sapguimcp.backend.desktop import DesktopBackend
-    from sapguimcp.backend.webgui.backend import WebGuiBackend
     from sapguimcp.lang.schema import LanguagePack
     from sapguimcp.models.base import PopupInfo
     from sapguimcp.models.sap_results import StatusBarInfo
@@ -175,13 +174,10 @@ def _enrich_transport_error(error_text: str) -> str:
     return error_text
 
 
-async def _check_for_error_popup(backend: "WebGuiBackend | DesktopBackend") -> str | None:
+async def _check_for_error_popup(backend: "DesktopBackend") -> str | None:
     """Check for SAP error popup dialog and extract message text."""
     try:
-        if backend.backend_type == "desktop":
-            text = await _check_for_error_popup_desktop(backend)
-        else:
-            text = await _check_for_error_popup_webgui(cast("WebGuiBackend", backend))
+        text = await _check_for_error_popup_desktop(backend)
         if not text:
             return None
         popup = lang.universal().popup
@@ -199,32 +195,7 @@ async def _check_for_error_popup(backend: "WebGuiBackend | DesktopBackend") -> s
     return None
 
 
-async def _check_for_error_popup_webgui(backend: "WebGuiBackend") -> str | None:
-    """Check for error popup via JavaScript (WebGUI only)."""
-    js_code = """
-    () => {
-        const selectors = [
-            '.urMessageBox', '.urPopup', '[id*="PopupWindow"]',
-            '[id*="ModalWindow"]', '.lsPopup', '[role="alertdialog"]',
-            '.urMsgArea', '#MESSAGE_POPUP', '[id*="MESSAGE"]'
-        ];
-        for (const sel of selectors) {
-            const el = document.querySelector(sel);
-            if (!el) continue;
-            const style = window.getComputedStyle(el);
-            if (style.display === 'none' || style.visibility === 'hidden') continue;
-            const text = (el.innerText || '').trim();
-            if (!text) continue;
-            return text;
-        }
-        return null;
-    }
-    """
-    result: str | None = await backend.evaluate_javascript(js_code)
-    return result
-
-
-async def _check_for_error_popup_desktop(backend: "WebGuiBackend | DesktopBackend") -> str | None:
+async def _check_for_error_popup_desktop(backend: "DesktopBackend") -> str | None:
     """Check for error popup via check_popup (desktop backend)."""
     popup = await backend.check_popup()
     if popup is None:
@@ -232,25 +203,16 @@ async def _check_for_error_popup_desktop(backend: "WebGuiBackend | DesktopBacken
     return popup.message
 
 
-async def _read_screen_text_desktop(backend: "WebGuiBackend | DesktopBackend") -> str:
+async def _read_screen_text_desktop(backend: "DesktopBackend") -> str:
     """The text to scan for errors on the desktop backend: the COM snapshot of the screen."""
     snapshot = await backend.get_snapshot()
     return str(snapshot)
 
 
-async def _read_screen_text_webgui(backend: "WebGuiBackend") -> str:
-    """The text to scan for errors on the WebGUI backend: the inner text of the page body."""
-    body_text: str = await backend.evaluate_javascript("() => document.body.innerText || ''")
-    return body_text
-
-
-async def _check_screen_for_errors(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> str | None:
+async def _check_screen_for_errors(backend: "DesktopBackend", t: LanguagePack) -> str | None:
     """Check the entire screen for error indicators as a fallback."""
     try:
-        if backend.backend_type == "desktop":
-            body_text = await _read_screen_text_desktop(backend)
-        else:
-            body_text = await _read_screen_text_webgui(cast("WebGuiBackend", backend))
+        body_text = await _read_screen_text_desktop(backend)
         body_lower = body_text.lower()
 
         for pattern in (*t.abapgit.screen_errors, *INVARIANT.abapgit_screen_errors):
@@ -472,7 +434,7 @@ def _validate_and_prepare_params(  # pylint: disable=too-many-return-statements,
 
 
 async def _enter_tcode_via_okcode(
-    backend: "WebGuiBackend | DesktopBackend", tcode_with_params: str, repo: str
+    backend: "DesktopBackend", tcode_with_params: str, repo: str
 ) -> AbapGitActionResult | None:
     """Enter a parameterised transaction via the OK-Code field. Returns error or None."""
     result = await backend.enter_transaction(tcode_with_params)
@@ -488,9 +450,7 @@ async def _enter_tcode_via_okcode(
 # Pull Result Analysis
 
 
-async def _analyze_pull_result(
-    backend: "WebGuiBackend | DesktopBackend", repo: str, t: LanguagePack
-) -> AbapGitActionResult:
+async def _analyze_pull_result(backend: "DesktopBackend", repo: str, t: LanguagePack) -> AbapGitActionResult:
     """Analyze status bar and screen to determine pull result."""
     status = await backend.get_status_bar()
     msg = status.message or ""
@@ -549,7 +509,7 @@ async def _analyze_pull_result(
 # Main Pull Implementation
 
 
-async def _handle_popup_error(backend: "WebGuiBackend | DesktopBackend", repo: str) -> AbapGitActionResult | None:
+async def _handle_popup_error(backend: "DesktopBackend", repo: str) -> AbapGitActionResult | None:
     """Check for error popup and return failure if found, None otherwise."""
     popup_error = await _check_for_error_popup(backend)
     if popup_error:
@@ -562,7 +522,7 @@ async def _handle_popup_error(backend: "WebGuiBackend | DesktopBackend", repo: s
 
 
 async def _execute_pull_transaction(
-    backend: "WebGuiBackend | DesktopBackend", params: PullParams, repo: str, t: LanguagePack
+    backend: "DesktopBackend", params: PullParams, repo: str, t: LanguagePack
 ) -> AbapGitActionResult | None:
     """Execute pull transaction and return failure result if error, None if OK to continue."""
     okcode_error = await _enter_tcode_via_okcode(backend, params.tcode_with_params, repo)
@@ -592,9 +552,7 @@ def _is_inactive_objects_popup(popup: PopupInfo) -> bool:
     return lang.universal().popup.abapgit_inactive_objects.contains(f"{popup.title or ''} {popup.message or ''}")
 
 
-async def _run_pull_and_check_errors(
-    backend: "WebGuiBackend | DesktopBackend", repo: str
-) -> AbapGitActionResult | None:
+async def _run_pull_and_check_errors(backend: "DesktopBackend", repo: str) -> AbapGitActionResult | None:
     """Execute F8 and wait for SAP to finish processing. Returns error if found."""
     await backend.press_key("F8")
 
@@ -929,11 +887,9 @@ def _apply_list_filters(
     return AbapGitListResult(success=True, repos=shaped, total_count=total, matched_count=len(matched), message=message)
 
 
-async def _read_report_screen(backend: "WebGuiBackend | DesktopBackend", read_problems: list[str]) -> str:
+async def _read_report_screen(backend: "DesktopBackend", read_problems: list[str]) -> str:
     """Read the report's WRITE output from the screen (after F8)."""
-    if backend.backend_type == "desktop":
-        return await _read_report_screen_desktop(cast("DesktopBackend", backend), read_problems)
-    return await _read_report_screen_webgui(cast("WebGuiBackend", backend))
+    return await _read_report_screen_desktop(backend, read_problems)
 
 
 async def _read_report_screen_desktop(desktop: "DesktopBackend", read_problems: list[str]) -> str:
@@ -947,19 +903,7 @@ async def _read_report_screen_desktop(desktop: "DesktopBackend", read_problems: 
     return "\n".join(await desktop.com.run(lambda: _read_list_lines(session, read_problems)))
 
 
-async def _read_report_screen_webgui(backend: "WebGuiBackend") -> str:
-    """Read the report's WRITE output on the WebGUI backend."""
-    await backend.wait(3000)
-    text = await backend.evaluate_javascript("""
-        () => {
-            const body = document.querySelector('#sapwd_main_window_root_contents') || document.body;
-            return body.innerText || body.textContent || '';
-        }
-    """)
-    return str(text or "")
-
-
-async def _abapgit_list_repos(backend: "WebGuiBackend | DesktopBackend") -> AbapGitListResult:
+async def _abapgit_list_repos(backend: "DesktopBackend") -> AbapGitListResult:
     """List all registered abapGit repositories via Z_ABAPGIT_PULL_MCP P_ACTION=LIST."""
     logger.info("Listing abapGit repositories")
     # Resolved outside the try: an unsupported session language must reach the caller, not become a failure result.
@@ -1032,7 +976,7 @@ async def _abapgit_list_repos(backend: "WebGuiBackend | DesktopBackend") -> Abap
 _BRANCH_ECHO = re.compile(r"BRANCH~(refs/heads/\S+)")
 
 
-async def _read_branch_echo(backend: "WebGuiBackend | DesktopBackend") -> str | None:
+async def _read_branch_echo(backend: "DesktopBackend") -> str | None:
     """Read the ``BRANCH~<full ref>`` line the report writes after a pull with a branch; None if not exactly one."""
     problems: list[str] = []
     try:
@@ -1050,7 +994,7 @@ async def _read_branch_echo(backend: "WebGuiBackend | DesktopBackend") -> str | 
 
 
 async def _confirm_branch(
-    backend: "WebGuiBackend | DesktopBackend", result: AbapGitActionResult, params: PullParams
+    backend: "DesktopBackend", result: AbapGitActionResult, params: PullParams
 ) -> AbapGitActionResult:
     """Turn a successful pull with a branch into a success only if the report echoed that branch."""
     echo = await _read_branch_echo(backend)
@@ -1089,7 +1033,7 @@ def _annotate_branch_failure(result: AbapGitActionResult, params: PullParams) ->
 
 
 async def _check_branch_outcome(
-    backend: "WebGuiBackend | DesktopBackend", result: AbapGitActionResult, params: PullParams
+    backend: "DesktopBackend", result: AbapGitActionResult, params: PullParams
 ) -> AbapGitActionResult:
     """Apply the branch-specific checks to a pull result; a pull without a branch is returned as it is."""
     if params.branch is None:
@@ -1148,7 +1092,7 @@ def _check_key_outcome(result: AbapGitActionResult, params: PullParams) -> AbapG
 
 
 async def _abapgit_pull_via_api(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-    backend: "WebGuiBackend | DesktopBackend",
+    backend: "DesktopBackend",
     repo: str | None,
     trkorr: str | None,
     username: str | None,
@@ -1201,299 +1145,6 @@ async def _abapgit_pull_via_api(  # pylint: disable=too-many-arguments,too-many-
 # =============================================================================
 # SE38 Verification
 # =============================================================================
-
-
-async def _fill_se38_program_field(backend: "WebGuiBackend", program_name: str, t: LanguagePack) -> bool:
-    """Fill the program name field in SE38 using various strategies."""
-    input_selectors = [
-        "input[name*='PROGRAM']",
-        "input[id*='PROGRAM']",
-        "input[maxlength='40']",
-        "#M0\\:46\\:1\\:1\\:\\:0\\:12",
-    ]
-
-    for selector in input_selectors:
-        try:
-            filled = await backend.fill_element_by_locator(selector, program_name, delay_ms=30)
-            if filled:
-                logger.info("Filled program name", extra={"selector": selector})
-                return True
-        except Exception:  # pylint: disable=broad-exception-caught
-            continue
-
-    # Try backend.fill_form as fallback
-    try:
-        fill_result = await backend.fill_form(dict.fromkeys(t.common.program, program_name))
-        if fill_result.filled:
-            logger.info("Filled program name using backend.fill_form")
-            return True
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.warning("backend.fill_form fallback failed", extra={"error": str(e)})
-
-    return False
-
-
-def _is_actual_abap_source(text: str) -> bool:
-    """Check if text contains actual ABAP source code (not just UI text)."""
-    upper_text = text.upper()
-
-    # Strict patterns that indicate actual ABAP code
-    strict_patterns = [
-        "WRITE '",
-        'WRITE "',
-        "WRITE:",
-        "DATA:",
-        "TYPES:",
-        "ENDMETHOD",
-        "ENDCLASS",
-        "ENDLOOP",
-        "ENDIF",
-        "ENDFORM",
-        "FORM ",
-        "METHOD ",
-        "CLASS ",
-    ]
-
-    if any(pattern in upper_text for pattern in strict_patterns):
-        return True
-
-    # Check for REPORT statement with proper format
-    # Matches: Z/Y customer reports, standard SAP reports, and namespaced reports (/NAMESPACE/...)
-    has_report = bool(re.search(r"REPORT\s+(/[A-Z0-9_]+/)?[A-Z][A-Z0-9_]*\s*\.", upper_text))
-    has_data = "DATA " in upper_text and ("TYPE" in upper_text or "LIKE" in upper_text)
-    has_write = "WRITE " in upper_text
-    has_if = "IF " in upper_text and ("ENDIF" in upper_text or "ELSE" in upper_text)
-
-    return sum([has_report, has_data, has_write, has_if]) >= 1
-
-
-async def _navigate_to_se38(backend: "WebGuiBackend") -> str | None:
-    """Navigate to SE38 and return error message if failed, None if OK."""
-    await backend.bring_to_front()
-    await backend.press_key("Escape")
-    await backend.wait(500)
-    await backend.press_key("F3")
-    await backend.wait(3000)
-
-    # Check if OK-Code field is visible; if not, press F3 again
-    ok_code_visible = await backend.evaluate_javascript("""
-        () => {
-            const el = document.querySelector('#ToolbarOkCode');
-            if (!el) return false;
-            const style = window.getComputedStyle(el);
-            return style.display !== 'none' && style.visibility !== 'hidden';
-        }
-    """)
-    if not ok_code_visible:
-        await backend.press_key("F3")
-        await backend.wait(3000)
-
-    tx_result = await backend.enter_transaction("SE38")
-    return None if tx_result.success else f"Failed to open SE38: {tx_result.error}"
-
-
-async def _find_source_code(backend: "WebGuiBackend") -> str | None:
-    """Try various methods to find ABAP source code on the page via JavaScript."""
-    # Single comprehensive JS that searches SE38 selectors, editor elements,
-    # iframes, table cells, and text nodes — mirrors the old multi-function approach.
-    js_code = """
-    () => {
-        const ABAP_PATTERNS = [
-            "WRITE '", 'WRITE "', 'WRITE:', 'DATA:', 'TYPES:',
-            'ENDMETHOD', 'ENDCLASS', 'ENDLOOP', 'ENDIF', 'ENDFORM',
-            'FORM ', 'METHOD ', 'CLASS '
-        ];
-        const CODE_PATTERNS = ['REPORT ', 'WRITE ', 'DATA ', 'IF ', 'LOOP ', 'ENDLOOP'];
-        function isAbapSource(text) {
-            if (!text || text.length < 20) return false;
-            const upper = text.toUpperCase();
-            return ABAP_PATTERNS.some(p => upper.includes(p)) ||
-                   /REPORT\\s+(\\/[A-Z0-9_]+\\/)?[A-Z][A-Z0-9_]*\\s*\\./.test(upper);
-        }
-
-        function getTextFromEl(el) {
-            try {
-                return (el.innerText || el.textContent || el.value || '').trim();
-            } catch(e) { return ''; }
-        }
-
-        // 1. Direct SE38 selectors
-        const se38Sels = [
-            '#textedit\\\\#TEC_cnt42',
-            "[id^='textedit'][id*='TEC_cnt']",
-            "textarea[id*='textedit']",
-            "[id*='TEC_cnt']"
-        ];
-        for (const sel of se38Sels) {
-            try {
-                const el = document.querySelector(sel);
-                if (!el) continue;
-                let text = getTextFromEl(el);
-                if (!text || text.length < 20) {
-                    text = el.value || el.textContent || el.innerText || '';
-                }
-                if (text && text.length > 20 && isAbapSource(text)) return text;
-            } catch(e) {}
-        }
-
-        // 2. Editor selectors in main document
-        const editorSels = [
-            'textarea', '.ace_editor', '.ace_content', '.urPTxt', 'pre', 'code',
-            '.editor-content', "[id*='editor']", "[class*='editor']",
-            "[class*='source']", "[class*='code']", '.lsListbox__list',
-            'table.urST', '#sapwd_main_window_root_contents table'
-        ];
-        for (const sel of editorSels) {
-            try {
-                const els = document.querySelectorAll(sel);
-                for (const el of els) {
-                    const text = getTextFromEl(el);
-                    if (isAbapSource(text)) return text;
-                }
-            } catch(e) {}
-        }
-
-        // 3. Table cells for code lines
-        try {
-            const cells = document.querySelectorAll('td');
-            const codeLines = [];
-            for (const cell of cells) {
-                const text = (cell.innerText || '').trim();
-                if (text && text.length > 5) {
-                    const upper = text.toUpperCase();
-                    if (upper.includes("WRITE '") || upper.includes('WRITE "') ||
-                        (upper.includes('REPORT ') && text.includes('.')) ||
-                        upper.includes('ENDLOOP') || upper.includes('ENDIF') ||
-                        upper.includes('ENDFORM') || upper.includes('ENDMETHOD')) {
-                        codeLines.push(text);
-                    }
-                }
-            }
-            if (codeLines.length > 0) return codeLines.join('\\n');
-        } catch(e) {}
-
-        // 4. Iframes
-        const iframes = document.querySelectorAll('iframe');
-        for (const iframe of iframes) {
-            try {
-                const doc = iframe.contentDocument || iframe.contentWindow?.document;
-                if (!doc || !doc.body) continue;
-                const frameSels = ['textarea', '.ace_editor', '.editor-content', 'pre', '.urPTxt'];
-                for (const sel of frameSels) {
-                    const els = doc.querySelectorAll(sel);
-                    for (const el of els) {
-                        const text = getTextFromEl(el);
-                        if (isAbapSource(text)) return text;
-                    }
-                }
-                const bodyText = (doc.body.innerText || '').trim();
-                if (isAbapSource(bodyText)) return bodyText;
-            } catch(e) {}
-        }
-
-        // 5. Text node walk (fallback)
-        function getTextNodes(element) {
-            let texts = [];
-            const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
-            let node;
-            while (node = walker.nextNode()) {
-                const text = node.textContent.trim();
-                if (text.length > 5) texts.push(text);
-            }
-            return texts;
-        }
-        let allTexts = getTextNodes(document.body);
-        for (const iframe of iframes) {
-            try {
-                const doc = iframe.contentDocument || iframe.contentWindow?.document;
-                if (doc && doc.body) allTexts = allTexts.concat(getTextNodes(doc.body));
-            } catch(e) {}
-        }
-        const codeTexts = allTexts.filter(text => {
-            const upper = text.toUpperCase();
-            return CODE_PATTERNS.some(p => upper.includes(p));
-        });
-        if (codeTexts.length > 0) return codeTexts.sort((a, b) => b.length - a.length)[0];
-
-        return null;
-    }
-    """
-    try:
-        logger.info("Searching for ABAP source code via JavaScript")
-        result = await backend.evaluate_javascript(js_code)
-        if result and _is_actual_abap_source(result):
-            source: str = result
-            logger.info("Found ABAP source code", extra={"chars": len(source)})
-            return source
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.debug("JavaScript source search failed", extra={"error": str(e)})
-    return None
-
-
-async def read_se38_source(backend: "WebGuiBackend", program_name: str, t: LanguagePack) -> dict[str, Any]:
-    """Read ABAP report source code from SE38."""
-    try:
-        nav_error = await _navigate_to_se38(backend)
-        if nav_error:
-            return {"success": False, "error": nav_error}
-
-        await backend.wait(2000)
-        if not await _fill_se38_program_field(backend, program_name, t):
-            return {"success": False, "error": "Could not find program input field"}
-
-        # Press F7 (Display) and handle entry screen
-        logger.info("Pressing F7 to display source code")
-        await backend.press_key("F7")
-        await backend.wait(3000)
-
-        page_title = await backend.get_page_title()
-        logger.info("Page title after F7", extra={"title": page_title})
-        if t.abapgit.se38_initial_title.contains(page_title):
-            await backend.press_key("Enter")
-            await backend.wait(2000)
-            title_after_enter = await backend.get_page_title()
-            if t.abapgit.se38_initial_title.contains(title_after_enter):
-                await backend.press_key("F8")
-                await backend.wait(3000)
-
-        await backend.wait(1000)
-        source_code = await _find_source_code(backend)
-
-        if source_code:
-            logger.info("Found valid ABAP source code", extra={"chars": len(source_code)})
-            return {"success": True, "source_code": source_code, "program_name": program_name}
-
-        logger.warning("No ABAP source code found, returning body text")
-        body_text = await backend.evaluate_javascript("() => document.body.innerText || ''")
-        return {
-            "success": True,
-            "source_code": (body_text or "")[:3000],
-            "program_name": program_name,
-            "debug_note": "No ABAP source patterns detected, returning raw body text",
-        }
-
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.error("SE38 read failed", extra={"error_type": type(e).__name__, "error": str(e)})
-        return {"success": False, "error": str(e)}
-
-
-async def verify_abap_report_content(backend: "WebGuiBackend", program_name: str, expected_text: str) -> dict[str, Any]:
-    """Verify that an ABAP report contains expected text."""
-    result = await read_se38_source(backend, program_name, lang.current("sap_read_se38_source"))
-
-    if not result.get("success"):
-        return result
-
-    source_code = result.get("source_code", "")
-    found = expected_text in source_code
-
-    return {
-        "success": True,
-        "found": found,
-        "expected_text": expected_text,
-        "source_code": source_code,
-        "program_name": program_name,
-    }
 
 
 # =============================================================================
@@ -1659,8 +1310,8 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             "Useful for verifying abapGit pull operations."
         ),
     )
-    async def sap_read_se38_source(
-        program_name: str,
+    async def sap_read_se38_source(  # the tool is a stub: it only reports that it is unsupported
+        program_name: str,  # noqa: ARG001
         session: str | None = None,
         agent_id: str | None = None,
     ) -> dict[str, Any]:
@@ -1682,13 +1333,9 @@ def register_abapgit_tools(mcp: FastMCP) -> None:
             backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_read_se38_source")
         except ValueError as e:
             return {"success": False, "error": f"Session error: {e}"}
-        if backend.backend_type == "desktop":
-            return {
-                "success": False,
-                "error": "sap_read_se38_source is not supported on the desktop backend. "
-                "Use sap_se38_edit to open the report in SE38 instead.",
-            }
-        from sapguimcp.backend.webgui.backend import WebGuiBackend  # pylint: disable=import-outside-toplevel
-
-        assert isinstance(backend, WebGuiBackend)
-        return await read_se38_source(backend, program_name, lang.current("sap_read_se38_source"))
+        del backend
+        return {
+            "success": False,
+            "error": "sap_read_se38_source is not supported on the desktop backend. "
+            "Use sap_se38_edit to open the report in SE38 instead.",
+        }

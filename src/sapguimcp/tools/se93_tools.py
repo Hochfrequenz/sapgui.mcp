@@ -34,7 +34,6 @@ from sapguimcp.tools.field_helpers import fill_and_display
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
-    from sapguimcp.backend.webgui.backend import WebGuiBackend
 
 
 logger = logging.getLogger(__name__)
@@ -50,12 +49,9 @@ MAX_INLINE_OBJECTS = 10
 # =============================================================================
 
 
-async def _read_checkbox(backend: WebGuiBackend | DesktopBackend, sap_name: str) -> bool:
+async def _read_checkbox(backend: DesktopBackend, sap_name: str) -> bool:
     """Read a checkbox's selected state by SAP element name. Returns False on error."""
-    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
-    if not isinstance(backend, DesktopBackend):
-        return False
     session = backend.require_session()
     com = backend.com
 
@@ -77,14 +73,11 @@ async def _read_checkbox(backend: WebGuiBackend | DesktopBackend, sap_name: str)
 
 
 async def _lookup_tcode_desktop(  # pylint: disable=too-many-locals
-    backend: WebGuiBackend | DesktopBackend, tcode: str, t: LanguagePack
+    backend: DesktopBackend, tcode: str, t: LanguagePack
 ) -> SE93Entry | SE93Error:
     """Desktop-specific SE93 lookup using field reading instead of ARIA parsing."""
-    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
     now = datetime.now(UTC)
-    if not isinstance(backend, DesktopBackend):
-        return SE93Error(tcode=tcode, error="Requires DesktopBackend", retrieved_at=now)
 
     # Fill transaction code field
     filled = False
@@ -157,7 +150,7 @@ async def _lookup_tcode_desktop(  # pylint: disable=too-many-locals
 
 
 async def _lookup_tcode_on_initial_screen(
-    backend: WebGuiBackend | DesktopBackend, tcode: str, t: LanguagePack
+    backend: DesktopBackend, tcode: str, t: LanguagePack
 ) -> SE93Entry | SE93Error:
     """Look up a transaction code assuming we're already on the SE93 initial screen.
 
@@ -185,45 +178,7 @@ async def _lookup_tcode_on_initial_screen(
     return parse_se93_snapshot(snapshot, tcode, t)
 
 
-async def _lookup_batch_webgui(
-    backend: WebGuiBackend | DesktopBackend, tcode_list: list[str], t: LanguagePack
-) -> SE93Result:
-    """Run SE93 lookups for a batch of tcodes on the WebGUI backend."""
-    entries: list[SE93Entry] = []
-    errors: list[SE93Error] = []
-
-    for tcode in tcode_list:
-        await backend.enter_transaction("/n")
-        await backend.wait_for_ready()
-        tx_result = await backend.enter_transaction("SE93")
-        if not tx_result.success:
-            errors.append(
-                SE93Error(
-                    tcode=tcode, error=f"Failed to navigate to SE93: {tx_result.error}", retrieved_at=datetime.now(UTC)
-                )
-            )
-            continue
-        await backend.wait_for_ready()
-        try:
-            result = await _lookup_tcode_on_initial_screen(backend, tcode, t)
-            if isinstance(result, SE93Entry):
-                entries.append(result)
-            else:
-                errors.append(result)
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Looking up in SE93", extra={"object": tcode})
-            errors.append(
-                SE93Error(tcode=tcode, error=f"Error looking up '{tcode}': {e}", retrieved_at=datetime.now(UTC))
-            )
-
-    if entries:
-        return SE93Result(entries=entries, errors=errors)
-    return SE93Result.failure(error=f"All {len(errors)} lookups failed", entries=[], errors=errors)
-
-
-async def _lookup_batch_desktop(
-    backend: WebGuiBackend | DesktopBackend, tcode_list: list[str], t: LanguagePack
-) -> SE93Result:
+async def _lookup_batch_desktop(backend: DesktopBackend, tcode_list: list[str], t: LanguagePack) -> SE93Result:
     """Run SE93 lookups for a batch of tcodes on the desktop backend."""
     entries: list[SE93Entry] = []
     errors: list[SE93Error] = []
@@ -308,11 +263,7 @@ def register_se93_tools(mcp: FastMCP) -> None:
 
         t = lang.current("sap_se93_lookup")
 
-        # Desktop backend: use field reading instead of ARIA parsing
-        if backend.backend_type == "desktop":
-            final_result = await _lookup_batch_desktop(backend, tcode_list, t)
-        else:
-            final_result = await _lookup_batch_webgui(backend, tcode_list, t)
+        final_result = await _lookup_batch_desktop(backend, tcode_list, t)
 
         # Write to file if requested
         if output_file:

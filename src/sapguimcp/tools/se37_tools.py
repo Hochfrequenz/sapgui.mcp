@@ -19,8 +19,6 @@ from mcp.types import ToolAnnotations
 from sapguimcp import lang
 from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RERAISE_COM_ERRORS, _get_com_error_code
 from sapguimcp.backend.manager import get_backend
-from sapguimcp.backend.webgui.parsers.se37_parser import SE37TabSnapshots, parse_se37_snapshot
-from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.models import (
     SE37Entry,
     SE37Error,
@@ -29,14 +27,12 @@ from sapguimcp.models import (
 )
 from sapguimcp.models.se37_models import SE37Exception, SE37Parameter, SE37ParameterCategory, SE37TypingMethod
 from sapguimcp.tools.desktop_wait_predicates import named_text_field_present, tab_table_control_loaded
-from sapguimcp.tools.field_helpers import fill_and_display
 from sapguimcp.tools.table_helpers import read_table_control
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from sapguimcp.backend.desktop import DesktopBackend
-    from sapguimcp.backend.webgui.backend import WebGuiBackend
     from sapguimcp.lang.schema import LanguagePack
     from sapguimcp.lang.text import Text
 
@@ -54,13 +50,9 @@ MAX_INLINE_OBJECTS = 5
 # =============================================================================
 
 
-async def _click_tab(backend: WebGuiBackend | DesktopBackend, tab: Text) -> str | None:
+async def _click_tab(backend: DesktopBackend, tab: Text) -> str | None:
     """Click a tab trying each label of the pack text. Returns the label that matched, or None when none did."""
-    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
-
-    if isinstance(backend, DesktopBackend):
-        return await _click_tab_desktop(backend, tab)
-    return await _click_tab_webgui(backend, tab)
+    return await _click_tab_desktop(backend, tab)
 
 
 async def _click_tab_desktop(backend: DesktopBackend, tab: Text) -> str | None:
@@ -69,19 +61,6 @@ async def _click_tab_desktop(backend: DesktopBackend, tab: Text) -> str | None:
         try:
             await backend.click_tab(label)
             await backend.wait_for_ready()
-            return label
-        except Exception:  # pylint: disable=broad-exception-caught
-            continue
-    logger.warning("Tab not found: %s", " / ".join(tab))
-    return None
-
-
-async def _click_tab_webgui(backend: WebGuiBackend, tab: Text) -> str | None:
-    """Click a tab on the WebGUI backend, trying each label of the pack text."""
-    for label in tab:
-        try:
-            await backend.click_tab(label)
-            await backend.wait(500)
             return label
         except Exception:  # pylint: disable=broad-exception-caught
             continue
@@ -216,15 +195,12 @@ def _parse_se37_params(
 
 
 async def _lookup_fm_desktop(  # pylint: disable=too-many-locals
-    backend: WebGuiBackend | DesktopBackend, fm_name: str, t: LanguagePack
+    backend: DesktopBackend, fm_name: str, t: LanguagePack
 ) -> SE37Entry | SE37Error:
     """Desktop-specific SE37 lookup using tab navigation and table control reading."""
-    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
     from sapguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
 
     now = datetime.now(UTC)
-    if not isinstance(backend, DesktopBackend):
-        return SE37Error(function_module=fm_name, error="Requires DesktopBackend", retrieved_at=now)
     await backend.wait_for_ready()
 
     # Fill FM name field
@@ -308,7 +284,7 @@ async def _lookup_fm_desktop(  # pylint: disable=too-many-locals
     )
 
 
-async def _capture_tab_snapshot(backend: WebGuiBackend | DesktopBackend, tab: Text) -> str | None:
+async def _capture_tab_snapshot(backend: DesktopBackend, tab: Text) -> str | None:
     """Click a tab and capture its snapshot. Returns snapshot or None."""
     for name in tab:
         try:
@@ -321,90 +297,7 @@ async def _capture_tab_snapshot(backend: WebGuiBackend | DesktopBackend, tab: Te
     return None
 
 
-async def _lookup_fm_on_initial_screen(
-    backend: WebGuiBackend | DesktopBackend, fm_name: str, t: LanguagePack
-) -> SE37Entry | SE37Error:
-    """Look up a function module assuming we're already on the SE37 initial screen.
-
-    The caller handles navigation (``enter_transaction``) and state reset
-    (``/n`` between lookups) to prevent state bleeding in batch mode.
-    """
-    # Ensure the SE37 screen is fully loaded before interacting.
-    await backend.wait_for_ready()
-
-    # Fill field with real keyboard events, press F7, and verify navigation.
-    error_msg = await fill_and_display(backend, list(t.se37.fm_field_label), fm_name, t, tcode_label="function module")
-    if error_msg:
-        return SE37Error(
-            function_module=fm_name,
-            error=error_msg,
-            retrieved_at=datetime.now(UTC),
-        )
-
-    # Get main snapshot first
-    main_snapshot = await backend.get_snapshot()
-    logger.debug("Got main snapshot", extra={"object": fm_name, "length": len(str(main_snapshot))})
-
-    # Capture each tab
-    import_raw = await _capture_tab_snapshot(backend, t.se37.import_tab)
-    export_raw = await _capture_tab_snapshot(backend, t.se37.export_tab)
-    changing_raw = await _capture_tab_snapshot(backend, t.se37.changing_tab)
-    tables_raw = await _capture_tab_snapshot(backend, t.se37.tables_tab)
-    exceptions_raw = await _capture_tab_snapshot(backend, t.se37.exceptions_tab)
-    tab_snapshots = SE37TabSnapshots(
-        import_tab=AriaSnapshot(import_raw) if import_raw is not None else None,
-        export_tab=AriaSnapshot(export_raw) if export_raw is not None else None,
-        changing_tab=AriaSnapshot(changing_raw) if changing_raw is not None else None,
-        tables_tab=AriaSnapshot(tables_raw) if tables_raw is not None else None,
-        exceptions_tab=AriaSnapshot(exceptions_raw) if exceptions_raw is not None else None,
-    )
-
-    # Parse all snapshots
-    return parse_se37_snapshot(
-        snapshot=AriaSnapshot(str(main_snapshot)),
-        fm_name=fm_name,
-        t=t,
-        tab_snapshots=tab_snapshots,
-    )
-
-
-async def _lookup_batch_se37_webgui(
-    backend: WebGuiBackend | DesktopBackend, fm_list: list[str], t: LanguagePack
-) -> SE37Result:
-    """Run SE37 lookups for a batch of function modules on the WebGUI backend."""
-    entries: list[SE37Entry] = []
-    errors: list[SE37Error] = []
-    for fm_name in fm_list:
-        await backend.enter_transaction("/n")
-        await backend.wait_for_ready()
-        tx_result = await backend.enter_transaction("SE37")
-        if not tx_result.success:
-            errors.append(
-                SE37Error(
-                    function_module=fm_name,
-                    error=f"Failed to navigate: {tx_result.error}",
-                    retrieved_at=datetime.now(UTC),
-                )
-            )
-            continue
-        await backend.wait_for_ready()
-        try:
-            result = await _lookup_fm_on_initial_screen(backend, fm_name, t)
-            if isinstance(result, SE37Entry):
-                entries.append(result)
-            else:
-                errors.append(result)
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Looking up in SE37", extra={"object": fm_name})
-            errors.append(SE37Error(function_module=fm_name, error=f"Error: {e}", retrieved_at=datetime.now(UTC)))
-    if entries:
-        return SE37Result(entries=entries, errors=errors)
-    return SE37Result.failure(error=f"All {len(errors)} lookups failed", entries=[], errors=errors)
-
-
-async def _lookup_batch_se37_desktop(
-    backend: WebGuiBackend | DesktopBackend, fm_list: list[str], t: LanguagePack
-) -> SE37Result:
+async def _lookup_batch_se37_desktop(backend: DesktopBackend, fm_list: list[str], t: LanguagePack) -> SE37Result:
     """Run SE37 lookups for a batch of function modules on the desktop backend."""
     entries: list[SE37Entry] = []
     errors: list[SE37Error] = []
@@ -493,11 +386,7 @@ def register_se37_tools(mcp: FastMCP) -> None:
         # Resolved once, outside the per-module error handling: an unsupported language must not become an entry error
         t = lang.current("sap_se37_lookup")
 
-        # Route to desktop or WebGUI batch lookup
-        if backend.backend_type == "desktop":
-            final_result = await _lookup_batch_se37_desktop(backend, fm_list, t)
-        else:
-            final_result = await _lookup_batch_se37_webgui(backend, fm_list, t)
+        final_result = await _lookup_batch_se37_desktop(backend, fm_list, t)
 
         # Write to file if requested
         if output_file:

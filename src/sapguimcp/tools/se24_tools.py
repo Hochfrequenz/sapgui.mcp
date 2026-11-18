@@ -19,8 +19,7 @@ from mcp.types import ToolAnnotations
 from sapguimcp import lang
 from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RERAISE_COM_ERRORS, _get_com_error_code
 from sapguimcp.backend.manager import get_backend
-from sapguimcp.backend.webgui.parsers.se24_parser import SE24TabSnapshots, map_visibility, parse_se24_snapshot
-from sapguimcp.backend.webgui.types import AriaSnapshot
+from sapguimcp.backend.webgui.parsers.se24_parser import map_visibility
 from sapguimcp.models import (
     SE24Entry,
     SE24Error,
@@ -34,12 +33,10 @@ from sapguimcp.tools.desktop_wait_predicates import (
     screen_changed,
     tab_table_control_loaded,
 )
-from sapguimcp.tools.field_helpers import fill_and_display
 from sapguimcp.tools.table_helpers import read_table_control_all_rows
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
-    from sapguimcp.backend.webgui.backend import WebGuiBackend
     from sapguimcp.lang.schema import LanguagePack
     from sapguimcp.lang.text import Text
 
@@ -216,15 +213,12 @@ async def _read_tab_rows(
 
 
 async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-statements
-    backend: WebGuiBackend | DesktopBackend, class_name: str, t: LanguagePack
+    backend: DesktopBackend, class_name: str, t: LanguagePack
 ) -> SE24Entry | SE24Error:
     """Desktop-specific SE24 lookup using tab navigation and table control reading."""
-    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
     from sapguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
 
     now = datetime.now(UTC)
-    if not isinstance(backend, DesktopBackend):
-        return SE24Error(class_name=class_name, error="Requires DesktopBackend", retrieved_at=now)
     await backend.wait_for_ready()
 
     # Fill class name field
@@ -321,7 +315,7 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
     )
 
 
-async def _capture_tab_snapshot(backend: WebGuiBackend | DesktopBackend, tab: Text) -> str | None:
+async def _capture_tab_snapshot(backend: DesktopBackend, tab: Text) -> str | None:
     """Click a tab and capture its snapshot. Returns snapshot or None.
 
     After clicking, verifies the tab is actually ``[selected]`` in the ARIA
@@ -352,112 +346,7 @@ async def _capture_tab_snapshot(backend: WebGuiBackend | DesktopBackend, tab: Te
     return None
 
 
-async def _fill_and_display(
-    backend: WebGuiBackend | DesktopBackend, class_name: str, t: LanguagePack
-) -> SE24Error | None:
-    """Fill the class field and press F7 (Display). Returns error or None.
-
-    Delegates to the shared ``fill_and_display`` helper which uses real
-    keyboard events and polls for page navigation.
-    """
-    error_msg = await fill_and_display(
-        backend,
-        list(t.se24.class_field_label),
-        class_name,
-        t,
-        tcode_label="class/interface",  # lang-ok: our own message
-    )
-    if error_msg:
-        return SE24Error(
-            class_name=class_name,
-            error=error_msg,
-            retrieved_at=datetime.now(UTC),
-        )
-    return None
-
-
-async def _lookup_class_on_initial_screen(
-    backend: WebGuiBackend | DesktopBackend, class_name: str, t: LanguagePack
-) -> SE24Entry | SE24Error:
-    """Look up a class assuming we're already on the SE24 initial screen.
-
-    After a successful lookup, the browser will be on the class detail screen.
-    The caller handles navigation between lookups (via ``enter_transaction``).
-    """
-    # Ensure the SE24 screen is fully loaded before interacting.
-    await backend.wait_for_ready()
-
-    # Fill class name, press F7, and verify we left the initial screen.
-    error = await _fill_and_display(backend, class_name, t)
-    if error:
-        return error
-
-    # Get main snapshot first
-    main_snapshot = AriaSnapshot(await backend.get_snapshot())
-    logger.debug("Got main snapshot", extra={"object": class_name, "length": len(str(main_snapshot))})
-
-    # Capture each tab
-    methods_raw = await _capture_tab_snapshot(backend, t.se24.methods_tab)
-    attributes_raw = await _capture_tab_snapshot(backend, t.se24.attributes_tab)
-    interfaces_raw = await _capture_tab_snapshot(backend, t.se24.interfaces_tab)
-    tab_snapshots = SE24TabSnapshots(
-        methods_tab=AriaSnapshot(methods_raw) if methods_raw is not None else None,
-        attributes_tab=AriaSnapshot(attributes_raw) if attributes_raw is not None else None,
-        interfaces_tab=AriaSnapshot(interfaces_raw) if interfaces_raw is not None else None,
-    )
-
-    # Parse all snapshots
-    return parse_se24_snapshot(
-        snapshot=main_snapshot,
-        class_name=class_name,
-        t=t,
-        tab_snapshots=tab_snapshots,
-    )
-
-
-async def _lookup_batch_se24_webgui(
-    backend: WebGuiBackend | DesktopBackend, class_list: list[str], t: LanguagePack
-) -> SE24Result:
-    """Run SE24 lookups for a batch of classes on the WebGUI backend."""
-    entries: list[SE24Entry] = []
-    errors: list[SE24Error] = []
-
-    for class_name in class_list:
-        await backend.enter_transaction("/n")
-        await backend.wait_for_ready()
-        tx_result = await backend.enter_transaction("SE24")
-        if not tx_result.success:
-            errors.append(
-                SE24Error(
-                    class_name=class_name,
-                    error=f"Failed to navigate to SE24: {tx_result.error}",
-                    retrieved_at=datetime.now(UTC),
-                )
-            )
-            continue
-        await backend.wait_for_ready()
-        try:
-            result = await _lookup_class_on_initial_screen(backend, class_name, t)
-            if isinstance(result, SE24Entry):
-                entries.append(result)
-            else:
-                errors.append(result)
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Looking up in SE24", extra={"object": class_name})
-            errors.append(
-                SE24Error(
-                    class_name=class_name, error=f"Error looking up '{class_name}': {e}", retrieved_at=datetime.now(UTC)
-                )
-            )
-
-    if entries:
-        return SE24Result(entries=entries, errors=errors)
-    return SE24Result.failure(error=f"All {len(errors)} lookups failed", entries=[], errors=errors)
-
-
-async def _lookup_batch_se24_desktop(
-    backend: WebGuiBackend | DesktopBackend, class_list: list[str], t: LanguagePack
-) -> SE24Result:
+async def _lookup_batch_se24_desktop(backend: DesktopBackend, class_list: list[str], t: LanguagePack) -> SE24Result:
     """Run SE24 lookups for a batch of classes on the desktop backend."""
     entries: list[SE24Entry] = []
     errors: list[SE24Error] = []
@@ -547,11 +436,7 @@ def register_se24_tools(mcp: FastMCP) -> None:
         # Resolved once, outside the per-class error handling: an unsupported language must not become an entry error
         t = lang.current("sap_se24_lookup")
 
-        # Route to desktop or WebGUI batch lookup
-        if backend.backend_type == "desktop":
-            final_result = await _lookup_batch_se24_desktop(backend, class_list, t)
-        else:
-            final_result = await _lookup_batch_se24_webgui(backend, class_list, t)
+        final_result = await _lookup_batch_se24_desktop(backend, class_list, t)
 
         # Write to file if requested
         if output_file:
