@@ -1,4 +1,4 @@
-"""Middleware for the SAP Web GUI MCP server."""
+"""Middleware for the SAP GUI MCP server."""
 
 from sapguimcp.middleware.logging import ToolCallLoggingMiddleware, set_sap_identity
 

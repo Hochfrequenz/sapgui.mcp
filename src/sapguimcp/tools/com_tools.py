@@ -1,7 +1,7 @@
 """
-General-purpose COM evaluate tool for SAP GUI desktop backend.
+General-purpose COM evaluate tool for SAP GUI for Windows.
 
-Mirrors browser_evaluate for WebGUI — gives the LLM an escape hatch
+Gives the LLM an escape hatch
 to perform arbitrary COM operations on SAP GUI elements by their ID.
 
 Workflow: LLM calls sap_com_snapshot -> reads element IDs -> calls

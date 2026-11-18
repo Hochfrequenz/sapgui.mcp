@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["register_spro_tools"]
 
-#: The desktop search reads the IMG tree itself, two levels deep; the WebGUI search covers the whole text index.
+#: The search reads the IMG tree itself, two levels deep.
 _DESKTOP_SCOPE_NOTE = (
     "Only the top two levels of the IMG tree (areas and their direct entries) were searched, not the activities "
     "below them: more matches may exist than are listed."
@@ -59,7 +59,7 @@ async def _search_img_desktop(  # pylint: disable=too-many-locals
 ) -> SPROSearchResult:
     """Desktop-specific SPRO IMG search using tree control node reading.
 
-    The desktop SAP GUI doesn't expose the SPRO search dialog available in WebGUI.
+    SAP GUI scripting does not expose the SPRO search dialog.
     Instead, we expand the IMG tree nodes (2 levels deep) and filter by query text.
     """
 
@@ -164,11 +164,10 @@ def register_spro_tools(mcp: FastMCP) -> None:
             "Search the SAP Implementation Guide (IMG) for customizing activities by keyword. "
             "USE THIS to find where specific SAP configuration is maintained (e.g., 'country', "
             "'pricing', 'tax'). Returns matching IMG activities with their parent node and area. "
-            "The WebGUI search covers all IMG text content; the desktop search only the top two levels of "
+            "The search covers only the top two levels of "
             "the IMG tree (the result's scope_note says so). Results can then be used to navigate to "
             "specific configuration via SM30 or other transactions.\n\n"
-            "Note: First search in a language may be slow (30-60s) while the text index is built. "
-            "Subsequent searches are faster."
+            "Note: the search expands the IMG tree, so it can take a while."
         ),
     )
     async def sap_spro_search(

@@ -1,6 +1,6 @@
 # Models
 
-This directory contains data models and core infrastructure for the SAP Web GUI MCP Server.
+This directory contains data models and core infrastructure for the SAP GUI MCP Server.
 
 ## Module Structure
 
@@ -8,10 +8,10 @@ This directory contains data models and core infrastructure for the SAP Web GUI 
 models/
 ├── __init__.py              # Package exports
 ├── config.py                # Configuration settings (pydantic-settings)
-├── browser.py               # Browser manager for Playwright sessions
+├── base.py                  # ToolResult base class, TCode type, PopupInfo
 ├── sap_results.py           # Core SAP result models (StatusBarInfo, TableData, etc.)
-├── screen_state.py          # Selection screen state models
-├── quick_report_models.py   # QuickReportResult, ScreenClassification
+├── se16_models.py           # SE16-specific result models
+├── ...                      # One model file per transaction
 └── README.md                # This file
 ```
 
@@ -22,13 +22,15 @@ load configuration from environment variables.
 
 ### Available Settings
 
-| Environment Variable | Type | Default                   | Description                               |
-| -------------------- | ---- | ------------------------- | ----------------------------------------- |
-| `SAP_URL`            | str  | `""`                      | Default SAP Web GUI URL                   |
-| `BROWSER_MODE`       | enum | `"connect"`               | `"connect"` or `"launch"`                 |
-| `BROWSER_TYPE`       | enum | `"chromium"`              | `"chromium"`, `"firefox"`, or `"webkit"`  |
-| `BROWSER_HEADLESS`   | bool | `false`                   | Run browser without GUI                   |
-| `CDP_URL`            | str  | `"http://localhost:9222"` | CDP URL for connect mode                  |
+| Environment Variable  | Type | Default | Description                                                   |
+| --------------------- | ---- | ------- | ------------------------------------------------------------- |
+| `OUTPUT_DIR`          | str  | `""`    | Directory that `output_file` tool arguments are confined to   |
+| `SCRIPT_ROOTS`        | str  | `""`    | Allowed root directories for `sap_run_script`'s `script_path` |
+| `COM_MIN_INTERVAL_MS` | int  | `100`   | Minimum ms between COM calls (prevents overload)              |
+| `GITHUB_PAT`          | str  | `""`    | GitHub token for `log_feedback` and abapGit                   |
+| `LOG_LEVEL`           | enum | `INFO`  | `DEBUG`, `INFO`, `WARNING` or `ERROR`                         |
+
+The table lists a selection. See `config.py` and the README's environment variable reference for all settings.
 
 SAP credentials and the login language (user, password, client, language) are loaded from `~/.config/sap-mcp/systems.json`
 (or the path set via `SAP_CONFIG_FILE` env var). See the [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) package.
@@ -39,8 +41,8 @@ SAP credentials and the login language (user, password, client, language) are lo
 from sapguimcp.models import get_settings
 
 settings = get_settings()
-print(settings.sap_url)
-print(settings.browser_mode)
+print(settings.output_dir)
+print(settings.log_level)
 ```
 
 ### Adding New Settings
@@ -60,11 +62,10 @@ class SapGuiSettings(BaseSettings):
 
 2. Update the `__all__` export if adding new public classes.
 
-## Backend Abstraction (`backend/`)
+## Backend (`backend/`)
 
-Tools get the backend via `get_backend()` instead of touching Playwright or COM directly. It
-returns `WebGuiBackend | DesktopBackend`; there is no shared protocol class. Where the backends
-need different logic, a tool dispatches once to one function per backend (see `ARCHITECTURE.md`).
+Tools get the backend via `get_backend()` instead of touching COM directly. It returns the
+`DesktopBackend`, which drives SAP GUI for Windows through COM scripting (see `ARCHITECTURE.md`).
 
 ### Usage
 
@@ -78,10 +79,8 @@ snapshot = await backend.get_snapshot()
 
 ### Architecture
 
-- **`backend/webgui/backend.py`** — `WebGuiBackend` (Playwright-based implementation)
 - **`backend/desktop/__init__.py`** — `DesktopBackend` (SAP GUI COM scripting implementation)
 - **`backend/manager.py`** — `BackendManager` singleton, `get_backend()` entry point
-- **`backend/webgui/browser.py`** — `BrowserManager` for low-level browser lifecycle
 
 ## Type Hints
 

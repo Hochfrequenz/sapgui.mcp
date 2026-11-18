@@ -110,7 +110,7 @@ class _FilterFillResult:
     unapplied_fields: list[str] = dataclass_field(default_factory=list)  # requested names (as given) not in the grid
     other_errors: list[str] = dataclass_field(default_factory=list)  # non-field problems, e.g. grid not found
     offered_fields: list[str] = dataclass_field(default_factory=list)  # technical names seen in grid, deduped, ordered
-    hint: str | None = None  # extra sentence for the failure message (Web GUI: the grid is only partly rendered)
+    hint: str | None = None  # extra sentence for the failure message
 
 
 def _dedupe_keep_order(names: list[str]) -> list[str]:
@@ -509,7 +509,7 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
     t: LanguagePack,
     ctx: Context | None = None,  # TODO: progress reporting via ctx not yet implemented on desktop
 ) -> SE16Result:
-    """Desktop-specific SE16N query using read_table instead of ARIA parsing."""
+    """SE16N query using read_table."""
     # Always empty today (filter failures return early); kept for the status-bar error pass-through below.
     filter_warnings: list[str] = []
 
@@ -659,9 +659,7 @@ def register_se16_tools(mcp: FastMCP) -> None:
             "USE THIS for complex queries with dynamic filtering or when ADT is unavailable.\n\n"
             "**Filters:** If a filter cannot be applied (e.g. the field is unknown or not offered by "
             "SE16N), the call fails before running the query; the error lists the SE16N selection "
-            "fields when they could be read. On the WebGUI backend a filter goes into the row whose "
-            "technical name matches, and only the first ~30 rows of the selection grid are rendered, "
-            "so a field further down a wide table cannot be filtered (the error says so).\n\n"
+            "fields when they could be read.\n\n"
             "**Performance:** ~7 rows/second due to pagination.\n"
             "- 100 rows: ~14 seconds\n"
             "- 500 rows: ~1.5 minutes\n"
@@ -686,8 +684,7 @@ def register_se16_tools(mcp: FastMCP) -> None:
             ctx: FastMCP context (injected)
             table: Table name to query (e.g., "MARA", "T000", "TSTC")
             filters: Optional filter dict {field_name: value} - uses technical field names. A field that is
-                unknown or not offered by SE16N makes the call fail (both backends); on the WebGUI backend
-                fields beyond the first ~30 selection rows cannot be reached.
+                unknown or not offered by SE16N makes the call fail.
             max_hits: Maximum rows to return (default 100)
             output_file: If provided, write full results to this JSON file within the
                 configured output directory (OUTPUT_DIR, default: current working

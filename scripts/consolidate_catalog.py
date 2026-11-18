@@ -8,7 +8,7 @@ Usage:
     python scripts/consolidate_catalog.py <tool-results-dir>
 
 ``<tool-results-dir>`` is the directory containing the saved
-``mcp-sap-webgui-sap_se16_query-*.txt`` result files.
+``mcp-sap-desktop-sap_se16_query-*.txt`` result files.
 """
 
 import argparse
@@ -61,9 +61,9 @@ def main() -> int:
         print(f"Error: not a directory: {tool_results_dir}", file=sys.stderr)
         return 1
 
-    input_files = sorted(tool_results_dir.glob("mcp-sap-webgui-sap_se16_query-*.txt"))
+    input_files = sorted(tool_results_dir.glob("mcp-sap-desktop-sap_se16_query-*.txt"))
     if not input_files:
-        print(f"Error: no mcp-sap-webgui-sap_se16_query-*.txt files found in {tool_results_dir}", file=sys.stderr)
+        print(f"Error: no mcp-sap-desktop-sap_se16_query-*.txt files found in {tool_results_dir}", file=sys.stderr)
         return 1
 
     # Paths

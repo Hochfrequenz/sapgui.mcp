@@ -1,5 +1,5 @@
 """
-MCP tools for SAP Web GUI automation.
+MCP tools for SAP GUI for Windows automation.
 
 This package contains tool modules that are registered with the FastMCP server:
 - sap_tools: SAP-specific tools (login, transaction, keepalive)

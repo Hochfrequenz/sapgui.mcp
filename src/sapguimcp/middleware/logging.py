@@ -77,7 +77,7 @@ def _is_sensitive_arg(name: str) -> bool:
     return any(s in lowered for s in _SENSITIVE_ARG_SUBSTRINGS) or "pat" in lowered.split("_")
 
 
-#: Arguments that carry what gets typed into SAP fields or the browser — e.g. a password
+#: Arguments that carry what gets typed into SAP fields — e.g. a password
 #: set with ``sap_set_field`` on SU01. Masked unconditionally: the field's label alone
 #: doesn't reliably tell whether the value is a secret.
 _TYPED_INPUT_ARGS = frozenset({"value", "text"})

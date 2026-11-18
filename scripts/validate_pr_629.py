@@ -16,14 +16,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import subprocess
 import sys
 import time
 from pathlib import Path
-
-# MUST be set before importing the manager so the singleton picks up desktop.
-os.environ["BACKEND_TYPE"] = "desktop"
 
 from dotenv import load_dotenv  # noqa: E402
 

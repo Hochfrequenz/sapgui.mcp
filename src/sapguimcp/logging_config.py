@@ -1,4 +1,4 @@
-"""Structured logging configuration for SAP Web GUI MCP Server.
+"""Structured logging configuration for the SAP GUI MCP server.
 
 Provides a dual-mode formatter (human-readable console or JSON) and
 Pydantic models for type-safe structured log context.

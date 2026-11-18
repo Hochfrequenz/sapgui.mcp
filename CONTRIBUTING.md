@@ -18,9 +18,7 @@ cd sapgui.mcp
 uv sync --group dev
 
 # Activate the environment
-source .venv/bin/activate  # Linux/macOS
-# or
-.venv\Scripts\activate  # Windows
+.venv\Scripts\activate
 ```
 
 `uv sync --group dev` installs everything needed to run the unit tests (`dev` includes the `tests` group and the runtime dependencies such as `fastmcp`). If a bare `pytest` or `import mcp` fails with a missing module, you are most likely in a stale or different virtual environment: run commands through `uv run ...` (e.g. `uv run pytest --version`) instead of relying on an activated older venv.
@@ -35,10 +33,9 @@ To run integration tests, you need a configured SAP system. See **[docs/SAP_TEST
 
 ## Running Tests
 
-This project uses [uv](https://docs.astral.sh/uv/) to run all tests and checks. The test suite includes:
+This server drives SAP GUI for Windows, so integration tests need Windows with SAP GUI. The unit tests run on any OS, but the desktop unit tests only run on Windows. This project uses [uv](https://docs.astral.sh/uv/) to run all tests and checks. The test suite includes:
 
 - **Unit tests**: Offline tests using mocked COM (no SAP required)
-- **WebGUI integration tests**: Tests against real SAP Web GUI (auto-skipped on non-SAP machines)
 - **Desktop integration tests**: Tests against SAP GUI via COM (auto-skipped without SAP credentials)
 
 ### Commands
@@ -54,7 +51,7 @@ uv run --group tests python -m pytest unittests/ -m "not integration"
 uv run --group tests python -m pytest unittests/ -m integration
 ```
 
-Language and credentials are loaded from your `.env` file.
+SAP credentials are loaded from your `systems.json` (see [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config)). The logon language of the tests comes from `SAP_LANGUAGE` in your `.env` file.
 
 **Other checks:**
 
@@ -69,7 +66,7 @@ uv run --group spell_check codespell --ignore-words=domain-specific-terms.txt sr
 
 ### Running Tests in PyCharm
 
-You can run tests directly in PyCharm. Settings are loaded from your `.env` file automatically.
+You can run tests directly in PyCharm. Credentials come from your `systems.json`; settings are loaded from your `.env` file automatically.
 
 1. **Unit tests**: Right-click `unittests/desktop/test_element_finder.py` → Run
 2. **Integration tests**: Right-click any `unittests/desktop/test_*_integration.py` file → Run
@@ -77,22 +74,6 @@ You can run tests directly in PyCharm. Settings are loaded from your `.env` file
 To change language, edit `SAP_LANGUAGE` in your `.env` file.
 
 **uv vs PyCharm**: uv creates an isolated virtualenv (good for CI), PyCharm uses your current interpreter (faster for development).
-
-### WebGUI Integration Tests
-
-WebGUI integration tests run against SAP Web GUI in a browser. They:
-
-- Require SAP credentials in environment
-- Are slow (~10-30s each)
-- Should capture HTML snapshots for debugging
-
-```python
-@pytest.mark.anyio
-async def test_my_feature(sap_mcp_client: ClientSession) -> None:
-    await sap_mcp_client.call_tool("sap_login", {})
-    # ... test logic
-    await capture_html_snapshot(sap_mcp_client, "my_feature_result")
-```
 
 ### Desktop Integration Tests
 
@@ -153,7 +134,7 @@ uv run --group linting ruff check .
 uv run --group type_check mypy --show-error-codes src/sapguimcp --strict
 ```
 
-### JavaScript and Markdown
+### Markdown
 
 Use Prettier for formatting:
 
@@ -165,13 +146,13 @@ npm run format
 
 SAP screen texts differ per logon language, so they live only in the language packs under
 `src/sapguimcp/lang/`. Never write a button label, title, status text or column header as a literal
-in tool, parser or JS code: read it from `lang.current()` (see
+in tool or backend code: read it from `lang.current()` (see
 [`ARCHITECTURE.md`](ARCHITECTURE.md#sap-ui-texts-and-language-packs) and the
 [design spec](docs/superpowers/specs/2026-11-10-language-packs-design.md)).
 
 `unittests/test_no_ui_literals.py` enforces this. If it flags a literal, move the text into the
 packs (plus a `SOURCES` entry in `lang/sources.py`), or, when the literal is code or the server's
-own message, add `# lang-ok: <reason>` on the flagged line (`// lang-ok: <reason>` in JS). Never add
+own message, add `# lang-ok: <reason>` on the flagged line. Never add
 to `unittests/lang_baseline.json`; it holds only `tools/breakpoint_tools.py` (#1025).
 
 To add a new login language: create `lang/<xx>.py` modelled on `en.py`, register it in
@@ -198,7 +179,7 @@ Both are sent to the AI client. Without the Args section, the LLM doesn't know w
     description=(
         "Discover clickable buttons on the current SAP screen. "
         "Prefer keyboard shortcuts (sap_press_key) when available — "
-        "they're faster and work on all backends. "
+        "they're faster than clicking. "
         "For input fields use sap_discover_fields instead."
     )
 )
@@ -223,13 +204,6 @@ async def sap_discover_buttons(session: str | None = None) -> DiscoveredButtons:
 - Put **what each parameter means** in the docstring Args section
 - FastMCP parses the Args section to generate parameter descriptions in the MCP schema
 
-### JavaScript Files
-
-- Place JavaScript in `src/sapguimcp/js/`
-- Use IIFE pattern: `() => { ... }`
-- Load with `_load_js("filename.js")` in Python
-- Document SAP-specific quirks in comments
-
 ### Pydantic Models and DTOs
 
 - Place in `src/sapguimcp/models/`
@@ -251,7 +225,7 @@ Read the docs of [FastMCP](https://gofastmcp.com/servers/server) before you goog
 ## Commit Messages
 
 Use [Conventional Commits](https://www.conventionalcommits.org/).
-In the long commit message include what we learned (about SAP, about Playwright, about MCP usage etc.).
+In the long commit message include what we learned (about SAP, about SAP GUI scripting, about MCP usage etc.).
 Also include what assumptions we made and which prior assumptions turned out to be wrong.
 Be honest.
 

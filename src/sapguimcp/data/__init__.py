@@ -1,1 +1,1 @@
-# Data files for SAP Web GUI MCP Server
+# Data files for the SAP GUI MCP server

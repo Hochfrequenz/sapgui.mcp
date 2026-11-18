@@ -168,8 +168,8 @@ class TransactionInfo(BaseModel):
         """Create TransactionInfo from a TSTC table row.
 
         The technical column names (TCODE, PGMNA, DYPNO; DESSION from older scraper dumps) are tried
-        first; the WebGUI SE16 parser keys rows by
-        column header text, so the pack's header texts follow (see ``tstc_columns``).
+        first; rows keyed by column header text (for example from a dump of the SE16 result
+        screen) follow with the pack's header texts (see ``tstc_columns``).
         """
         tcode, program, screen = tstc_columns(row_data, t)
         tcode = str(tcode).strip()
