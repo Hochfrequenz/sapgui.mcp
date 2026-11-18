@@ -264,7 +264,7 @@ async def enrich_with_se93(
     """
     # Import here to avoid circular imports
     from sapguimcp.backend.manager import get_backend
-    from sapguimcp.tools.se93_tools import _lookup_tcode_on_initial_screen
+    from sapguimcp.tools.se93_tools import _lookup_tcode_desktop
 
     # Load TSTC data
     if tstc_data is None:
@@ -343,7 +343,7 @@ async def enrich_with_se93(
 
             # Call SE93 lookup
             try:
-                result = await _lookup_tcode_on_initial_screen(backend, txn.tcode, t)
+                result = await _lookup_tcode_desktop(backend, txn.tcode, t)
 
                 if isinstance(result, SE93Entry):
                     # Apply enrichment

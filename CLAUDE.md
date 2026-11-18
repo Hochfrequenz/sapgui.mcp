@@ -9,7 +9,7 @@ This file only holds agent-specific rules. For everything else, read the existin
 - [`README.md`](README.md) — what the server does, installation, `systems.json` setup, and the
   configuration reference
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — development setup, running unit and integration tests,
-  HTML snapshot testing, and code style
+  and code style
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — layers, request flow, file organization, and how to add
   a new transaction tool
 - [`docs/SAP_TEST_PREREQUISITES.md`](docs/SAP_TEST_PREREQUISITES.md) — everything a fresh SAP

@@ -1,14 +1,8 @@
 """
-Shared data models — the contract between desktop and webgui backends.
+Shared data models returned by the tools.
 
-Both projects depend on these models after the split. Backend-specific
-models live in their respective packages:
-
-- ``backend/webgui/models/`` — browser_results, session_registry
-- ``backend/desktop/models/`` — com_results
-
-See also: ``backend/webgui/types.py`` (AriaSnapshot),
-``backend/desktop/types.py`` (ComTreeSnapshot).
+Backend-specific models live in ``backend/desktop/models/`` (com_results);
+see also ``backend/desktop/types.py`` (ComTreeSnapshot).
 """
 
 from sapguimcp.models.abapgit_models import (
@@ -18,14 +12,10 @@ from sapguimcp.models.abapgit_models import (
     AbapGitRepoSummary,
 )
 from sapguimcp.models.alv_models import (
-    AlvCellInfo,
-    AlvMetadata,
     TableCellClickResult,
 )
 from sapguimcp.models.base import TCODE_PATTERN, PopupButton, PopupInfo, PopupType, SessionId, TCode, ToolResult
 from sapguimcp.models.config import (
-    BrowserMode,
-    BrowserType,
     SapGuiSettings,
     get_sap_config,
     get_settings,
@@ -35,10 +25,6 @@ from sapguimcp.models.intent_models import (
     FeedbackLogResult,
     IntentEntry,
     IntentLogResult,
-)
-from sapguimcp.models.quick_report_models import (
-    QuickReportResult,
-    ScreenClassification,
 )
 from sapguimcp.models.sap_results import (
     ButtonInfo,
@@ -173,18 +159,12 @@ __all__ = [
     "TCode",
     "ToolResult",
     # ALV models
-    "AlvCellInfo",
-    "AlvMetadata",
     "TableCellClickResult",
     # Config models
-    "BrowserMode",
-    "BrowserType",
     "SapGuiSettings",
     "get_sap_config",
     "get_settings",
     # Quick report models
-    "QuickReportResult",
-    "ScreenClassification",
     # SAP results
     "ButtonInfo",
     "CapabilitiesResult",

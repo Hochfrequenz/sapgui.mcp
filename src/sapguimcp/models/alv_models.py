@@ -1,31 +1,8 @@
-"""
-Pydantic models for SAP ALV grid support.
+"""Pydantic models for SAP ALV grid support (ALV = ABAP List Viewer)."""
 
-ALV (ABAP List Viewer) grids are SAP's standard table display components.
-They have a specific DOM structure with clickable hotspot cells that need
-special handling for browser automation.
-"""
-
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from sapguimcp.models.base import ToolResult
-
-
-class AlvCellInfo(BaseModel):
-    """Metadata for a single ALV grid cell."""
-
-    selector: str = Field(description="CSS selector ready for browser_click (properly escaped)")
-    clickable: bool = Field(default=False, description="Whether this cell can be clicked")
-    hotspot: bool = Field(default=False, description="Whether this is a navigation hotspot")
-
-
-class AlvMetadata(BaseModel):
-    """Grid-level metadata for an ALV table."""
-
-    table_id: str = Field(description="SAP table element ID (e.g., 'C120')")
-    selection_mode: str = Field(default="NONE", description="Selection mode: MULTI, SINGLE, or NONE")
-    hotspot_columns: list[int] = Field(default_factory=list, description="Indices of columns with hotspots")
-    column_map: dict[str, int] = Field(default_factory=dict, description="Column header to index mapping")
 
 
 class TableCellClickResult(ToolResult):

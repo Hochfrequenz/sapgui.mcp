@@ -41,12 +41,12 @@ High-level, SAP-specific operations:
 | `sap_se24_lookup` | `se24_tools.py` | Look up class/interface metadata from Class Builder       |
 | `sap_se37_lookup` | `se37_tools.py` | Look up function module signatures from Function Builder  |
 | `sap_se93_lookup` | `se93_tools.py` | Look up transaction metadata from Transaction Maintenance |
-| `sap_sm37_lookup` | `sm37_tools.py` | Look up background job status and logs |
+| `sap_sm37_lookup` | `sm37_tools.py` | Look up background job status and logs                    |
 
 ### Composite Tools (multi-step pipelines)
 
-| Tool               | File                   | Description                                                    |
-| ------------------ | ---------------------- | -------------------------------------------------------------- |
+| Tool               | File                    | Description                                                    |
+| ------------------ | ----------------------- | -------------------------------------------------------------- |
 | `sap_quick_report` | `quick_report_tools.py` | TX → fill selection screen → F8 → classify & read result table |
 
 **Note:** Use these specialized tools instead of `sap_transaction('SExx')` - they are faster
@@ -230,24 +230,6 @@ logger = logging.getLogger(__name__)
 logger.info("Starting transaction: %s", tcode)
 logger.debug("Found OK-Code field: %s", okcode_field)
 logger.exception("Error executing transaction")  # Includes stack trace
-```
-
-## Customizing SAP Selectors
-
-The `SELECTORS` dictionary in `sap_tools.py` contains CSS selectors for SAP Web GUI elements.
-You may need to customize these for your specific SAP version:
-
-```python
-from sapguimcp.tools import SELECTORS
-
-# Override a selector
-SELECTORS["okcode_field"] = 'input#myCustomOkCodeField'
-
-# Or create your own selector dictionary
-MY_SELECTORS = {
-    **SELECTORS,
-    "custom_button": 'button#myButton',
-}
 ```
 
 ## Testing Tools

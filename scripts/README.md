@@ -11,14 +11,13 @@ They are NOT shipped with the package and NOT used at runtime.
 
 ## Scripts Overview
 
-| Script                    | Purpose                                          | When to Use                                                                        |
-| ------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| `consolidate_catalog.py`  | Build `transactions.json` from SE16 result files | After scraping TSTC with `sap_se16_query`                                          |
-| `add_inline_results.py`   | Add inline SE16 results to catalog               | When SE16 returned results inline (not to file)                                    |
-| `recapture-snapshots.ps1` | Recapture HTML test snapshots in DE/EN           | When SAP UI changes or adding new tests                                            |
-| `render_readme_demo.py`   | Render README demo composites + concat file      | Rebuilding the README GIF (see below)                                              |
-| `smoke_test_exe.py`       | Start a built binary and send an MCP initialize  | `build_executable.yml` runs it for every release binary                            |
-| `harvest_lang_texts.py`   | Compare a language pack with SAP's own texts     | After an SAP upgrade, after changing a sourced pack text, before adding a language |
+| Script                   | Purpose                                          | When to Use                                                                        |
+| ------------------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `consolidate_catalog.py` | Build `transactions.json` from SE16 result files | After scraping TSTC with `sap_se16_query`                                          |
+| `add_inline_results.py`  | Add inline SE16 results to catalog               | When SE16 returned results inline (not to file)                                    |
+| `render_readme_demo.py`  | Render README demo composites + concat file      | Rebuilding the README GIF (see below)                                              |
+| `smoke_test_exe.py`      | Start a built binary and send an MCP initialize  | `build_executable.yml` runs it for every release binary                            |
+| `harvest_lang_texts.py`  | Compare a language pack with SAP's own texts     | After an SAP upgrade, after changing a sourced pack text, before adding a language |
 
 ## Language Pack Verification
 
@@ -91,25 +90,6 @@ re-timed composite of a real run — real messages, real screenshots; only the
 pacing is edited (see the honesty note in
 `docs/superpowers/specs/2026-10-06-readme-demo-design.md`).
 
-## Test Snapshot Management
-
-### Recapturing HTML Snapshots
-
-When SAP UI changes or you need fresh test data:
-
-```powershell
-.\scripts\recapture-snapshots.ps1
-```
-
-This script:
-
-1. Deletes existing HTML snapshots
-2. Sets `SAP_LANGUAGE=DE` and runs integration tests
-3. Sets `SAP_LANGUAGE=EN` and runs integration tests
-4. Restores original language setting
-
-**Requires:** Active SAP session via the MCP server.
-
 ## Directory Structure Rationale
 
 ```
@@ -124,12 +104,9 @@ sapgui.mcp/
 ├── scripts/                    # DEVELOPMENT ONLY - NOT shipped
 │   ├── consolidate_catalog.py
 │   ├── add_inline_results.py
-│   ├── smoke_test_exe.py
-│   └── recapture-snapshots.ps1
+│   └── smoke_test_exe.py
 │
 └── unittests/                  # Tests - NOT shipped
-    └── testdata/
-        └── html_snapshots/     # Captured by recapture-snapshots.ps1
 ```
 
 ## Why Not in `src/`?

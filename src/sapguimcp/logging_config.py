@@ -31,7 +31,6 @@ __all__ = [
     "ToolLogContext",
     "TransactionLogContext",
     "QueryLogContext",
-    "BrowserLogContext",
     "configure_logging",
     "build_info",
 ]
@@ -151,13 +150,6 @@ class QueryLogContext(ToolLogContext):
     table: str
     rows: int | None = None
     total_hits: int | None = None
-
-
-class BrowserLogContext(ToolLogContext):
-    """Structured context for browser interaction log events."""
-
-    selector: str | None = None
-    url: str | None = None
 
 
 class StructuredFormatter(logging.Formatter):

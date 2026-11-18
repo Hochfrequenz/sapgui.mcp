@@ -5,7 +5,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from sapguimcp.models.alv_models import AlvCellInfo, AlvMetadata
 from sapguimcp.models.base import PopupInfo, TCode, ToolResult
 
 # Shared type for SAP status bar message types
@@ -323,25 +322,14 @@ class ScreenText(ToolResult):
 
 
 class TableRow(BaseModel):
-    """A single table row with row number and cell data.
-
-    For ALV grids, includes cell-level click metadata with pre-escaped CSS selectors.
-    """
+    """A single table row with row number and cell data."""
 
     row: int = Field(ge=1, description="Row number (1-indexed)")
     data: dict[str, str] = Field(description="Cell values by column header")
-    cells: dict[str, AlvCellInfo] | None = Field(
-        default=None,
-        description="Cell click metadata (ALV grids only). Keys are column headers.",
-    )
 
 
 class TableData(ToolResult):
-    """Result from sap_read_table tool.
-
-    For ALV grids, includes grid-level metadata with hotspot column info.
-    Use the `cells` field on each row to get pre-escaped CSS selectors for clicking.
-    """
+    """Result from sap_read_table tool."""
 
     headers: list[str] = Field(default_factory=list, description="Column headers")
     rows: list[TableRow] = Field(default_factory=list, description="Row data")
@@ -358,10 +346,6 @@ class TableData(ToolResult):
         description="True if rows of the requested range are missing: a table control (e.g. SE24 methods) only holds "
         "the rows in its window (enlarge the SAP GUI window or narrow the range), or a classic list was read up to "
         "its row limit",
-    )
-    alv: AlvMetadata | None = Field(
-        default=None,
-        description="ALV grid metadata (only present for ALV grids)",
     )
 
 

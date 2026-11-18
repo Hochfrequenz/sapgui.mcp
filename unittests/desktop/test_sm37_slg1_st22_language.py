@@ -21,6 +21,7 @@ from sapguimcp.models.slg1_models import SLG1LogEntry
 from sapguimcp.tools.slg1_tools import _slg1_lookup_desktop
 from sapguimcp.tools.sm37_tools import (
     _execute_sm37_lookup_desktop,
+    normalize_job_status,
 )
 from sapguimcp.tools.st22_tools import (
     _st22_lookup_desktop,
@@ -112,3 +113,20 @@ async def test_the_status_column_title_comes_from_the_pack() -> None:
         backend.read_table = AsyncMock(return_value=TableData(success=True, headers=[title], rows=[row]))
         result = await _execute_sm37_lookup_desktop(backend, tx, "*", None, None, None, None)
     assert [job.status for job in result.jobs] == ["Finished"]
+
+
+@pytest.mark.parametrize(
+    ("language", "text", "expected"),
+    [
+        ("DE", "Fertig", "Finished"),
+        ("DE", "fertig", "Finished"),
+        ("DE", "Abgebrochen", "Canceled"),
+        ("EN", "Finished", "Finished"),
+        ("EN", "Sched.", "Scheduled"),  # the checkbox text of the EN screen
+        ("EN", "Scheduled", "Scheduled"),
+        ("DE", "Finished", "Finished"),  # a German session also reads English texts
+        ("EN", "unbekannt", "unbekannt"),
+    ],
+)
+def test_the_job_status_is_the_canonical_one(language: str, text: str, expected: str) -> None:
+    assert normalize_job_status(f" {text} ", lang.view_for(language)) == expected

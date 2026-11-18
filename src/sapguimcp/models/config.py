@@ -1,5 +1,5 @@
 """
-Configuration models for SAP Web GUI MCP Server.
+Configuration models for the SAP GUI for Windows MCP Server.
 
 Server-specific settings are loaded from environment variables using pydantic-settings.
 SAP system credentials are loaded from the shared ``sap-mcp-config`` JSON file
@@ -7,8 +7,6 @@ SAP system credentials are loaded from the shared ``sap-mcp-config`` JSON file
 """
 
 import sys
-import tempfile
-from enum import StrEnum
 from pathlib import Path
 from typing import Literal, Optional
 
@@ -21,8 +19,6 @@ from sap_mcp_config import load_default as load_sap_config
 from sapguimcp.lang import supported_languages
 
 __all__ = [
-    "BrowserMode",
-    "BrowserType",
     "SapGuiSettings",
     "get_sap_config",
     "get_settings",
@@ -125,62 +121,18 @@ def _env_files() -> tuple[str, ...]:
     return tuple(files)
 
 
-# TODO(split): BrowserMode and BrowserType are webgui-only — move to webgui
-# project's own config when splitting.
-
-
-class BrowserMode(StrEnum):
-    """
-    Browser connection mode.
-
-    CONNECT (default): Connect to an existing Chrome browser via Chrome DevTools Protocol.
-        Requires Chrome running with --remote-debugging-port=9222.
-        This is the default because:
-        - Chrome with CDP is a prerequisite for SAP Web GUI automation anyway.
-        - It avoids bundling Playwright's Chromium binaries (~400MB), which is
-          essential for PyInstaller exe distribution.
-        - The user sees the browser, helpful for CAPTCHAs and manual intervention.
-
-    LAUNCH: Start a new browser instance managed by Playwright.
-        Requires Playwright browser binaries installed via `playwright install`.
-        Useful for development/testing but not recommended for production or exe builds.
-    """
-
-    LAUNCH = "launch"
-    CONNECT = "connect"
-
-
-class BrowserType(StrEnum):
-    """
-    Playwright browser type.
-
-    CHROMIUM: Chrome/Chromium/Edge (recommended for SAP Web GUI)
-    FIREFOX: Mozilla Firefox
-    WEBKIT: Safari/WebKit
-    """
-
-    CHROMIUM = "chromium"
-    FIREFOX = "firefox"
-    WEBKIT = "webkit"
-
-
 class SapGuiSettings(BaseSettings):
     """
-    Settings for SAP Web GUI MCP Server.
+    Settings for the SAP GUI for Windows MCP Server.
 
-    Server-specific settings (browser config, logging, GitHub integration) are
+    Server-specific settings (logging, GitHub integration) are
     loaded from environment variables.  SAP system credentials and connection
     details are loaded from the shared ``sap-mcp-config`` JSON file --
     see :func:`get_sap_config`.
 
     Example .env file:
-        SAP_URL=https://your-sap-server/sap/bc/gui/sap/its/webgui
-        CDP_URL=http://localhost:9222
-
-    The default browser mode is 'connect', which expects Chrome running with
-    --remote-debugging-port=9222. For development with Playwright-managed browsers:
-        BROWSER_MODE=launch
-        BROWSER_HEADLESS=false
+        OUTPUT_DIR=C:/sap-output
+        LOG_LEVEL=DEBUG
     """
 
     model_config = SettingsConfigDict(
@@ -190,13 +142,7 @@ class SapGuiSettings(BaseSettings):
         extra="ignore",
     )
 
-    # --- Shared fields (used by both backends) ---
-
-    sap_url: str = Field(
-        default="",
-        description="Default SAP Web GUI URL (can be overridden per call)",
-        json_schema_extra={"env": "SAP_URL"},
-    )
+    # --- Shared fields ---
 
     output_dir: str = Field(
         default="",
@@ -235,42 +181,6 @@ class SapGuiSettings(BaseSettings):
             "Prevents COM overload with parallel agents. 0 to disable."
         ),
         json_schema_extra={"env": "COM_MIN_INTERVAL_MS"},
-    )
-
-    # --- WebGUI-only fields ---
-    # TODO(split): move to webgui project's own Settings class
-
-    browser_mode: BrowserMode = Field(
-        default=BrowserMode.CONNECT,
-        description=(
-            "Browser mode: 'connect' (default, use existing Chrome with CDP) or 'launch' (start new via Playwright)"
-        ),
-        json_schema_extra={"env": "BROWSER_MODE"},
-    )
-    browser_type: BrowserType = Field(
-        default=BrowserType.CHROMIUM,
-        description="Browser type: 'chromium', 'firefox', or 'webkit'",
-        json_schema_extra={"env": "BROWSER_TYPE"},
-    )
-    browser_headless: bool = Field(
-        default=False,
-        description="Run browser in headless mode (not recommended for SAP)",
-        json_schema_extra={"env": "BROWSER_HEADLESS"},
-    )
-    cdp_url: str = Field(
-        default="http://localhost:9222",
-        description="Chrome DevTools Protocol URL for connecting to existing browser",
-        json_schema_extra={"env": "CDP_URL"},
-    )
-    chrome_path: str = Field(
-        default="",
-        description="Explicit path to chrome.exe. If empty, Chrome is auto-detected via registry/known paths.",
-        json_schema_extra={"env": "CHROME_PATH"},
-    )
-    chrome_user_data_dir: str = Field(
-        default=str(Path(tempfile.gettempdir()) / "chrome-debug"),
-        description="User data directory for auto-launched Chrome (separate from default profile).",
-        json_schema_extra={"env": "CHROME_USER_DATA_DIR"},
     )
 
     # --- Shared infrastructure fields ---
@@ -347,13 +257,6 @@ class SapGuiSettings(BaseSettings):
             available = list(sap_cfg.systems.keys())
             raise KeyError(f"System key {system_key!r} not found in systems.json. Available: {available}")
         return system.user, system.password.get_secret_value()
-
-    def validate_for_browser(self) -> list[str]:
-        """Validate settings required for browser connection."""
-        errors: list[str] = []
-        if self.browser_mode == BrowserMode.CONNECT and not self.cdp_url:
-            errors.append("CDP_URL is required when BROWSER_MODE=connect")
-        return errors
 
 
 # Global settings instance (singleton)

@@ -19,8 +19,6 @@ from mcp.types import ToolAnnotations
 from sapguimcp import lang
 from sapguimcp.backend.desktop._com_thread import is_server_fault_error
 from sapguimcp.backend.manager import get_backend
-from sapguimcp.backend.webgui.parsers.se93_parser import parse_se93_snapshot
-from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.lang.schema import LanguagePack
 from sapguimcp.models import (
     SE93Entry,
@@ -30,7 +28,6 @@ from sapguimcp.models import (
 )
 from sapguimcp.models.se93_models import SE93TransactionType
 from sapguimcp.tools.desktop_wait_predicates import screen_changed
-from sapguimcp.tools.field_helpers import fill_and_display
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
@@ -147,35 +144,6 @@ async def _lookup_tcode_desktop(  # pylint: disable=too-many-locals
         gui_windows=gui_windows,
         retrieved_at=now,
     )
-
-
-async def _lookup_tcode_on_initial_screen(
-    backend: DesktopBackend, tcode: str, t: LanguagePack
-) -> SE93Entry | SE93Error:
-    """Look up a transaction code assuming we're already on the SE93 initial screen.
-
-    The caller handles navigation (``enter_transaction``) and state reset
-    (``/n`` between lookups) to prevent state bleeding in batch mode.
-    """
-    # Ensure the SE93 screen is fully loaded before interacting.
-    await backend.wait_for_ready()
-
-    # Fill field with real keyboard events, press F7, and verify navigation.
-    error_msg = await fill_and_display(
-        backend, list(t.se93.transaction_code), tcode, t, tcode_label="transaction", initial_title=t.se93.initial_screen
-    )
-    if error_msg:
-        return SE93Error(
-            tcode=tcode,
-            error=error_msg,
-            retrieved_at=datetime.now(UTC),
-        )
-
-    # Get and parse snapshot
-    snapshot = AriaSnapshot(await backend.get_snapshot())
-    logger.debug("Got snapshot", extra={"object": tcode, "length": len(snapshot)})
-
-    return parse_se93_snapshot(snapshot, tcode, t)
 
 
 async def _lookup_batch_desktop(backend: DesktopBackend, tcode_list: list[str], t: LanguagePack) -> SE93Result:

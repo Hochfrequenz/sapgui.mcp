@@ -8,11 +8,9 @@ from sapguimcp.backend.manager import (
     get_desktop_backend,
     reset_backend_manager,
 )
-from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.models.base import CheckActivateResult
 
 __all__ = [
-    "AriaSnapshot",
     "ComTreeSnapshot",
     "CheckActivateResult",
     "close_backend",
