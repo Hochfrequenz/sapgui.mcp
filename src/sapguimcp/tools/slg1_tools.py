@@ -134,7 +134,7 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
     from_date: str | None = None,
     to_date: str | None = None,
 ) -> SLG1LogListResult:
-    """Desktop-specific SLG1 lookup using read_table instead of ARIA parsing."""
+    """Desktop SLG1 lookup using read_table."""
     now = datetime.now(UTC)
     logger.info("SLG1 desktop backend path", extra={"object": object_name})
 

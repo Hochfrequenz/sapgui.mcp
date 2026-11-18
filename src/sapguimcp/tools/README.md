@@ -1,21 +1,22 @@
 # Tools
 
-This directory contains MCP tool definitions for SAP Web GUI automation.
+This directory contains MCP tool definitions for SAP GUI for Windows automation.
 
 ## Module Structure
 
 ```
 tools/
 ├── __init__.py            # Package exports (register functions)
-├── sap_tools.py           # High-level SAP tools
-├── browser_tools.py       # Low-level browser escape hatches
+├── sap_tools.py           # High-level SAP tools (login, transaction, screen, keyboard, ...)
+├── com_tools.py           # COM escape hatches (sap_com_snapshot, sap_com_evaluate)
+├── script_tools.py        # sap_run_script (sandboxed batch scripting)
 ├── se11_tools.py          # SE11 ABAP Dictionary lookup
 ├── se16_tools.py          # SE16N table data query
 ├── se24_tools.py          # SE24 Class Builder lookup
 ├── se37_tools.py          # SE37 Function Builder lookup
 ├── se93_tools.py          # SE93 Transaction Maintenance lookup
 ├── sm37_tools.py          # SM37 background job lookup
-├── quick_report_tools.py  # Composite: TX → fill → F8 → read result
+├── ...                    # More transaction tools (se09, slg1, sm30, spro, st22, ...)
 └── README.md              # This file
 ```
 
@@ -25,12 +26,12 @@ tools/
 
 High-level, SAP-specific operations:
 
-| Tool                  | Description                                                         |
-| --------------------- | ------------------------------------------------------------------- |
-| `sap_login`           | Opens SAP Web GUI for user to enter credentials                     |
-| `sap_transaction`     | Enters and executes a transaction code (auto-enables OK-Code field) |
-| `sap_keepalive_start` | Starts background task to prevent session timeout                   |
-| `sap_keepalive_stop`  | Stops the keepalive background task                                 |
+| Tool                  | Description                                                     |
+| --------------------- | --------------------------------------------------------------- |
+| `sap_login`           | Logs into SAP through SAP GUI for Windows (opens a new session) |
+| `sap_transaction`     | Enters and executes a transaction code                          |
+| `sap_keepalive_start` | Starts background task to prevent session timeout               |
+| `sap_keepalive_stop`  | Stops the keepalive background task                             |
 
 ### Specialized Transaction Tools (faster, return structured data)
 
@@ -43,31 +44,18 @@ High-level, SAP-specific operations:
 | `sap_se93_lookup` | `se93_tools.py` | Look up transaction metadata from Transaction Maintenance |
 | `sap_sm37_lookup` | `sm37_tools.py` | Look up background job status and logs                    |
 
-### Composite Tools (multi-step pipelines)
-
-| Tool               | File                    | Description                                                    |
-| ------------------ | ----------------------- | -------------------------------------------------------------- |
-| `sap_quick_report` | `quick_report_tools.py` | TX → fill selection screen → F8 → classify & read result table |
-
 **Note:** Use these specialized tools instead of `sap_transaction('SExx')` - they are faster
 and return structured Pydantic models instead of requiring manual screen parsing.
 
-### Browser Tools (`browser_tools.py`)
+### COM Escape Hatches
 
-Low-level escape hatches when SAP tools don't work:
+Low-level tools for when the SAP tools do not cover a screen. They work on the SAP GUI element tree:
 
-| Tool                    | Description                                |
-| ----------------------- | ------------------------------------------ |
-| `browser_snapshot`      | Get accessibility tree of page             |
-| `browser_screenshot`    | Take screenshot (returns base64 PNG)       |
-| `browser_click`         | Click element by selector                  |
-| `browser_fill`          | Fill input field                           |
-| `browser_keyboard`      | Send keyboard input                        |
-| `browser_navigate`      | Navigate to URL                            |
-| `browser_evaluate`      | Execute JavaScript                         |
-| `browser_wait`          | Wait for element state (use with selector) |
-| `browser_get_html`      | Get HTML content                           |
-| `browser_select_option` | Select dropdown option                     |
+| Tool               | File              | Description                                               |
+| ------------------ | ----------------- | --------------------------------------------------------- |
+| `sap_com_snapshot` | `com_tools.py`    | Get the element tree with element IDs                     |
+| `sap_com_evaluate` | `com_tools.py`    | Read or set properties and call methods on elements by ID |
+| `sap_run_script`   | `script_tools.py` | Run a sandboxed Python script against the SAP GUI COM API |
 
 ## Adding New Tools
 
@@ -127,7 +115,6 @@ from sapguimcp.tools.my_custom_tools import register_my_custom_tools
 
 # After creating the mcp instance:
 register_sap_tools(mcp)
-register_browser_tools(mcp)
 register_my_custom_tools(mcp)  # Add this line
 ```
 
@@ -184,9 +171,8 @@ async def sap_transaction(tcode: str) -> str:
     Enter and execute an SAP transaction code.
 
     This tool will:
-    1. Check if the OK-Code field is visible
-    2. If not, attempt to enable it via Settings
-    3. Enter the transaction code and execute it
+    1. Enter the transaction code in the OK-Code field
+    2. Execute it and read the title and status bar of the new screen
 
     Args:
         tcode: Transaction code (e.g., VA01, MM03, SE80, SU01)
@@ -200,11 +186,11 @@ async def sap_transaction(tcode: str) -> str:
 
 ```python
 try:
-    result = await page.click(selector)
-    return f"Success: clicked {selector}"
+    await backend.click_button(label)
+    return f"Success: clicked {label}"
 except Exception as e:
-    logger.exception("Error clicking element")
-    return f"Error clicking {selector}: {e}"
+    logger.exception("Error clicking button")
+    return f"Error clicking {label}: {e}"
 ```
 
 ### 4. Return Informative Messages
@@ -248,20 +234,20 @@ uv run --group coverage coverage run -m pytest
 
 ## Debugging Tips
 
-1. **Use browser_snapshot** to see the page structure
-2. **Use browser_screenshot** to see what's on screen
+1. **Use `sap_com_snapshot`** to see the element tree and element IDs
+2. **Use `sap_screenshot`** to see what is on screen
 3. **Check logs** - tools log their actions
-4. **Try browser_evaluate** to run diagnostic JavaScript
+4. **Use `sap_com_evaluate`** to read properties or call methods on a single element
 
 Example debugging workflow:
 
 ```
-Claude: I'll first take a snapshot to understand the page structure.
-[calls browser_snapshot]
+Claude: I'll first take a snapshot to understand the screen structure.
+[calls sap_com_snapshot]
 
 Claude: I can see the structure. Let me take a screenshot to verify visually.
-[calls browser_screenshot]
+[calls sap_screenshot]
 
-Claude: Now I'll try clicking the element.
-[calls browser_click with the right selector]
+Claude: Now I'll press the button.
+[calls sap_com_evaluate with the button's element ID and action="call", method="Press"]
 ```

@@ -14,7 +14,7 @@ This recipe describes the full ABAP development lifecycle: write code locally wi
 - This MCP server added to Claude Code configuration
 - abapGit installed in the SAP system (see [abapGit docs](https://docs.abapgit.org/user-guide/getting-started/install.html))
 - A Git repository linked to an ABAP package via abapGit
-- The report [Z_ABAPGIT_PULL_MCP_SHORTCUT](https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT/blob/main/src/z_abapgit_pull_mcp_shortcut.prog.abap) installed in SAP -- this is required for the `sap_abapgit_pull` tool. The abapGit UI is too complex for browser automation, so this report provides a simple API to pull without clicking through the UI.
+- The report [Z_ABAPGIT_PULL_MCP_SHORTCUT](https://github.com/Hochfrequenz/Z_ABAPGIT_PULL_MCP_SHORTCUT/blob/main/src/z_abapgit_pull_mcp_shortcut.prog.abap) installed in SAP -- this is required for the `sap_abapgit_pull` tool. The abapGit UI is too complex to automate, so this report provides a simple API to pull without clicking through the UI.
 - A GitHub Personal Access Token (PAT) with `repo` scope (classic PAT) or Contents: Read permission (fine-grained PAT) -- required for `sap_abapgit_pull` to authenticate against the Git repository
 - An existing SAP transport request -- `sap_abapgit_pull` records changes on a transport; the transport must already exist before pulling
 - Claude Code opened in the local repository directory
@@ -78,7 +78,7 @@ sap_abapgit_pull(repo="YOUR_REPO_NAME", branch="feature/x", trkorr="DEVK900123")
 
 **Option B: Pull manually in SAP (slow, not recommended)**
 
-The abapGit UI is complex and hard to automate via browser. Only use this as a fallback if `Z_ABAPGIT_PULL_MCP_SHORTCUT` is not installed.
+The abapGit UI is complex and hard to automate. Only use this as a fallback if `Z_ABAPGIT_PULL_MCP_SHORTCUT` is not installed.
 
 1. Open abapGit in SAP:
 

@@ -1,6 +1,6 @@
 # pylint: disable=too-many-lines
 """
-abapGit integration tools for SAP (WebGUI and desktop backends).
+abapGit integration tools for SAP (SAP GUI for Windows).
 
 This module provides:
 - List: Enumerate all registered abapGit repositories and their metadata
@@ -132,8 +132,8 @@ def _is_transaction_not_found(status: StatusBarInfo, t: LanguagePack) -> bool:
     """Check if the status bar says the pull transaction does not exist.
 
     The desktop status bar carries the message ID (S# 343), which does not depend on the logon language. The text
-    check stays for the WebGUI, whose status bar has no message ID (and for the desktop until a live run shows the ID
-    arrives after an OK-code entry too).
+    check stays until a live run shows the ID
+    arrives after an OK-code entry too.
     """
     if (status.message_id, status.message_number) == _TRANSACTION_NOT_FOUND_MESSAGE:
         return True
@@ -546,8 +546,8 @@ async def _execute_pull_transaction(
 def _is_inactive_objects_popup(popup: PopupInfo) -> bool:
     """Return True if the popup is the "Inaktive Objekte" / "Inactive Objects" dialog.
 
-    The phrase may be in the window title (desktop: the message is built from the dialog's
-    labels, not its title) or in the message (WebGUI: the message comes from the header title).
+    The phrase may be in the window title (the message is built from the dialog's
+    labels, not its title) or in the message.
     """
     return lang.universal().popup.abapgit_inactive_objects.contains(f"{popup.title or ''} {popup.message or ''}")
 
@@ -607,7 +607,7 @@ def _parse_repo_lines(raw_output: str) -> tuple[list[AbapGitRepoInfo], int]:
 
     Expected format per line: name~url~package~branch~deserialized_at~deserialized_by~offline[~key]
     The trailing repository key must be exactly 12 digits, else ``key=None`` (older reports do not write it).
-    Uses ~ as delimiter because SAP WebGUI strips | (pipe) characters from WRITE output.
+    Uses ~ as delimiter because | (pipe) characters can be lost in WRITE output.
     Lines that don't match (headers, empty, UI noise) are skipped. Returns the repositories and the number of skipped
     lines that look like repository lines (at least four fields, not the TOTAL header), which are registered but cannot
     be listed, such as an online repository without a usable URL.

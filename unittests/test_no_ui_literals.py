@@ -1,7 +1,7 @@
 """No SAP UI literal outside the language packs (#1044, spec section 10).
 
 Scans ``src/sapguimcp/**/*.py`` (outside ``lang/``) for string
-literals that look like SAP screen text, with three rules:
+literals that look like SAP screen text, with two rules:
 
 1. **Sink rule** (AST): a literal passed to a UI sink (``click_button``, ``get_by_role(name=...)``,
    a local ``*_bilingual`` helper, a ``text=`` / ``has-text(...)`` / ``[title*=...]`` selector),
@@ -13,10 +13,6 @@ literals that look like SAP screen text, with three rules:
    inside ``raise`` or ``error=`` / ``message=`` values, ``raise`` arguments), identifiers, CSS
    selectors and prose of more than six words; the sink rule still applies to those. Other f-strings
    are checked on their constant parts.
-3. **JS rule**: a string or regex literal used with ``includes``, ``===``, ``match``, ``test``,
-   ``replace``, ..., or in a ``title*=`` / ``has-text`` selector, in ``.js`` files and in JS
-   functions held in Python strings (``evaluate_javascript("() => {...}")``). The value rule also
-   applies to regex bodies and to template literals without ``${``.
 
 Skipped everywhere: docstrings, logging calls, ``description=`` keyword arguments, and literals that
 are code (no letters, one character, ``snake_case``, ALL CAPS, only DOM/ARIA vocabulary).
@@ -31,10 +27,9 @@ Exemptions are keyed by file and literal, never by line:
   count includes every non-exempt occurrence of a baselined literal, flagged or not. A new hit
   fails, and so does an entry whose count no longer matches. Phase-3 migrations only delete or lower
   entries; ``uv run --group tests python unittests/test_no_ui_literals.py --prune`` does that and never adds one.
-- ``# lang-ok: <reason>`` (``// lang-ok: <reason>`` in JS) on any line of the literal is a permanent
+- ``# lang-ok: <reason>`` on any line of the literal is a permanent
   exemption for literals that are code identifiers or the server's own messages. A pack added later
-  may need new ``lang-ok`` comments, never a baseline entry. In a JS function held in a Python string
-  only a ``// lang-ok`` inside the JS counts; a Python ``# lang-ok`` on the line does not exempt it.
+  may need new ``lang-ok`` comments, never a baseline entry.
 """
 
 import ast
@@ -75,7 +70,7 @@ from any text, and the one-word message types of the WebGUI message bar.
 
 Their English variants (``Error``, ``failed``, ``could not``) are also the words of the server's own
 messages: the value rule would flag over a hundred of them, so it skips the EN variants of these fields
-only. Variants of every other language stay guarded, and the sink and JS rules still apply."""
+only. Variants of every other language stay guarded, and the sink rule still applies."""
 MAX_VALUE_WORDS = 6
 """Longer literals are prose (messages, docs); the value rule leaves them to the sink rule."""
 MESSAGE_KEYWORDS = frozenset({"error", "message", "msg", "hint", "reason", "details", "suggestion"})
@@ -118,9 +113,7 @@ LOG_RECEIVER = re.compile(r"^_?(?:log|logger|logging|LOGGER|LOG)$|_logger$|_log$
 SELECTOR = re.compile(
     r"""(?:(?<![\w.-])text=(?!=)|has-text\(|:text(?:-is)?\(|\[(?:title|aria-label|placeholder)[*^$|~]?=)\s*['"]?([^'"\])]*)"""
 )
-INLINE_JS = re.compile(r"\s*\(?\s*(?:async\s+)?(?:\([^()]*\)|[A-Za-z_$][\w$]*)\s*=>|\s*\(?\s*function\b")
-"""A Python string holding a JS function for ``evaluate_javascript``; scanned with the JS rule."""
-LANG_OK = re.compile(r"(?:#|//)\s*lang-ok:\s*\S")
+LANG_OK = re.compile(r"#\s*lang-ok:\s*\S")
 
 TECHNICAL_WORDS = frozenset(
     " ".join(
@@ -434,11 +427,6 @@ def scan_python_source(source: str, relative: str) -> tuple[list[Hit], Counter[s
             continue
         if id(node) in skipped:
             continue
-        if INLINE_JS.match(node.value):  # only a ``// lang-ok`` inside the JS exempts it, not a Python comment
-            inner_hits, inner_counts = scan_js_source(node.value, relative, node.lineno)
-            hits.extend(inner_hits)
-            counts.update(inner_counts)
-            continue
         if ok_lines & set(range(node.lineno, (node.end_lineno or node.lineno) + 1)):
             continue
         counts[node.value] += 1
@@ -446,135 +434,6 @@ def scan_python_source(source: str, relative: str) -> tuple[list[Hit], Counter[s
         if rule is not None and not is_technical(node.value):
             hits.append(Hit(relative, node.lineno, node.value, rule))
     return hits, counts
-
-
-# ---------------------------------------------------------------------------
-# JavaScript
-# ---------------------------------------------------------------------------
-
-_JS_TOKEN = re.compile(
-    r"""
-    (?P<comment>//[^\n]*|/\*.*?\*/)
-  | (?P<str>'(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*")
-  | (?P<tmpl>`(?:\\.|[^`\\])*`)
-  | (?P<ident>[A-Za-z_$][\w$]*)
-  | (?P<num>\d[\w.]*)
-  | (?P<op>===|!==|==|!=|=>|\?\.|&&|\|\||[{}()\[\];,.<>+\-*%=!?:&|^~@\#])
-  | (?P<slash>/)
-  | (?P<ws>\s+)
-    """,
-    re.VERBOSE | re.DOTALL,
-)
-_REGEX_BODY = re.compile(r"/(?:\\.|\[(?:\\.|[^\]\\])*\]|[^/\\\n\[])+/[a-z]*")
-_REGEX_AFTER = frozenset({"(", ",", "=", ":", "[", "!", "&&", "||", "?", "{", "}", ";", "return", "=>"})
-JS_METHODS = frozenset(
-    {"includes", "match", "matchAll", "test", "replace", "replaceAll", "indexOf", "startsWith", "endsWith", "search"}
-)
-JS_ARRAY_METHODS = JS_METHODS | {"some", "find", "filter", "every"}
-JS_EQUALITY = frozenset({"===", "!==", "==", "!="})
-
-
-@dataclass(frozen=True)
-class _Tok:
-    kind: str
-    text: str
-    line: int
-
-
-def _js_tokens(source: str) -> tuple[list[_Tok], set[int]]:
-    """Tokens of JS source and the lines that carry a ``// lang-ok: <reason>`` comment."""
-    tokens: list[_Tok] = []
-    ok_lines: set[int] = set()
-    position, line = 0, 1
-    while position < len(source):
-        if source[position] == "/" and not source.startswith(("//", "/*"), position):
-            previous = tokens[-1] if tokens else None
-            if previous is None or previous.text in _REGEX_AFTER or previous.text in JS_EQUALITY:
-                regex = _REGEX_BODY.match(source, position)
-                if regex:
-                    tokens.append(_Tok("regex", regex.group(), line))
-                    position = regex.end()
-                    continue
-        match = _JS_TOKEN.match(source, position)
-        if match is None:
-            raise ValueError(f"cannot tokenize JS at line {line}: {source[position : position + 20]!r}")
-        kind, text = match.lastgroup or "", match.group()
-        if kind == "comment":
-            if LANG_OK.match(text):
-                ok_lines.add(line)
-        elif kind != "ws":
-            tokens.append(_Tok("op" if kind == "slash" else kind, text, line))
-        line += text.count("\n")
-        position = match.end()
-    return tokens, ok_lines
-
-
-def scan_js_source(source: str, relative: str, first_line: int = 1) -> tuple[list[Hit], Counter[str]]:
-    """JS rule and value rule over JS source: a JS function inside a Python string."""
-    tokens, ok_lines = _js_tokens(source)
-    counts: Counter[str] = Counter()
-    hits: list[Hit] = []
-    for index, token in enumerate(tokens):
-        if token.kind not in {"str", "regex", "tmpl"} or token.line in ok_lines:
-            continue
-        value = token.text if token.kind == "regex" else token.text[1:-1]
-        if not value.strip():
-            continue
-        counts[value] += 1
-        rule = _js_rule(tokens, index, value)
-        words = value[1 : value.rindex("/")] if token.kind == "regex" else value
-        interpolated = token.kind == "tmpl" and "${" in value
-        if rule is None and not interpolated and not _js_message(tokens, index) and matches_pack(words):
-            rule = "value"
-        if rule is not None and not is_technical(words):
-            hits.append(Hit(relative, first_line + token.line - 1, value, rule))
-    return hits, counts
-
-
-def _js_message(tokens: list[_Tok], index: int) -> bool:
-    """``throw new Error('...')`` or ``{error: '...'}``: the script's own message."""
-    before = [t.text for t in tokens[max(index - 2, 0) : index]]
-    return before == ["Error", "("] or (len(before) == 2 and before[1] == ":" and before[0] in MESSAGE_KEYWORDS)
-
-
-def _js_rule(tokens: list[_Tok], index: int, value: str) -> str | None:
-    def text(offset: int) -> str:
-        position = index + offset
-        return tokens[position].text if 0 <= position < len(tokens) else ""
-
-    match = SELECTOR.search(value)
-    if match and match.group(1).strip() and "${" not in match.group(1):
-        return "js-selector"
-    if text(-1) in JS_EQUALITY or text(1) in JS_EQUALITY:
-        return "js-equality"
-    called = text(-1) == "(" and text(-2) in JS_METHODS and text(-3) in {".", "?."}
-    if called or (text(1) in {".", "?."} and text(2) in JS_METHODS):
-        return "js-method"
-    return "js-array" if _in_array_receiver(tokens, index) else None
-
-
-def _in_array_receiver(tokens: list[_Tok], index: int) -> bool:
-    """The literal is an element of ``[...]`` that is the receiver of ``.includes()`` / ``.some()`` / ..."""
-    depth = 0
-    for position in range(index - 1, -1, -1):
-        current = tokens[position].text
-        if current in {"]", ")", "}"}:
-            depth += 1
-        elif current in {"(", "{"}:
-            if depth == 0:
-                return False
-            depth -= 1
-        elif current == "[":
-            if depth:
-                depth -= 1
-                continue
-            close, inner = position + 1, 1
-            while close < len(tokens) and inner:
-                inner += {"[": 1, "]": -1}.get(tokens[close].text, 0)
-                close += 1
-            follow = [t.text for t in tokens[close : close + 2]]
-            return len(follow) == 2 and follow[0] in {".", "?."} and follow[1] in JS_ARRAY_METHODS
-    return False
 
 
 # ---------------------------------------------------------------------------
@@ -722,11 +581,6 @@ def _python(source: str) -> list[tuple[str, str]]:
     return [(hit.literal, hit.rule) for hit in hits]
 
 
-def _js(source: str) -> list[tuple[str, str]]:
-    hits, _ = scan_js_source(textwrap.dedent(source), "x.js")
-    return [(hit.literal, hit.rule) for hit in hits]
-
-
 @pytest.mark.parametrize(
     ("source", "expected"),
     [
@@ -782,43 +636,6 @@ def test_lang_ok_covers_every_line_of_a_multiline_literal() -> None:
     assert _python(source) == []
 
 
-def test_inline_javascript_in_python_uses_the_js_rule() -> None:
-    source = 'JS = """() => {\n    return text === \'Anzeigen\';\n}"""\n'
-    hits, counts = scan_python_source(source, "x.py")
-    assert [(hit.literal, hit.rule, hit.line) for hit in hits] == [("Anzeigen", "js-equality", 2)]
-    assert counts["Anzeigen"] == 1
-
-
-@pytest.mark.parametrize(
-    ("source", "expected"),
-    [
-        ("if (['ja', 'nein'].includes(t)) {}", [("ja", "js-array"), ("nein", "js-array")]),
-        ("if (/Meldungsleiste/.test(x)) {}", [("/Meldungsleiste/", "js-method")]),
-        ("if (el.title === 'Schließen') {}", [("Schließen", "js-equality")]),
-        ("const c = document.querySelector(\"[title*='Schlie']\");", [("[title*='Schlie']", "js-selector")]),
-        ("const s = text.replace('Meldungsleiste', '');", [("Meldungsleiste", "js-method")]),
-    ],
-)
-def test_js_rule_flags_screen_text(source: str, expected: list[tuple[str, str]]) -> None:
-    assert _js(source) == expected
-
-
-@pytest.mark.parametrize(
-    "source",
-    [
-        "if (el.tagName === 'INPUT') {}",
-        "if (style.display === 'none') {}",
-        r"const t = text.replace(/\s+/g, ' ');",
-        "throw new Error('Program not found');",
-        "return {error: 'Workbench Requests not found'};",
-        "// if (t === 'Anzeigen') {}",
-        "if (t === 'Anzeigen') {}  // lang-ok: test fixture text",
-    ],
-)
-def test_js_rule_skips_code_and_messages(source: str) -> None:
-    assert _js(source) == []
-
-
 @pytest.mark.parametrize(
     ("source", "expected"),
     [
@@ -852,29 +669,6 @@ def test_python_rules_stronger(source: str, expected: list[tuple[str, str]]) -> 
 )
 def test_python_rules_stronger_skip(source: str) -> None:
     assert _python(source) == []
-
-
-def test_python_lang_ok_does_not_exempt_inline_javascript() -> None:
-    source = "JS = \"() => { return t === 'Anzeigen'; }\"  # lang-ok: not for JS\n"
-    assert [(hit.literal, hit.rule) for hit in scan_python_source(source, "x.py")[0]] == [("Anzeigen", "js-equality")]
-    inner = 'JS = """() => {\n    return t === \'Anzeigen\'; // lang-ok: test fixture\n}"""\n'
-    assert scan_python_source(inner, "x.py")[0] == []
-
-
-@pytest.mark.parametrize(
-    ("source", "expected"),
-    [
-        ("const re = /Workbench-Aufträge|Workbench Requests/;", [("/Workbench-Aufträge|Workbench Requests/", "value")]),
-        ("const s = `Workbench-Aufträge`;", [("Workbench-Aufträge", "value")]),
-    ],
-)
-def test_js_value_rule_covers_regex_and_templates(source: str, expected: list[tuple[str, str]]) -> None:
-    assert _js(source) == expected
-
-
-@pytest.mark.parametrize("source", ["const s = `Workbench-Aufträge ${n}`;", r"const re = /\d+\s*(?:abc)/;"])
-def test_js_value_rule_skips_interpolated_templates_and_code_regex(source: str) -> None:
-    assert _js(source) == []
 
 
 def test_value_rule_matches_whole_words_only() -> None:

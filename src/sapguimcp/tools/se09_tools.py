@@ -3,7 +3,7 @@ SE09 (Transport Organizer) lookup tool.
 
 This module provides a read-only tool to list transport requests from SE09.
 The tool navigates to SE09, applies filters, clicks Anzeigen (Display),
-and parses the flat text list from the ARIA snapshot.
+and reads the request list from the screen.
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Shared utility functions for SAP WebGUI MCP."""
+"""Shared utility functions for the SAP GUI MCP server."""
 
 import errno
 import json

@@ -72,7 +72,7 @@ async def _read_checkbox(backend: DesktopBackend, sap_name: str) -> bool:
 async def _lookup_tcode_desktop(  # pylint: disable=too-many-locals
     backend: DesktopBackend, tcode: str, t: LanguagePack
 ) -> SE93Entry | SE93Error:
-    """Desktop-specific SE93 lookup using field reading instead of ARIA parsing."""
+    """Desktop SE93 lookup using field reading."""
 
     now = datetime.now(UTC)
 

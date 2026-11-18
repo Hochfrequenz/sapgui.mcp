@@ -57,7 +57,7 @@ Fill in the required fields:
 - Distribution Channel (VTWEG)
 - Division (SPART)
 
-Use `browser_fill` or `browser_click` if the standard fields don't work.
+Use `sap_set_field` or `sap_click_button` if the standard fields don't work.
 
 ### Step 3: Enter Customer
 
@@ -124,7 +124,7 @@ Every skill should include:
 
 ## Using Skills with Claude
 
-Claude can read skill files using the `browser_evaluate` or file system tools if available. In practice, skills are most
+Claude can read skill files using file system tools if available. In practice, skills are most
 useful when:
 
 1. **Included in system prompts** - Add relevant skills to the MCP server's context
@@ -147,7 +147,7 @@ useful when:
 
 | Skill             | Description                        |
 | ----------------- | ---------------------------------- |
-| Navigation Basics | How to navigate SAP Web GUI        |
+| Navigation Basics | How to navigate SAP GUI            |
 | Table Handling    | Working with ALV grids and tables  |
 | Search Help       | Using F4 search help               |
 | Error Messages    | Understanding and resolving errors |
@@ -155,16 +155,16 @@ useful when:
 
 ## Best Practices for Skills
 
-### 1. Be Specific About Selectors
+### 1. Be Specific About Field Names
 
 ```markdown
 ## Step 2: Fill Sales Organization
 
 The sales organization field is typically found at:
 
-- ID: `M0_R1_C2_txt` (varies by SAP version)
+- Technical name: `VKORG` (the field `VBAK-VKORG`)
 - Label: "Sales Org." or "Verkaufsorg."
-- Use `browser_fill` with selector `input[id*="VKORG"]`
+- Use `sap_set_field` with the label or the technical name
 ```
 
 ### 2. Include Recovery Steps
@@ -172,12 +172,12 @@ The sales organization field is typically found at:
 ```markdown
 ## Error Recovery
 
-If the OK-Code field is not visible:
+If a field is not found:
 
-1. Use `browser_snapshot` to see current page state
-2. Look for settings/gear icon
-3. Enable "Transaction Field" or "OK-Code Field"
-4. Retry the transaction
+1. Use `sap_com_snapshot` to see the current element tree
+2. Try the technical field name instead of the label
+3. Check if a popup is blocking (`sap_close_popup`)
+4. Retry the step
 ```
 
 ### 3. Provide Visual Cues
@@ -212,7 +212,7 @@ Different SAP configurations may show different fields:
 - Customer (pre-filled)
 - Reference Document
 
-Use `browser_snapshot` to identify which view is active.
+Use `sap_discover_fields` to identify which view is active.
 ```
 
 ## Skill Discovery
@@ -251,6 +251,6 @@ When creating skills for this project:
 
 1. Follow the template structure
 2. Test with actual SAP systems when possible
-3. Include real selector examples
+3. Include real field name examples
 4. Document error cases you encounter
 5. Submit via pull request with tests if applicable

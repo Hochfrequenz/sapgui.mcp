@@ -16,7 +16,7 @@ They are NOT shipped with the package and NOT used at runtime.
 | `consolidate_catalog.py` | Build `transactions.json` from SE16 result files | After scraping TSTC with `sap_se16_query`                                          |
 | `add_inline_results.py`  | Add inline SE16 results to catalog               | When SE16 returned results inline (not to file)                                    |
 | `render_readme_demo.py`  | Render README demo composites + concat file      | Rebuilding the README GIF (see below)                                              |
-| `smoke_test_exe.py`      | Start a built binary and send an MCP initialize  | `build_executable.yml` runs it for every release binary                            |
+| `smoke_test_exe.py`      | Start a built binary and send an MCP initialize  | `build_executable.yml` runs it for the public Windows binary                       |
 | `harvest_lang_texts.py`  | Compare a language pack with SAP's own texts     | After an SAP upgrade, after changing a sourced pack text, before adding a language |
 
 ## Language Pack Verification
@@ -61,7 +61,7 @@ await sap_se16_query(table="TSTC", filters={"TCODE": "MM*"}, max_hits=500, outpu
 python scripts/consolidate_catalog.py <tool-results-dir>
 ```
 
-This reads all `mcp-sap-webgui-sap_se16_query-*.txt` result files in the given directory and creates `transactions.json`. It exits non-zero if the directory is missing or contains no result files.
+This reads all `mcp-sap-desktop-sap_se16_query-*.txt` result files in the given directory and creates `transactions.json`. It exits non-zero if the directory is missing or contains no result files.
 
 ### Step 3: Add Inline Results (if needed)
 
@@ -116,6 +116,6 @@ These scripts:
 - Are **one-off utilities** for building/maintaining data
 - Require **manual intervention** (editing, running with specific parameters)
 - Should **NOT be importable** as part of the package
-- Are **NOT included** in the built wheel/Docker image
+- Are **NOT included** in the built wheel
 
 The `scraper.py` module in `src/sapguimcp/catalog/` is an exception - it's co-located because it imports from the catalog models, but it's clearly marked as "DEVELOPMENT USE ONLY" in its docstring.

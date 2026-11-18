@@ -340,9 +340,8 @@ async def _lookup_class_desktop(  # pylint: disable=too-many-locals,too-many-sta
 async def _capture_tab_snapshot(backend: DesktopBackend, tab: Text) -> str | None:
     """Click a tab and capture its snapshot. Returns snapshot or None.
 
-    After clicking, verifies the tab is actually ``[selected]`` in the ARIA
-    snapshot.  SAP WebGUI sometimes needs an extra ``wait_for_ready`` before
-    the tab content is rendered.
+    After clicking, verifies the tab is actually ``[selected]`` in the
+    snapshot.
     """
     for name in tab:
         try:

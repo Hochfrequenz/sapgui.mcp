@@ -1,8 +1,8 @@
 """
-SAP Web GUI MCP Server - Browser automation for SAP Web GUI via Model Context Protocol.
+SAP GUI MCP Server - SAP GUI for Windows automation via Model Context Protocol.
 
 This package provides an MCP server that enables Claude and other AI assistants
-to interact with SAP Web GUI through browser automation.
+to interact with SAP GUI for Windows through its COM scripting API.
 
 Example usage with Claude Code:
     1. Configure the MCP server in your claude settings

@@ -124,7 +124,7 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
     from_date: str | None,
     to_date: str | None,
 ) -> SM37JobListResult:
-    """Desktop-specific SM37 lookup using read_table instead of ARIA parsing."""
+    """Desktop SM37 lookup using read_table."""
     now = datetime.now(UTC)
 
     logger.info("SM37 desktop backend path", extra={"job_name": job_name})

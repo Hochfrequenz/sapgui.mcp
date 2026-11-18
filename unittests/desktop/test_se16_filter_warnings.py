@@ -448,8 +448,7 @@ async def test_tool_description_documents_strict_filter_fields() -> None:
     assert "selection fields" in description
     # The strict behaviour is no longer desktop-only (#924): the description must not claim it is.
     assert "On the desktop backend, if a filter cannot be applied" not in description
-    assert "WebGUI backend" in description
-    assert "first ~30 rows" in description
+    assert "WebGUI" not in description
 
 
 class _FakeElement:
