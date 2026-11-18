@@ -184,7 +184,7 @@ python -m pytest unittests/webgui/test_selectors.py -v
 
 ### HTML Snapshots
 
-WebGUI unit tests validate CSS selectors against captured HTML snapshots stored in `unittests/webgui/testdata/html_snapshots/`. These are system-specific — transport numbers, usernames, and other data in the snapshots come from the system they were captured on. If you switch to a new SAP system, re-capture snapshots by running integration tests with `SAP_LANGUAGE=DE` and `SAP_LANGUAGE=EN`.
+WebGUI unit tests validate CSS selectors against captured HTML snapshots stored in `unittests/testdata/html_snapshots/`. These are system-specific — transport numbers, usernames, and other data in the snapshots come from the system they were captured on. If you switch to a new SAP system, re-capture snapshots by running integration tests with `SAP_LANGUAGE=DE` and `SAP_LANGUAGE=EN`.
 
 ### Troubleshooting (WebGUI)
 

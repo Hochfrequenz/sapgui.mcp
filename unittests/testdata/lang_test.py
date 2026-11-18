@@ -1,4 +1,4 @@
-"""Test-only SAP texts of the WebGUI tests, as one test pack per logon language (#1044).
+"""Test-only SAP texts of the UI tests (WebGUI, and the desktop SPRO test), as one test pack per logon language (#1044).
 
 The same mechanism as the language packs in ``sapguimcp.lang``: frozen dataclass sections with
 required fields only, every value a ``Text``, and a completeness test

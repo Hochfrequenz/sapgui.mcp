@@ -471,7 +471,7 @@ async def test_abapgit_pull_public_repo(sap_mcp_client: ClientSession) -> None:
     1. Call the Z_ABAPGIT_PULL_MCP transaction with parameters
     2. Successfully pull from a public repository
 
-    The test repo is a submodule at unittests/abapgit_repos/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY
+    The test repo is a submodule at unittests/testdata/abapgit_repos/Z_PUBLIC_ABAPGIT_TEST_REPOSITORY
     """
     # Login first
     login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)
@@ -535,7 +535,7 @@ async def test_abapgit_pull_private_repo_with_pat(sap_mcp_client: ClientSession)
     Test pulling a private repository with PAT authentication.
 
     Uses PAT from ABAPGIT_PAT environment variable.
-    The test repo is a submodule at unittests/abapgit_repos/Z_PRIVATE_ABAPGIT_TEST_REPOSITORY
+    The test repo is a submodule at unittests/testdata/abapgit_repos/Z_PRIVATE_ABAPGIT_TEST_REPOSITORY
     """
     # Login first
     login_result = await call_tool_typed(sap_mcp_client, "sap_login", {}, LoginResult)

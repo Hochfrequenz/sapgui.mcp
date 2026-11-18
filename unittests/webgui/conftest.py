@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from sapguimcp.models import LoginResult
 from unittests.conftest import SESSION_SAP_CONFIG_FILE, has_sap_webgui_creds
-from unittests.webgui.testdata.lang_test import UI_TEST_PACKS, UiTestPack, resolve_sap_language
+from unittests.testdata.lang_test import UI_TEST_PACKS, UiTestPack, resolve_sap_language
 
 
 def resolve_login_user(login: LoginResult) -> str:
@@ -51,7 +51,7 @@ def sap_language() -> str:
 
 @pytest.fixture
 def ui_texts(sap_language: str) -> UiTestPack:
-    """Test-only SAP texts for ``SAP_LANGUAGE`` (see ``unittests/webgui/testdata/lang_test.py``).
+    """Test-only SAP texts for ``SAP_LANGUAGE`` (see ``unittests/testdata/lang_test.py``).
 
     Usage in tests:
         def test_something(ui_texts):
@@ -61,7 +61,7 @@ def ui_texts(sap_language: str) -> UiTestPack:
 
 
 # Path to HTML snapshots directory for selector unit tests
-HTML_SNAPSHOTS_DIR = Path(__file__).parent / "testdata" / "html_snapshots"
+HTML_SNAPSHOTS_DIR = Path(__file__).parent.parent / "testdata" / "html_snapshots"
 
 
 @pytest.fixture

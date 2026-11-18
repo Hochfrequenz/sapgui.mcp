@@ -8,7 +8,7 @@ import pytest
 from sapguimcp.models.spro_models import SPROSearchResult
 from sapguimcp.tools.spro_tools import _search_img_desktop
 from unittests.desktop.conftest import go_home, skip_no_sap
-from unittests.webgui.testdata.lang_test import UI_TEST_PACKS
+from unittests.testdata.lang_test import UI_TEST_PACKS
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 

@@ -6,7 +6,7 @@ when a real action would actually succeed. This test guards the happy path: a
 genuinely logged-in session must still report "active" via the stronger probe.
 
 The dead-handle path (stale interface -> friendly remediation message) is
-covered by mocked unit tests in ``unittests/test_get_session_status_per_id.py``
+covered by mocked unit tests in ``unittests/desktop/test_get_session_status_per_id.py``
 and ``unittests/desktop/test_com_thread.py``; reproducing a truly wedged COM
 handle live requires corrupting the connection and is intentionally not done
 against the shared system.

@@ -274,10 +274,10 @@ async def test_3_concurrent_recovery() -> bool:
     of PR #629's lock semantics — those are covered by faster, more
     isolated unit tests on Linux/CI:
 
-    * ``unittests/test_backend_manager.py::test_recover_desktop_if_dead_concurrent_only_clears_once``
+    * ``unittests/desktop/test_backend_manager_desktop.py::test_recover_desktop_if_dead_concurrent_only_clears_once``
       — uses mocked dead threads to assert ``desktop_com_thread_dead_rebuilding``
       fires exactly once under ``asyncio.gather`` recovery, no SAP needed.
-    * ``unittests/test_backend_manager.py::test_recover_desktop_if_dead_blocks_when_lock_held``
+    * ``unittests/desktop/test_backend_manager_desktop.py::test_recover_desktop_if_dead_blocks_when_lock_held``
       — pre-acquires the recovery lock externally and proves the second
       caller actually waits, instead of relying on coincidental ordering.
 

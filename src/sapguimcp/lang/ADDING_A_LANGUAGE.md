@@ -51,7 +51,7 @@ verification. Design and rationale: `docs/superpowers/specs/2026-11-10-language-
    `uv run python scripts/harvest_lang_texts.py IT --verify --system "<key>"`. If a system is not
    reachable directly, use `--sap-texts <file>` with the results of `--print-sql`. Fix every
    drift, or turn the field into `Manual("SAP text differs: ...")` with the exact difference.
-5. **Test pack and fixtures.** Add the language to `unittests/webgui/testdata/lang_test.py`. Capture
+5. **Test pack and fixtures.** Add the language to `unittests/testdata/lang_test.py`. Capture
    WebGUI snapshots in the new language next to the existing `*_de` / `*_en` files and add parser
    tests for them. Set `SAP_LANGUAGE=<XX>` while capturing: the WebGUI tests take their test texts
    and the snapshot file suffix from it.

@@ -1,0 +1,29 @@
+"""Guard against ``extra`` keys that collide with ``logging.LogRecord`` attributes.
+
+``logging`` raises ``KeyError("Attempt to overwrite ... in LogRecord")`` when an ``extra`` dict
+contains a reserved key such as ``message`` or ``name``. That happens only when the record is
+actually emitted, so the bug hides at INFO level and surfaces in error paths or with DEBUG
+logging enabled.
+
+Only literal ``extra={...}`` and ``extra=dict(...)`` arguments are checked; an ``extra`` passed as
+a variable or built by another call is not.
+"""
+
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from sapguimcp.tools import se11_tools
+
+
+@pytest.mark.anyio
+async def test_se11_desktop_batch_reports_lookup_errors_instead_of_raising() -> None:
+    """A failing desktop SE11 lookup ends up in ``errors``; logging it must not raise (KeyError on 'name')."""
+    backend = MagicMock()
+    backend.enter_transaction = AsyncMock(return_value=MagicMock(success=True))
+    backend.wait_for_ready = AsyncMock()
+    with patch.object(se11_tools, "_lookup_se11_desktop", AsyncMock(side_effect=RuntimeError("boom"))):
+        result = await se11_tools._lookup_batch_se11_desktop(backend, ["T000"], "table")
+    assert result.success is False
+    assert len(result.errors) == 1
+    assert "boom" in result.errors[0].error

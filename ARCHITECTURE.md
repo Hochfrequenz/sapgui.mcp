@@ -194,7 +194,7 @@ case sensitivity, short fragments), is
 4. Verify against SAP's text tables on every release:
    `uv run python scripts/harvest_lang_texts.py <XX> --verify`. Fix every drift or mark the field
    `Manual` with a reason.
-5. Fill the test pack (`unittests/webgui/testdata/lang_test.py`), record fixtures with
+5. Fill the test pack (`unittests/testdata/lang_test.py`), record fixtures with
    `SAP_LANGUAGE=<XX>`, run `uv run --group tests pytest unittests/lang unittests/test_no_ui_literals.py`,
    then the live tests logged on in the new language.
 6. Known limitation: `tools/breakpoint_tools.py` stays DE/EN.
@@ -289,6 +289,13 @@ Tests are marked `integration` automatically when they use a live SAP fixture (`
 | **Desktop unit tests**  | `unittests/desktop/test_desktop_backend.py`, `test_com_thread.py`, `test_element_finder.py`, `test_key_mapping.py`, ... | No (mocked)      | `uv run --group tests python -m pytest unittests/ -m "not integration"` |
 | **Desktop integration** | `unittests/desktop/test_se16_integration.py`, `test_se24_integration.py`, ...                                           | Yes (SAP GUI)    | `uv run --group tests python -m pytest unittests/ -m integration`       |
 | **WebGUI integration**  | `unittests/webgui/test_se16_integration.py`, `test_*_exploration.py`, ...                                               | Yes (SAP WebGUI) | `uv run --group tests python -m pytest unittests/ -m integration`       |
+
+### Where a test lives
+
+- A test that imports `sapguimcp.backend.desktop` lives in `unittests/desktop/`, one that imports `sapguimcp.backend.webgui` in `unittests/webgui/`. A file never imports from the other backend's test directory.
+- Backend-neutral tests stay in `unittests/` and `unittests/lang/`.
+- Assets shared by both backends sit in `unittests/testdata/` (`lang_test.py`, `html_snapshots/`, the abapGit submodules in `abapgit_repos/`). Assets of one backend stay in that backend's `testdata/` directory.
+- The release smoke test of the binary is `scripts/smoke_test_exe.py`.
 
 ### Skip Mechanism
 
