@@ -10,6 +10,7 @@ import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from dotenv import dotenv_values
 from fastmcp import FastMCP
 from fastmcp.apps.choice import Choice
 from fastmcp.server.middleware.logging import LoggingMiddleware
@@ -18,7 +19,7 @@ from sapguimcp.backend.manager import close_backend
 from sapguimcp.logging_config import configure_logging
 from sapguimcp.middleware import ToolCallLoggingMiddleware
 from sapguimcp.middleware.logging import masked_payload_serializer
-from sapguimcp.models.config import get_settings, try_get_sap_config
+from sapguimcp.models.config import _env_files, get_settings, try_get_sap_config
 from sapguimcp.prompts import register_prompts
 from sapguimcp.resources import (
     register_feedback_resources,
@@ -78,13 +79,27 @@ _WEBGUI_MOVED_NOTICE = (
 )
 
 
+def _legacy_setting_values() -> dict[str, str]:
+    """The legacy WebGUI settings from the .env files the settings load, overridden by the process environment."""
+    values: dict[str, str] = {}
+    for env_file in _env_files():
+        try:
+            loaded = dotenv_values(env_file)
+        except OSError:
+            continue
+        values.update({k: v for k, v in loaded.items() if v is not None})
+    values.update(os.environ)
+    return values
+
+
 def _legacy_webgui_settings() -> list[str]:
-    """Names of the legacy WebGUI environment settings that are set (BACKEND_TYPE=webgui, SAP_URL, CDP_URL)."""
+    """Names of the legacy WebGUI settings that are set (BACKEND_TYPE=webgui, SAP_URL, CDP_URL), in env or .env."""
+    values = _legacy_setting_values()
     found: list[str] = []
-    if os.environ.get("BACKEND_TYPE", "").strip().lower() == "webgui":
+    if values.get("BACKEND_TYPE", "").strip().lower() == "webgui":
         found.append("BACKEND_TYPE=webgui")
     for name in ("SAP_URL", "CDP_URL"):
-        if os.environ.get(name, "").strip():
+        if values.get(name, "").strip():
             found.append(name)
     return found
 

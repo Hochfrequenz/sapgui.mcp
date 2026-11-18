@@ -1,6 +1,7 @@
 """Tests for the notice and warning shown to users who still carry legacy WebGUI settings (decision D4)."""
 
 import logging
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -14,6 +15,26 @@ _WEBGUI_VARS = ("BACKEND_TYPE", "SAP_URL", "CDP_URL")
 def _no_legacy_env(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in _WEBGUI_VARS:
         monkeypatch.delenv(name, raising=False)
+    # A developer's own .env must not leak into these tests.
+    monkeypatch.setattr(server, "_env_files", lambda: ())
+
+
+@pytest.mark.parametrize(
+    ("line", "expected"),
+    [("SAP_URL=https://sap.example/webgui", ["SAP_URL"]), ("BACKEND_TYPE=webgui", ["BACKEND_TYPE=webgui"])],
+)
+def test_legacy_settings_in_dotenv_file_are_detected(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, line: str, expected: list[str]
+) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_text(f"{line}\n", encoding="utf-8")
+    monkeypatch.setattr(server, "_env_files", lambda: (str(env_file),))
+    assert server._legacy_webgui_settings() == expected
+
+
+def test_missing_dotenv_file_is_ignored(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(server, "_env_files", lambda: (str(tmp_path / "missing.env"),))
+    assert server._legacy_webgui_settings() == []
 
 
 def test_no_warning_without_legacy_settings(caplog: pytest.LogCaptureFixture) -> None:

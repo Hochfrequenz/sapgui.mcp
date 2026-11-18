@@ -105,10 +105,6 @@ def try_get_sap_config() -> tuple[SapMcpConfig | None, str | None]:
         return None, str(exc) or type(exc).__name__
 
 
-# Backend type: "webgui" for Playwright browser automation,
-# "desktop" for SAP GUI Scripting (COM) via sapsucker.
-
-
 def _env_files() -> tuple[str, ...]:
     """Return env file paths, accounting for PyInstaller bundles.
 

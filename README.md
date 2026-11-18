@@ -6,9 +6,12 @@
 [![Formatting](https://github.com/Hochfrequenz/sapgui.mcp/workflows/Formatting/badge.svg)](https://github.com/Hochfrequenz/sapgui.mcp/actions)
 
 An MCP (Model Context Protocol) server for SAP automation.
-It allows you to control SAP through Claude Desktop, Claude Code, or [opencode](https://opencode.ai) - via **SAP GUI desktop** or **SAP Web GUI** (Chromium-based browser).
-Because it drives the real SAP UI (not a headless API), it is especially well-suited for **end-to-end testing**, **visual validation**, and **capturing screenshots for documentation**.
-The MCP server works with both SAP R/3 and S/4.
+It allows you to control SAP through Claude Desktop, Claude Code, or [opencode](https://opencode.ai) - via **SAP GUI for Windows** (COM scripting).
+
+> [!IMPORTANT]
+> **SAP Web GUI support moved** to the separate project [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp). v0.20.0 was the last release of this project with both backends. Starting with this version, the server only drives SAP GUI for Windows. The WebGUI, Docker and macOS sections below are outdated and will be removed ([#1110](https://github.com/Hochfrequenz/sapgui.mcp/issues/1110)).
+> Because it drives the real SAP UI (not a headless API), it is especially well-suited for **end-to-end testing**, **visual validation**, and **capturing screenshots for documentation**.
+> The MCP server works with both SAP R/3 and S/4.
 
 ![Demo: chat with Claude on the left, SAP GUI reacting on the right — login, create a business partner, screenshot, SE16 verification](docs/readme-demo.gif)
 
@@ -24,8 +27,7 @@ The MCP server works with both SAP R/3 and S/4.
 
 The SAP COM Desktop API is Windows-only and single-threaded at its core, but well tested.
 This means that after your agent clicks a button, the MCP server has to wait until the GUI responds, which takes some milliseconds that can add up for batch processes.
-The Web GUI driver is OS-independent but so far lacks the test coverage and maturity of the COM API driver.
-Its main benefit is that it can run truly async/concurrent workflows, because your agent/MCP client can switch to another browser tab while it waits for the first tab to update after, e.g., a click.
+The Web GUI driver, which is OS-independent and can run concurrent workflows in several browser tabs, now lives in [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp).
 
 ### Pairing with other MCPs
 
@@ -100,7 +102,7 @@ Download the binary for your platform from
 
 > **Note**
 >
-> The macOS binary supports the **WebGUI backend only** (browser automation). The desktop backend requires SAP GUI for Windows (COM Scripting) and is not available on macOS.
+> The macOS binary of v0.20.0 and earlier supports the **WebGUI backend only**. Newer versions of this server only drive SAP GUI for Windows and do not work on macOS; use [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp) instead.
 >
 > **macOS Gatekeeper:** If macOS refuses to run the binary, clear the quarantine attribute: `xattr -c sapgui_mcp_macos_arm64_<version>`
 
