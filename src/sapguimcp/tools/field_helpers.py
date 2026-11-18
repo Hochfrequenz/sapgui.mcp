@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
@@ -73,15 +73,24 @@ async def fill_field_with_keyboard(
     Returns:
         True if the field was found and filled, False otherwise.
     """
-    # Desktop backend uses COM — no JavaScript available.
-    # Fall back to focus_and_type which uses COM field resolution.
     if backend.backend_type == "desktop":
-        for lbl in labels:
-            if await backend.focus_and_type(lbl, value):
-                return True
-        return False
+        return await _fill_field_with_keyboard_desktop(cast("DesktopBackend", backend), labels, value)
+    return await _fill_field_with_keyboard_webgui(cast("WebGuiBackend", backend), labels, value)
 
-    # After the desktop guard above, only WebGuiBackend reaches here.
+
+async def _fill_field_with_keyboard_desktop(backend: DesktopBackend, labels: Sequence[str], value: str) -> bool:
+    """Desktop backend uses COM — no JavaScript available.
+
+    Falls back to focus_and_type which uses COM field resolution.
+    """
+    for lbl in labels:
+        if await backend.focus_and_type(lbl, value):
+            return True
+    return False
+
+
+async def _fill_field_with_keyboard_webgui(backend: WebGuiBackend, labels: Sequence[str], value: str) -> bool:
+    """WebGUI: locate and focus the field via JavaScript, then type the value with real keyboard events."""
     labels_js = "[" + ",".join(f'"{lbl}"' for lbl in labels) + "]"
     _eval = getattr(backend, "evaluate_javascript")
     found = await _eval(f"""(() => {{

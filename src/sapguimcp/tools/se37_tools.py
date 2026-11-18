@@ -58,13 +58,30 @@ async def _click_tab(backend: WebGuiBackend | DesktopBackend, tab: Text) -> str 
     """Click a tab trying each label of the pack text. Returns the label that matched, or None when none did."""
     from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
+    if isinstance(backend, DesktopBackend):
+        return await _click_tab_desktop(backend, tab)
+    return await _click_tab_webgui(backend, tab)
+
+
+async def _click_tab_desktop(backend: DesktopBackend, tab: Text) -> str | None:
+    """Click a tab on the desktop backend, trying each label of the pack text."""
     for label in tab:
         try:
             await backend.click_tab(label)
-            if isinstance(backend, DesktopBackend):
-                await backend.wait_for_ready()
-            else:
-                await backend.wait(500)
+            await backend.wait_for_ready()
+            return label
+        except Exception:  # pylint: disable=broad-exception-caught
+            continue
+    logger.warning("Tab not found: %s", " / ".join(tab))
+    return None
+
+
+async def _click_tab_webgui(backend: WebGuiBackend, tab: Text) -> str | None:
+    """Click a tab on the WebGUI backend, trying each label of the pack text."""
+    for label in tab:
+        try:
+            await backend.click_tab(label)
+            await backend.wait(500)
             return label
         except Exception:  # pylint: disable=broad-exception-caught
             continue

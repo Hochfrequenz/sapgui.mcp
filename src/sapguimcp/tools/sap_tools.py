@@ -25,7 +25,7 @@ import json
 import logging
 import re
 from importlib import resources
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from fastmcp import Context, FastMCP
 from fastmcp.utilities.types import Image
@@ -79,6 +79,10 @@ from sapguimcp.tools.session_tools import (
     sap_session_release_impl,
     sap_session_reset_to_primary_impl,
 )
+
+if TYPE_CHECKING:
+    from sapguimcp.backend.desktop import DesktopBackend
+    from sapguimcp.backend.webgui.backend import WebGuiBackend
 
 __all__ = ["register_sap_tools", "SELECTORS", "parse_shortcut_from_title"]
 
@@ -227,6 +231,181 @@ async def _get_button_tooltips_desktop(backend: Any) -> list[str]:
         return tooltips
 
     return await backend.com.run(_read_tooltips)
+
+
+async def _transaction_desktop(
+    backend: "WebGuiBackend | DesktopBackend", tcode: str, new_window: bool
+) -> TransactionResult:
+    """Navigate to ``tcode`` on the desktop backend (sap_transaction after the shared reset and popup check)."""
+    if not new_window:
+        # For non-new_window: use backend.enter_transaction (handles OK-Code field)
+        # Backend always uses /n prefix for non-prefixed tcodes
+        result = await backend.enter_transaction(tcode)
+
+        # Small wait to let popup render if it appeared
+        await backend.wait(200)
+
+        if result.success:
+            # SAP stays on the screen it was on and reports the unknown code in the status bar, as a
+            # success message: the navigation itself raised no error.
+            status = await backend.get_status_bar()
+            if (status.message_id, status.message_number) == _TRANSACTION_NOT_FOUND_MESSAGE:
+                return TransactionResult.failure(
+                    status.message or f"Transaction {tcode} does not exist",  # lang-ok: our own message
+                    tcode=tcode,
+                )
+
+        return result
+
+    # new_window=True: delegate to backend
+    new_session_id, session_count, new_title = await backend.open_new_session(tcode)
+
+    if new_session_id is None:
+        return TransactionResult.failure(
+            f"new_window=True but no new session was created for {tcode}. "
+            "Possible causes: SAP session limit reached, popup blocking, or network delay.",
+            tcode=tcode,
+            new_window=True,
+            session_count=session_count,
+        )
+    return TransactionResult(
+        tcode=tcode,
+        page_title=new_title,
+        new_window=True,
+        session_id=new_session_id,
+        session_count=session_count,
+    )
+
+
+async def _transaction_webgui(
+    backend: "WebGuiBackend | DesktopBackend", tcode: str, new_window: bool
+) -> TransactionResult:
+    """Navigate to ``tcode`` on the WebGUI backend (sap_transaction after the shared reset and popup check)."""
+    if not new_window:
+        # For non-new_window: use backend.enter_transaction (handles OK-Code field)
+        # Backend always uses /n prefix for non-prefixed tcodes
+        result = await backend.enter_transaction(tcode)
+
+        # Small wait to let popup render if it appeared
+        await backend.wait(200)
+
+        # Check if a popup appeared after navigation
+        popup = await backend.check_popup()
+        if popup:
+            return TransactionResult.failure(
+                f"Popup blocking: {popup.message or 'confirmation required'}",
+                tcode=tcode,
+                popup=popup,
+            )
+
+        return result
+
+    # new_window=True: delegate to backend
+    new_session_id, session_count, new_title = await backend.open_new_session(tcode)
+
+    # Check if a popup appeared after navigation
+    popup = await backend.check_popup()
+    if popup:
+        return TransactionResult.failure(
+            f"Popup blocking: {popup.message or 'confirmation required'}",
+            tcode=tcode,
+            popup=popup,
+        )
+
+    if new_session_id is None:
+        return TransactionResult.failure(
+            f"new_window=True but no new session was created for {tcode}. "
+            "Possible causes: SAP session limit reached, popup blocking, or network delay.",
+            tcode=tcode,
+            new_window=True,
+            session_count=session_count,
+        )
+    return TransactionResult(
+        tcode=tcode,
+        page_title=new_title,
+        new_window=True,
+        session_id=new_session_id,
+        session_count=session_count,
+    )
+
+
+def _lookup_fields_desktop(tcode_upper: str) -> FieldLookupResult:
+    """sap_lookup_fields on the Desktop backend: the registry holds WebGUI CSS selectors, which do not apply."""
+    return FieldLookupResult.failure(
+        "sap_lookup_fields returns WebGUI CSS selectors which don't work on Desktop. "
+        "Use sap_discover_fields to find fields dynamically.",
+        transaction=tcode_upper,
+    )
+
+
+def _lookup_fields_webgui(tcode_upper: str) -> FieldLookupResult:
+    """sap_lookup_fields on the WebGUI backend: look the transaction up in the static field registry."""
+    try:
+        # Load the field registry
+        try:
+            registry_file = resources.files("sapguimcp.data").joinpath("sap_field_registry.json")
+            registry_data = json.loads(registry_file.read_text(encoding="utf-8"))
+        except Exception:  # pylint: disable=broad-exception-caught
+            return FieldLookupResult.failure(
+                "Field registry not available. Use sap_discover_fields to find fields on current screen.",
+                transaction=tcode_upper,
+            )
+
+        # Look up the transaction (case-insensitive)
+        if tcode_upper in registry_data:
+            tcode_data = registry_data[tcode_upper]
+
+            # Flatten nested screens structure into a single dict
+            # Registry format: {"screens": {"initial": {"field": "selector"}, ...}}
+            fields: dict[str, str] = {}
+            screens = tcode_data.get("screens", {})
+            for screen_name, screen_fields in screens.items():
+                if isinstance(screen_fields, dict):
+                    for field_name, selector in screen_fields.items():
+                        # Prefix with screen name if field name would collide
+                        key = f"{screen_name}.{field_name}" if field_name in fields else field_name
+                        fields[key] = selector
+
+            return FieldLookupResult(
+                transaction=tcode_upper,
+                fields=fields,
+            )
+
+        # Check if it's a partial match
+        matches = [k for k in registry_data.keys() if not k.startswith("_") and tcode_upper in k]
+        if matches:
+            return FieldLookupResult.failure(
+                f"Transaction '{tcode_upper}' not found.",  # lang-ok: our own message
+                transaction=tcode_upper,
+                similar_transactions=matches,
+            )
+
+        return FieldLookupResult.failure(
+            f"Transaction '{tcode_upper}' not in field registry. "
+            "Use sap_discover_fields to discover fields on the current screen.",
+            transaction=tcode_upper,
+        )
+
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.exception("Looking up fields", extra={"transaction": tcode_upper})
+        return FieldLookupResult.failure(f"Error looking up fields: {e}", transaction=tcode_upper)
+
+
+async def _get_shortcut_titles_desktop(backend: "WebGuiBackend | DesktopBackend") -> list[str]:
+    """Titles to parse for shortcuts on the Desktop backend: the Tooltip property of all buttons, via COM."""
+    return await _get_button_tooltips_desktop(backend)
+
+
+async def _get_shortcut_titles_webgui(backend: "WebGuiBackend | DesktopBackend") -> list[str]:
+    """Titles to parse for shortcuts on the WebGUI backend: all title attributes, via JavaScript."""
+    from sapguimcp.backend.webgui.backend import WebGuiBackend  # pylint: disable=import-outside-toplevel
+
+    assert isinstance(backend, WebGuiBackend)
+    titles: list[str] = await backend.evaluate_javascript("""() => {
+            const elements = document.querySelectorAll('[title]');
+            return Array.from(elements).map(el => el.title).filter(Boolean);
+        }""")
+    return titles
 
 
 def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statements,too-many-locals
@@ -434,62 +613,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             )
 
         try:
-            if not new_window:
-                # For non-new_window: use backend.enter_transaction (handles OK-Code field)
-                # Backend always uses /n prefix for non-prefixed tcodes
-                result = await backend.enter_transaction(tcode)
-
-                # Small wait to let popup render if it appeared
-                await backend.wait(200)
-
-                # Check if a popup appeared after navigation
-                popup = await backend.check_popup()
-                if popup and not backend.backend_type == "desktop":
-                    return TransactionResult.failure(
-                        f"Popup blocking: {popup.message or 'confirmation required'}",
-                        tcode=tcode,
-                        popup=popup,
-                    )
-
-                if result.success and backend.backend_type == "desktop":
-                    # SAP stays on the screen it was on and reports the unknown code in the status bar, as a
-                    # success message: the navigation itself raised no error.
-                    status = await backend.get_status_bar()
-                    if (status.message_id, status.message_number) == _TRANSACTION_NOT_FOUND_MESSAGE:
-                        return TransactionResult.failure(
-                            status.message or f"Transaction {tcode} does not exist",  # lang-ok: our own message
-                            tcode=tcode,
-                        )
-
-                return result
-
-            # new_window=True: delegate to backend
-            new_session_id, session_count, new_title = await backend.open_new_session(tcode)
-
-            # Check if a popup appeared after navigation
-            popup = await backend.check_popup()
-            if popup and not backend.backend_type == "desktop":
-                return TransactionResult.failure(
-                    f"Popup blocking: {popup.message or 'confirmation required'}",
-                    tcode=tcode,
-                    popup=popup,
-                )
-
-            if new_session_id is None:
-                return TransactionResult.failure(
-                    f"new_window=True but no new session was created for {tcode}. "
-                    "Possible causes: SAP session limit reached, popup blocking, or network delay.",
-                    tcode=tcode,
-                    new_window=True,
-                    session_count=session_count,
-                )
-            return TransactionResult(
-                tcode=tcode,
-                page_title=new_title,
-                new_window=True,
-                session_id=new_session_id,
-                session_count=session_count,
-            )
+            if backend.backend_type == "desktop":
+                return await _transaction_desktop(backend, tcode, new_window)
+            return await _transaction_webgui(backend, tcode, new_window)
 
         except ValueError as e:
             return TransactionResult.failure(str(e), tcode=tcode)
@@ -963,68 +1089,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         tcode_upper = transaction.upper().strip()
 
         if get_settings().backend_type == "desktop":
-            return FieldLookupResult.failure(
-                "sap_lookup_fields returns WebGUI CSS selectors which don't work on Desktop. "
-                "Use sap_discover_fields to find fields dynamically.",
-                transaction=tcode_upper,
-            )
-
-        if get_settings().backend_type == "desktop":
-            return FieldLookupResult.failure(
-                "sap_lookup_fields returns WebGUI CSS selectors which don't work on Desktop. "
-                "Use sap_discover_fields to find fields dynamically.",
-                transaction=tcode_upper,
-            )
-
-        try:
-            # Load the field registry
-            try:
-                registry_file = resources.files("sapguimcp.data").joinpath("sap_field_registry.json")
-                registry_data = json.loads(registry_file.read_text(encoding="utf-8"))
-            except Exception:  # pylint: disable=broad-exception-caught
-                return FieldLookupResult.failure(
-                    "Field registry not available. Use sap_discover_fields to find fields on current screen.",
-                    transaction=tcode_upper,
-                )
-
-            # Look up the transaction (case-insensitive)
-            if tcode_upper in registry_data:
-                tcode_data = registry_data[tcode_upper]
-
-                # Flatten nested screens structure into a single dict
-                # Registry format: {"screens": {"initial": {"field": "selector"}, ...}}
-                fields: dict[str, str] = {}
-                screens = tcode_data.get("screens", {})
-                for screen_name, screen_fields in screens.items():
-                    if isinstance(screen_fields, dict):
-                        for field_name, selector in screen_fields.items():
-                            # Prefix with screen name if field name would collide
-                            key = f"{screen_name}.{field_name}" if field_name in fields else field_name
-                            fields[key] = selector
-
-                return FieldLookupResult(
-                    transaction=tcode_upper,
-                    fields=fields,
-                )
-
-            # Check if it's a partial match
-            matches = [k for k in registry_data.keys() if not k.startswith("_") and tcode_upper in k]
-            if matches:
-                return FieldLookupResult.failure(
-                    f"Transaction '{tcode_upper}' not found.",  # lang-ok: our own message
-                    transaction=tcode_upper,
-                    similar_transactions=matches,
-                )
-
-            return FieldLookupResult.failure(
-                f"Transaction '{tcode_upper}' not in field registry. "
-                "Use sap_discover_fields to discover fields on the current screen.",
-                transaction=tcode_upper,
-            )
-
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.exception("Looking up fields", extra={"transaction": tcode_upper})
-            return FieldLookupResult.failure(f"Error looking up fields: {e}", transaction=tcode_upper)
+            return _lookup_fields_desktop(tcode_upper)
+        return _lookup_fields_webgui(tcode_upper)
 
     @mcp.tool(
         description=(
@@ -1154,17 +1220,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
 
         try:
             if backend.backend_type == "desktop":
-                # Desktop: read Tooltip property from all buttons via COM
-                titles = await _get_button_tooltips_desktop(backend)
+                titles = await _get_shortcut_titles_desktop(backend)
             else:
-                # WebGUI: get all title attributes via JavaScript
-                from sapguimcp.backend.webgui.backend import WebGuiBackend  # pylint: disable=import-outside-toplevel
-
-                assert isinstance(backend, WebGuiBackend)
-                titles = await backend.evaluate_javascript("""() => {
-                        const elements = document.querySelectorAll('[title]');
-                        return Array.from(elements).map(el => el.title).filter(Boolean);
-                    }""")
+                titles = await _get_shortcut_titles_webgui(backend)
 
             # Parse titles/tooltips for shortcuts (same format on both backends)
             shortcuts: list[ShortcutInfo] = []
