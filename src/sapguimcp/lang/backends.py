@@ -61,7 +61,6 @@ _TAGS: dict[str, Backend] = {
     "abapgit.screen_errors": Backend.BOTH,
     # catalog
     "catalog.screen_header": Backend.BOTH,
-    # quick_report
     # se09
     "se09.status": Backend.BOTH,
     "se09.display_button": Backend.DESKTOP,

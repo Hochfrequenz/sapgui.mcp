@@ -130,7 +130,7 @@ class StatusTypeSection:
 
 @dataclass(frozen=True, slots=True)
 class SessionPagesSection:
-    """Login, logoff and timeout page texts."""
+    """Session window texts (the debugger window title)."""
 
     MERGE: ClassVar[MergeMode] = "all"
     debugger_window: Text

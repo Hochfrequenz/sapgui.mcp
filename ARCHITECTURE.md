@@ -177,7 +177,7 @@ case sensitivity, short fragments), is
 
 1. Draft the pack: `uv run python scripts/harvest_lang_texts.py <XX> --draft --out src/sapguimcp/lang/<xx>.py`
    on a system that has the language installed. Sourced texts come from SAP; everything else keeps
-   the EN value with a `# TODO`. Set `html_lang`, `logon_dropdown` and `date_format`.
+   the EN value with a `# TODO`. Set `date_format`.
 2. Register the pack in `src/sapguimcp/lang/__init__.py` (`_PACKS`); `--verify` and the config
    accept only registered codes.
 3. Settle every `TODO` from SAP (`--print-sql` lists the queries; mypy and
