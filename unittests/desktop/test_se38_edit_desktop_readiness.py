@@ -63,11 +63,6 @@ async def test_open_report_fails_when_the_editor_does_not_appear(lang_de: Langua
 
 
 @pytest.mark.anyio
-async def test_open_report_needs_a_desktop_backend(lang_de: LanguagePack) -> None:
-    assert await _navigate_and_open_editor_desktop(MagicMock(), "ZTEST", lang_de) == "Requires DesktopBackend"
-
-
-@pytest.mark.anyio
 async def test_open_report_reports_a_popup_instead_of_waiting_for_the_editor(lang_de: LanguagePack) -> None:
     backend = _backend(title_after_f6="ABAP Editor: Programm ZTEST aendern")
     backend.check_popup = AsyncMock(return_value=PopupInfo(message="Program is locked by another user", buttons=[]))

@@ -7,7 +7,6 @@ import logging
 import sys
 from typing import TYPE_CHECKING, Any
 
-from sapguimcp.backend.webgui.backend import WebGuiBackend
 from sapguimcp.models.config import get_settings
 from sapguimcp.session_language import set_session_language
 
@@ -29,7 +28,7 @@ class BackendManager:  # pylint: disable=too-few-public-methods
 
     def __init__(self) -> None:
         self.backend_type = "desktop"
-        self._backends: dict[str, WebGuiBackend | DesktopBackend] = {}  # Cache by session ID
+        self._backends: dict[str, DesktopBackend] = {}  # Cache by session ID
         self._com_thread: Any = None  # Lazy-init ComThread for desktop backend
         # Serializes desktop dead-thread recovery so concurrent callers don't
         # all rebuild the ComThread + DesktopBackend at once. Safe to construct
@@ -41,7 +40,7 @@ class BackendManager:  # pylint: disable=too-few-public-methods
         session: str | None = None,
         agent_id: str | None = None,
         tool_name: str = "",
-    ) -> WebGuiBackend | DesktopBackend:
+    ) -> DesktopBackend:
         """Get or create the desktop backend for the given session."""
         _require_windows()
         # Single shared DesktopBackend — session routing via ContextVar.
@@ -130,7 +129,7 @@ async def get_backend(
     session: str | None = None,
     agent_id: str | None = None,
     tool_name: str = "",
-) -> WebGuiBackend | DesktopBackend:
+) -> DesktopBackend:
     """Convenience: get a backend instance for the given session.
 
     This is the primary entry point for all tools.
@@ -147,17 +146,6 @@ async def get_desktop_backend(
     """Get a DesktopBackend instance. Asserts backend_type is desktop."""
     backend = await get_backend(session, agent_id, tool_name)
     assert isinstance(backend, DesktopBackend)
-    return backend
-
-
-async def get_webgui_backend(
-    session: str | None = None,
-    agent_id: str | None = None,
-    tool_name: str = "",
-) -> WebGuiBackend:
-    """Get a WebGuiBackend instance. Asserts backend_type is webgui."""
-    backend = await get_backend(session, agent_id, tool_name)
-    assert isinstance(backend, WebGuiBackend)
     return backend
 
 

@@ -4,17 +4,9 @@ from typing import Optional
 
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models import LoginResult
-from sapguimcp.models.config import get_sap_config, get_settings
+from sapguimcp.models.config import get_sap_config
 
 __all__ = ["sap_login_impl"]
-
-# WebGUI ICF service path appended to a system's host to form the login URL.
-_WEBGUI_PATH = "/sap/bc/gui/sap/its/webgui"
-
-
-def _webgui_url_from_host(host: str) -> str:
-    """Return the WebGUI login URL for *host*, or ``""`` if *host* is empty."""
-    return f"{host}{_WEBGUI_PATH}" if host else ""
 
 
 async def sap_login_impl(
@@ -27,8 +19,7 @@ async def sap_login_impl(
     Log into SAP.
 
     Args:
-        url: SAP Web GUI URL (WebGUI only). If not provided, derives from the
-            selected system's ``host`` in systems.json, falling back to ``SAP_URL``.
+        url: Ignored (the desktop backend connects through the system's ``connection_name``).
         client: SAP client/mandant (3-digit string). If not provided, uses shared config.
         system_key: Dictionary key from systems.json (e.g. "dev-100"). Overrides default_system.
         session_id: Session ID for multi-session support.
@@ -36,7 +27,6 @@ async def sap_login_impl(
     Returns:
         LoginResult indicating login success or what action is needed.
     """
-    settings = get_settings()
     sap_cfg = get_sap_config()
 
     effective_key = system_key or sap_cfg.default_system
@@ -51,12 +41,6 @@ async def sap_login_impl(
 
     user, password = system.user, system.password.get_secret_value()
     effective_client = client or system.client
-    # systems.json is the source of truth: when the chosen system has a host
-    # configured we use it. ``settings.sap_url`` (legacy ``SAP_URL`` env var)
-    # is only a fallback for systems with no ``host`` set, otherwise it would
-    # silently override a non-default ``system_key`` and route the user to the
-    # default system instead (issue #659).
-    effective_url = url or _webgui_url_from_host(system.host) or settings.sap_url
     language = system.language
 
     if not all([user, password, effective_client]):
@@ -66,7 +50,7 @@ async def sap_login_impl(
 
     backend = await get_backend(tool_name="sap_login")
     result = await backend.login(
-        url=effective_url or "",
+        url=url or "",
         username=user,
         password=password,
         client=effective_client,

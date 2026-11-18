@@ -12,19 +12,13 @@ import logging
 import re
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
-from sapguimcp.backend.webgui.parsers.slg1_parser import (
-    is_slg1_initial_screen,
-    is_slg1_no_results,
-    parse_slg1_log_list,
-)
-from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.models import TableData
 from sapguimcp.models.slg1_models import (
     SLG1FileSummary,
@@ -37,9 +31,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from sapguimcp.backend.desktop import DesktopBackend
-    from sapguimcp.backend.webgui.backend import WebGuiBackend
     from sapguimcp.lang import LanguagePack
-    from sapguimcp.lang.text import Text
 
 
 logger = logging.getLogger(__name__)
@@ -61,7 +53,7 @@ _TREE_NODE_TEXT = re.compile(
 )
 
 
-async def _fill_by_label(backend: "WebGuiBackend | DesktopBackend", labels: Iterable[str], value: str) -> bool:
+async def _fill_by_label(backend: "DesktopBackend", labels: Iterable[str], value: str) -> bool:
     """Fill the field with the first of ``labels`` the screen shows. False if none is found or the value is refused."""
     for label in labels:
         result = await backend.fill_form({label: value})
@@ -134,7 +126,7 @@ def _read_log_tree(session: Any, max_logs: int) -> tuple[list[SLG1LogEntry], boo
 
 
 async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals,too-many-return-statements
-    backend: "WebGuiBackend | DesktopBackend",
+    backend: "DesktopBackend",
     t: LanguagePack,
     object_name: str,
     subobject: str | None = None,
@@ -211,7 +203,7 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
         )
 
     # The logs are listed in a tree (next to a grid that holds the messages of the selected log), so read that first
-    desktop = cast("DesktopBackend", backend)
+    desktop = backend
     session = desktop.require_session()
     tree_logs, tree_truncated = await desktop.com.run(
         lambda: _read_log_tree(session, _MAX_LOGS), retry_server_fault=True
@@ -267,7 +259,7 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
 
 
 async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-branches,too-many-locals
-    backend: "WebGuiBackend | DesktopBackend",
+    backend: "DesktopBackend",
     t: LanguagePack,
     object_name: str,
     subobject: str | None = None,
@@ -276,81 +268,7 @@ async def _slg1_lookup(  # pylint: disable=too-many-arguments,too-many-positiona
     to_date: str | None = None,
 ) -> SLG1LogListResult:
     """Execute SLG1 lookup and return parsed results."""
-    now = datetime.now(UTC)
-
-    # Desktop backend: use read_table instead of ARIA snapshot parsing
-    if backend.backend_type == "desktop":
-        return await _slg1_lookup_desktop(backend, t, object_name, subobject, external_id, from_date, to_date)
-
-    # Navigate to SLG1
-    tx_result = await backend.enter_transaction("SLG1")
-    if not tx_result.success:
-        return SLG1LogListResult.failure(
-            f"Failed to navigate to SLG1: {tx_result.error}",
-            logs=[],
-            log_count=0,
-            logs_truncated=False,
-            retrieved_at=now,
-        )
-
-    # Wait for SLG1 selection screen to fully load
-    await backend.wait_for_ready()
-
-    # Fill the selection screen, one field at a time: each field is looked up by the labels of the session's view
-    fields: list[tuple[Text, str]] = [(t.slg1.log_object, object_name)]
-    if subobject:
-        fields.append((t.slg1.log_subobject, subobject))
-    if external_id:
-        fields.append((t.slg1.external_id, external_id))
-    if from_date:
-        fields.append((t.slg1.from_datetime, format_sap_date_as(from_date, t.date_format)))
-    if to_date:
-        fields.append((t.slg1.to_datetime, format_sap_date_as(to_date, t.date_format)))
-    for labels, value in fields:
-        if not await _fill_by_label(backend, labels, value):
-            logger.warning("SLG1 field not found labels=%r", list(labels))
-
-    # Execute search (F8)
-    await backend.press_key("F8")
-    await backend.wait_for_ready()
-
-    # Capture result snapshot
-    snapshot = AriaSnapshot(await backend.get_snapshot())
-
-    # Check for no results (explicit status bar message)
-    if is_slg1_no_results(snapshot, t):
-        return SLG1LogListResult(
-            logs=[],
-            log_count=0,
-            logs_truncated=False,
-            filters_applied=_build_filters(object_name, subobject, external_id, from_date, to_date),
-            retrieved_at=now,
-        )
-
-    # If still on initial screen after F8, read status bar for error details
-    if is_slg1_initial_screen(snapshot, t):
-        sb_info = await backend.get_status_bar()
-        if sb_info.type in ("error", "warning", "E", "W"):
-            return SLG1LogListResult.failure(
-                f"SLG1 error: {sb_info.message}",
-                logs=[],
-                log_count=0,
-                logs_truncated=False,
-                retrieved_at=now,
-            )
-        # No error in status bar — genuinely no results
-        return SLG1LogListResult(
-            logs=[],
-            log_count=0,
-            logs_truncated=False,
-            filters_applied=_build_filters(object_name, subobject, external_id, from_date, to_date),
-            retrieved_at=now,
-        )
-
-    # Parse the log list
-    result = parse_slg1_log_list(snapshot, t)
-    result.filters_applied = _build_filters(object_name, subobject, external_id, from_date, to_date)
-    return result
+    return await _slg1_lookup_desktop(backend, t, object_name, subobject, external_id, from_date, to_date)
 
 
 def _build_filters(

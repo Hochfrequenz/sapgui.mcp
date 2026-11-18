@@ -534,19 +534,6 @@ class _InlineCom:
 
 
 @pytest.mark.anyio
-async def test_tool_returns_failure_on_non_desktop_backend():
-    class _Web:
-        backend_type = "webgui"
-
-    with patch(_PATCH_GET_BACKEND, new=AsyncMock(return_value=_Web())):
-        async with Client(_tree_mcp()) as client:
-            raw = await client.call_tool("sap_tree_read", {})
-    data = json.loads(raw.content[0].text)
-    assert data["success"] is False
-    assert "desktop backend" in data["error"]
-
-
-@pytest.mark.anyio
 async def test_tool_reads_tree_via_desktop_backend():
     tree = FakeTree("wnd[0]/shellcont/shell", _simple_nodes())
     session = _dock(tree)

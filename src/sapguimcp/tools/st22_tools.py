@@ -20,20 +20,13 @@ import re
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
-from sapguimcp.backend.webgui.parsers.st22_parser import (
-    is_no_dumps_message,
-    parse_st22_dump_detail,
-    parse_st22_dump_list,
-    parse_st22_initial_screen,
-)
-from sapguimcp.backend.webgui.types import AriaSnapshot
 from sapguimcp.lang.schema import DumpSection
 from sapguimcp.models import TableData
 from sapguimcp.models.st22_models import (
@@ -48,7 +41,6 @@ from sapguimcp.utils import format_sap_date_as
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
-    from sapguimcp.backend.webgui.backend import WebGuiBackend
     from sapguimcp.lang import LanguagePack
     from sapguimcp.lang.text import Text
 
@@ -69,7 +61,7 @@ __all__ = ["register_st22_tools"]
 # =============================================================================
 
 
-async def _navigate_to_st22(backend: "WebGuiBackend | DesktopBackend") -> str | None:
+async def _navigate_to_st22(backend: "DesktopBackend") -> str | None:
     """Navigate to ST22. Returns error message or None on success."""
     tx_result = await backend.enter_transaction("ST22")
     if not tx_result.success:
@@ -79,7 +71,7 @@ async def _navigate_to_st22(backend: "WebGuiBackend | DesktopBackend") -> str | 
     return None
 
 
-async def _clear_user_field(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> None:
+async def _clear_user_field(backend: "DesktopBackend", t: LanguagePack) -> None:
     """Clear the user field to search for all users.
 
     ST22 pre-fills the user field with the current user.
@@ -100,7 +92,7 @@ async def _clear_user_field(backend: "WebGuiBackend | DesktopBackend", t: Langua
     logger.debug("User field not found for clearing")
 
 
-async def _fill_date_field(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack, target_date: str) -> str | None:
+async def _fill_date_field(backend: "DesktopBackend", t: LanguagePack, target_date: str) -> str | None:
     """Fill the date field with a formatted date. Returns error or None."""
     try:
         formatted = format_sap_date_as(target_date, t.date_format)
@@ -125,9 +117,7 @@ async def _fill_date_field(backend: "WebGuiBackend | DesktopBackend", t: Languag
     return "Could not find date field"
 
 
-async def _try_quick_button(
-    backend: "WebGuiBackend | DesktopBackend", t: LanguagePack, target_date: str | None
-) -> bool:
+async def _try_quick_button(backend: "DesktopBackend", t: LanguagePack, target_date: str | None) -> bool:
     """Try to use the Today or Yesterday quick buttons.
 
     These buttons navigate directly to the dump list for all users,
@@ -156,9 +146,7 @@ async def _try_quick_button(
     return False
 
 
-async def _execute_search(
-    backend: "WebGuiBackend | DesktopBackend", t: LanguagePack, target_date: str | None
-) -> str | None:
+async def _execute_search(backend: "DesktopBackend", t: LanguagePack, target_date: str | None) -> str | None:
     """Execute the ST22 search. Returns error or None.
 
     Strategy:
@@ -186,9 +174,7 @@ async def _execute_search(
     return None
 
 
-async def _select_dump_by_index(
-    backend: "WebGuiBackend | DesktopBackend", dump_index: int, dump_count: int
-) -> str | None:
+async def _select_dump_by_index(backend: "DesktopBackend", dump_index: int, dump_count: int) -> str | None:
     """Select a dump from the list by double-clicking the row via click_table_cell.
 
     Returns error message or None on success.
@@ -207,40 +193,14 @@ async def _select_dump_by_index(
         return f"Could not find row at index {dump_index}: {e}"
 
 
-async def _capture_full_detail(backend: "WebGuiBackend | DesktopBackend") -> str:
-    """Capture the full dump detail by scrolling and collecting snapshots.
-
-    ST22 detail is a long scrollable text. Scroll down and concatenate
-    snapshots to get as much content as possible.
-    """
-    snapshots: list[str] = []
-
-    # Capture initial view
-    snapshot = await backend.get_snapshot()
-    snapshots.append(str(snapshot))
-
-    # Scroll down to capture more content (up to 10 pages)
-    for _ in range(10):
-        await backend.press_key("PageDown")
-        new_snapshot = await backend.get_snapshot()
-        new_snapshot_str = str(new_snapshot)
-
-        # Stop if we get the same content (reached bottom)
-        if new_snapshot_str == snapshots[-1]:
-            break
-        snapshots.append(new_snapshot_str)
-
-    return "\n".join(snapshots)
-
-
-async def _capture_desktop_detail(backend: "WebGuiBackend | DesktopBackend", t: LanguagePack) -> list[str]:
+async def _capture_desktop_detail(backend: "DesktopBackend", t: LanguagePack) -> list[str]:
     """Read the lines of the dump detail screen.
 
     SAP ERP 6.0 and S/4HANA show the detail as a classic list of labels with a vertical scrollbar (PageDown does not
     scroll it), so it is read with the classic list reader: line by line, page by page. Without labels in a list
     layout, the labels of the screen are the fallback.
     """
-    desktop = cast("DesktopBackend", backend)
+    desktop = backend
     session = desktop.require_session()
     lines: list[str] = await desktop.com.run(
         lambda: read_classic_list_lines(session, _ST22_DETAIL_MAX_LINES), retry_server_fault=True
@@ -372,7 +332,7 @@ def _parse_desktop_detail_lines(lines: list[str], source_dump: "ST22Dump", t: La
 
 
 async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-branches,too-many-return-statements
-    backend: "WebGuiBackend | DesktopBackend",
+    backend: "DesktopBackend",
     t: LanguagePack,
     target_date: str | None,
     dump_index: int | None,
@@ -381,13 +341,6 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
     now = datetime.now(UTC)
     date_str = target_date or date.today().isoformat()
     logger.info("ST22 desktop backend path", extra={"date": date_str})
-    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
-
-    if not isinstance(backend, DesktopBackend):
-        return ST22DumpListResult.failure(
-            error="Requires DesktopBackend", dumps=[], dump_count=0, date_searched=date_str, retrieved_at=now
-        )
-
     # Navigate to ST22
     error = await _navigate_to_st22(backend)
     if error:
@@ -502,138 +455,13 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
 
 
 async def _st22_lookup(  # pylint: disable=too-many-return-statements,too-many-locals,too-many-branches
-    backend: "WebGuiBackend | DesktopBackend",
+    backend: "DesktopBackend",
     t: LanguagePack,
     target_date: str | None,
     dump_index: int | None,
 ) -> ST22DumpListResult | ST22DumpDetailResult:
     """Core ST22 lookup logic."""
-    now = datetime.now(UTC)
-    date_str = target_date or date.today().isoformat()
-
-    # Desktop backend: use read_table instead of ARIA snapshot parsing
-    if backend.backend_type == "desktop":
-        return await _st22_lookup_desktop(backend, t, target_date, dump_index)
-
-    # Navigate to ST22
-    error = await _navigate_to_st22(backend)
-    if error:
-        return ST22DumpListResult.failure(
-            error=error,
-            dumps=[],
-            dump_count=0,
-            date_searched=date_str,
-            retrieved_at=now,
-        )
-
-    # Execute search for the target date
-    error = await _execute_search(backend, t, target_date)
-    if error:
-        return ST22DumpListResult.failure(
-            error=error,
-            dumps=[],
-            dump_count=0,
-            date_searched=date_str,
-            retrieved_at=now,
-        )
-
-    # Capture dump list snapshot
-    list_snapshot = AriaSnapshot(await backend.get_snapshot())
-    logger.debug("ST22 list snapshot captured, length=%r", len(str(list_snapshot)))
-
-    # Check for "no dumps" message
-    if is_no_dumps_message(list_snapshot, t):
-        if dump_index is not None:
-            return ST22DumpDetailResult.failure(
-                error=f"No dumps found for {date_str} — cannot select dump_index {dump_index}",
-                detail=None,
-                retrieved_at=now,
-            )
-        return ST22DumpListResult(
-            dumps=[],
-            dump_count=0,
-            date_searched=date_str,
-            retrieved_at=now,
-        )
-
-    # Parse the dump list
-    dumps = parse_st22_dump_list(list_snapshot, t)
-
-    # If still on the initial screen (quick buttons didn't navigate), try parsing counts
-    if not dumps:
-        counts = parse_st22_initial_screen(list_snapshot, t)
-        total_count = counts.get("today", 0) if target_date is None else 0
-        if total_count > 0:
-            logger.warning(
-                "ST22 initial screen shows %d dumps but could not navigate to list",
-                total_count,
-            )
-
-    # Sort dumps by time descending (newest first). Keep a mapping from
-    # sorted position to original UI row index for correct DOM row selection.
-    indexed_dumps = [(d.index, d) for d in dumps]  # (ui_row_idx, dump)
-    indexed_dumps.sort(key=lambda pair: pair[1].time, reverse=True)
-    sorted_to_ui: dict[int, int] = {}
-    dumps = []
-    for new_idx, (orig_ui_idx, dump) in enumerate(indexed_dumps):
-        dump.index = new_idx
-        sorted_to_ui[new_idx] = orig_ui_idx
-        dumps.append(dump)
-
-    # If no dump_index requested, return the list
-    if dump_index is None:
-        return ST22DumpListResult(
-            dumps=dumps,
-            dump_count=len(dumps),
-            date_searched=date_str,
-            retrieved_at=now,
-        )
-
-    # Select specific dump for detail view
-    if not dumps:
-        return ST22DumpDetailResult.failure(
-            error="No dumps found to select from",
-            detail=None,
-            retrieved_at=now,
-        )
-
-    # Bounds check
-    if dump_index < 0 or dump_index >= len(dumps):
-        return ST22DumpDetailResult.failure(
-            error=f"dump_index {dump_index} out of range (0..{len(dumps) - 1})",
-            detail=None,
-            retrieved_at=now,
-        )
-
-    target_dump = dumps[dump_index]
-
-    # Use the original UI row position for clicking, not the sorted index
-    ui_row_idx = sorted_to_ui[dump_index]
-    error = await _select_dump_by_index(backend, ui_row_idx, len(dumps))
-    if error:
-        return ST22DumpDetailResult.failure(
-            error=error,
-            detail=None,
-            retrieved_at=now,
-        )
-
-    # Capture detail by scrolling through pages
-    detail_snapshot = await _capture_full_detail(backend)
-
-    # Parse the detail
-    detail = parse_st22_dump_detail(AriaSnapshot(detail_snapshot), t)
-
-    # Enrich detail with data from the list entry
-    detail.short_text = target_dump.short_text
-    if not detail.program:
-        detail.program = target_dump.program
-    if not detail.error_type:
-        detail.error_type = target_dump.error_type
-
-    return ST22DumpDetailResult(
-        detail=detail,
-        retrieved_at=now,
-    )
+    return await _st22_lookup_desktop(backend, t, target_date, dump_index)
 
 
 # =============================================================================

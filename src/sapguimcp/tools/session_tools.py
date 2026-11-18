@@ -42,15 +42,9 @@ async def sap_session_list_impl() -> SessionListResult:
         # queue behind it and only run after the busy state has cleared
         # (Copilot review of #934). When the engine is busy, list from the
         # registry without COM so the answer comes back immediately.
-        com_engine = None
-        engine_state = getattr(backend, "com_engine_state", None)
-        if callable(engine_state):
-            state = await engine_state()
-            if isinstance(state, dict):
-                com_engine = state
+        com_engine = await backend.com_engine_state()
         if com_engine is not None:
-            fast_list = getattr(backend, "list_sessions_fast", None)
-            sessions = await fast_list() if callable(fast_list) else await backend.list_sessions()
+            sessions = await backend.list_sessions_fast()
         else:
             sessions = await backend.list_sessions()
         return SessionListResult(sessions=sessions, com_engine=com_engine)
@@ -116,9 +110,6 @@ async def sap_session_detach_impl(session_id: str) -> SessionDetachResult:
     No SAP GUI call is made: the window stays open. This is the only way to drop an attached
     (user-owned) session; it also works on sessions this server opened.
 
-    Desktop only. The WebGUI backend has no detach: its sessions are browser tabs the server
-    owns, so use ``sap_session_close``.
-
     Args:
         session_id: Session to detach (e.g. "s2")
 
@@ -127,15 +118,8 @@ async def sap_session_detach_impl(session_id: str) -> SessionDetachResult:
     """
     try:
         backend = await get_backend()
-        detach = getattr(backend, "detach_session", None)
-        if not callable(detach):
-            return SessionDetachResult.failure(
-                "sap_session_detach is not supported on the WebGUI backend (sessions are browser tabs owned by "
-                "this server); use sap_session_close."
-            )
-
         # Detach is COM-free: list from the registry only (no reconcile probes).
-        list_fast = getattr(backend, "list_sessions_fast", backend.list_sessions)
+        list_fast = backend.list_sessions_fast
         if not await backend.has_session(session_id):
             sessions = await list_fast()
             available = ", ".join(s.session_id for s in sessions) or "(none)"
@@ -143,7 +127,7 @@ async def sap_session_detach_impl(session_id: str) -> SessionDetachResult:
                 f"Session '{session_id}' not found. Active: {available}."  # lang-ok: our own message
             )
 
-        released = await detach(session_id)
+        released = await backend.detach_session(session_id)
         remaining = await list_fast()
         return SessionDetachResult(
             session_id=session_id,
@@ -262,8 +246,6 @@ async def sap_session_reset_to_primary_impl() -> SessionResetResult:
     """
     try:
         backend = await get_backend()
-        # Both WebGuiBackend and DesktopBackend implement reset_to_primary;
-        # the BackendManager union type enforces this. No defensive guard.
         report = await backend.reset_to_primary()
         return SessionResetResult(
             closed_sessions=report.get("closed", []),

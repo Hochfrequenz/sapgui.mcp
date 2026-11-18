@@ -47,7 +47,6 @@ from sapguimcp.backend.webgui.parsers import (
 from sapguimcp.backend.webgui.parsers.screen_state_parser import parse_selection_screen_state
 from sapguimcp.lang.schema import LanguagePack
 from sapguimcp.models import SE37ParameterCategory
-from sapguimcp.tools.se11_tools import _parse_se11_fields, _parse_se11_yaml
 from unittests.lang import pseudo_fixtures as pf
 
 TESTDATA = Path(__file__).parent / "testdata"
@@ -119,11 +118,6 @@ def _spro_query(path: Path) -> str:
 
 
 _PROBES: dict[str, dict[str, Probe]] = {
-    "se11": {
-        "table": lambda s, t, _: _parse_se11_yaml(s, "table", t),
-        "structure": lambda s, t, _: _parse_se11_yaml(s, "structure", t),
-        "fields": lambda s, t, _: _parse_se11_fields(s, t),
-    },
     "se16": {
         "snapshot": lambda s, t, _: se16_parser.parse_se16_snapshot(s, t),
         "hit_count": lambda s, t, _: se16_parser.parse_se16_hit_count(s, t),
@@ -185,7 +179,6 @@ _PROBES: dict[str, dict[str, Probe]] = {
 }
 
 _DIRECTORIES: dict[str, tuple[str, ...]] = {
-    "se11": ("yaml_snapshots",),
     "se16": ("se16_exploration",),
     "se24": ("se24_exploration", "se24_edit_exploration"),
     "se37": ("se37_exploration", "se37_edit_exploration"),

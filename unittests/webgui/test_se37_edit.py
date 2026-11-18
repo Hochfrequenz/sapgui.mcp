@@ -109,17 +109,3 @@ class TestParseStatusNote:
         success, message = parse_toolbar_note(snapshot)
         assert success is False
         assert message
-
-
-@pytest.mark.anyio
-async def test_se37_edit_tool_is_registered() -> None:
-    """Test that register_se37_edit_tools adds the tool to a FastMCP instance."""
-    from fastmcp import FastMCP
-
-    from sapguimcp.tools.se37_edit_tools import register_se37_edit_tools
-
-    mcp = FastMCP("test")
-    register_se37_edit_tools(mcp)
-
-    tool = await mcp.get_tool("sap_se37_edit")
-    assert tool is not None, "sap_se37_edit tool not found after registration"

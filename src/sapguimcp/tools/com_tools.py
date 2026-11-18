@@ -320,14 +320,6 @@ def register_com_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return ComSnapshotResult.failure(str(e))
 
-        if not backend.backend_type == "desktop":
-            return ComSnapshotResult.failure(
-                "sap_com_snapshot is only available on the desktop backend. " + "Use browser_snapshot for WebGUI."
-            )
-
-        from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
-
-        assert isinstance(backend, DesktopBackend)  # Guaranteed by the backend_type check above
         snapshot, max_depth_found, elements_hidden = await backend.get_snapshot_with_depth(depth=depth)
         return ComSnapshotResult(
             snapshot=str(snapshot),
@@ -450,14 +442,6 @@ def register_com_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return ComEvaluateResult.failure(f"Session error: {e}")
 
-        if not backend.backend_type == "desktop":
-            return ComEvaluateResult.failure(
-                "sap_com_evaluate is only available on the desktop backend. " + "Use browser_evaluate for WebGUI."
-            )
-
-        from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
-
-        assert isinstance(backend, DesktopBackend)  # noqa: S101
         desktop_session = backend.require_session()
         com = backend.com
 

@@ -844,24 +844,6 @@ class TestSapRunScriptTool:
         # layout this will raise KeyError/AttributeError and the tests below will fail clearly.
         return mcp._local_provider._components["tool:sap_run_script@"].fn
 
-    def test_non_desktop_backend_returns_failure(self):
-        mock_backend = MagicMock()
-        mock_backend.backend_type = "webgui"
-
-        mcp = FastMCP("test")
-        register_script_tools(mcp)
-        tool_fn = self._make_tool_fn(mcp)
-
-        with patch(
-            "sapguimcp.tools.script_tools.get_backend",
-            new_callable=AsyncMock,
-            return_value=mock_backend,
-        ):
-            result = asyncio.run(tool_fn(script="output(1)", session=None, agent_id=None))
-
-        assert result.success is False
-        assert "desktop" in result.error.lower()
-
     def test_get_backend_value_error_returns_failure(self):
         mcp = FastMCP("test")
         register_script_tools(mcp)

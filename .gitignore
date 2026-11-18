@@ -135,3 +135,6 @@ docs/sap_gui_scripting_api_800/
 # systems.json or environment variables (see sap-mcp-config), but a local
 # .mcp.json may still contain them, so it is never committed.
 .mcp.json
+
+# Git Bash crash dumps
+*.stackdump

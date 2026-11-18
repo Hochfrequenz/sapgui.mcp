@@ -1,16 +1,15 @@
-"""abapGit and quick-report texts in both logon languages (#1044, phase 3, area 7)."""
+"""abapGit texts in both logon languages (#1044, phase 3, area 7)."""
 
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from sapguimcp import lang
 from sapguimcp.models.sap_results import StatusBarInfo
 from sapguimcp.tools import abapgit_tools
-from sapguimcp.tools.quick_report_tools import classify_result_screen
 
 
 @pytest.mark.parametrize("code", ["DE", "EN"])
@@ -88,63 +87,3 @@ async def test_popup_error_drops_the_button_labels(code: str, popup_text: str) -
 async def test_pull_without_a_session_language_is_not_turned_into_a_failure_result() -> None:
     with lang.use(None), pytest.raises(lang.UnsupportedLanguageError):
         await abapgit_tools._abapgit_pull_via_api(MagicMock(), "R", None, None, None)
-
-
-def _classifier_backend(status: StatusBarInfo) -> MagicMock:
-    backend = MagicMock()
-    backend.get_status_bar = AsyncMock(return_value=status)
-    backend.get_page_title = AsyncMock(return_value="Report")
-    backend.get_snapshot = AsyncMock(return_value="")
-    return backend
-
-
-@pytest.mark.anyio
-@pytest.mark.parametrize(
-    ("code", "message"),
-    [
-        ("DE", "Keine Belege gefunden"),
-        ("DE", "No documents found"),  # a German session also reads English texts
-        ("EN", "No documents found"),
-        ("EN", "No data selected"),
-    ],
-)
-async def test_empty_result_status_in_both_languages(code: str, message: str) -> None:
-    backend = _classifier_backend(StatusBarInfo(type="S", message=message))
-    with lang.use(code):
-        classification, _ = await classify_result_screen(backend, lang.current())
-
-    assert classification.value == "empty"
-
-
-def _se38_backend(fill_result: SimpleNamespace) -> MagicMock:
-    backend = MagicMock()
-    backend.fill_element_by_locator = AsyncMock(return_value=False)
-    backend.fill_form = AsyncMock(return_value=fill_result)
-    return backend
-
-
-@pytest.mark.anyio
-async def test_se38_program_field_not_filled_is_an_error_in_an_english_session() -> None:
-    """One label only (``Program``): not_found=["Program"] must not count as filled."""
-    backend = _se38_backend(SimpleNamespace(filled=[], not_found=["Program"]))
-    with lang.use("EN"):
-        assert await abapgit_tools._fill_se38_program_field(backend, "ZPROG", lang.current()) is False
-
-
-@pytest.mark.anyio
-async def test_se38_read_stops_when_the_program_field_cannot_be_filled() -> None:
-    backend = _se38_backend(SimpleNamespace(filled=[], not_found=["Program"]))
-    backend.press_key = AsyncMock()
-    backend.wait = AsyncMock()
-    with lang.use("EN"), patch.object(abapgit_tools, "_navigate_to_se38", AsyncMock(return_value=None)):
-        result = await abapgit_tools.read_se38_source(backend, "ZPROG", lang.current())
-
-    assert result == {"success": False, "error": "Could not find program input field"}
-    backend.press_key.assert_not_awaited()
-
-
-@pytest.mark.anyio
-async def test_se38_program_field_filled_by_the_second_label_in_a_german_session() -> None:
-    backend = _se38_backend(SimpleNamespace(filled=["Program"], not_found=["Programm"]))
-    with lang.use("DE"):
-        assert await abapgit_tools._fill_se38_program_field(backend, "ZPROG", lang.current()) is True

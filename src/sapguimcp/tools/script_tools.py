@@ -695,14 +695,6 @@ def register_script_tools(mcp: FastMCP) -> None:
         except ValueError as exc:
             return _fail(str(exc))
 
-        if backend.backend_type != "desktop":
-            return _fail("sap_run_script is only available on the desktop backend. Use browser_evaluate for WebGUI.")
-
-        from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
-
-        if not isinstance(backend, DesktopBackend):
-            return _fail("Internal error: expected DesktopBackend")
-
         desktop_session = backend.require_session()
         com = backend.com
         timeout_td = timedelta(seconds=timeout)

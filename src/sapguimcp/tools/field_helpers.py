@@ -1,25 +1,14 @@
-"""Shared helpers for filling SAP transaction initial-screen fields.
-
-SAP WebGUI hooks into low-level keyboard events (``keydown``/``keyup``),
-not the standard DOM ``input``/``change`` events.  Pure JS field fills
-(``el.value = val``) don't reliably trigger SAP's internal change
-detection, especially after ``/n`` state resets in batch mode.
-
-The helpers here use ``evaluate_javascript`` to locate and focus the
-target field, then ``type_text`` (real Playwright keyboard events) to
-type the value — ensuring SAP registers the change.
-"""
+"""Shared helpers for filling SAP transaction initial-screen fields."""
 
 from __future__ import annotations
 
 import asyncio
 import logging
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
-    from sapguimcp.backend.webgui.backend import WebGuiBackend
     from sapguimcp.lang import LanguagePack
     from sapguimcp.lang.text import Text
 
@@ -31,7 +20,7 @@ _F7_POLL_INTERVAL_MS = 500
 _F7_MAX_POLLS = 10  # 10 * 500ms = 5 seconds max wait
 
 
-async def toggle_to_change_mode(backend: WebGuiBackend | DesktopBackend, t: LanguagePack) -> str | None:
+async def toggle_to_change_mode(backend: DesktopBackend, t: LanguagePack) -> str | None:
     """Click Display<->Change toggle button. Retries once after 1s wait.
 
     The toggle button may not be rendered immediately after F7 navigation,
@@ -59,7 +48,7 @@ async def toggle_to_change_mode(backend: WebGuiBackend | DesktopBackend, t: Lang
 
 
 async def fill_field_with_keyboard(
-    backend: WebGuiBackend | DesktopBackend,
+    backend: DesktopBackend,
     labels: Sequence[str],
     value: str,
 ) -> bool:
@@ -73,9 +62,7 @@ async def fill_field_with_keyboard(
     Returns:
         True if the field was found and filled, False otherwise.
     """
-    if backend.backend_type == "desktop":
-        return await _fill_field_with_keyboard_desktop(cast("DesktopBackend", backend), labels, value)
-    return await _fill_field_with_keyboard_webgui(cast("WebGuiBackend", backend), labels, value)
+    return await _fill_field_with_keyboard_desktop(backend, labels, value)
 
 
 async def _fill_field_with_keyboard_desktop(backend: DesktopBackend, labels: Sequence[str], value: str) -> bool:
@@ -89,63 +76,8 @@ async def _fill_field_with_keyboard_desktop(backend: DesktopBackend, labels: Seq
     return False
 
 
-async def _fill_field_with_keyboard_webgui(backend: WebGuiBackend, labels: Sequence[str], value: str) -> bool:
-    """WebGUI: locate and focus the field via JavaScript, then type the value with real keyboard events."""
-    labels_js = "[" + ",".join(f'"{lbl}"' for lbl in labels) + "]"
-    _eval = getattr(backend, "evaluate_javascript")
-    found = await _eval(f"""(() => {{
-            const labels = {labels_js};
-
-            function isUsableInput(input) {{
-                if (input.getAttribute('role') === 'combobox') return false;
-                if (input.getAttribute('ct') === 'CB') return false;
-                if (input.closest('[role="toolbar"]')) return false;
-                if (input.closest('[role="banner"]')) return false;
-                if (input.offsetParent === null) return false;
-                if (input.disabled || input.readOnly) return false;
-                return true;
-            }}
-
-            function activateInput(input) {{
-                input.focus();
-                input.click();
-                input.select();
-                return true;
-            }}
-
-            // 1. Match by title attribute (DE/EN label variants).
-            const titledInputs = document.querySelectorAll('input[title]');
-            for (const label of labels) {{
-                for (const input of titledInputs) {{
-                    if (input.getAttribute('title') !== label) continue;
-                    if (!isUsableInput(input)) continue;
-                    return activateInput(input);
-                }}
-            }}
-
-            // 2. Fallback: first visible text input not in toolbar/banner.
-            const allInputs = document.querySelectorAll(
-                'input[type="text"], input:not([type])'
-            );
-            for (const input of allInputs) {{
-                if (!isUsableInput(input)) continue;
-                return activateInput(input);
-            }}
-
-            return false;
-        }})()""")
-
-    if not found:
-        return False
-
-    # Type the value with real keyboard events.
-    # The field is already focused and text selected from the JS above.
-    await backend.type_text(value)
-    return True
-
-
 async def fill_and_display(
-    backend: WebGuiBackend | DesktopBackend,
+    backend: DesktopBackend,
     labels: Sequence[str],
     name: str,
     t: LanguagePack,

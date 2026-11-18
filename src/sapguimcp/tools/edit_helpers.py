@@ -7,12 +7,11 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sapguimcp.backend.desktop import DesktopBackend
-    from sapguimcp.backend.webgui.backend import WebGuiBackend
 
 logger = logging.getLogger(__name__)
 
 
-async def describe_failed_replace(backend: WebGuiBackend | DesktopBackend, backup_source: str) -> str:
+async def describe_failed_replace(backend: DesktopBackend, backup_source: str) -> str:
     """Recover from a failed ``replace_editor_source`` and describe the outcome.
 
     The write clears the editor before inserting, so a verification failure

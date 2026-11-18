@@ -437,15 +437,6 @@ async def test_fill_table_control_missing_is_other_error() -> None:
 
 
 @pytest.mark.anyio
-async def test_fill_non_desktop_backend_is_other_error() -> None:
-    result = await _fill_se16n_filters_desktop(MagicMock(), {"MANDT": "1"})
-
-    assert result.unapplied_fields == []
-    assert len(result.other_errors) == 1
-    assert result.other_errors[0].startswith("Filter filling requires DesktopBackend")
-
-
-@pytest.mark.anyio
 async def test_tool_description_documents_strict_filter_fields() -> None:
     server = FastMCP("t")
     register_se16_tools(server)

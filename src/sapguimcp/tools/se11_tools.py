@@ -7,10 +7,8 @@ metadata from SE11, returning strongly-typed Pydantic models.
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
-import re
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -19,9 +17,7 @@ from typing import TYPE_CHECKING, Any
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
-from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
-from sapguimcp.lang.text import compiled
 from sapguimcp.models import (
     SE11Entry,
     SE11Error,
@@ -30,17 +26,12 @@ from sapguimcp.models import (
     SE11ObjectType,
     SE11Result,
 )
-from sapguimcp.models.screen_state import SelectionScreenState
-from sapguimcp.tools.field_helpers import fill_field_with_keyboard
-from sapguimcp.tools.screen_state_helpers import ensure_screen_state
 from sapguimcp.tools.table_helpers import read_table_control_all_rows
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from sapguimcp.backend.desktop import DesktopBackend
-    from sapguimcp.backend.webgui.backend import WebGuiBackend
-    from sapguimcp.lang.schema import LanguagePack
 
 
 logger = logging.getLogger(__name__)
@@ -58,370 +49,6 @@ _COL_LENGTH = "DD03P-LENG"
 _COL_DECIMALS = "DD03P-DECIMALS"
 _COL_SHORT_DESC = "DD03P-DDTEXT"
 _COL_KEY = "DD03P-KEYFLAG"  # the key flag: a checkbox column (read with ``read_checkboxes``)
-
-
-def _row_split_pattern(t: LanguagePack) -> re.Pattern[str]:
-    return compiled(rf'(?=- row "{t.common.row_select_hint.alt})')
-
-
-def _field_name_pattern(t: LanguagePack) -> re.Pattern[str]:
-    return compiled(rf'row "{t.se11.row_select_full.alt}\s+(?P<field_name>[A-Z_0-9/]+)')
-
-
-def _row_data_pattern(t: LanguagePack) -> re.Pattern[str]:
-    return compiled(rf'(?m)row "{t.se11.row_select_full.alt}\s+(?P<row_data>[^"]+)"')
-
-
-# =============================================================================
-# YAML Parsing Functions
-# =============================================================================
-
-
-def _parse_se11_yaml(yaml_content: str, object_type: SE11ObjectType, t: LanguagePack) -> SE11Entry | SE11Error:
-    """
-    Parse SE11 display YAML snapshot into structured data.
-
-    Args:
-        yaml_content: The YAML accessibility snapshot from browser_snapshot
-        object_type: Whether this is a 'table' or 'structure'
-        t: Language pack of the session
-
-    Returns:
-        SE11Entry on success, SE11Error on parse failure
-    """
-    now = datetime.now(UTC)
-
-    # Extract table/structure name (the merged pack view holds DE and EN, one search covers both)
-    name_match = compiled(
-        rf'textbox "{lang.alt_of(t.se11.transparent_table, t.se11.structure)}":\s*(?P<name>\S+)'
-    ).search(yaml_content)
-
-    if not name_match:
-        return SE11Error(
-            name="UNKNOWN",
-            object_type=object_type,
-            error="Object not found - SE11 did not display table/structure details",
-            retrieved_at=now,
-        )
-
-    name = name_match.group("name").strip()
-
-    # Extract description
-    desc_match = compiled(
-        rf'textbox "{t.se11.short_description.alt}":\s*(?P<description>.+?)(?:\n|$)'  # lang-ok: regex group name
-    ).search(yaml_content)
-    description = desc_match.group("description").strip() if desc_match else ""
-
-    # Parse fields from the grid
-    fields = _parse_se11_fields(yaml_content, t)
-
-    if not fields:
-        return SE11Error(
-            name=name,
-            object_type=object_type,
-            error="Could not parse fields from SE11 screen - grid not found or empty",
-            retrieved_at=now,
-        )
-
-    return SE11Entry(
-        name=name,
-        description=description,
-        object_type=object_type,
-        fields=fields,
-        retrieved_at=now,
-    )
-
-
-def _find_key_fields(yaml_content: str, t: LanguagePack) -> set[str]:
-    """Find which fields are marked as key fields in the SE11 grid."""
-    key_fields: set[str] = set()
-    row_blocks = _row_split_pattern(t).split(yaml_content)
-    field_name_pattern = _field_name_pattern(t)
-
-    for block in row_blocks:
-        if not block.strip():
-            continue
-
-        row_match = field_name_pattern.search(block)
-        if not row_match:
-            continue
-
-        field_name = row_match.group("field_name")
-
-        # Key checkbox pattern: after field name gridcell, next gridcell has [checked] checkbox
-        key_pattern = re.compile(
-            r'gridcell "' + re.escape(field_name) + r'":\s*\n'
-            r"\s*- textbox[^\n]*\n"
-            r"\s*- gridcell[^:]*:\s*\n"
-            r"\s*- checkbox[^\n]*\[checked\]",
-        )
-
-        if key_pattern.search(block):
-            key_fields.add(field_name)
-
-    return key_fields
-
-
-def _parse_field_row(parts: list[str], key_fields: set[str]) -> SE11Field | None:
-    """Parse a single field row into an SE11Field, or None if parsing fails."""
-    if len(parts) < 7:
-        return None
-
-    field_name = parts[0]
-
-    # Find the data type by looking for a 2-10 char uppercase string
-    datatype = None
-    datatype_idx = -1
-    for i, part in enumerate(parts[1:], 1):
-        if re.match(r"^[A-Z][A-Z0-9]{1,9}$", part) and not part.isdigit():
-            if datatype is None or len(part) < len(datatype):
-                datatype = part
-                datatype_idx = i
-
-    if datatype is None or datatype_idx < 2:
-        return None
-
-    try:
-        length = int(parts[datatype_idx + 1])
-        decimals_raw = int(parts[datatype_idx + 2])
-        decimals = decimals_raw if decimals_raw > 0 else None
-        description = " ".join(parts[datatype_idx + 4 :]).strip()
-    except (IndexError, ValueError):
-        return None
-
-    return SE11Field(
-        name=field_name,
-        datatype=datatype,
-        length=length,
-        decimals=decimals,
-        description=description,
-        is_key=field_name in key_fields,
-    )
-
-
-def _parse_se11_fields(yaml_content: str, t: LanguagePack) -> list[SE11Field]:
-    """Parse field rows from SE11 grid."""
-    key_fields = _find_key_fields(yaml_content, t)
-    fields: list[SE11Field] = []
-
-    for match in _row_data_pattern(t).finditer(yaml_content):
-        row_data = match.group("row_data")
-
-        # Filter out checkbox Unicode chars (Private Use Area U+E000-U+F8FF)
-        parts = [p for p in row_data.split() if p and not (len(p) == 1 and ord(p) >= 0xE000)]
-
-        field = _parse_field_row(parts, key_fields)
-        if field:
-            fields.append(field)
-
-    return fields
-
-
-# =============================================================================
-# SE11 Navigation Helpers
-# =============================================================================
-
-
-async def _wait_for_se11_table_screen(
-    backend: WebGuiBackend | DesktopBackend, name: str, t: LanguagePack
-) -> SE11Error | None:
-    """Wait for SE11 table screen and select the table radio. Returns error or None."""
-    now = datetime.now(UTC)
-
-    # Wait for the screen to load by checking snapshot for radio presence
-    for _ in range(20):  # 20 * 500ms = 10s max
-        snapshot = await backend.get_snapshot()
-        if t.se11.database_table.contains(snapshot):
-            break
-        await asyncio.sleep(0.5)
-    else:
-        return SE11Error(
-            name=name,
-            object_type="table",
-            error="SE11 screen did not load. Could not find the database-table radio button.",
-            retrieved_at=now,
-        )
-
-    # Select the table radio via ensure_screen_state (with verification)
-    target = SelectionScreenState(radios=dict.fromkeys(t.se11.database_table, True))
-    result = await ensure_screen_state(backend, target)
-    if not result.success:
-        return SE11Error(
-            name=name,
-            object_type="table",
-            error=f"Could not select the database-table radio: {result.error}",
-            retrieved_at=now,
-        )
-    return None
-
-
-async def _wait_for_se11_structure_screen(
-    backend: WebGuiBackend | DesktopBackend, name: str, t: LanguagePack
-) -> SE11Error | None:
-    """Wait for SE11 structure screen and select the data type radio. Returns error or None."""
-    now = datetime.now(UTC)
-
-    # Wait for the screen to load by checking snapshot for radio presence
-    for _ in range(20):  # 20 * 500ms = 10s max
-        snapshot = await backend.get_snapshot()
-        if t.se11.data_type.contains(snapshot):
-            break
-        await asyncio.sleep(0.5)
-    else:
-        return SE11Error(
-            name=name,
-            object_type="structure",
-            error="SE11 screen did not load. Could not find the data-type radio button.",
-            retrieved_at=now,
-        )
-
-    # Select the data type radio via ensure_screen_state (with verification)
-    target = SelectionScreenState(radios=dict.fromkeys(t.se11.data_type, True))
-    result = await ensure_screen_state(backend, target)
-    if not result.success:
-        return SE11Error(
-            name=name,
-            object_type="structure",
-            error=f"Could not select the data-type radio: {result.error}",
-            retrieved_at=now,
-        )
-    return None
-
-
-async def _fill_table_name_field(
-    backend: WebGuiBackend | DesktopBackend, name: str, t: LanguagePack
-) -> SE11Error | None:
-    """Fill the table name field in SE11 using real keyboard events. Returns error or None."""
-    now = datetime.now(UTC)
-    labels = list(t.se11.table_name)
-
-    if await fill_field_with_keyboard(backend, labels, name.upper()):
-        return None
-
-    return SE11Error(
-        name=name,
-        object_type="table",
-        error="Could not find table name field in SE11",
-        retrieved_at=now,
-    )
-
-
-async def _fill_structure_name_field(
-    backend: WebGuiBackend | DesktopBackend, name: str, t: LanguagePack
-) -> SE11Error | None:
-    """Fill the structure/data type name field in SE11 using real keyboard events. Returns error or None."""
-    now = datetime.now(UTC)
-    labels = list(t.se11.data_type_name_label)
-
-    if await fill_field_with_keyboard(backend, labels, name.upper()):
-        return None
-
-    return SE11Error(
-        name=name,
-        object_type="structure",
-        error="Could not find data type name field in SE11",
-        retrieved_at=now,
-    )
-
-
-async def _click_display_button(backend: WebGuiBackend | DesktopBackend, name: str, t: LanguagePack) -> None:
-    """Click the Display button or fall back to F7."""
-    # Try the display button label of every language of the merged view
-    for label in t.common.display:
-        try:
-            await backend.click_button(label)
-            await backend.wait_for_ready()
-            return
-        except ValueError:  # pylint: disable=broad-exception-caught
-            continue
-
-    # Fall back to F7
-    logger.warning("Display button not found, falling back to F7", extra={"object": name})
-    await backend.press_key("F7")
-    await backend.wait_for_ready()
-
-
-async def _check_object_not_found(
-    backend: WebGuiBackend | DesktopBackend, name: str, object_type: SE11ObjectType, t: LanguagePack
-) -> SE11Error | None:
-    """Check if the status bar shows 'object not found'. Returns error or None."""
-    now = datetime.now(UTC)
-    status = await backend.get_status_bar()
-    status_text = status.message or ""
-
-    if status_text and (t.common.does_not_exist.contains(status_text) or t.common.not_found.contains(status_text)):
-        await backend.press_key("F3")
-        await backend.wait_for_ready()
-        return SE11Error(
-            name=name,
-            object_type=object_type,
-            error=f"Object '{name}' not found in ABAP Dictionary",
-            retrieved_at=now,
-        )
-
-    return None
-
-
-async def _lookup_object_on_initial_screen(  # pylint: disable=too-many-return-statements
-    backend: WebGuiBackend | DesktopBackend, name: str, object_type: SE11ObjectType, t: LanguagePack
-) -> SE11Entry | SE11Error:
-    """Look up a table or structure assuming we're already on the SE11 initial screen.
-
-    The caller handles navigation (``enter_transaction``) and state reset
-    (``/n`` between lookups) to prevent state bleeding in batch mode. ``t`` is the language pack of the
-    session, resolved once by the caller (``lang.current(...)``) outside any ``try`` that would swallow an
-    ``UnsupportedLanguageError``.
-    """
-    now = datetime.now(UTC)
-
-    # Wait for screen and select object type
-    if object_type == "table":
-        error = await _wait_for_se11_table_screen(backend, name, t)
-        if error:
-            return error
-        error = await _fill_table_name_field(backend, name, t)
-        if error:
-            return error
-    else:
-        error = await _wait_for_se11_structure_screen(backend, name, t)
-        if error:
-            return error
-        error = await _fill_structure_name_field(backend, name, t)
-        if error:
-            return error
-
-    # Click display and check for errors
-    await _click_display_button(backend, name, t)
-
-    error = await _check_object_not_found(backend, name, object_type, t)
-    if error:
-        return error
-
-    # Get and parse snapshot
-    snapshot = await backend.get_snapshot()
-    snapshot_str = str(snapshot)
-    logger.debug("Got snapshot", extra={"object": name, "length": len(snapshot_str)})
-
-    parse_result = _parse_se11_yaml(snapshot_str, object_type, t)
-
-    # Handle parse failure - save debug snapshot
-    if isinstance(parse_result, SE11Error):
-        logger.warning("Parse failed", extra={"object": name, "error": parse_result.error})
-        debug_path = Path(f"se11_debug_{name}.yaml")
-        debug_path.write_text(snapshot_str, encoding="utf-8")
-        logger.warning("Saved debug snapshot", extra={"path": str(debug_path)})
-        return SE11Error(name=name, object_type=object_type, error=parse_result.error, retrieved_at=now)
-
-    # Verify parsed name matches requested name
-    if parse_result.name.upper() != name.upper():  # pylint: disable=no-member
-        return SE11Error(
-            name=name,
-            object_type=object_type,
-            error=f"Object '{name}' not found (screen showed '{parse_result.name}')",
-            retrieved_at=now,
-        )
-
-    return parse_result
 
 
 # =============================================================================
@@ -493,10 +120,9 @@ def _se11_display_screen_reached(before_status: str) -> Callable[[Any], bool]:
 
 
 async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-return-statements,too-many-statements
-    backend: WebGuiBackend | DesktopBackend, name: str, object_type: SE11ObjectType
+    backend: DesktopBackend, name: str, object_type: SE11ObjectType
 ) -> SE11Entry | SE11Error:
     """Desktop-specific SE11 lookup using COM table control reading."""
-    from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
     from sapguimcp.backend.desktop._element_finder import _flatten  # pylint: disable=import-outside-toplevel
 
     now = datetime.now(UTC)
@@ -512,9 +138,6 @@ async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-retu
     else:
         radio_id = "wnd[0]/usr/radRSRD1-DDTYPE"
         field_id = "wnd[0]/usr/ctxtRSRD1-DDTYPE_VAL"
-
-    if not isinstance(backend, DesktopBackend):
-        return SE11Error(name=name, object_type=object_type, error="Requires DesktopBackend", retrieved_at=now)
 
     session = backend.require_session()
 
@@ -613,7 +236,7 @@ async def _lookup_se11_desktop(  # pylint: disable=too-many-locals,too-many-retu
 
 
 async def _lookup_batch_se11_desktop(
-    backend: WebGuiBackend | DesktopBackend, name_list: list[str], object_type: SE11ObjectType
+    backend: DesktopBackend, name_list: list[str], object_type: SE11ObjectType
 ) -> SE11Result:
     """Run SE11 lookups for a batch of names on the desktop backend."""
     entries: list[SE11Entry] = []
@@ -729,60 +352,7 @@ def register_se11_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return SE11Result.failure(f"Session error: {e}")
 
-        # Route to desktop or WebGUI batch lookup
-        if backend.backend_type == "desktop":
-            final_result = await _lookup_batch_se11_desktop(backend, name_list, object_type)
-        else:
-            # Resolved once, before the per-name try: an UnsupportedLanguageError must not become a lookup error
-            t = lang.current("sap_se11_lookup")
-            entries: list[SE11Entry] = []
-            errors: list[SE11Error] = []
-
-            for name in name_list:
-                # Navigate to Easy Access first to ensure a clean starting state,
-                # then open SE11.  This prevents state bleeding between lookups.
-                await backend.enter_transaction("/n")
-                await backend.wait_for_ready()
-
-                tx_result = await backend.enter_transaction("SE11")
-                if not tx_result.success:
-                    errors.append(
-                        SE11Error(
-                            name=name,
-                            object_type=object_type,
-                            error=f"Failed to navigate to SE11: {tx_result.error}",
-                            retrieved_at=datetime.now(UTC),
-                        )
-                    )
-                    continue
-                await backend.wait_for_ready()
-
-                try:
-                    result = await _lookup_object_on_initial_screen(backend, name, object_type, t)
-                    if isinstance(result, SE11Entry):
-                        entries.append(result)
-                    else:
-                        errors.append(result)
-                except Exception as e:  # pylint: disable=broad-exception-caught
-                    logger.exception("Looking up in SE11", extra={"object": name})
-                    errors.append(
-                        SE11Error(
-                            name=name,
-                            object_type=object_type,
-                            error=f"Error looking up '{name}': {e}",
-                            retrieved_at=datetime.now(UTC),
-                        )
-                    )
-
-            # Build final result
-            if entries:
-                final_result = SE11Result(entries=entries, errors=errors)
-            else:
-                final_result = SE11Result.failure(
-                    error=f"All {len(errors)} lookups failed",
-                    entries=[],
-                    errors=errors,
-                )
+        final_result = await _lookup_batch_se11_desktop(backend, name_list, object_type)
 
         # Write to file if requested
         if output_file:

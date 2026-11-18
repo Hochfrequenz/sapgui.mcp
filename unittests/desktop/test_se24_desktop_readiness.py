@@ -179,16 +179,6 @@ async def test_lookup_class_with_a_popup_confirms_it_and_waits_again(lang_de: La
 
 
 @pytest.mark.anyio
-async def test_lookup_class_requires_the_desktop_backend_before_touching_the_screen(lang_de: LanguagePack) -> None:
-    backend = MagicMock()  # not a DesktopBackend
-    backend.fill_field = AsyncMock()
-    result = await _lookup_class_desktop(backend, "CL_X", lang_de)
-    assert not isinstance(result, SE24Entry)
-    assert result.error == "Requires DesktopBackend"
-    backend.fill_field.assert_not_awaited()
-
-
-@pytest.mark.anyio
 async def test_lookup_class_not_found_reports_the_generic_text_not_sap_s_own_message(lang_de: LanguagePack) -> None:
     """The former unconditional Enter cleared SAP's message, so callers always saw this text; keep it."""
     backend = _lookup_backend(popup=None)

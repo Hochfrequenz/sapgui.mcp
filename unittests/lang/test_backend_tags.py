@@ -18,8 +18,7 @@ A read counts for a backend by where it sits:
 - ``backend/desktop/`` and any function whose name ends in ``_desktop`` (or has ``_desktop_`` in
   it): desktop,
 - ``backend/webgui/`` (Python and the JS texts it passes through ``for_js()``),
-  ``tools/browser_tools.py``, ``tools/se37_edit_tools.py``, ``tools/quick_report_tools.py`` (the
-  WebGUI-only tools) and any function named ``*_webgui``: webgui,
+  and any function named ``*_webgui``: webgui,
 - everything else (shared tool code, scrapers, models): both.
 
 Shared code also calls into the backend folders (tool code imports the WebGUI parsers, for example
@@ -46,11 +45,7 @@ from sapguimcp.lang.schema import iter_leaves, sections
 
 SRC = Path(__file__).resolve().parents[2] / "src" / "sapguimcp"
 
-WEBGUI_FILES = {
-    "tools/browser_tools.py",
-    "tools/se37_edit_tools.py",
-    "tools/quick_report_tools.py",
-}
+WEBGUI_FILES: set[str] = set()  # the WebGUI-only tool modules are gone (#1106)
 DESKTOP_DIR = "backend/desktop/"
 WEBGUI_DIR = "backend/webgui/"
 
@@ -64,6 +59,34 @@ KNOWN_UNUSED = {
     "spro.column_hits",
     "spro.column_parent",
     "spro.column_area",
+    # Read only by the WebGUI tool paths deleted in #1106; removed together with the WebGUI texts (#1108).
+    "abapgit.se38_initial_title",
+    "quick_report.empty_patterns",
+    "quick_report.execute_button",
+    "se11.data_type",
+    "se11.data_type_name_label",
+    "se11.database_table",
+    "se11.row_select_full",
+    "se11.short_description",
+    "se11.structure",
+    "se11.transparent_table",
+    "se16.empty_cell",
+    "se16.max_hits_label",
+    "se16.no_values_found",
+    "se16.selection_columns",
+    "se16.table_label",
+    "se16.table_not_found",
+    "se24.class_builder",
+    "se37.function_builder",
+    "se37.source_tab",
+    "slg1.from_datetime",
+    "slg1.to_datetime",
+    "sm37.from_date",
+    "sm37.to_date",
+    "sm37.user_name",
+    "spro.img_heading",
+    "spro.initial_screen",
+    "spro.search_button",
 }
 
 EN = lang.pack_for("EN")

@@ -56,9 +56,3 @@ async def test_the_same_status_text_class_and_number_decide_not_the_language() -
 )
 async def test_any_other_status_is_still_a_success(status: StatusBarInfo) -> None:
     assert (await _call(status))["success"] is True
-
-
-@pytest.mark.anyio
-async def test_the_webgui_backend_is_not_checked() -> None:
-    status = StatusBarInfo(type="S", message="x", message_id="S#", message_number="343")
-    assert (await _call(status, backend_type="webgui"))["success"] is True
