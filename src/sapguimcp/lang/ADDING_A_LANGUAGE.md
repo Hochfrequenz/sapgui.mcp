@@ -99,3 +99,37 @@ These are lessons from migrating DE and EN (#1044, PRs #1055–#1061):
   from the pack's `date_format`, not from the user's own settings (#1043).
 - **Known limitation:** `tools/breakpoint_tools.py` is not migrated (#1025) and still expects DE
   or EN.
+
+## Backend tags and the split of the packs (#1099)
+
+Every field of a pack section is tagged with the backend that reads it in `lang/backends.py`
+(`BACKEND_OF`: `"se16.hit_count_label": Backend.WEBGUI`). `Backend.BOTH` marks texts that shared
+code or both backends read, and is also the safe tag when unsure. A new field needs a tag in the
+same change as its entry in `schema.py`; `unittests/lang/test_backend_tags.py` derives the tag from
+the source (where the field is read, see the docstring of that test) and fails on a missing tag, on
+a wrong tag and on a field nothing reads.
+
+The reason is the desktop/WebGUI split: each repository deletes the fields tagged for the other
+backend from `schema.py`, `de.py`, `en.py`, `it.py`, `sources.py` and `backends.py`. A field tagged
+`BOTH` stays on both sides.
+
+## WebGUI-only language machinery
+
+None of the following is needed by the desktop backend. A repository without the WebGUI backend
+deletes all of it (#1108):
+
+- `Text.for_js()` and `RegexText.for_js()` in `lang/text.py`, with the JS escaper and builder
+  behind them (`_JS_SYNTAX`, `_JS_WORD`, `_JS_UNPORTABLE`, `JsPattern`, `JsText`), and their only
+  caller, `backend/webgui/js_helpers.py`, which hands pack texts to the JS files in
+  `backend/webgui/js/`.
+- `unittests/lang/node_runner.py`: runs JS patterns in Node (the Node of Playwright's driver, or
+  `node` on `PATH`). Also used by `unittests/test_extract_status_bar_js.py` and
+  `unittests/lang/test_se11_se16_pack.py`.
+- `unittests/lang/test_text_js.py` (the JS escaper and builder) and
+  `unittests/lang/test_js_pack_guard.py` (every pack text compiles in Node and matches its own
+  variants).
+- `JS_DIR` in `unittests/test_no_ui_literals.py` (`backend/webgui/js`): the no-literal scanner
+  reads the JS files through it.
+- The `prettier src/**/*.js` part of the `format` and `format:check` scripts in `package.json`.
+  The `**/*.md` part stays, and so does `prettier` itself while Markdown is formatted with it.
+- Fields tagged `Backend.WEBGUI` in `lang/backends.py`.
