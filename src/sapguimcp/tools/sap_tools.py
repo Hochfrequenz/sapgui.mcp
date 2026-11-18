@@ -245,15 +245,6 @@ async def _transaction_desktop(
         # Small wait to let popup render if it appeared
         await backend.wait(200)
 
-        # Check if a popup appeared after navigation
-        popup = await backend.check_popup()
-        if popup and not backend.backend_type == "desktop":
-            return TransactionResult.failure(
-                f"Popup blocking: {popup.message or 'confirmation required'}",
-                tcode=tcode,
-                popup=popup,
-            )
-
         if result.success:
             # SAP stays on the screen it was on and reports the unknown code in the status bar, as a
             # success message: the navigation itself raised no error.
@@ -268,15 +259,6 @@ async def _transaction_desktop(
 
     # new_window=True: delegate to backend
     new_session_id, session_count, new_title = await backend.open_new_session(tcode)
-
-    # Check if a popup appeared after navigation
-    popup = await backend.check_popup()
-    if popup and not backend.backend_type == "desktop":
-        return TransactionResult.failure(
-            f"Popup blocking: {popup.message or 'confirmation required'}",
-            tcode=tcode,
-            popup=popup,
-        )
 
     if new_session_id is None:
         return TransactionResult.failure(
@@ -309,7 +291,7 @@ async def _transaction_webgui(
 
         # Check if a popup appeared after navigation
         popup = await backend.check_popup()
-        if popup and not backend.backend_type == "desktop":
+        if popup:
             return TransactionResult.failure(
                 f"Popup blocking: {popup.message or 'confirmation required'}",
                 tcode=tcode,
@@ -323,7 +305,7 @@ async def _transaction_webgui(
 
     # Check if a popup appeared after navigation
     popup = await backend.check_popup()
-    if popup and not backend.backend_type == "desktop":
+    if popup:
         return TransactionResult.failure(
             f"Popup blocking: {popup.message or 'confirmation required'}",
             tcode=tcode,
