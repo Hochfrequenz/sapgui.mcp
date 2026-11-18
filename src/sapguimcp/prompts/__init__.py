@@ -1,5 +1,5 @@
 """
-MCP prompts for SAP Web GUI automation.
+MCP prompts for SAP GUI automation.
 
 This module provides auto-discovery and registration of markdown-based prompts.
 Each .md file in this directory (except README.md) becomes an MCP prompt.

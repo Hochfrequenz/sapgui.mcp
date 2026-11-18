@@ -108,7 +108,6 @@ async def test_an_unfillable_filter_is_not_retried_with_localized_labels() -> No
 def _listing_backend(table: Any, session: Any) -> Any:
     """A desktop backend that gets past the selection screen and then reads ``table`` (or falls back to ``session``)."""
     backend = _backend("")
-    backend.backend_type = "desktop"
     backend.focus_and_type = AsyncMock(return_value=True)
     backend.read_table = AsyncMock(return_value=table)
     backend.require_session = MagicMock(return_value=session)

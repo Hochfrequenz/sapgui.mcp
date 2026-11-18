@@ -35,7 +35,6 @@ def _no_settings_credentials():
 
 def _backend(status: StatusBarInfo) -> Any:
     backend = MagicMock(spec=DesktopBackend)
-    backend.backend_type = "desktop"
     backend.enter_transaction = AsyncMock(return_value=SimpleNamespace(success=True, error=None))
     # the first read (right after the OK-code) is the transaction check; the report answers after F8
     backend.get_status_bar = AsyncMock(side_effect=[StatusBarInfo(type="none", message=""), status, status, status])

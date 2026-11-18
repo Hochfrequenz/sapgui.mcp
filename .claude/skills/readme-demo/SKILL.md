@@ -63,7 +63,7 @@ assembly time, outside this skill.
 ### How to capture frames (important)
 
 `sap_screenshot` returns the picture to *you* (the agent sees it) but cannot
-save it to disk. To write a frame file, use `sap_run_script` (desktop backend)
+save it to disk. To write a frame file, use `sap_run_script`
 with the COM `hard_copy` call — the same way the server itself implements
 screenshots. Absolute path required:
 

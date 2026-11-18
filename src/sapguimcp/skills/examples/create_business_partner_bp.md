@@ -87,7 +87,7 @@ There are two ways to fill the form fields:
 #### Option A: Batch Fill (Recommended - Much Faster)
 
 Use `sap_fill_form` to fill all fields in a single call. This is ~10x faster
-than filling fields one by one because it executes everything in one browser round-trip.
+than filling fields one by one because it executes everything in one call.
 
 ```
 # Fill person fields using CSS selectors that target SAP field IDs

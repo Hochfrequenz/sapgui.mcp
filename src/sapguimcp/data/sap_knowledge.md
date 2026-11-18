@@ -1,6 +1,6 @@
-# SAP Web GUI Knowledge Base
+# SAP GUI Knowledge Base
 
-This file contains domain knowledge, tips, and best practices for working with SAP Web GUI.
+This file contains domain knowledge, tips, and best practices for working with SAP GUI for Windows.
 The content is loaded by `sap_get_capabilities()` and provided to the AI model.
 
 ## Finding Transactions: Use the Catalog First
@@ -22,15 +22,14 @@ The catalog contains ~4,000 SAP transactions with descriptions, and searching it
 
 **Only if the catalog doesn't help**, then:
 
-1. Try online resources (help.sap.com via `browser_navigate` - see workaround below)
-2. Use SE93 to look up unknown transaction codes
-3. Ask the user for clarification
+1. Use SE93 to look up unknown transaction codes
+2. Ask the user for clarification
 
 ## MCP-Tools are Faster than manual evaluation
 
-ALWAYS, before trying to use `browser_evaluate` or any other `browser_` tool, check if there is a dedicated MCP tool that does what you want.
-MCP tools are optimized to work with SAP Web GUI and will be much faster and more reliable.
-You can still manually evaluate JavaScript code if no MCP tool exists for your use case or if the tools don't work, but this should be the exception, not the rule.
+ALWAYS, before trying `sap_com_evaluate` or `sap_run_script`, check if there is a dedicated MCP tool that does what you want.
+The dedicated tools are optimized for SAP GUI and will be much faster and more reliable.
+You can still use `sap_com_evaluate` or `sap_run_script` if no MCP tool exists for your use case or if the tools don't work, but this should be the exception, not the rule.
 In case it doesn't work use the respetive tool to submit feedback to improve the MCP tools.
 
 ## Keyboard Shortcuts
@@ -45,7 +44,7 @@ Common shortcuts (German keyboard labels shown, work the same on EN keyboards):
 - **Shift+F3** - Exit completely (Beenden)
 - **Enter** - Confirm current action
 - **F4** - Open search help / value list which helps you to fill meaningful values to a field.
-  Browser focus needs to be on the respective field before hitting F4.
+  The cursor needs to be in the respective field before hitting F4.
   This opens a popup with available values - this is expected behavior, not an error.
   Read the values before closing the popup.
 
@@ -91,24 +90,6 @@ and other tools target the popup — not the main window behind it.
 **Cannot navigate while a dialog is open:** `sap_transaction()` will fail if a
 modal dialog is present — dismiss it first.
 
-### State Bleeding Between Transactions
-
-SAP WebGUI can "bleed" state between sequential transactions. Symptoms:
-
-- Fields don't accept new values (previous values persist)
-- F7/F8 doesn't execute (SAP didn't register the field change)
-- Status bar shows errors from the previous transaction
-
-**Root cause:** SAP WebGUI hooks into low-level keyboard events (`keydown`/`keyup`), not the standard DOM `input`/`change` events that JavaScript-based field fills trigger. After navigating between transactions, SAP's internal model may not detect JS-only value changes.
-
-**Solutions (in order of preference):**
-
-1. **`reset_first=True`** - Use `sap_transaction("SE24", reset_first=True)` to navigate to Easy Access before entering the transaction. This clears all residual state.
-2. **Manual `/n` reset** - Call `sap_press_key("Enter")` with `/n` in the OK-code field, then re-enter your transaction.
-3. **Real keyboard typing** - If a field value isn't being picked up, try clearing the field and retyping the value manually using `sap_press_key` with individual keystrokes.
-
-After you found out how to solve a specific problem without these workarounds, consider providing feedback to the devs.
-
 ## ABAP Development with Claude Code and abapGit
 
 **The strongly preferred approach** for ABAP development is to use Claude Code together with abapGit.
@@ -124,7 +105,7 @@ Using Git is always the preferred option — there should be no doubt about it.
 1. **Install abapGit in SAP** - Follow the [abapGit installation guide](https://docs.abapgit.org/user-guide/getting-started/install.html).
    See also [abapGit.org](https://abapgit.org/) for an overview.
 2. **Install Claude Code** - Follow the [official documentation](https://docs.anthropic.com/en/docs/claude-code/overview)
-3. **Configure the SAP WebGUI MCP Server** - Add this MCP server to your Claude Code configuration.
+3. **Configure the SAP GUI MCP Server** - Add this MCP server to your Claude Code configuration.
    See [MCP server setup](https://docs.anthropic.com/en/docs/claude-code/mcp-servers)
 4. **Clone your abapGit repository** - Open Claude Code in the local repository directory where your ABAP code lives
 
@@ -210,31 +191,7 @@ Each has a simple, MCP-friendly UI:
 ## Functional Background
 
 - This MCP server was designed with a S/4 utilities system in mind, so many transactions relate to the legacy SAP IS-U (Industry Solution for Utilities) or (mostly) are the same.
-- **Use `search_transactions` first** before guessing transaction codes. If the catalog doesn't help, try SAP Help Portal (see below).
-
-### Accessing SAP Help Portal via Chrome Browser
-
-The best resource for finding correct SAP specific information is the SAP help portal.
-Their robots.txt disallows browsers integrated into regular AI tools (like Claude, Gemini or ChatGPT).
-This leads to the symptom that when the human user asks the LLM to do an online research, they'll find links to the SAP help portal but requests will fail.
-The workaround is to use the same browser that is used to access the SAP Web GUI to visit the help portal (instead of the SAP GUI).
-
-Therefore, use the tool `browser_navigate` to access the help portal, e.g. this URL:
-
-```json
-{
-    "url": "https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/021b182b0c47416c8fafed67ebfd78a9/266dce53118d4308e10000000a174cb4.html"
-}
-```
-
-Add a little `browser_wait` for the site to load (10s is sufficient).
-If you find a cookie banner/layover: Click on "Alle Ablehnen".
-Then proceed like a user would do.
-Make sure to NOT use `sap_`... MCP tools on the help portal.
-`browser_snapshot` should be the way to go to access information after you loaded SAP help portal in the browser.
-If you see that online research failed when accessing `help.sap.com`, use this workaround with the respective URL.
-
-USE THIS APPROACH TO ACCESS HELP.SAP.COM ONLY.
+- **Use `search_transactions` first** before guessing transaction codes.
 
 ## Transaction Code Tips
 
@@ -244,9 +201,9 @@ USE THIS APPROACH TO ACCESS HELP.SAP.COM ONLY.
 
 **Problem:** SAP selection screens (SE09, SE16, SM37, etc.) remember their field values and checkbox states across sessions on the SAP side, per user. This means the screen you see when entering a transaction is NOT a clean default — it reflects whatever the user (or an automation tool) last entered.
 
-**Impact on automation:** If your tool assumes a default checkbox state (e.g., "Workbench is checked by default in SE09"), it will break when the user previously used a different configuration. The checkbox state persists even across browser sessions and logins.
+**Impact on automation:** If your tool assumes a default checkbox state (e.g., "Workbench is checked by default in SE09"), it will break when the user previously used a different configuration. The checkbox state persists even across sessions and logins.
 
-**Solution:** Transaction-specific tools use `ensure_screen_state()` to always explicitly set the desired state before executing. This reads the ARIA snapshot, diffs against the target, applies only necessary changes, and verifies the result. Labels that don't match the current language produce harmless warnings (labels come from the language pack).
+**Solution:** Transaction-specific tools use `ensure_screen_state()` to always explicitly set the desired state before executing. This reads the current screen state, diffs against the target, applies only necessary changes, and verifies the result. Labels that don't match the current language produce harmless warnings (labels come from the language pack).
 
 **Applies to:** All SAP selection screens, not just SE09. Any transaction with a selection screen (SE16, SM37, SLG1, etc.) has this stateful behavior.
 
@@ -257,35 +214,7 @@ For general-purpose exploration of unknown screens:
 - Use `sap_get_form_fields` to see all controls including checkbox/radio `checked` state
 - Use `sap_set_checkbox(label, checked)` to toggle a checkbox
 - Use `sap_set_radio_button(label)` to select a radio button
-- These tools are safer than raw `browser_evaluate` for SAP form controls
-
-## Common Patterns
-
-### ALV Grid Pagination (Feature Request)
-
-**Problem:** ALV grids in SAP Web GUI use lazy loading - only visible rows (~7-13) are in the DOM at a time. To read all rows, you need to paginate through the grid using PageDown.
-
-**Current Solution:** The `sap_se16_query` tool in `se16_tools.py` implements a pagination pattern that:
-
-1. Focuses the grid (required for PageDown to work)
-2. Uses PageDown to scroll through pages
-3. Deduplicates rows (pages can overlap)
-4. Detects end-of-data via first-row key comparison
-5. Handles stuck/empty pages gracefully
-
-**Key Techniques:**
-
-- Focus grid before pagination: `page.locator("[role='grid']").first.click()`
-- Row deduplication via set with composite keys
-- First-row key comparison to detect end
-- Stuck counter (stop after 3 empty pages)
-- ~1 second wait between pages for lazy loading
-
-**Performance:** ~7 rows/second due to pagination overhead.
-
-**Reuse Opportunity:** Consider extracting a reusable `alv_collect_rows()` helper that other transaction tools can use. Currently each tool would need to copy this pattern.
-
-Use `log_feedback` to report if you encounter a transaction that needs pagination support.
+- These tools are safer than raw `sap_com_evaluate` for SAP form controls
 
 ## Multi-Session Support (Parallel Agents)
 
@@ -296,14 +225,14 @@ Parallel sub-agents help only across genuinely separate connections (different s
 
 ### Session Management Tools
 
-| Tool                                      | Purpose                                                                  |
-| ----------------------------------------- | ------------------------------------------------------------------------ |
-| `sap_transaction(tcode, new_window=True)` | Open a new SAP session with a transaction, returns `session_id`          |
-| `sap_session_list()`                      | List all active sessions with IDs and titles                             |
-| `sap_session_close(session_id)`           | Close a specific session by ID                                           |
-| `sap_session_detach(session_id)`          | Drop a session from the registry, leaving its window open (desktop only) |
-| `sap_session_bind(session_id, agent_id)`  | Bind a session to an agent for parallel workflows                        |
-| `sap_session_release(session_id)`         | Unbind a session from an agent without closing it                        |
+| Tool                                      | Purpose                                                         |
+| ----------------------------------------- | --------------------------------------------------------------- |
+| `sap_transaction(tcode, new_window=True)` | Open a new SAP session with a transaction, returns `session_id` |
+| `sap_session_list()`                      | List all active sessions with IDs and titles                    |
+| `sap_session_close(session_id)`           | Close a specific session by ID                                  |
+| `sap_session_detach(session_id)`          | Drop a session from the registry, leaving its window open       |
+| `sap_session_bind(session_id, agent_id)`  | Bind a session to an agent for parallel workflows               |
+| `sap_session_release(session_id)`         | Unbind a session from an agent without closing it               |
 
 ### Workflow Example
 
@@ -319,7 +248,7 @@ sap_transaction("BP", new_window=True)  # Returns session_id="s4"
 sap_session_bind(session_id="s4", agent_id="subagent-3")
 
 # Spawn sub-agents with session assignment:
-# "Your SAP session is 's2'. Pass session='s2' and agent_id='subagent-1' to ALL SAP/browser tools."
+# "Your SAP session is 's2'. Pass session='s2' and agent_id='subagent-1' to ALL SAP tools."
 
 # Each sub-agent works independently:
 sap_fill_form({"Name": "Customer 1"}, session="s2", agent_id="subagent-1")
@@ -328,7 +257,7 @@ sap_press_key("F8", session="s2", agent_id="subagent-1")  # Execute
 
 ### Tools Supporting `session` Parameter
 
-All major SAP and browser tools accept an optional `session` parameter:
+All major SAP tools accept an optional `session` parameter:
 
 **SAP Tools:**
 
@@ -338,12 +267,6 @@ All major SAP and browser tools accept an optional `session` parameter:
 - `sap_discover_fields`, `sap_discover_buttons`, `sap_get_shortcuts`
 - `sap_close_popup`, `sap_read_status_bar`, `sap_get_screen_info`
 
-**Browser Tools:**
-
-- `browser_click`, `browser_fill`, `browser_keyboard`
-- `browser_snapshot`, `browser_screenshot`, `browser_get_html`
-- `browser_navigate`, `browser_wait`, `browser_evaluate`, `browser_select_option`
-
 **SE\* Tools:**
 
 - `sap_se11_lookup`, `sap_se16_query`, `sap_se24_lookup`, `sap_se37_lookup`, `sap_se93_lookup`
@@ -351,7 +274,7 @@ All major SAP and browser tools accept an optional `session` parameter:
 ### Instructions for Sub-Agents
 
 If you are a sub-agent working on an SAP task, your parent agent should have given you a `session` and `agent_id`.
-You **must** pass both parameters on **every session-aware** SAP/browser tool call (i.e., those that accept `session` and `agent_id` parameters).
+You **must** pass both parameters on **every session-aware** SAP tool call (i.e., those that accept `session` and `agent_id` parameters).
 Session-management tools like `sap_session_release(session_id)` only take `session_id`.
 
 ```python
@@ -378,7 +301,7 @@ This helps debug cross-talk issues without blocking work.
 - **Primary session "s1"** is created automatically on `sap_login()`
 - **Session limit:** Typically 6 sessions per SAP user (configured in SAP)
 - **Alternative:** Use `sap_transaction("BP", new_window=True)` to open a transaction directly in a new session. This **auto-registers** the new session and returns the `session_id` in the result.
-- **Cleanup:** Sessions are closed automatically when their browser tab closes, or use `sap_session_close(session_id)`
+- **Cleanup:** Close a session with `sap_session_close(session_id)`
 
 ### Using `new_window=True` for Quick Session Creation
 

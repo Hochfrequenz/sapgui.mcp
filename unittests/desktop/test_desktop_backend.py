@@ -14,14 +14,6 @@ from unittests.desktop.conftest import make_mock_session
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 
-class TestDesktopBackendType:
-    def test_backend_type_is_desktop(self):
-        from sapguimcp.backend.desktop import DesktopBackend
-
-        backend = DesktopBackend.__new__(DesktopBackend)
-        assert backend.backend_type == "desktop"
-
-
 class TestDesktopBackendLogin:
     @pytest.mark.anyio
     async def test_login_calls_login_helper(self):

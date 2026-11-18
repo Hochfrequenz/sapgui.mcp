@@ -30,7 +30,6 @@ from sapguimcp.tools.se16_tools import (
 
 def _make_desktop_backend() -> AsyncMock:
     backend = AsyncMock()
-    backend.backend_type = "desktop"
     backend.enter_transaction = AsyncMock(return_value=TransactionResult(tcode="SE16N"))
     backend.wait_for_ready = AsyncMock()
     backend.wait = AsyncMock()
@@ -448,8 +447,7 @@ async def test_tool_description_documents_strict_filter_fields() -> None:
     assert "selection fields" in description
     # The strict behaviour is no longer desktop-only (#924): the description must not claim it is.
     assert "On the desktop backend, if a filter cannot be applied" not in description
-    assert "WebGUI backend" in description
-    assert "first ~30 rows" in description
+    assert "WebGUI" not in description
 
 
 class _FakeElement:

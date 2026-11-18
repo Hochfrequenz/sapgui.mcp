@@ -337,7 +337,7 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
     target_date: str | None,
     dump_index: int | None,
 ) -> ST22DumpListResult | ST22DumpDetailResult:
-    """Desktop-specific ST22 lookup using read_table instead of ARIA parsing."""
+    """Desktop ST22 lookup using read_table."""
     now = datetime.now(UTC)
     date_str = target_date or date.today().isoformat()
     logger.info("ST22 desktop backend path", extra={"date": date_str})

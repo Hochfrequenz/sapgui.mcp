@@ -1,8 +1,7 @@
 """Session registry for desktop (COM) backend.
 
-Mirrors WebGUI's SessionRegistry but stores sapsucker GuiSession objects
-instead of Playwright Pages. Stale sessions are detected on access via
-a COM probe (no close-event mechanism exists for SAP GUI COM).
+Stores sapsucker GuiSession objects by sequential ID. Stale sessions are detected
+on access via a COM probe (no close-event mechanism exists for SAP GUI COM).
 """
 
 from __future__ import annotations
@@ -10,8 +9,6 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Iterable, Literal
 
-# Reuse the conflict error from the webgui registry so callers can catch
-# a single class regardless of which backend produced it.
 from sapguimcp.models.base import SessionBindConflictError
 from sapguimcp.session_language import normalize_language
 
@@ -28,8 +25,7 @@ SessionOrigin = Literal["opened", "attached"]
 class DesktopSessionRegistry:
     """Tracks SAP GUI desktop sessions with sequential IDs (s1, s2, ...).
 
-    Provides the same interface as WebGUI's ``SessionRegistry`` for
-    consistent session management across both backends.
+    Maps session IDs to SAP GUI sessions and to the agents they are bound to.
     """
 
     def __init__(self) -> None:

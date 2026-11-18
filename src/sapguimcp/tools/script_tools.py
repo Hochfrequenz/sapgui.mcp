@@ -492,7 +492,7 @@ def _run_in_sandbox(
 
 
 def register_script_tools(mcp: FastMCP) -> None:
-    """Register sap_run_script with the MCP server (desktop backend only)."""
+    """Register sap_run_script with the MCP server."""
 
     @mcp.tool(
         annotations=ToolAnnotations(
@@ -501,7 +501,7 @@ def register_script_tools(mcp: FastMCP) -> None:
             open_world_hint=False,
         ),
         description=(
-            "Execute a Python script against the live SAP GUI session (desktop backend only).\n\n"
+            "Execute a Python script against the live SAP GUI session.\n\n"
             "Provide either ``script`` (inline Python source) or ``script_path`` (path to a ``.py`` "
             "file on the MCP host), but not both.\n\n"
             "**Prefer ``script_path`` for shipped, tested, versioned scripts.** Using ``script_path`` "

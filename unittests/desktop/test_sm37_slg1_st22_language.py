@@ -100,7 +100,6 @@ async def test_the_status_column_title_comes_from_the_pack() -> None:
         tx = lang.current("test")
         assert tx.sm37.col_status.variants[0].startswith(MARK)
         backend = MagicMock()
-        backend.backend_type = "desktop"
         backend.enter_transaction = AsyncMock(return_value=SimpleNamespace(success=True, error=None))
         for name in ("wait_for_ready", "press_key"):
             setattr(backend, name, AsyncMock())

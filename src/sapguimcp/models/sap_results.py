@@ -24,7 +24,7 @@ class SapFieldType(StrEnum):
 class FormField(BaseModel):
     """A fillable field on a SAP screen."""
 
-    id: str = Field(description="Element ID for targeting with sap_fill_form or browser tools")
+    id: str = Field(description="Element ID for targeting with sap_fill_form")
     label: str = Field(description="Visible label text associated with this field")
     field_type: SapFieldType = Field(description="Type of input control: text, dropdown, checkbox, or radio")
     current_value: str | None = Field(default=None, description="Current field value, or None if empty")
@@ -67,8 +67,7 @@ class LoginResult(ToolResult):
             "Registry session ID assigned to the new login (e.g. 's1', 's2'). "
             "Pass this as the 'session' / 'session_id' parameter on subsequent "
             "tool calls to address this specific login when multiple parallel "
-            "sessions are active. Desktop backend only — webgui currently runs "
-            "a single session."
+            "sessions are active."
         ),
     )
 
@@ -268,15 +267,14 @@ class StatusBarInfo(ToolResult):
         description=(
             "T100 message class (e.g. 'DS'), padding stripped; None when the bar is empty or the SAP GUI "
             "does not expose it. Together with message_number it identifies a message independently of "
-            "the logon language, so check these instead of the text. Desktop backend only; the WebGUI "
-            "backend leaves it None."
+            "the logon language, so check these instead of the text."
         ),
     )
     message_number: str | None = Field(
         default=None,
         description=(
             "T100 message number, zero-padded (e.g. '017'); None when the bar is empty or the SAP GUI "
-            "does not expose it. Language-independent. Desktop backend only; the WebGUI backend leaves it None."
+            "does not expose it. Language-independent."
         ),
     )
     message_parameters: list[str] = Field(
@@ -284,7 +282,7 @@ class StatusBarInfo(ToolResult):
         description=(
             "Message variables &1-&4 (index 0 is &1), trailing empty values removed; [] when the bar is "
             "empty. These are runtime values and may themselves be translated text, so they are not a "
-            "language-independent identity. Desktop backend only; the WebGUI backend leaves it empty."
+            "language-independent identity."
         ),
     )
 
@@ -517,7 +515,7 @@ class DropdownFillResult(BaseModel):
 class ToolInfo(BaseModel):
     """Information about a single MCP tool."""
 
-    name: str = Field(description="Tool name (e.g., 'sap_login', 'browser_click')")
+    name: str = Field(description="Tool name (e.g., 'sap_login', 'sap_transaction')")
     description: str = Field(description="Full tool description including usage guidance")
 
 

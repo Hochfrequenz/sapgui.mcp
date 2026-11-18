@@ -29,7 +29,6 @@ def _no_settings_credentials():
 
 def _backend(status: StatusBarInfo) -> Any:
     backend = MagicMock(spec=DesktopBackend)
-    backend.backend_type = "desktop"
     backend.enter_transaction = AsyncMock(return_value=SimpleNamespace(success=True, error=None))
     backend.get_status_bar = AsyncMock(return_value=status)
     backend.press_key = AsyncMock()

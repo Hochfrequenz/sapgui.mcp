@@ -69,7 +69,7 @@ async def _click_display_button(backend: "DesktopBackend", t: LanguagePack) -> s
 
 
 async def _lookup_view_desktop(backend: "DesktopBackend", t: LanguagePack, view_name: str) -> SM30ViewResult:
-    """Desktop-specific SM30 lookup using read_table instead of ARIA parsing."""
+    """Desktop SM30 lookup using read_table."""
     now = datetime.now(UTC)
     logger.info("SM30 desktop backend path", extra={"view_name": view_name})
 

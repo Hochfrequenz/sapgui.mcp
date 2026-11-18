@@ -26,7 +26,6 @@ async def _call(arguments: dict[str, str]) -> dict[str, object]:
     server = FastMCP("t")
     register_spro_tools(server)
     backend = MagicMock()
-    backend.backend_type = "desktop"
     with (
         patch("sapguimcp.tools.spro_tools.get_backend", new=AsyncMock(return_value=backend)),
         patch("sapguimcp.tools.spro_tools._search_img_desktop", new=AsyncMock(return_value=_desktop_result())),

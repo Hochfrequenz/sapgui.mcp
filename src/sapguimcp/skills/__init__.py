@@ -1,5 +1,5 @@
 """
-Skills for SAP Web GUI MCP Server.
+Skills for the SAP GUI MCP server.
 
 Skills are reusable workflows and best practices that Claude can follow
 when performing complex SAP operations.

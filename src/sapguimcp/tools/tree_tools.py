@@ -152,7 +152,7 @@ def _read_tree(
 
 
 def register_tree_tools(mcp: FastMCP) -> None:
-    """Register tree tools with the MCP server — desktop backend only."""
+    """Register tree tools with the MCP server."""
 
     @mcp.tool(
         annotations=ToolAnnotations(
@@ -163,7 +163,7 @@ def register_tree_tools(mcp: FastMCP) -> None:
         ),
         description=(
             "Read or search the nodes of a SAP tree control (SPRO IMG, SE80 object tree, SM34 "
-            "navigation tree, ...) — desktop backend only. Read-only: never expands, collapses "
+            "navigation tree, ...). Read-only: never expands, collapses "
             "or selects anything.\n\n"
             "Only nodes the control has ALREADY LOADED (expanded) are visible; collapsed subtrees "
             "stay hidden until they are expanded in the GUI. Without `tree_id` the single tree of "
@@ -238,8 +238,7 @@ def register_tree_tools(mcp: FastMCP) -> None:
             open_world_hint=False,
         ),
         description=(
-            "Invoke the right-click context menu on a ``GuiShell``/``GuiTree`` node "
-            "(desktop backend only).\n\n"
+            "Invoke the right-click context menu on a ``GuiShell``/``GuiTree`` node.\n\n"
             "Use this when you want to discover or fire an action from a tree node's "
             "context menu — e.g. 'Task: Anlegen' on ``/n/NA2/DCS`` — and the plain "
             "``sap_com_evaluate`` path fails because you don't know the exact label text.\n\n"

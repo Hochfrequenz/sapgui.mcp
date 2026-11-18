@@ -893,7 +893,6 @@ class TestSapRunScriptTool:
 
         mock_backend = MagicMock()
         mock_backend.__class__ = DesktopBackend  # lets isinstance() pass
-        mock_backend.backend_type = "desktop"
         mock_backend.com.run = AsyncMock(side_effect=asyncio.TimeoutError)
 
         mcp = FastMCP("test")
@@ -917,7 +916,6 @@ class TestSapRunScriptTool:
 
         mock_backend = MagicMock()
         mock_backend.__class__ = DesktopBackend
-        mock_backend.backend_type = "desktop"
 
         async def fake_run(fn):
             clock.now += 7.0  # time spent queued before the COM thread picks the job up
@@ -1088,7 +1086,6 @@ class TestSapRunScriptTool:
         mock_session = MagicMock()
         mock_backend = MagicMock()
         mock_backend.__class__ = DesktopBackend  # lets isinstance() pass
-        mock_backend.backend_type = "desktop"
         mock_backend.require_session.return_value = mock_session
 
         async def fake_com_run(fn):
@@ -1352,14 +1349,12 @@ class TestSandboxContract:
         press = tools["sap_press_key"].description or ""
         assert "VKey 12" in press
         assert "sap_close_popup" in press
-        assert "desktop backend" in press
-        assert "WebGUI" in press
+        assert "WebGUI" not in press
         checkbox = tools["sap_set_checkbox"].description or ""
         assert "sap_run_script" in checkbox
         assert "sap_com_evaluate" in checkbox
         assert ".selected" in checkbox
-        assert "desktop-only" in checkbox
-        assert "browser_evaluate" in checkbox
+        assert "WebGUI" not in checkbox
 
     def test_sandbox_resource_registration_and_read(self):
         mcp = FastMCP("test")

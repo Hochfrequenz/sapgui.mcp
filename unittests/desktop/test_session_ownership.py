@@ -195,7 +195,6 @@ async def test_backend_manager_close_never_closes_sap_sessions() -> None:
     backend, com = _backend()
     # Construct neutrally (desktop is rejected off Windows), then select the desktop branch of close().
     manager = BackendManager()
-    manager.backend_type = "desktop"
     manager._com_thread = com  # type: ignore[assignment]  # pylint: disable=protected-access
     conn = MagicMock()
     backend.registry.register(_session(conn, "/app/con[0]/ses[0]"), origin="attached")

@@ -639,11 +639,6 @@ class DesktopBackend:
         self._mutation_lock: asyncio.Lock = asyncio.Lock()
 
     @property
-    def backend_type(self) -> str:
-        """Return backend identifier."""
-        return "desktop"
-
-    @property
     def _session(self) -> GuiSession | None:
         """Backward compat: return primary session."""
         try:
@@ -1060,7 +1055,7 @@ class DesktopBackend:
         await asyncio.sleep(timeout_ms / 1000)
 
     async def start_keepalive(self, interval_seconds: int = 300) -> None:
-        """No-op — desktop sessions don't time out like WebGUI."""
+        """No-op — desktop sessions don't need a keepalive."""
 
     async def stop_keepalive(self) -> bool:
         """No-op. Returns False (no keepalive was running)."""
@@ -2034,8 +2029,7 @@ class DesktopBackend:
     async def get_dropdown_options(self, label: str) -> list[str]:
         """Get options from a GuiComboBox dropdown found by label.
 
-        Returns a list of ``"KEY - Display Value"`` strings (matching
-        the webgui backend format) or an empty list if the field is not
+        Returns a list of ``"KEY - Display Value"`` strings or an empty list if the field is not
         found or is not a combobox.
         """
         session = self.require_session()
