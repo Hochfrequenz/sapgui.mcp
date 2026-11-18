@@ -103,8 +103,6 @@ def test_credentials_popup_error_does_not_match_other_errors(message: str) -> No
 class _EmptyStatusBackend:
     """Minimal backend whose status bar stays empty (an empty bar was also seen after a successful pull)."""
 
-    backend_type = "desktop"
-
     async def get_status_bar(self) -> SimpleNamespace:
         return SimpleNamespace(message="", type="none")
 

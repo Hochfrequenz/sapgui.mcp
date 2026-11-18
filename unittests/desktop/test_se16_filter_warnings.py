@@ -30,7 +30,6 @@ from sapguimcp.tools.se16_tools import (
 
 def _make_desktop_backend() -> AsyncMock:
     backend = AsyncMock()
-    backend.backend_type = "desktop"
     backend.enter_transaction = AsyncMock(return_value=TransactionResult(tcode="SE16N"))
     backend.wait_for_ready = AsyncMock()
     backend.wait = AsyncMock()

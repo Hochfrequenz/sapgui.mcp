@@ -45,8 +45,6 @@ _SHELL_PATH_CANDIDATES: dict[str, list[str]] = {
     ],
 }
 
-_WEBGUI_ERROR = "External breakpoints are not supported on the WebGUI backend. Use BACKEND_TYPE=desktop."
-
 _SE37_FM_LABELS = ("Funktionsbaustein", "Function Module", "Function module")
 
 
@@ -606,13 +604,6 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                 method_name=method_name,
             )
 
-        if backend.backend_type != "desktop":
-            return BreakpointSetResult.failure(
-                error=_WEBGUI_ERROR,
-                object_type=object_type,
-                object_name=object_name,
-                method_name=method_name,
-            )
         from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
         assert isinstance(backend, DesktopBackend)  # noqa: S101
@@ -804,13 +795,6 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                 method_name=method_name,
             )
 
-        if backend.backend_type != "desktop":
-            return BreakpointDeleteResult.failure(
-                error=_WEBGUI_ERROR,
-                object_type=object_type,
-                object_name=object_name,
-                method_name=method_name,
-            )
         from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
         assert isinstance(backend, DesktopBackend)  # noqa: S101
@@ -952,13 +936,6 @@ def register_breakpoint_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many
                 method_name=method_name,
             )
 
-        if backend.backend_type != "desktop":
-            return BreakpointListResult.failure(
-                error=_WEBGUI_ERROR,
-                object_type=object_type,
-                object_name=object_name,
-                method_name=method_name,
-            )
         from sapguimcp.backend.desktop import DesktopBackend  # pylint: disable=import-outside-toplevel
 
         # pylint: disable-next=import-outside-toplevel

@@ -11,16 +11,11 @@ from sapguimcp.backend.manager import (
 )
 
 
-def test_backend_manager_is_desktop() -> None:
-    """The backend type is fixed to 'desktop'."""
-    assert BackendManager().backend_type == "desktop"
-
-
 def test_get_backend_manager_is_singleton() -> None:
     """get_backend_manager should lazily create one shared manager."""
     reset_backend_manager()
     manager = get_backend_manager()
-    assert manager.backend_type == "desktop"
+    assert isinstance(manager, BackendManager)
     assert get_backend_manager() is manager
     reset_backend_manager()
 

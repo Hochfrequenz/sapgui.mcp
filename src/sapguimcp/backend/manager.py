@@ -27,7 +27,6 @@ class BackendManager:  # pylint: disable=too-few-public-methods
     """Manages backend instances across sessions."""
 
     def __init__(self) -> None:
-        self.backend_type = "desktop"
         self._backends: dict[str, DesktopBackend] = {}  # Cache by session ID
         self._com_thread: Any = None  # Lazy-init ComThread for desktop backend
         # Serializes desktop dead-thread recovery so concurrent callers don't
@@ -143,7 +142,7 @@ async def get_desktop_backend(
     agent_id: str | None = None,
     tool_name: str = "",
 ) -> DesktopBackend:
-    """Get a DesktopBackend instance. Asserts backend_type is desktop."""
+    """Get a DesktopBackend instance. Narrows the backend to DesktopBackend for the type checker."""
     backend = await get_backend(session, agent_id, tool_name)
     assert isinstance(backend, DesktopBackend)
     return backend

@@ -72,7 +72,6 @@ def test_transaction_not_found(code: str, status: StatusBarInfo, expected: bool)
 )
 async def test_popup_error_drops_the_button_labels(code: str, popup_text: str) -> None:
     backend = MagicMock()
-    backend.backend_type = "desktop"
     backend.check_popup = AsyncMock(return_value=SimpleNamespace(message=popup_text))
     with lang.use(code):
         error = await abapgit_tools._check_for_error_popup(backend)

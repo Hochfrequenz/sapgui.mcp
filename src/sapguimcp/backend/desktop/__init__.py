@@ -639,11 +639,6 @@ class DesktopBackend:
         self._mutation_lock: asyncio.Lock = asyncio.Lock()
 
     @property
-    def backend_type(self) -> str:
-        """Return backend identifier."""
-        return "desktop"
-
-    @property
     def _session(self) -> GuiSession | None:
         """Backward compat: return primary session."""
         try:

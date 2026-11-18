@@ -352,10 +352,6 @@ class TestComEvaluateWiring:
             def __init__(self) -> None:
                 self._fake_session = session
 
-            @property
-            def backend_type(self) -> str:
-                return "desktop"
-
             def require_session(self):
                 return self._fake_session
 

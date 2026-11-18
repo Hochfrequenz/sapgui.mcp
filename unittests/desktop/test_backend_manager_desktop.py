@@ -40,7 +40,6 @@ def _make_desktop_manager() -> BackendManager:
     forcing the maintainer to update both places together.
     """
     manager = BackendManager.__new__(BackendManager)
-    manager.backend_type = "desktop"
     manager._backends = {}
     manager._com_thread = None
     manager._desktop_recovery_lock = asyncio.Lock()

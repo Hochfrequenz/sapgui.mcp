@@ -161,7 +161,6 @@ async def test_a_session_without_a_language_pack_raises_instead_of_failing_quiet
     mod = importlib.import_module(f"sapguimcp.tools.{module}")
     fn = _tool_function(mod, register, tool)
     backend = MagicMock()
-    backend.backend_type = "desktop"
     with (
         patch.object(mod, "get_backend", new=AsyncMock(return_value=backend)),
         lang.use("XX"),
