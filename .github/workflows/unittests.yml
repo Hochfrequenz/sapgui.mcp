@@ -13,6 +13,14 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
         os: [ubuntu-latest]
+        include:
+          # The desktop (COM) unit tests skip on Linux. Run them on Windows too.
+          # These add new check names, test (<version>, windows-latest); the
+          # required ubuntu check names stay unchanged.
+          - python-version: "3.11"
+            os: windows-latest
+          - python-version: "3.15"
+            os: windows-latest
       fail-fast: false
 
     env:
