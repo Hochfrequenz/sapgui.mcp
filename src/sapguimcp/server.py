@@ -87,8 +87,8 @@ def _legacy_setting_values() -> dict[str, str]:
             loaded = dotenv_values(env_file)
         except OSError:
             continue
-        values.update({k: v for k, v in loaded.items() if v is not None})
-    values.update(os.environ)
+        values.update({k.upper(): v for k, v in loaded.items() if v is not None})
+    values.update({k.upper(): v for k, v in os.environ.items()})
     return values
 
 

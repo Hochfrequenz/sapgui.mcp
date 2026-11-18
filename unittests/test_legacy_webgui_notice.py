@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from sapguimcp import server
+from sapguimcp.backend import manager as manager_module
 
 _WEBGUI_VARS = ("BACKEND_TYPE", "SAP_URL", "CDP_URL")
 
@@ -21,7 +22,12 @@ def _no_legacy_env(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.parametrize(
     ("line", "expected"),
-    [("SAP_URL=https://sap.example/webgui", ["SAP_URL"]), ("BACKEND_TYPE=webgui", ["BACKEND_TYPE=webgui"])],
+    [
+        ("SAP_URL=https://sap.example/webgui", ["SAP_URL"]),
+        ("BACKEND_TYPE=webgui", ["BACKEND_TYPE=webgui"]),
+        ("sap_url=https://sap.example/webgui", ["SAP_URL"]),
+        ("backend_type=webgui", ["BACKEND_TYPE=webgui"]),
+    ],
 )
 def test_legacy_settings_in_dotenv_file_are_detected(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, line: str, expected: list[str]
@@ -82,3 +88,9 @@ def test_all_legacy_settings_are_listed(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setenv("SAP_URL", "https://sap.example")
     monkeypatch.setenv("CDP_URL", "http://localhost:9222")
     assert server._legacy_webgui_settings() == ["BACKEND_TYPE=webgui", "SAP_URL", "CDP_URL"]
+
+
+def test_require_windows_raises_off_windows(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(manager_module.sys, "platform", "linux")
+    with pytest.raises(RuntimeError, match="requires Windows"):
+        manager_module._require_windows()

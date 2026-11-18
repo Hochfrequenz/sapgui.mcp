@@ -205,6 +205,8 @@ def _desktop_backend_with_languages(languages: dict[str, str | None]) -> Desktop
 def desktop_backend_symbol(monkeypatch, desktop_symbols):
     """Also inject ``DesktopBackend`` (Windows-only import in the manager module)."""
     monkeypatch.setattr(manager_module, "DesktopBackend", DesktopBackend, raising=False)
+    # The platform guard is tested on its own; these tests exercise the session logic on any OS.
+    monkeypatch.setattr(manager_module, "_require_windows", lambda: None)
     token = _current_session_id.set(None)
     try:
         yield

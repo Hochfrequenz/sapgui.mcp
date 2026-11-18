@@ -18,6 +18,12 @@ if sys.platform == "win32" or TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _require_windows() -> None:
+    """Raise when not running on Windows: the desktop backend needs SAP GUI for Windows (COM)."""
+    if sys.platform != "win32":
+        raise RuntimeError("sapgui.mcp requires Windows with SAP GUI for Windows installed.")
+
+
 class BackendManager:  # pylint: disable=too-few-public-methods
     """Manages backend instances across sessions."""
 
@@ -37,8 +43,7 @@ class BackendManager:  # pylint: disable=too-few-public-methods
         tool_name: str = "",
     ) -> WebGuiBackend | DesktopBackend:
         """Get or create the desktop backend for the given session."""
-        if sys.platform != "win32":
-            raise RuntimeError("sapgui.mcp requires Windows with SAP GUI for Windows installed.")
+        _require_windows()
         # Single shared DesktopBackend — session routing via ContextVar.
         # If the cached ComThread's worker has died, the cached backend
         # is unusable: drop it and rebuild before serving the request.
