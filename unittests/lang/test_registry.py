@@ -42,12 +42,12 @@ def test_current_merges_the_session_pack_with_en() -> None:
         view = lang.current()
     assert view.code == "DE"
     assert view.same_as_en == DE.same_as_en
-    assert view.se16.hit_count_label.variants == ("Anzahl Treffer", "Number of Hits")
+    assert view.se16.results_title.variants == ("Treffer", "hits", "entries")
 
 
 def test_current_for_en_has_only_en() -> None:
     with lang.use("EN"):
-        assert lang.current().se16.hit_count_label.variants == ("Number of Hits",)
+        assert lang.current().se16.results_title.variants == ("hits", "entries")
 
 
 def test_current_is_cached() -> None:

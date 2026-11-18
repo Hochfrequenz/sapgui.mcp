@@ -105,18 +105,11 @@ class PopupSection:
     inactive_objects: Text
     """Title of the "Inactive Objects" popup during activation. ``fold=False``: the WebGUI checks it
     case-sensitively in the ARIA snapshot; the desktop lower-cases both sides itself."""
-    original_language_title: Text
-    """Title fragment of the "different original and logon languages" popup in a WebGUI ARIA
-    snapshot (case-sensitive)."""
     original_language_hint: RegexText
     """The same popup on the desktop, searched in its lower-cased window title (EN: ``original`` and
     ``language`` in either order)."""
     maintain_in_original: Text
     """Button of that popup that continues in the original language."""
-    button_labels: Text
-    """Popup button labels; a WebGUI popup text equal to one of them is not the popup's message."""
-    close: Text
-    """Title (tooltip) of a WebGUI popup's close control (case-sensitive CSS attribute match)."""
     abapgit_error_keywords: Text
     abapgit_button_labels: Text
     abapgit_inactive_objects: Text
@@ -129,26 +122,6 @@ class StatusTypeSection:
     """Status-bar texts: keywords that infer a message's type, message-bar prefixes and noise."""
 
     MERGE: ClassVar[MergeMode] = "all"
-    error: Text
-    """Keyword in a WebGUI status message that makes it an error (substring)."""
-    warning: Text
-    """Keyword that makes a WebGUI status message a warning (substring)."""
-    success: Text
-    """Keyword that makes a WebGUI status message a success (substring)."""
-    noise: Text
-    """WebGUI message-bar control texts removed from a status message (the bar's label, its buttons).
-
-    Case-sensitive (``fold=False``) substrings: a lower-case word of the message itself stays."""
-    success_prefix: Text
-    """First word of a successful message-bar note in the WebGUI ARIA snapshot (case-sensitive)."""
-    error_prefix: Text
-    """First word of an error message-bar note in the WebGUI ARIA snapshot (case-sensitive)."""
-    message_bar: Text
-    """Label of the message bar that follows the prefix in the ARIA note (case-sensitive)."""
-    check_success: Text
-    """Syntax check or activation success fragments (substring)."""
-    check_error: Text
-    """Syntax check error fragments (substring, checked after ``check_success``)."""
     activation_confirmed: Text
     """Desktop status-bar fragment that confirms an activation (substring)."""
     activation_denied: Text
@@ -160,18 +133,8 @@ class SessionPagesSection:
     """Login, logoff and timeout page texts, and the WebGUI frame used while setting up a session."""
 
     MERGE: ClassVar[MergeMode] = "all"
-    already_logged_on: Text
-    """Fragment of the WebGUI "user already logged on" page (substring)."""
-    continue_button: Text
-    """Button that continues past the "already logged on" page (Playwright ``has-text``)."""
-    timed_out: Text
-    """Fragments of a WebGUI timeout or logoff page (substring)."""
-    settings_menu: Text
-    """Title of the WebGUI settings menu button (case-sensitive CSS attribute match)."""
     settings_stem: Text
     """Stem of that title for the case-insensitive ``SELECTORS["settings_button"]`` (test selector)."""
-    okcode_option: Text
-    """Settings menu entry that shows the OK-code field (Playwright ``text=``)."""
     debugger_window: Text
     """Start of the window title of an ABAP debugger session (case-sensitive prefix)."""
 
@@ -195,14 +158,9 @@ class CommonSection:
 
     MERGE: ClassVar[MergeMode] = "session_en"
     display: Text
-    display_change_toggle: Text
-    """Toolbar button that switches between display and change mode."""
-    initial_screen: Text
-    """Title fragment of a transaction's initial screen (substring)."""
     not_found: Text
     does_not_exist: Text
     no_entries: Text
-    row_select_hint: Text
     user: Text
     program: Text
 
@@ -217,9 +175,6 @@ class Se09Section:
     customizing_requests: Text
     expand: Text
     compress: Text
-    list_region: Text
-    organizer_title: Text
-    request_word: Text
 
 
 @dataclass(frozen=True, slots=True)
@@ -229,7 +184,6 @@ class AbapgitSection:
     MERGE: ClassVar[MergeMode] = "session_en"
     status_error: Text
     screen_errors: Text
-    se38_initial_title: Text
 
 
 @dataclass(frozen=True, slots=True)
@@ -241,42 +195,14 @@ class CatalogSection:
 
 
 @dataclass(frozen=True, slots=True)
-class QuickReportSection:
-    MERGE: ClassVar[MergeMode] = "session_en"
-    empty_patterns: Text
-    execute_button: Text
-
-
-@dataclass(frozen=True, slots=True)
 class Se11Section:
     MERGE: ClassVar[MergeMode] = "session_en"
-    database_table: Text
-    data_type: Text
     table_name: Text
-    transparent_table: Text
-    structure: Text
-    short_description: Text
-    row_select_full: RegexText
-    data_type_name_label: Text
-    """``title`` of the WebGUI input for the data type name (SE11 initial screen)."""
 
 
 @dataclass(frozen=True, slots=True)
 class Se16Section:
     MERGE: ClassVar[MergeMode] = "session_en"
-    hit_count_label: Text
-    column_selection: Text
-    no_values_found: Text
-    table_label: Text
-    """Label of the table-name input (WebGUI)."""
-    max_hits_label: Text
-    """Label of the max-hits input (WebGUI)."""
-    empty_cell: Text
-    """Placeholder text of the empty padding rows of the selection grid (WebGUI)."""
-    table_not_found: Text
-    """Fragment of the "table does not exist" message; narrow on purpose, it scans a whole snapshot."""
-    selection_columns: Text
-    """Column headers that only the selection screen grid has (WebGUI)."""
     results_title: Text
     """Title fragments of the SE16N result list (desktop)."""
 
@@ -284,11 +210,8 @@ class Se16Section:
 @dataclass(frozen=True, slots=True)
 class Se24Section:
     MERGE: ClassVar[MergeMode] = "session_en"
-    class_builder: Text
     initial_screen: Text
-    display_title: Template
     object_type: Text
-    class_label: Text
     interface_label: Text
     visibility: Mapping[Visibility, Text]
     static: Text
@@ -315,19 +238,13 @@ class Se24Section:
 @dataclass(frozen=True, slots=True)
 class Se37Section:
     MERGE: ClassVar[MergeMode] = "session_en"
-    initial_screen: Text
-    display_title: Template
-    function_builder: Text
     fm_field_label: Text
-    not_found: Text
-    """Status bar / snapshot fragment: the function module does not exist (narrower than ``common``)."""
     attributes_tab: Text
     import_tab: Text
     export_tab: Text
     changing_tab: Text
     tables_tab: Text
     exceptions_tab: Text
-    source_tab: Text
     parameter_name_column: Text
     """Column titles of the parameter / exception table controls (row dict keys)."""
     typing_column: Text
@@ -350,53 +267,30 @@ class Se38Section:
 @dataclass(frozen=True, slots=True)
 class Se93Section:
     MERGE: ClassVar[MergeMode] = "session_en"
-    initial_screen: Text
-    dialog_transaction: Text
-    report_transaction: Text
-    gui_html: Text
-    gui_java: Text
-    gui_windows: Text
-    screen_number: Text
-    selection_screen: Text
-    start_with_variant: Text
     transaction_code: Text
-    transaction_text: Text
-    package: Text
-    auth_object: Text
 
 
 @dataclass(frozen=True, slots=True)
 class Slg1Section:
     MERGE: ClassVar[MergeMode] = "session_en"
-    initial_screen: Text
-    log_list_screen: Text
     no_logs_found: Text
     log_object: Text
     """Selection label and list column of the log object."""
     log_subobject: Text
     external_id: Text
-    from_datetime: Text
-    to_datetime: Text
     log_number: Text
     """Log number column title, in the short desktop form and the long WebGUI form."""
     col_date: Text
     col_time: Text
     col_messages: Text
-    empty_cell: Text
-    """What the WebGUI grid shows for an empty cell."""
 
 
 @dataclass(frozen=True, slots=True)
 class Sm30Section:
     MERGE: ClassVar[MergeMode] = "session_en"
-    initial_screen: Text
     maintain: Text
     table_view: Text
     display_view: Text
-    view_not_found: Text
-    no_maintenance_dialog: Text
-    view_title: Template
-    row_count: Template
 
 
 @dataclass(frozen=True, slots=True)
@@ -406,22 +300,16 @@ class Sm37Section:
     col_status: Text
     job_name: Text
     """Selection label and list column of the job name (case-sensitive: SAP releases differ in the case)."""
-    user_name: Text
-    from_date: Text
-    to_date: Text
     job_log_button: Text
     job_log_heading: Text
     """Heading of the job log screen (S/4HANA)."""
     job_log_title_ecc: Text
     """Title of the job log screen on SAP ERP 6.0."""
-    job_list_heading: Text
     no_jobs: Text
     """Status bar message of an empty selection, one text for the tool and the parser."""
     select_hint: Text
     """Hint line of a classic list (case-sensitive: a job log line may say 'to select')."""
     selected_hint: Text
-    event_driven: Text
-    abap_program: Text
     col_start_date: Text
     col_start_time: Text
     col_duration: Text
@@ -432,16 +320,12 @@ class Sm37Section:
 @dataclass(frozen=True, slots=True)
 class SproSection:
     MERGE: ClassVar[MergeMode] = "session_en"
-    initial_screen: Text
     sap_reference_img: Text
-    search_button: Text
     search_dialog: Text
     search_field: Text
-    results_dialog: Text
     column_hits: Text
     column_parent: Text
     column_area: Text
-    img_heading: Text
 
 
 @dataclass(frozen=True, slots=True)
@@ -451,8 +335,6 @@ class St22Section:
     today: Text
     yesterday: Text
     date_field: Text
-    runtime_errors: Text
-    """Runtime error count button of the initial screen and the label before the error name in a dump."""
     no_dumps: Text
     """Status text of an empty selection, one text for the tool and the parser."""
     col_time: Text
@@ -462,11 +344,6 @@ class St22Section:
     call_stack_heading: Text
     other_headings: Text
     """Headings that end a section of the dump detail (the ones in ``section`` and ``call_stack_heading`` do too)."""
-    source_code_of: RegexText
-    source_code_start: RegexText
-    """Prefix of the source code headings; ends the advice section (a pattern: the plain words are too common)."""
-    source_line: Text
-    line: Text
 
 
 # =============================================================================
@@ -496,7 +373,6 @@ class LanguagePack:
     keys: KeysSection
     abapgit: AbapgitSection
     catalog: CatalogSection
-    quick_report: QuickReportSection
     se09: Se09Section
     se11: Se11Section
     se16: Se16Section

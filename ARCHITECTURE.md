@@ -148,7 +148,7 @@ pack, then EN). Design and rationale:
 [`docs/superpowers/specs/2026-11-10-language-packs-design.md`](docs/superpowers/specs/2026-11-10-language-packs-design.md).
 
 **The rule: no SAP UI literal outside `lang/`.** Tool, parser and JS code reads a `Text`,
-`RegexText` or `Template` from the pack (`contains`, `equals`, `alt`, `pattern`, `for_js()`) and
+`RegexText` or `Template` from the pack (`contains`, `equals`, `alt`, `pattern`) and
 never spells a screen text itself.
 
 Guards:
@@ -163,14 +163,11 @@ Guards:
   `test_pseudo_locale.py` round-trips a pseudo pack (every text replaced by a marker) through its
   helpers (the parser tests against the pseudo pack are a follow-up).
 
-### Backend tags and WebGUI-only machinery
+### Backend tags
 
-`lang/backends.py` tags every pack field as `DESKTOP`, `WEBGUI` or `BOTH` (the backend that reads
-it); `unittests/lang/test_backend_tags.py` derives the tag from the source and fails on a missing or
-wrong tag and on unused fields. After the desktop/WebGUI split, each repository deletes the fields
-tagged for the other backend. The WebGUI-only language machinery (`for_js()`, the Node runner and
-JS pack tests, `JS_DIR`, the JS prettier script) is listed in
-[`ADDING_A_LANGUAGE.md`](src/sapguimcp/lang/ADDING_A_LANGUAGE.md#webgui-only-language-machinery).
+`lang/backends.py` tags every pack field as `DESKTOP` or `BOTH` (the code that reads it);
+`unittests/lang/test_backend_tags.py` derives the tag from the source and fails on a missing or
+wrong tag and on unused fields.
 
 ### Adding a login language
 

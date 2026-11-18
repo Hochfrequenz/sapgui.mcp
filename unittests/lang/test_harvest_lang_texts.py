@@ -116,7 +116,7 @@ class TestDraft:
 
     @staticmethod
     def _fake_fetch(path: str, _source: Source) -> list[str]:
-        return {"se16.hit_count_label": ["Anzahl Treffer ", "Anzahl Treffer"]}.get(path, [f"zz {path}"])
+        return {"common.user": ["Benutzer ", "Benutzer"]}.get(path, [f"zz {path}"])
 
     @staticmethod
     def _load(source: str, tmp_path: Path) -> ModuleType:
@@ -151,7 +151,7 @@ class TestDraft:
 
     def test_sourced_equal_text_field_holds_the_sap_text(self) -> None:
         source = harvest.draft("ZZ", self._fake_fetch)
-        assert 'hit_count_label=Text(("Anzahl Treffer",)),' in source
+        assert 'user=Text(("Benutzer",)),' in source
 
     def test_manual_fields_keep_en_with_a_todo(self) -> None:
         manual = next(path for path, src in SOURCES.items() if isinstance(src, Manual))

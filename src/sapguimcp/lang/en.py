@@ -13,7 +13,6 @@ from sapguimcp.lang.schema import (
     KeysSection,
     LanguagePack,
     PopupSection,
-    QuickReportSection,
     Se09Section,
     Se11Section,
     Se16Section,
@@ -32,7 +31,7 @@ from sapguimcp.lang.schema import (
     Visibility,
     canonical,
 )
-from sapguimcp.lang.text import RegexText, Template, Text
+from sapguimcp.lang.text import RegexText, Text
 
 EN = LanguagePack(
     code="EN",
@@ -42,12 +41,9 @@ EN = LanguagePack(
     same_as_en=frozenset(),
     common=CommonSection(
         display=Text(("Display",)),
-        display_change_toggle=Text(("Display <-> Change",)),
-        initial_screen=Text(("Initial",)),
         not_found=Text(("not found",)),
         does_not_exist=Text(("does not exist",)),
         no_entries=Text(("No entries found",)),
-        row_select_hint=Text(("To select a row", "To select")),
         user=Text(("User",)),
         program=Text(("Program",)),
     ),
@@ -56,11 +52,8 @@ EN = LanguagePack(
         type_info=Text(("Information",)),
         type_confirm=Text(("Confirm", "Yes", "No")),
         inactive_objects=Text(("Inactive Objects",), fold=False),
-        original_language_title=Text(("Different original and logon languages",), fold=False),
         original_language_hint=RegexText((r"original[\s\S]*language", r"language[\s\S]*original")),
         maintain_in_original=Text(("Maint. in orig. lang.",)),
-        button_labels=Text(("Yes", "No", "OK", "Cancel")),
-        close=Text(("Close",), fold=False),
         abapgit_error_keywords=Text(("not found",)),
         abapgit_button_labels=Text(("OK", "Cancel", "Yes", "No")),
         abapgit_inactive_objects=Text(("Inactive Objects",)),
@@ -68,26 +61,12 @@ EN = LanguagePack(
         abapgit_no_task=Text(("no modifiable task", "has no task")),
     ),
     status_type=StatusTypeSection(
-        error=Text(("Error", "not found", "invalid")),
-        warning=Text(("Warning",)),
-        success=Text(("saved", "created", "successful")),
         # Case-sensitive: "executed successfully" or "authorized to execute" in a message must survive.
-        noise=Text(("Message Bar", "View Details", "Execute", "Emphasized"), fold=False),
-        success_prefix=Text(("Success",), fold=False),
-        error_prefix=Text(("Error",), fold=False),
-        message_bar=Text(("Message Bar",), fold=False),
-        check_success=Text(("No syntax errors", "Object activated", "generated successfully")),
-        check_error=Text(("syntax error",)),
         activation_confirmed=Text(("activated",)),
         activation_denied=Text(("not activated", "not active", "could not", "cannot", "can't", "failed")),
     ),
     session_pages=SessionPagesSection(
-        already_logged_on=Text(("already logged",)),
-        continue_button=Text(("Continue",)),
-        timed_out=Text(("session timeout", "session expired", "logged off")),
-        settings_menu=Text(("Settings",), fold=False),
         settings_stem=Text(("Setting",)),
-        okcode_option=Text(("OK-Code", "Transaction Field")),
         debugger_window=Text(("ABAP Debugger",), fold=False),
     ),
     keys=KeysSection(
@@ -106,13 +85,8 @@ EN = LanguagePack(
         status_error=Text(("not found",)),
         screen_errors=Text(("transport required",)),
         # Read live with an EN logon: the SE38 initial screen is titled "ABAP Editor: Initial Screen".
-        se38_initial_title=Text(("Initial Screen",)),
     ),
     catalog=CatalogSection(screen_header=Text(("Screen number",))),
-    quick_report=QuickReportSection(
-        empty_patterns=Text(("no data", "no entries", "no job", "no documents")),
-        execute_button=Text(("Execute", "Execute Highlighted")),
-    ),
     se09=Se09Section(
         status=canonical(
             {
@@ -125,37 +99,16 @@ EN = LanguagePack(
         customizing_requests=Text(("Customizing Requests",)),
         expand=Text(("Expand",)),
         compress=Text(("Compress",)),
-        list_region=Text(("List",)),
-        organizer_title=Text(("Transport Organizer",)),
-        request_word=Text(("Request",)),
     ),
     se11=Se11Section(
-        database_table=Text(("Database table",)),
-        data_type=Text(("Data type",)),
         table_name=Text(("Table name",)),
-        transparent_table=Text(("Transparent Table",)),
-        structure=Text(("Structure",)),
-        short_description=Text(("Short Description",)),
-        row_select_full=RegexText((r"To select a row, press the space bar\.",)),
-        data_type_name_label=Text(("Name of Dictionary Type",)),
     ),
     se16=Se16Section(
-        hit_count_label=Text(("Number of Hits",)),
-        column_selection=Text(("Column for row selection",)),
-        no_values_found=Text(("no values found",)),
-        table_label=Text(("Table",)),
-        max_hits_label=Text(("Max. Number of Hits", "Maximum no. of hits")),
-        empty_cell=Text(("Empty",)),
-        table_not_found=Text(("does not exist",)),
-        selection_columns=Text(("Field Name", "From-Value", "To-Value", "Technical Name")),
         results_title=Text(("hits", "entries")),
     ),
     se24=Se24Section(
-        class_builder=Text(("Class Builder",)),
         initial_screen=Text(("Class Builder: Initial Screen", "Class Builder: Initial")),
-        display_title=Template(("Class Builder: Display {name}",)),
         object_type=Text(("Object Type",)),
-        class_label=Text(("Class",)),
         interface_label=Text(("Interface",)),
         visibility=canonical(
             {
@@ -182,18 +135,13 @@ EN = LanguagePack(
         initial_value_column=Text(("Initial Value",)),
     ),
     se37=Se37Section(
-        initial_screen=Text(("Function Builder: Initial Screen",)),
-        display_title=Template(("Function Builder: Display {name}",)),
-        function_builder=Text(("Function Builder",)),
         fm_field_label=Text(("Function Module", "Function module"), fold=False),
-        not_found=Text(("does not exist",)),
         attributes_tab=Text(("Attributes",)),
         import_tab=Text(("Import",)),
         export_tab=Text(("Export",)),
         changing_tab=Text(("Changing",)),
         tables_tab=Text(("Tables",)),
         exceptions_tab=Text(("Exceptions",)),
-        source_tab=Text(("Source Code", "Source text")),
         parameter_name_column=Text(("Parameter Name",)),
         typing_column=Text(("Typing",)),
         type_ref_column=Text(("Associated Type",)),
@@ -208,49 +156,25 @@ EN = LanguagePack(
         program_field_title=Text(("ABAP Program Name", "Program")),
     ),
     se93=Se93Section(
-        initial_screen=Text(
-            ("Transaction Maintenance", "Maintain Transaction")
-        ),  # "Maintain Transaction" read live (EN logon)
-        dialog_transaction=Text(("Dialog Transaction",)),
-        report_transaction=Text(("Report Transaction",)),
-        gui_html=Text(("SAP GUI for HTML",)),
-        gui_java=Text(("SAP GUI for Java",)),
-        gui_windows=Text(("SAP GUI for Windows",)),
-        screen_number=Text(("Screen number",)),
-        selection_screen=Text(("Selection screen",)),
-        start_with_variant=Text(("Start with variant",)),
         transaction_code=Text(
             ("Transaction code", "Transaction Code")
         ),  # exact-case title lookups: both spellings exist
-        transaction_text=Text(("Transaction text",)),
-        package=Text(("Package",)),
-        auth_object=Text(("Authorization object",)),
     ),
     slg1=Slg1Section(
-        initial_screen=Text(("Analyze Application Log",)),
-        log_list_screen=Text(("Display Logs",)),
         # BL 208 in EN.
         no_logs_found=Text(("No log found in the database", "No logs", "No application log")),
         log_object=Text(("Object",)),
         log_subobject=Text(("Subobject",)),
         external_id=Text(("External ID",)),
-        from_datetime=Text(("From (Date/Time)",)),
-        to_datetime=Text(("To (Date/Time)",)),
         log_number=Text(("Log Number",)),
         col_date=Text(("Date",)),
         col_time=Text(("Time",)),
         col_messages=Text(("No. Messages",)),
-        empty_cell=Text(("Empty",)),
     ),
     sm30=Sm30Section(
-        initial_screen=Text(("Table View Maintenance",)),
         maintain=Text(("Maintain", "Edit")),
         table_view=Text(("Table/View",)),
         display_view=Text(("View",)),
-        view_not_found=Text(("is not in the Dictionary", "does not exist", "not found")),
-        no_maintenance_dialog=Text(("no maintenance dialog",)),
-        view_title=Template(("Display View {desc}", "Change View {desc}")),
-        row_count=Template(("Entry {current} of {total}",)),
     ),
     sm37=Sm37Section(
         status=canonical(
@@ -265,18 +189,12 @@ EN = LanguagePack(
         ),
         col_status=Text(("Status",)),
         job_name=Text(("Job Name", "Job name", "JobName"), fold=False),  # "JobName": header of the job list
-        user_name=Text(("User Name", "User name"), fold=False),
-        from_date=Text(("From Date",)),
-        to_date=Text(("To Date",)),
         job_log_button=Text(("Job Log",)),
         job_log_heading=Text(("Job Log Entries",), fold=False),
         job_log_title_ecc=Text(("Job Log for Job",)),
-        job_list_heading=Text(("Job Overview",), fold=False),
         no_jobs=Text(("No job match", "No jobs found")),
         select_hint=Text(("To select",), fold=False),
         selected_hint=Text(("Selected",), fold=False),
-        event_driven=Text(("event-driven",), fold=False),
-        abap_program=Text(("ABAP Program",), fold=False),
         col_start_date=Text(("Start Date",)),
         col_start_time=Text(("Start Time",)),
         col_duration=Text(("Duration", "Duration(sec.)")),
@@ -284,16 +202,12 @@ EN = LanguagePack(
         col_client=Text(("Client", "Cli")),
     ),
     spro=SproSection(
-        initial_screen=Text(("Customizing: Execute Project",)),
         sap_reference_img=Text(("SAP Reference IMG",)),
-        search_button=Text(("Find (Ctrl+F)",)),
         search_dialog=Text(("Search in the structure",)),
         search_field=Text(("Search Term",)),
-        results_dialog=Text(("Hit List",)),
         column_hits=Text(("Hits",)),
         column_parent=Text(("Parent Node",)),
         column_area=Text(("In area",)),
-        img_heading=Text(("Display IMG",)),
     ),
     st22=St22Section(
         section=canonical(
@@ -306,7 +220,6 @@ EN = LanguagePack(
         today=Text(("Today",)),
         yesterday=Text(("Yesterday",)),
         date_field=Text(("Date",)),
-        runtime_errors=Text(("Runtime Errors", "Runtime Error")),
         no_dumps=Text(("No entries found", "No short dumps", "No dumps")),
         col_time=Text(("Time",)),
         col_program=Text(("Program", "Terminated Program")),
@@ -327,9 +240,5 @@ EN = LanguagePack(
                 "Internal Notes",
             )
         ),
-        source_code_start=RegexText((r"Source Code",)),
-        source_code_of=RegexText((r"Source Code of",)),
-        source_line=Text(("Source Code Line",)),
-        line=Text(("Line",)),
     ),
 )

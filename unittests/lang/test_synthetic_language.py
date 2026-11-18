@@ -13,7 +13,7 @@ from sapguimcp import lang
 from sapguimcp.lang import UnsupportedLanguageError, _register_for_tests
 from sapguimcp.lang.de import DE
 from sapguimcp.lang.en import EN
-from sapguimcp.lang.schema import JobStatus, Key, KeysSection, LanguagePack, canonical, merge
+from sapguimcp.lang.schema import JobStatus, Key, KeysSection, LanguagePack, canonical
 from sapguimcp.lang.text import RegexText, Text
 from unittests.lang.synthetic_pack import CODE, MARK, mark, synthetic_pack
 from unittests.lang.test_pack_completeness import (
@@ -133,8 +133,8 @@ def test_session_en_sections_hold_the_session_pack_then_en() -> None:
         view = lang.current()
     assert view.code == CODE
     assert view.same_as_en == XX.same_as_en
-    assert view.se16.hit_count_label.variants == (f"{MARK}Number of Hits", "Number of Hits")  # no DE
-    assert lang.view_for("DE").se16.hit_count_label.variants == ("Anzahl Treffer", "Number of Hits")  # no XX
+    assert view.se16.results_title.variants == (f"{MARK}hits", f"{MARK}entries", "hits", "entries")  # no DE
+    assert lang.view_for("DE").se16.results_title.variants == ("Treffer", "hits", "entries")  # no XX
 
 
 @pytest.mark.usefixtures("xx")
@@ -151,34 +151,6 @@ def test_canonical_mapping_matches_every_language() -> None:
     assert status[JobStatus.READY].equals(f"{MARK}Ready")
     assert status[JobStatus.READY].equals("Ready")
     assert not status[JobStatus.READY].equals("Bereit")
-
-
-# ---------------------------------------------------------------------------
-# Template group naming across languages
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.usefixtures("xx")
-def test_template_groups_have_the_same_name_in_every_language() -> None:
-    title = lang.view_for(CODE).se24.display_title
-    for heading in (f"{MARK}Class Builder: Display ZCL_FOO", "Class Builder: Display ZCL_FOO"):
-        match = title.search(heading, name=r"[A-Z0-9_/]+")
-        assert match is not None, heading
-        assert match["name"] == "ZCL_FOO"
-
-
-def test_a_three_language_template_merge_keeps_one_group_name() -> None:
-    merged = merge([DE.se24.display_title, EN.se24.display_title, XX.se24.display_title])
-    assert len(merged.variants) == len(DE.se24.display_title.variants) + 2
-    for heading in (
-        "Klassenpflege: ZCL_FOO anzeigen",
-        "Class Builder: ZCL_FOO anzeigen",
-        "Class Builder: Display ZCL_FOO",
-        f"{MARK}Class Builder: Display ZCL_FOO",
-    ):
-        match = merged.search(heading, name=r"[A-Z0-9_/]+")
-        assert match is not None, heading
-        assert match["name"] == "ZCL_FOO"
 
 
 def test_regex_marker_covers_every_branch_of_an_alternation() -> None:
@@ -207,9 +179,9 @@ def test_a_flag_that_differs_fails_the_merge_of_every_language() -> None:
 
 
 def test_a_kind_that_differs_fails_the_session_merge() -> None:
-    broken = dataclasses.replace(XX, se11=dataclasses.replace(XX.se11, row_select_full=Text(("Typ",))))
+    broken = dataclasses.replace(XX, popup=dataclasses.replace(XX.popup, original_language_hint=Text(("Typ",))))
     with _register_for_tests(broken), pytest.raises(TypeError, match="cannot merge"):
-        lang.view_for(CODE)
+        lang.universal()
 
 
 # ---------------------------------------------------------------------------
