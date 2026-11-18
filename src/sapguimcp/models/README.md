@@ -62,8 +62,9 @@ class SapGuiSettings(BaseSettings):
 
 ## Backend Abstraction (`backend/`)
 
-SAP UI operations are abstracted behind the `SapUiBackend` protocol. Tools access the
-backend via `get_backend()` instead of touching Playwright directly.
+Tools get the backend via `get_backend()` instead of touching Playwright or COM directly. It
+returns `WebGuiBackend | DesktopBackend`; there is no shared protocol class. Where the backends
+need different logic, a tool dispatches once to one function per backend (see `ARCHITECTURE.md`).
 
 ### Usage
 
@@ -77,8 +78,8 @@ snapshot = await backend.get_snapshot()
 
 ### Architecture
 
-- **`backend/protocol.py`** — `SapUiBackend` protocol (5 sub-protocols)
 - **`backend/webgui/backend.py`** — `WebGuiBackend` (Playwright-based implementation)
+- **`backend/desktop/__init__.py`** — `DesktopBackend` (SAP GUI COM scripting implementation)
 - **`backend/manager.py`** — `BackendManager` singleton, `get_backend()` entry point
 - **`backend/webgui/browser.py`** — `BrowserManager` for low-level browser lifecycle
 
