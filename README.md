@@ -65,11 +65,11 @@ Setup has three steps (plus one-time prerequisites): download the executable, cr
 **Where to register the MCP server:**
 
 - **Claude Code** - register once with `claude mcp add --scope user` (recommended) or per project in `.mcp.json`. [Step 3](#step-3-configure-your-mcp-client) shows both.
-- **Claude Desktop** - `claude_desktop_config.json` in `%APPDATA%\Claude`.
+- **Claude Desktop** - `claude_desktop_config.json`; open it via Settings → Developer → Edit Config (usually `%APPDATA%\Claude`).
 - **[opencode](https://opencode.ai)** - `opencode.json` in the project root.
 
 > [!WARNING]
-> **Special characters in passwords stored in a `.json` file:** If your SAP password contains `"` or `\` characters, you must escape them in the JSON config files: `"` becomes `\"` and `\` becomes `\\`. For example, `pass"word` becomes `"pass\"word"` and `do\main` becomes `"do\\main"`. Unescaped special characters will silently break the JSON and the MCP server will fail to start.
+> **Special characters in passwords stored in a `.json` file:** If your SAP password contains `"` or `\` characters, you must escape them in the JSON config files: `"` becomes `\"` and `\` becomes `\\`. For example, `pass"word` becomes `"pass\"word"` and `do\main` becomes `"do\\main"`. Unescaped special characters will silently break the JSON: a broken MCP client config keeps the server from starting, and a broken `systems.json` makes `sap_login` fail with a config error.
 
 > [!TIP]
 > **Windows file extensions:** If file extensions are hidden in Windows Explorer, creating `.mcp.json` via right-click → New → Text File will produce `.mcp.json.txt` (or `.mcp.json.json` if you rename). Make sure "File name extensions" is checked in Explorer's View tab, then rename the file.
@@ -105,7 +105,7 @@ Ask your SAP basis team for the server-side setting early - it is the only step 
 
 ### Step 1: Download the executable
 
-Download `sapgui_mcp_windows_<version>.exe` (for example `sapgui_mcp_windows_v1.0.0.exe`) from [GitHub Releases](https://github.com/Hochfrequenz/sapgui.mcp/releases/latest). It is a single file - no Python needed. Do not use the `sapgui_mcp_windows_with_remote_logging_<version>.exe` variant: it sends logs to a remote log service and is meant for the maintainers. To verify the download, compare its SHA-256 hash with `checksums.txt` from the same release.
+Download `sapgui_mcp_windows_<version>.exe` from [GitHub Releases](https://github.com/Hochfrequenz/sapgui.mcp/releases/latest). It is a single file - no Python needed. Do not use the `sapgui_mcp_windows_with_remote_logging_<version>.exe` variant: it sends logs to a remote log service and is meant for the maintainers. To verify the download, run `Get-FileHash .\sapgui_mcp_windows_<version>.exe` in PowerShell and compare the hash with `checksums.txt` from the same release.
 
 #### Smart App and other Security Tools
 
@@ -165,7 +165,7 @@ If the `connection_name` doesn't match exactly, you'll get _"SAP Logon connectio
 ```
 
 > [!NOTE]
-> If your SAP system uses a self-signed or internally-signed certificate (common for VPN/intranet systems), add `"tls_skip_verify": true` to the system entry. Leave it out if your system has a publicly-trusted certificate.
+> This server connects through `connection_name` (the SAP Logon entry); it does not use `host` or `tls_skip_verify`. The shared config format still requires `host`, so enter your system's HTTPS URL - other tools that read `systems.json`, such as [`aibap.mcp`](https://github.com/Hochfrequenz/aibap.mcp), use it. `tls_skip_verify` matters only to those tools.
 
 > [!IMPORTANT]
 > After editing `systems.json`, restart Claude Desktop, Claude Code, or opencode for the changes to take effect.
@@ -185,7 +185,7 @@ See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the com
 ### Step 3: Configure your MCP client
 
 > [!TIP]
-> Note the full path to the downloaded `.exe`. For example, if you saved `sapgui_mcp_windows_v1.0.0.exe` to your Downloads folder, the path is `C:/Users/YourName/Downloads/sapgui_mcp_windows_v1.0.0.exe`. Always use forward slashes (`/`) in JSON, not backslashes (`\`).
+> Note the full path to the downloaded `.exe`. For example, if you saved `sapgui_mcp_windows_<version>.exe` to your Downloads folder, the path is `C:/Users/YourName/Downloads/sapgui_mcp_windows_<version>.exe`. Always use forward slashes (`/`) in JSON, not backslashes (`\`).
 
 #### Claude Desktop
 
@@ -217,7 +217,7 @@ Optional server settings (see [environment variables](#environment-variables-ser
 claude mcp add --scope user sap-desktop -e GITHUB_PAT=your_github_pat -e OUTPUT_DIR=C:/sap-output '--' C:/path/to/sapgui_mcp_windows_<version>.exe
 ```
 
-A PAT typed on the command line ends up in your shell history. In Claude Desktop and in `.mcp.json`, put the same variables in an `"env": { ... }` block next to `command`; in `opencode.json` use `"environment": { ... }`. Two details matter:
+Two details matter:
 
 - **Keep the server name (`sap-desktop`) before `-e`.** The `-e` option accepts several values, so a name placed after it is read as a second environment variable and the command fails with `error: missing required argument 'commandOrUrl'`.
 - **Keep the quotes around `'--'`.** If Claude Code was installed through npm, `claude` is a PowerShell script, and PowerShell silently drops an unquoted `--` before passing the arguments on. `-e` then swallows the `.exe` path and the command fails with the same error. This works in PowerShell, bash and zsh (in bash or zsh, `'--'` and `--` are equivalent). In cmd.exe, single quotes are not quoting characters, so write a plain `--` instead.
@@ -255,6 +255,8 @@ Add to `opencode.json` in your project root:
 
 > [!TIP]
 > In `opencode.json`, you can use either forward slashes (`C:/path/to/...`) or double-escaped backslashes (`C:\\path\\to\\...`) in the `command` path. Single backslashes will break the JSON silently.
+
+Optional server settings ([environment variables](#environment-variables-server-specific)) go in an `"env": { ... }` block next to `"command"` in `claude_desktop_config.json` and `.mcp.json`, and in an `"environment": { ... }` block in `opencode.json`. With `claude mcp add`, a value passed with `-e` (such as a PAT) ends up in your shell history.
 
 ### Multi-system access
 
@@ -377,7 +379,7 @@ Your AI client automatically discovers all individual tools and their schemas dy
 
 ### SAP Credentials (via `systems.json`)
 
-SAP credentials (user, password, client, language, host) are configured in `systems.json` (or `systems.yaml`), **not** via server environment variables. See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the file format. Override the config file path with `SAP_CONFIG_FILE`. The `language` of each system must be `DE`, `EN` or `IT` (case-insensitive; omitted means `EN`) - these are the languages this server supports, and any other value, such as `FR`, is rejected when the config is loaded with `language must be one of "DE", "EN", "IT"`. Older versions read `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`, `SAP_LANGUAGE`, `SAP_CONNECTION_NAME` and `SAP_CREDENTIALS` from the MCP config's `env` block; these are ignored now and can be removed from existing configs.
+SAP credentials (user, password, client, language, host) are configured in `systems.json` (or a YAML file that `SAP_CONFIG_FILE` points to), **not** via server environment variables. See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the file format. Override the config file path with `SAP_CONFIG_FILE`. The `language` of each system must be `DE`, `EN` or `IT` (case-insensitive; omitted means `EN`) - these are the languages this server supports, and any other value, such as `FR`, is rejected when the config is loaded with `language must be one of "DE", "EN", "IT"`. Older versions read `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`, `SAP_LANGUAGE`, `SAP_CONNECTION_NAME` and `SAP_CREDENTIALS` from the MCP config's `env` block; these are ignored now and can be removed from existing configs.
 
 The WebGUI settings are ignored. The server checks `BACKEND_TYPE=webgui`, `SAP_URL` and `CDP_URL` in the environment and in `.env`: if one is set, it logs a warning and adds a note to its instructions that points to [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp). Other old WebGUI settings, such as `BROWSER_*` and `CHROME_*`, are silently ignored.
 
@@ -412,7 +414,7 @@ The server logs to **stdout** by default using a structured text format. Set `LO
 
 Remote logging to [Papertrail](https://www.papertrail.com/) is **disabled by default**. No telemetry is sent unless you explicitly opt in.
 
-To enable it, set both `PAPERTRAIL_HOST` and `PAPERTRAIL_PORT` as environment variables (in the MCP client's `env` block, see [Step 3](#step-3-configure-your-mcp-client)) or in a `.env` file in the server's working directory:
+To enable it, set both `PAPERTRAIL_HOST` and `PAPERTRAIL_PORT` as environment variables (in the MCP client's `env` block - `environment` in opencode, `-e` with `claude mcp add` - see [Step 3](#step-3-configure-your-mcp-client)) or in a `.env` file in the server's working directory:
 
 ```
 PAPERTRAIL_HOST=logs.example.com
