@@ -922,3 +922,75 @@ class TestClassifyLoginFailure:
         failure = classify_login_failure(exc)
         assert failure.message == str(exc)
         assert (failure.engine_lost, failure.hresult, failure.cause_type) == (False, None, None)
+
+
+class _FakeHresultError(Exception):
+    def __init__(self, hresult: int) -> None:
+        super().__init__(hresult, "com error")
+        self.hresult = hresult
+
+
+def _raise(exc: Exception):
+    def _fn():
+        raise exc
+
+    return _fn
+
+
+class TestDeadHandleHook:
+    """Issue #789: a session-bound call failing with a dead handle goes through ``dead_handle_hook``."""
+
+    @pytest.mark.anyio
+    async def test_hook_replaces_dead_handle_error(self, com_thread):
+        from sapguimcp.backend.desktop._com_thread import SapSessionDeadError, com_call_session
+
+        seen = []
+
+        async def hook(session, _exc):
+            seen.append(session)
+            return SapSessionDeadError("s7")
+
+        com_thread.dead_handle_hook = hook
+        marker = object()
+        com_call_session.set(marker)
+        try:
+            with pytest.raises(SapSessionDeadError, match="sap_login"):
+                await com_thread.run(_raise(_FakeHresultError(-2147417848)))  # RPC_E_DISCONNECTED
+        finally:
+            com_call_session.set(None)
+        assert seen == [marker]
+
+    @pytest.mark.anyio
+    async def test_hook_returning_none_keeps_original_error(self, com_thread):
+        from sapguimcp.backend.desktop._com_thread import com_call_session
+
+        async def hook(_session, _exc):
+            return None
+
+        com_thread.dead_handle_hook = hook
+        com_call_session.set(object())
+        try:
+            with pytest.raises(_FakeHresultError):
+                await com_thread.run(_raise(_FakeHresultError(-2147023179)), max_retries=0)
+        finally:
+            com_call_session.set(None)
+
+    @pytest.mark.anyio
+    async def test_hook_not_called_without_session_or_for_other_errors(self, com_thread):
+        from sapguimcp.backend.desktop._com_thread import com_call_session
+
+        calls = []
+
+        async def hook(_session, exc):
+            calls.append(exc)
+
+        com_thread.dead_handle_hook = hook
+        with pytest.raises(RuntimeError, match="connection lost"):  # no session bound
+            await com_thread.run(_raise(_FakeHresultError(-2147417848)))
+        com_call_session.set(object())
+        try:
+            with pytest.raises(ValueError, match="x"):  # not a dead-handle error
+                await com_thread.run(_raise(ValueError("x")))
+        finally:
+            com_call_session.set(None)
+        assert not calls

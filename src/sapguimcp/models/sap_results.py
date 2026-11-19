@@ -88,8 +88,11 @@ class TransactionResult(ToolResult):
 class SessionStatus(ToolResult):
     """Result from sap_session_status tool."""
 
-    status: Literal["active", "timed_out", "logged_off", "no_page", "unknown"] = Field(
-        description="Session state: 'active' (responsive), 'timed_out', 'logged_off', 'no_page', or 'unknown'"
+    status: Literal["active", "timed_out", "logged_off", "no_page", "unknown", "dead"] = Field(
+        description=(
+            "Session state: 'active' (responsive), 'dead' (its SAP GUI window or connection is gone: "
+            "call sap_login again), 'timed_out', 'logged_off', 'no_page', or 'unknown'"
+        )
     )
     message: str = Field(description="Human-readable status description")
 
@@ -105,6 +108,13 @@ class SessionInfo(BaseModel):
     system_name: str | None = Field(default=None, description="SAP system ID (e.g., 'DEV', 'PRD')")
     client: str | None = Field(default=None, description="SAP client number (e.g., '100')")
     user: str | None = Field(default=None, description="Logged-in SAP user")
+    status: Literal["active", "dead"] = Field(
+        default="active",
+        description=(
+            "'dead' = the session's SAP GUI window or connection is gone; it was removed from the registry "
+            "by this call and cannot be used. Call sap_login again."
+        ),
+    )
     origin: Literal["opened", "attached"] = Field(
         default="opened",
         description=(

@@ -32,6 +32,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from sapguimcp.backend.desktop import DesktopBackend, _current_session_id
+from sapguimcp.backend.desktop._com_thread import SapSessionDeadError
 from sapguimcp.session_language import current_language, use_language
 from unittests.desktop.conftest import make_mock_session
 
@@ -567,3 +568,103 @@ async def test_login_survives_a_failing_language_read() -> None:
         assert result.user == "TESTUSER"
         assert result.session_id is not None
         assert backend.registry.language_of(result.session_id) is None
+
+
+# ---------------------------------------------------------------------------
+# #789 — dead-session detection
+# ---------------------------------------------------------------------------
+
+
+class _DeadComError(Exception):
+    """Stand-in for pywintypes.com_error."""
+
+    def __init__(self, hresult: int) -> None:
+        super().__init__(hresult, "com error")
+        self.hresult = hresult
+
+
+@pytest.mark.anyio
+async def test_login_fails_when_new_session_does_not_answer() -> None:
+    """The post-login health check reports a dead handle instead of returning a session id."""
+    backend = _make_backend()
+    dead = make_mock_session()
+    dead.com = MagicMock()
+    dead.com.FindById.side_effect = _DeadComError(-2147023179)
+
+    with patch("sapguimcp.backend.desktop._sapsucker_login", return_value=dead):
+        result = await backend.login("x", "u", "p", "100", "EN", connection_name="C")
+
+    assert result.success is False
+    assert result.session_id is None
+    assert "sap_login" in (result.error or "")
+    assert backend.registry.list_sessions() == []
+
+
+@pytest.mark.anyio
+async def test_login_health_check_ignores_busy_probe() -> None:
+    """A busy (non-dead) probe error must not fail the login."""
+    backend = _make_backend()
+    busy = make_mock_session()
+    busy.com = MagicMock()
+    busy.com.FindById.side_effect = _DeadComError(-2147417846)  # RPC_E_SERVERCALL_RETRYLATER
+
+    with patch("sapguimcp.backend.desktop._sapsucker_login", return_value=busy):
+        result = await backend.login("x", "u", "p", "100", "EN", connection_name="C")
+
+    assert result.success is True
+
+
+@pytest.mark.anyio
+async def test_dead_handle_hook_deregisters_and_reports() -> None:
+    """RPC_E_DISCONNECTED on a session-bound call deregisters the session (no probe needed)."""
+    backend = _make_backend()
+    session = make_mock_session()
+    backend.registry.register(session)
+
+    error = await backend._on_session_call_failed(session, _DeadComError(-2147417848))
+
+    assert isinstance(error, SapSessionDeadError)
+    assert "s1" in str(error)
+    assert "sap_login" in str(error)
+    assert backend.registry.list_sessions() == []
+
+
+@pytest.mark.anyio
+async def test_dead_handle_hook_unknown_if_confirmed_by_probe() -> None:
+    backend = _make_backend()
+    session = make_mock_session()
+    session.com = MagicMock()
+    session.com.FindById.side_effect = _DeadComError(-2147023179)
+    backend.registry.register(session)
+
+    error = await backend._on_session_call_failed(session, _DeadComError(-2147023179))
+
+    assert isinstance(error, SapSessionDeadError)
+    assert backend.registry.list_sessions() == []
+
+
+@pytest.mark.anyio
+async def test_dead_handle_hook_unknown_if_on_healthy_session_keeps_it() -> None:
+    """A stale control proxy (UNKNOWN_IF) on a session whose window still answers is not death."""
+    backend = _make_backend()
+    session = make_mock_session()
+    session.com = MagicMock()
+    backend.registry.register(session)
+
+    assert await backend._on_session_call_failed(session, _DeadComError(-2147023179)) is None
+    assert backend.registry.list_sessions() == ["s1"]
+
+
+@pytest.mark.anyio
+async def test_list_sessions_reports_dead_session_with_include_dead() -> None:
+    backend = _make_backend()
+    backend.registry.register(make_mock_session())
+    dead = make_mock_session()
+    _kill_session(dead)
+    backend.registry.register(dead)
+
+    listed = await backend.list_sessions(include_dead=True)
+
+    by_id = {s.session_id: s.status for s in listed}
+    assert by_id == {"s1": "active", "s2": "dead"}
+    assert backend.registry.list_sessions() == ["s1"]
