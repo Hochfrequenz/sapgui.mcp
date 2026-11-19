@@ -18,6 +18,7 @@ import tempfile
 import threading
 import time
 import weakref
+from collections.abc import Sequence
 from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, cast
@@ -93,7 +94,7 @@ from sapguimcp.models.sap_results import (
 from sapguimcp.session_language import set_session_language
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable, Iterator, Sequence
 
     from sapsucker.components.session import GuiSession
 
@@ -2397,6 +2398,36 @@ class DesktopBackend:
         data = await self.com.run(_select)
         logger.info("select_dropdown", extra={"label": label, "option": option, "success": data["success"]})
         return DropdownFillResult(**data)
+
+    def _current_session_key(self) -> str:
+        """Registry id of the session the current async context works on."""
+        return _current_session_id.get() or self.registry.primary_session
+
+    def cached_date_format(self) -> str | None:
+        """The user's date format derived for the current session (#1043), or ``None``."""
+        return self.registry.date_format_of(self._current_session_key())
+
+    def cache_date_format(self, date_format: str) -> None:
+        """Remember the user's date format (a ``strftime`` pattern) for the current session (#1043)."""
+        self.registry.set_date_format(self._current_session_key(), date_format)
+
+    async def read_field_text(self, field_names: Sequence[str]) -> str | None:
+        """Text of the first of the fields (technical names) that exists and shows a value, else ``None``."""
+        session = self.require_session()
+
+        def _read() -> str | None:
+            wnd_id = _active_window_id(session)
+            for name in field_names:
+                for prefix in ("ctxt", "txt"):
+                    field = session.find_by_id(f"{wnd_id}/usr/{prefix}{name}", raise_error=False)
+                    if field is None:
+                        continue
+                    text = str(getattr(_unwrap_com(field), "Text", "") or "").strip()
+                    if text:
+                        return text
+            return None
+
+        return await self.com.run(_read)
 
     async def focus_and_type(  # pylint: disable=unused-argument
         self, accessible_name: str, text: str, delay_ms: int = 0

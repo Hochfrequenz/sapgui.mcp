@@ -25,6 +25,7 @@ from sapguimcp.models.slg1_models import (
     SLG1LogEntry,
     SLG1LogListResult,
 )
+from sapguimcp.user_date_format import resolve_user_date_format
 from sapguimcp.utils import format_sap_date_as
 
 if TYPE_CHECKING:
@@ -159,13 +160,17 @@ async def _slg1_lookup_desktop(  # pylint: disable=too-many-arguments,too-many-p
         unapplied.append("subobject")
     if external_id and not await _fill_by_label(backend, t.slg1.external_id, external_id):
         unapplied.append("external_id")
+    # The dates are typed in the date format of the user, read off the pre-filled date before it is overwritten.
+    date_format = (
+        await resolve_user_date_format(backend, ("BALHDR-ALDATE", "*BALHDR-ALDATE"), t.date_format)
+        if from_date or to_date
+        else t.date_format
+    )
     for value, field_name, filter_name in (
         (from_date, "BALHDR-ALDATE", "from_date"),
         (to_date, "*BALHDR-ALDATE", "to_date"),
     ):
-        if value and not await backend.focus_and_type(
-            field_name, format_sap_date_as(value, t.date_format), delay_ms=50
-        ):
+        if value and not await backend.focus_and_type(field_name, format_sap_date_as(value, date_format), delay_ms=50):
             unapplied.append(filter_name)
     if unapplied:
         return SLG1LogListResult.failure(

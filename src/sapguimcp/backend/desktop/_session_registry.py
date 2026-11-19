@@ -47,6 +47,8 @@ class DesktopSessionRegistry:
         # ids removed because their SAP GUI handle died (#789), so an explicit lookup says "dead", not "not found".
         # Ids are reused after clear(), so clear() and register() drop them again.
         self._dead_ids: set[str] = set()
+        # session_id -> the user's date format as a strftime pattern (#1043). Absent until derived.
+        self._date_formats: dict[str, str] = {}
 
     @property
     def primary_session(self) -> str:
@@ -121,6 +123,14 @@ class DesktopSessionRegistry:
         else:
             self._languages[session_id] = normalized
 
+    def set_date_format(self, session_id: str, date_format: str) -> None:
+        """Remember the user's date format (a ``strftime`` pattern) of *session_id*."""
+        self._date_formats[session_id] = date_format
+
+    def date_format_of(self, session_id: str) -> str | None:
+        """The user's date format of *session_id*, or ``None`` when not derived yet."""
+        return self._date_formats.get(session_id)
+
     def language_of(self, session_id: str) -> str | None:
         """Logon language of *session_id*, or ``None`` when unknown."""
         return self._languages.get(session_id)
@@ -180,6 +190,7 @@ class DesktopSessionRegistry:
         self._busy_since.pop(session_id, None)
         self._origins.pop(session_id, None)
         self._languages.pop(session_id, None)
+        self._date_formats.pop(session_id, None)
         logger.info("Unregistered desktop session", extra={"session": session_id})
 
     def prune(self, dead_ids: Iterable[str]) -> list[str]:

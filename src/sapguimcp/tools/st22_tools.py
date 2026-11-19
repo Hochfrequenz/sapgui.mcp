@@ -37,6 +37,7 @@ from sapguimcp.models.st22_models import (
 )
 from sapguimcp.tools.classic_list_helpers import read_classic_list_lines
 from sapguimcp.tools.desktop_wait_predicates import screen_changed
+from sapguimcp.user_date_format import resolve_user_date_format
 from sapguimcp.utils import format_sap_date_as
 
 if TYPE_CHECKING:
@@ -95,7 +96,9 @@ async def _clear_user_field(backend: "DesktopBackend", t: LanguagePack) -> None:
 async def _fill_date_field(backend: "DesktopBackend", t: LanguagePack, target_date: str) -> str | None:
     """Fill the date field with a formatted date. Returns error or None."""
     try:
-        formatted = format_sap_date_as(target_date, t.date_format)
+        # Typed in the date format of the user, read off the pre-filled date before it is overwritten.
+        date_format = await resolve_user_date_format(backend, ("S_DATUM-LOW",), t.date_format)
+        formatted = format_sap_date_as(target_date, date_format)
     except ValueError:
         return f"Invalid date format: {target_date} (expected YYYY-MM-DD)"
 
