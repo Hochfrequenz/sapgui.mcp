@@ -263,7 +263,12 @@ def _headings(t: LanguagePack) -> _Headings:
 
 # One call stack entry: number, kind, program, include and (if the list is wide enough to show it) the line number;
 # the name of the called method or form follows on the next line.
-_CALL_STACK_ENTRY = re.compile(r"^(\d+)\s+([A-Z][A-Z_]*)\s+(\S+)\s+(\S+)(?:\s+(\d+))?$")
+# The kind can carry a qualifier in brackets, e.g. "MODULE (PBO)" (#1156).
+_CALL_STACK_ENTRY = re.compile(r"^(\d+)\s+([A-Z][A-Z_]*(?:\s+\([A-Z]+\))?)\s+(\S+)\s+(\S+)(?:\s+(\d+))?$")
+# A line number followed by a quoted include, as in the text on where the program terminated: 'in line 36 of the
+# include "ZCL_X======CM00C"' (German: 'in Zeile 36 des Includes "..."'). The number stands on its own, so digits
+# inside a name do not count.
+_LINE_AND_INCLUDE = re.compile(r'(?<![\w./])(\d+)\b[^"\d]*"([^"\s]+)"')
 _MAX_CALL_STACK_ENTRIES = 20
 
 
@@ -307,6 +312,21 @@ def _call_stack_entries(lines: list[str], headings: _Headings) -> list[tuple[re.
     return entries
 
 
+def _termination_point(lines: list[str], include: str | None, line: int | None) -> tuple[str | None, int | None]:
+    """The include and line where the program terminated, completed from the text of the dump (#1156).
+
+    The call stack shows the include cut off at its column width (``ZCL_X======CM`` for ``ZCL_X======CM00C``) and,
+    in a narrow window, no line. The text on where the program terminated names both in full: the first line number
+    followed by a quoted include that starts with the include of the call stack.
+    """
+    if not include:
+        return include, line
+    for match in _LINE_AND_INCLUDE.finditer("\n".join(lines)):
+        if match.group(2).startswith(include):
+            return match.group(2), line if line is not None else int(match.group(1))
+    return include, line
+
+
 def _parse_desktop_detail_lines(lines: list[str], source_dump: "ST22Dump", t: LanguagePack) -> "ST22DumpDetail":
     """Parse the lines of the dump detail screen into an ST22DumpDetail model.
 
@@ -325,10 +345,14 @@ def _parse_desktop_detail_lines(lines: list[str], source_dump: "ST22Dump", t: La
         program = top.group(3)
         include = top.group(4)
         line = int(top.group(5)) if top.group(5) else None
+        include, line = _termination_point(lines, include, line)
     call_stack = [" ".join(part for part in (*match.groups(default=""), name) if part) for match, name in stack]
+    # The detail repeats the short text under a heading named like the short text column of the list
+    short_text_headings = frozenset(_heading_key(variant) for variant in t.st22.col_short_text) & headings.every
+    short_text = " ".join(_section_text(lines, short_text_headings, headings.every).splitlines())
     return ST22DumpDetail(
         error_type=source_dump.error_type,
-        short_text=source_dump.short_text,
+        short_text=short_text or source_dump.short_text,
         what_happened=_section_text(lines, headings.what_happened, headings.every),
         how_to_correct=_section_text(lines, headings.how_to_correct, headings.every),
         program=program,

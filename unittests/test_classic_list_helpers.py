@@ -270,3 +270,29 @@ def test_a_multi_page_list_with_exactly_the_limit_ending_on_its_last_page_is_not
     table = read_classic_list_table(_session(_Usr(pages, scrollbar)), _TITLES, 18)
     assert len(table.rows) == 18
     assert not table.truncated
+
+
+def _fixed_header_pages(positions: tuple[int, ...]) -> dict[int, list[Any]]:
+    """A list whose window keeps a header of two lines and a blank line on top (rows 0-2) while rows 3-7 scroll."""
+    pages: dict[int, list[Any]] = {}
+    for position in positions:
+        elements = [_label(0, 0, "Kategorie ABAP Programmierfehler"), _label(0, 1, "Datum und Zeit 08.10.2026")]
+        elements += [_label(0, 3 + index, f"line {position + index}") for index in range(5) if position + index < 12]
+        pages[position] = elements
+    return pages
+
+
+def test_a_header_above_the_scrolled_lines_is_read_once() -> None:
+    """The ST22 dump detail keeps its header box on screen while the text scrolls (#1156)."""
+    scrollbar = _Scrollbar(maximum=7, page_size=5)
+    lines = read_classic_list_lines(_session(_Usr(_fixed_header_pages((0, 1, 2, 3, 4, 5, 6, 7)), scrollbar)), 100)
+    assert lines == ["Kategorie ABAP Programmierfehler", "Datum und Zeit 08.10.2026"] + [f"line {i}" for i in range(12)]
+
+
+def test_blank_rows_that_are_blank_on_both_pages_are_no_header() -> None:
+    pages = {
+        position: [_label(0, row, f"line {position + row}") for row in range(1, 5) if position + row < 10]
+        for position in (0, 1, 2, 3, 4, 5, 6)
+    }
+    lines = read_classic_list_lines(_session(_Usr(pages, _Scrollbar(maximum=6, page_size=5))), 100)
+    assert lines == [f"line {i}" for i in range(1, 10)]
