@@ -610,7 +610,8 @@ async def _execute_se16_query_desktop(  # pylint: disable=too-many-arguments,too
         table=table,
         total_hits=total_hits,
         returned_rows=len(rows),
-        truncated=len(rows) < total_hits,
+        # SE16N is limited to max_hits, so len(rows) never exceeds total_hits: reaching the cap means more may exist
+        truncated=len(rows) < total_hits or total_hits >= max_hits,
         columns=table_data.headers,
         rows=rows,
         filter_warnings=filter_warnings,

@@ -107,37 +107,32 @@ async def test_se16_model_serializes(backend):
 @skip_no_sap
 @pytest.mark.anyio
 async def test_se16_max_hits_limits_rows(backend):
-    """SE16: max_hits=3 on a large table returns exactly 3 rows.
-
-    Note: the desktop backend sets truncated = (len(rows) < total_hits).
-    When SAP reports total_hits == max_hits, truncated will be False even
-    though more data exists.  We assert structural consistency instead.
-    """
+    """SE16: max_hits=3 on a large table returns exactly 3 rows."""
     result = await _execute_se16_query(backend, TEST_TABLE, None, 3)
     assert result.success, f"SE16 failed: {result.error}"
     assert result.returned_rows == 3
     assert len(result.rows) == 3
-    assert result.truncated == (result.returned_rows < result.total_hits)
     await go_home(backend)
 
 
 @skip_no_sap
 @pytest.mark.anyio
 async def test_se16_truncated_flag(backend):
-    """SE16: total_hits vs returned_rows are consistent; truncation is reflected.
+    """SE16: truncated is true when the hits reach max_hits, and false when fewer rows match (#1149).
 
-    Note: the desktop backend sets truncated = (len(rows) < total_hits),
-    which differs from the WebGUI backend (total_hits >= max_hits).  When the
-    desktop SE16 path retrieves exactly max_hits rows AND SAP reports
-    total_hits == max_hits, truncated will be False even though more data
-    exists in the table.  We assert structural consistency here rather than
-    a specific truncated value.
+    SE16N stops at "Maximum No. of Hits", so it never reports more hits than max_hits; reaching the limit means
+    the result may be cut off.
     """
     result = await _execute_se16_query(backend, TEST_TABLE, None, 3)
     assert result.success, f"SE16 failed: {result.error}"
     assert result.returned_rows == 3
-    # Structural consistency: truncated iff fewer rows returned than total_hits
-    assert result.truncated == (result.returned_rows < result.total_hits)
+    assert result.total_hits == 3
+    assert result.truncated is True
+
+    single = await _execute_se16_query(backend, TEST_TABLE, {"TCODE": "SE16"}, 10)
+    assert single.success, f"SE16 failed: {single.error}"
+    assert single.returned_rows == 1
+    assert single.truncated is False
     await go_home(backend)
 
 
