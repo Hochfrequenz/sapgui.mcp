@@ -1,6 +1,6 @@
 """SE37 signature tabs: checkbox columns, the default-value column title and scrolling past the visible rows (#1148).
 
-The row data is recorded from the function builder of a German logon (BAPI_USER_GET_DETAIL), see the issue.
+The row data is modelled on the function builder of a German logon (BAPI_USER_GET_DETAIL), see the issue; the tables tab is shortened to 22 of its 26 rows, which is enough to scroll past the 20 visible ones.
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ _IMPORT = [
     ("EXTUID_GET", "TYPE", "BAPIEXTUIDGET", "", True, True, "Leseflags für Externe UserID"),
 ]
 
-# the tables tab: 22 rows shown by a control with 20 visible rows; only RETURN is mandatory
+# the tables tab, shortened to 22 rows: more than the 20 visible rows; only RETURN is mandatory
 _TABLES = [
     "PARAMETER", "PROFILES", "ACTIVITYGROUPS", "RETURN", "ADDTEL", "ADDFAX", "ADDTTX", "ADDTLX", "ADDSMTP", "ADDRML",
     "ADDX400", "ADDRFC", "ADDPRT", "ADDSSF", "ADDURI", "ADDPAG", "ADDCOMREM", "PARAMETER1", "GROUPS", "UCLASSSYS",
