@@ -195,9 +195,21 @@ class TestDesktopGetSessionStatusHealthCheck:
         result = await backend.get_session_status(session_id="s1")
 
         assert result.status != "active"
-        assert result.status == "unknown"
+        assert result.status == "dead"  # #789: reported dead, not unknown
         assert "GHOST" not in result.message
-        assert "sap_login" in result.message.lower() or "restart" in result.message.lower()
+        assert "sap_login" in result.message.lower()
+
+    @pytest.mark.anyio
+    async def test_disconnected_handle_reported_dead_and_kept_registered(self) -> None:
+        backend = _make_desktop_backend()
+        session = MagicMock()
+        session.com.FindById.side_effect = _FakeComError(-2147417848, "disconnected", None, None)
+        self._register(backend, session)
+
+        result = await backend.get_session_status(session_id="s1")
+
+        assert result.status == "dead"
+        assert backend.registry.has_session("s1")  # the next call deregisters it
 
     @pytest.mark.anyio
     async def test_live_handle_reported_active(self) -> None:

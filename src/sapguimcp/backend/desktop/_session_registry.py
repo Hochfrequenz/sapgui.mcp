@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Iterable, Literal
 
+from sapguimcp.backend.desktop._com_thread import SapSessionDeadError
 from sapguimcp.models.base import SessionBindConflictError
 from sapguimcp.session_language import normalize_language
 
@@ -43,6 +44,9 @@ class DesktopSessionRegistry:
         self._origins: dict[str, SessionOrigin] = {}
         # session_id -> SAP logon language key (#1044). Absent when unknown.
         self._languages: dict[str, str] = {}
+        # ids removed because their SAP GUI handle died (#789), so an explicit lookup says "dead", not "not found".
+        # Ids are reused after clear(), so clear() and register() drop them again.
+        self._dead_ids: set[str] = set()
 
     @property
     def primary_session(self) -> str:
@@ -105,6 +109,7 @@ class DesktopSessionRegistry:
         session_id = f"s{self._counter}"
         self._sessions[session_id] = session
         self._origins[session_id] = origin
+        self._dead_ids.discard(session_id)
         logger.info("Registered desktop session", extra={"session": session_id})
         return session_id
 
@@ -145,6 +150,8 @@ class DesktopSessionRegistry:
         """
         sid = session_id or self._default_session_id()
         if sid not in self._sessions:
+            if session_id is not None and sid in self._dead_ids:
+                raise SapSessionDeadError(sid)
             available = ", ".join(sorted(self._sessions.keys())) or "(none)"
             raise ValueError(f"Session '{sid}' not found. Active: {available}.")
         return self._sessions[sid]
@@ -199,6 +206,7 @@ class DesktopSessionRegistry:
             agent = self._bindings.get(sid)
             if self._sessions.pop(sid, None) is not None:
                 removed.append(sid)
+                self._dead_ids.add(sid)
                 self._bindings.pop(sid, None)
                 self._busy_since.pop(sid, None)
                 self._origins.pop(sid, None)
@@ -229,6 +237,7 @@ class DesktopSessionRegistry:
         self._bindings.clear()
         self._busy_since.clear()
         self._origins.clear()
+        self._dead_ids.clear()
         self._languages.clear()  # the counter restarts, so a stale language would attach to the next s1
         self._counter = 0
         if had_sessions:
