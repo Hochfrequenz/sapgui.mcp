@@ -160,6 +160,7 @@ _TAGS: dict[str, Backend] = {
     "st22.col_error_type": Backend.DESKTOP,
     "st22.col_short_text": Backend.DESKTOP,
     "st22.call_stack_heading": Backend.BOTH,
+    "st22.termination_heading": Backend.BOTH,
     "st22.other_headings": Backend.BOTH,
 }
 

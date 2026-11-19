@@ -155,11 +155,33 @@ def select_first_classic_list_entry(session: Any, header_titles: tuple[str, ...]
     return False
 
 
+def _fixed_header_rows(first_page: dict[int, str], scrolled_page: dict[int, str], offset: int) -> int:
+    """The number of rows at the top of the window that do not scroll: they read the same on a page scrolled by
+    ``offset``, although a scrolled row there would show the line ``offset`` rows further down.
+
+    A row whose text is also that line further down is a list line that merely repeats, not a header. Counted up to
+    the last header row that has text, so that rows which happen to be blank on both pages are not taken for one.
+    """
+    last_row = max(first_page, default=-1)
+    fixed = 0
+    for row in range(last_row + 1):
+        text = first_page.get(row, "")
+        if scrolled_page.get(row, "") != text:
+            break
+        if text:
+            if first_page.get(offset + row, "") == text:
+                break  # the scrolled line at this row: a repeated list line, not a header
+            fixed = row + 1
+    return fixed
+
+
 def read_classic_list_lines(session: Any, max_lines: int) -> list[str]:
     """Read the text of the classic list on screen line by line (COM thread): the cells of a line joined by a space.
 
     A list taller than the window is read page by page with the vertical scrollbar, which is reset afterwards.
-    Lines without text are skipped. For lists that are plain text (e.g. the job log), not columns.
+    Lines without text are skipped. For lists that are plain text (e.g. the job log), not columns. A header above
+    the scrolled area (e.g. the box at the top of an ST22 dump) stays on screen while the list scrolls: it is read
+    from the first page only (#1156).
     """
     usr = session.find_by_id("wnd[0]/usr")
     scrollbar = getattr(usr, "vertical_scrollbar", None)
@@ -167,14 +189,25 @@ def read_classic_list_lines(session: Any, max_lines: int) -> list[str]:
     page_size = max(int(scrollbar.page_size), 1) if scrollbar is not None else 0
     positions = _scroll_positions(maximum, page_size)
     lines: dict[int, str] = {}
+    first_page: dict[int, str] | None = None
+    fixed_rows: int | None = None  # rows of the header above the scrolled area, known from the second page on
     try:
         for wanted in dict.fromkeys(positions):
             if scrollbar is not None and maximum > 0:
                 scrollbar.position = wanted
             offset = int(scrollbar.position) if scrollbar is not None and maximum > 0 else 0
             labels, _checkboxes = _cells(usr)
-            for row, cells in labels.items():
-                text = " ".join(cells[column].strip() for column in sorted(cells) if cells[column].strip())
+            page = {
+                row: " ".join(cells[column].strip() for column in sorted(cells) if cells[column].strip())
+                for row, cells in labels.items()
+            }
+            if first_page is None:
+                first_page = page
+            elif fixed_rows is None and offset > 0:
+                fixed_rows = _fixed_header_rows(first_page, page, offset)
+            for row, text in page.items():
+                if offset > 0 and row < (fixed_rows or 0):
+                    continue  # the fixed header again, not the list line at this position
                 if text and (offset + row) not in lines:
                     lines[offset + row] = text
             if len(lines) >= max_lines:

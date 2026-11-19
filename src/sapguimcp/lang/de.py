@@ -232,6 +232,7 @@ DE = LanguagePack(
         col_error_type=Text(("Laufzeitfehler", "Fehler")),
         col_short_text=Text(("Kurztext",)),
         call_stack_heading=Text(("Aktive Aufrufe/Ereignisse", "Aktive Aufrufe", "Aufrufhierarchie")),
+        termination_heading=Text(("Informationen zur Abbruchstelle",)),
         other_headings=Text(
             (
                 "Systemumgebung",
