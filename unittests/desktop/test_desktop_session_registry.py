@@ -481,3 +481,22 @@ class TestDeadIds:
         registry._dead_ids.add("s2")
         assert registry.register(MagicMock()) == "s2"
         assert registry.get_session("s2") is not None
+
+
+class TestDateFormatLifetime:
+    """A cached date format (#1043) never outlives its session: ids are reused after clear()."""
+
+    def test_prune_drops_the_date_format(self) -> None:
+        registry = DesktopSessionRegistry()
+        sid = registry.register(_make_mock_session())
+        registry.set_date_format(sid, "%Y-%m-%d")
+        registry.prune([sid])
+        assert registry.date_format_of(sid) is None
+
+    def test_clear_drops_the_date_format_so_a_reused_id_starts_fresh(self) -> None:
+        registry = DesktopSessionRegistry()
+        sid = registry.register(_make_mock_session())
+        registry.set_date_format(sid, "%Y-%m-%d")
+        registry.clear()
+        assert registry.register(_make_mock_session()) == sid
+        assert registry.date_format_of(sid) is None

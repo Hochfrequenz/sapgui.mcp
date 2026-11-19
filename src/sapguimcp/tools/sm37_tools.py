@@ -26,6 +26,7 @@ from sapguimcp.tools.classic_list_helpers import (
     read_classic_list_table,
     select_first_classic_list_entry,
 )
+from sapguimcp.user_date_format import resolve_user_date_format
 from sapguimcp.utils import format_sap_date_as
 
 if TYPE_CHECKING:
@@ -167,14 +168,19 @@ async def _execute_sm37_lookup_desktop(  # pylint: disable=too-many-arguments,to
             logger.warning("Could not toggle any SM37 status checkbox on desktop backend")
             status_filter_applied = False
 
-    # Date fields
+    # Date fields, typed in the date format of the user (read off the pre-filled date before it is overwritten)
+    date_format = (
+        await resolve_user_date_format(backend, ("BTCH2170-FROM_DATE", "BTCH2170-TO_DATE"), t.date_format)
+        if from_date or to_date
+        else t.date_format
+    )
     if from_date and not await _fill_selection_field(
-        backend, "BTCH2170-FROM_DATE", format_sap_date_as(from_date, t.date_format)
+        backend, "BTCH2170-FROM_DATE", format_sap_date_as(from_date, date_format)
     ):
         unapplied.append("from_date")
 
     if to_date and not await _fill_selection_field(
-        backend, "BTCH2170-TO_DATE", format_sap_date_as(to_date, t.date_format)
+        backend, "BTCH2170-TO_DATE", format_sap_date_as(to_date, date_format)
     ):
         unapplied.append("to_date")
 

@@ -90,8 +90,9 @@ These are lessons from migrating DE and EN (#1044, PRs #1055–#1061):
   release.
 - **Templates.** A trailing placeholder captures up to the end of the line. Use explicit names
   (`{name}`) and check the result on a real screen, not only on a one-line test string.
-- **Numbers and dates.** Hit counts accept every group separator. The date format still comes
-  from the pack's `date_format`, not from the user's own settings (#1043).
+- **Numbers and dates.** Hit counts accept every group separator. The date tools type dates in
+  the user's own date format, read off the date field they pre-fill (#1043); the pack's
+  `date_format` is only the fallback when that field is empty or unreadable.
 - **Known limitation:** `tools/breakpoint_tools.py` is not migrated (#1025) and still expects DE
   or EN.
 
