@@ -668,7 +668,10 @@ class DesktopBackend:
             return None
         if dead_handle_code(exc) != _RPC_E_DISCONNECTED and not await self._probe_is_dead(session):
             return None
-        self.registry.unregister(sid)
+        # Runs on the event loop after ``wrap_future`` (not on the COM thread). Deliberately does not
+        # take ``_mutation_lock``: callers such as ``list_sessions`` already hold it while running COM
+        # calls, so waiting for it here would deadlock. ``prune`` is synchronous and COM-free.
+        self.registry.prune([sid])
         self._unwatch_orphaned_connections()
         logger.warning("session_dead", extra={"session_id": sid, "hresult": dead_handle_code(exc)})
         return SapSessionDeadError(sid)
@@ -1022,6 +1025,8 @@ class DesktopBackend:
                 session = self.registry.get_session(session_id)
             else:
                 session = self.require_session()
+        except SapSessionDeadError as exc:
+            return SessionStatus(success=True, status="dead", message=str(exc))
         except ValueError:
             return SessionStatus(success=True, status="logged_off", message="Not logged in")
 
@@ -1287,7 +1292,10 @@ class DesktopBackend:
             # not silently dropped from the list.
             return [
                 *sessions,
-                *(SessionInfo(session_id=sid, status="dead") for sid in reconciled.get("removed", [])),
+                *(
+                    SessionInfo(session_id=sid, status="dead", is_primary=(sid == "s1"))
+                    for sid in reconciled.get("removed", [])
+                ),
             ]
 
     async def _list_sessions_locked(self) -> list[SessionInfo]:

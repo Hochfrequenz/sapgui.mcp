@@ -32,7 +32,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from sapguimcp.backend.desktop import DesktopBackend, _current_session_id
-from sapguimcp.backend.desktop._com_thread import SapSessionDeadError
+from sapguimcp.backend.desktop._com_thread import ComThread, SapSessionDeadError
 from sapguimcp.session_language import current_language, use_language
 from unittests.desktop.conftest import make_mock_session
 
@@ -668,3 +668,25 @@ async def test_list_sessions_reports_dead_session_with_include_dead() -> None:
     by_id = {s.session_id: s.status for s in listed}
     assert by_id == {"s1": "active", "s2": "dead"}
     assert backend.registry.list_sessions() == ["s1"]
+
+
+@pytest.mark.anyio
+async def test_tool_call_on_dead_handle_returns_dead_message_and_deregisters() -> None:
+    """Full path: require_session -> real ComThread -> dead handle -> hook -> dead error, session pruned."""
+    com = ComThread(init_com=False, min_interval_ms=0)
+    try:
+        backend = DesktopBackend(com_thread=com)
+        session = MagicMock()
+        session.find_by_id.side_effect = _DeadComError(-2147417848)  # RPC_E_DISCONNECTED
+        backend.registry.register(session)
+
+        result = await backend.enter_transaction("SE16")
+
+        assert result.success is False
+        assert "is dead" in (result.error or "")
+        assert "sap_login" in (result.error or "")
+        assert backend.registry.list_sessions() == []
+        with pytest.raises(SapSessionDeadError):
+            backend.registry.get_session("s1")
+    finally:
+        com.shutdown()

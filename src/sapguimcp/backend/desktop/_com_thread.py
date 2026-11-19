@@ -284,8 +284,11 @@ def is_dead_handle_error(exc: BaseException) -> bool:
     return dead_handle_code(exc) is not None
 
 
-class SapSessionDeadError(RuntimeError):
-    """A COM call failed because its session's SAP GUI handle is dead; the session was deregistered."""
+class SapSessionDeadError(RuntimeError, ValueError):
+    """A COM call failed because its session's SAP GUI handle is dead; the session was deregistered.
+
+    Also a ``ValueError`` so callers that treat an unknown session id as ``ValueError`` still catch it.
+    """
 
     def __init__(self, session_id: str) -> None:
         super().__init__(
