@@ -44,7 +44,7 @@ tests = [
     "pillow==13.0.0",  # README demo composite renderer (layout-math unit tests import it)
 ]
 linting = [
-    "ruff==0.17.4",
+    "ruff==0.17.5",
 ]
 type_check = [
     "mypy==2.4.1",
@@ -55,7 +55,7 @@ spell_check = [
     "codespell==2.4.2",
 ]
 coverage = [
-    "coverage==7.17.2",
+    "coverage==7.17.3",
     { include-group = "tests" },
 ]
 build_executable = [

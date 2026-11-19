@@ -2,6 +2,7 @@
 
 import logging
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -94,3 +95,40 @@ def test_require_windows_raises_off_windows(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(manager_module.sys, "platform", "linux")
     with pytest.raises(RuntimeError, match="requires Windows"):
         manager_module._require_windows()
+
+
+def _config_with(**systems: str) -> object:
+    """A stand-in for the shared SAP config: system key -> connection_name."""
+    return SimpleNamespace(
+        systems={key: SimpleNamespace(connection_name=conn) for key, conn in systems.items()},
+        default_system=next(iter(systems)),
+    )
+
+
+def test_config_without_any_connection_name_adds_notice(caplog: pytest.LogCaptureFixture) -> None:
+    """A former WebGUI user with default settings sets no legacy key, and no system has a connection_name."""
+    with (
+        caplog.at_level(logging.WARNING, logger=server.logger.name),
+        patch.object(server, "try_get_sap_config", return_value=(_config_with(sysA="", sysB=""), None)),
+    ):
+        instructions = server._build_instructions()
+    assert instructions.count("sapwebgui.mcp (https://github.com/Hochfrequenz/sapwebgui.mcp)") == 1
+    assert "connection_name" in caplog.text
+
+
+def test_one_system_without_connection_name_adds_no_notice() -> None:
+    """systems.json is shared with other tools (e.g. ADT); a system without connection_name is normal there."""
+    config = _config_with(sysA="", sysB="SAP Logon B")
+    with patch.object(server, "try_get_sap_config", return_value=(config, None)):
+        assert "sapwebgui.mcp" not in server._build_instructions()
+
+
+def test_systems_with_connection_name_add_no_notice() -> None:
+    with patch.object(server, "try_get_sap_config", return_value=(_config_with(sysA="SAP Logon A"), None)):
+        assert "sapwebgui.mcp" not in server._build_instructions()
+
+
+def test_notice_is_added_only_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SAP_URL", "https://sap.example/webgui")
+    with patch.object(server, "try_get_sap_config", return_value=(_config_with(sysA=""), None)):
+        assert server._build_instructions().count("NOTICE: SAP WebGUI support moved") == 1
