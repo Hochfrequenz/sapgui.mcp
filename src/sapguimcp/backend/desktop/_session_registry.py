@@ -222,6 +222,7 @@ class DesktopSessionRegistry:
                 self._busy_since.pop(sid, None)
                 self._origins.pop(sid, None)
                 self._languages.pop(sid, None)
+                self._date_formats.pop(sid, None)
                 logger.info(
                     "Pruned dead desktop session",
                     extra={"session": sid, "bound_to": agent},
@@ -250,6 +251,7 @@ class DesktopSessionRegistry:
         self._origins.clear()
         self._dead_ids.clear()
         self._languages.clear()  # the counter restarts, so a stale language would attach to the next s1
+        self._date_formats.clear()  # same for a cached date format (#1043)
         self._counter = 0
         if had_sessions:
             logger.info("Cleared desktop session registry")
