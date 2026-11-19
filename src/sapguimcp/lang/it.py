@@ -251,6 +251,7 @@ IT = LanguagePack(
         col_error_type=Text(("Runtime Errors", "Runtime Error")),
         col_short_text=Text(("Short Text", "Testo breve")),
         call_stack_heading=Text(("Chiamate/eventi attivi",)),
+        termination_heading=Text(("Informazioni punto di interr.",)),
         other_headings=Text(
             (
                 "Ambiente sistema",

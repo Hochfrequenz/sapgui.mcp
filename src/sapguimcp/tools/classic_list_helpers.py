@@ -155,18 +155,23 @@ def select_first_classic_list_entry(session: Any, header_titles: tuple[str, ...]
     return False
 
 
-def _fixed_header_rows(first_page: dict[int, str], scrolled_page: dict[int, str]) -> int:
-    """The number of rows at the top of the window that do not scroll: they read the same on a scrolled page.
+def _fixed_header_rows(first_page: dict[int, str], scrolled_page: dict[int, str], offset: int) -> int:
+    """The number of rows at the top of the window that do not scroll: they read the same on a page scrolled by
+    ``offset``, although a scrolled row there would show the line ``offset`` rows further down.
 
-    Counted up to the last such row that has text, so that blank lines which merely happen to be blank on both pages
-    are not taken for a header.
+    A row whose text is also that line further down is a list line that merely repeats, not a header. Counted up to
+    the last header row that has text, so that rows which happen to be blank on both pages are not taken for one.
     """
+    last_row = max(first_page, default=-1)
     fixed = 0
-    row = 0
-    while first_page.get(row, "") == scrolled_page.get(row, "") and row <= max(first_page, default=-1):
-        if first_page.get(row, ""):
+    for row in range(last_row + 1):
+        text = first_page.get(row, "")
+        if scrolled_page.get(row, "") != text:
+            break
+        if text:
+            if first_page.get(offset + row, "") == text:
+                break  # the scrolled line at this row: a repeated list line, not a header
             fixed = row + 1
-        row += 1
     return fixed
 
 
@@ -199,7 +204,7 @@ def read_classic_list_lines(session: Any, max_lines: int) -> list[str]:
             if first_page is None:
                 first_page = page
             elif fixed_rows is None and offset > 0:
-                fixed_rows = _fixed_header_rows(first_page, page)
+                fixed_rows = _fixed_header_rows(first_page, page, offset)
             for row, text in page.items():
                 if offset > 0 and row < (fixed_rows or 0):
                     continue  # the fixed header again, not the list line at this position

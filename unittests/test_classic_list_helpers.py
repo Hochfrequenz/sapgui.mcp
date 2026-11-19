@@ -296,3 +296,16 @@ def test_blank_rows_that_are_blank_on_both_pages_are_no_header() -> None:
     }
     lines = read_classic_list_lines(_session(_Usr(pages, _Scrollbar(maximum=6, page_size=5))), 100)
     assert lines == [f"line {i}" for i in range(1, 10)]
+
+
+def test_list_lines_that_repeat_further_down_are_no_header() -> None:
+    """A job log whose first lines recur one page further down: the scrolled rows show them, nothing is dropped."""
+    texts = ["-----", "Job gestartet", "a", "b", "-----", "Job gestartet", "c", "d", "e", "f"]
+    positions = (0, 4, 5)
+    pages = {
+        position: [_label(0, row, texts[position + row]) for row in range(5) if position + row < len(texts)]
+        for position in positions
+    }
+    # 5 rows on screen, a page of 8: the second page starts 4 lines down, where "-----" recurs
+    lines = read_classic_list_lines(_session(_Usr(pages, _Scrollbar(maximum=5, page_size=8))), 100)
+    assert lines == texts

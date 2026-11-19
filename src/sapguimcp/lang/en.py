@@ -223,6 +223,7 @@ EN = LanguagePack(
         col_error_type=Text(("Runtime Errors", "Runtime Error")),
         col_short_text=Text(("Short Text",)),
         call_stack_heading=Text(("Active Calls/Events", "Active Calls", "Call Stack")),
+        termination_heading=Text(("Information on Where Terminated",)),
         other_headings=Text(
             (
                 "System Environment",
