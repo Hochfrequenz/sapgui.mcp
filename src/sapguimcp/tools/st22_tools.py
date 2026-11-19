@@ -56,6 +56,16 @@ _ST22_DETAIL_MAX_LINES = 800
 
 __all__ = ["register_st22_tools"]
 
+# The desktop dump list is an ALV grid; ``read_table`` keys its cells by the technical column names (field names of
+# the list structure), which are the same in every logon language (#1154). The translated column titles in the
+# language packs stay as a fallback for a list that is keyed by its titles.
+_DUMP_LIST_COLUMNS: dict[str, tuple[str, ...]] = {  # lang-ok: technical ALV field names, not UI text
+    "time": ("UZEIT",),
+    "program": ("GPROGRAM",),
+    "error_type": ("ERRORID",),
+    "user": ("UNAME",),
+}
+
 
 # =============================================================================
 # ST22 Navigation Helpers
@@ -334,6 +344,19 @@ def _parse_desktop_detail_lines(lines: list[str], source_dump: "ST22Dump", t: La
 # =============================================================================
 
 
+def _has_column(headers: list[str], technical: tuple[str, ...], title: Text) -> bool:
+    """True when the dump list has the column, under its technical name or one of its titles."""
+    return any(h in technical for h in headers) or any(title.equals(h) for h in headers)
+
+
+def _dump_cell(row: dict[str, str], technical: tuple[str, ...], title: Text) -> str:
+    """The cell of a dump-list row, looked up by technical column name first, then by column title (#1154)."""
+    for name in technical:
+        if name in row:
+            return row[name] or ""
+    return title.first_key(row) or ""
+
+
 async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-branches,too-many-return-statements
     backend: "DesktopBackend",
     t: LanguagePack,
@@ -393,6 +416,28 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
             retrieved_at=now,
         )
 
+    titles: dict[str, Text] = {
+        "time": t.st22.col_time,
+        "program": t.st22.col_program,
+        "error_type": t.st22.col_error_type,
+        "user": t.common.user,
+    }
+    if (
+        dump_index is None
+        and table_data.rows
+        and not any(_has_column(table_data.headers, _DUMP_LIST_COLUMNS[n], title) for n, title in titles.items())
+    ):
+        # Without any known column every dump would come back with empty fields; say so instead of success (#1154).
+        # Only in list mode: opening a dump by index does not need the list columns. dump_count is the number of
+        # rows the list showed, although none of them could be read into ``dumps``.
+        return ST22DumpListResult.failure(
+            error=f"ST22 dump list: none of the expected columns found in headers {table_data.headers}",
+            dumps=[],
+            dump_count=len(table_data.rows),
+            date_searched=date_str,
+            retrieved_at=now,
+        )
+
     # Convert to ST22Dump models
     dumps: list[ST22Dump] = []
     for idx, tr in enumerate(table_data.rows):
@@ -400,12 +445,12 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
         dumps.append(
             ST22Dump(
                 index=idx,
-                time=t.st22.col_time.first_key(d) or "",
-                program=t.st22.col_program.first_key(d) or "",
+                time=_dump_cell(d, _DUMP_LIST_COLUMNS["time"], titles["time"]),
+                program=_dump_cell(d, _DUMP_LIST_COLUMNS["program"], titles["program"]),
                 include=d.get("Include", None),  # lang-ok: column title is the same in every language
-                error_type=t.st22.col_error_type.first_key(d) or "",
+                error_type=_dump_cell(d, _DUMP_LIST_COLUMNS["error_type"], titles["error_type"]),
                 short_text=t.st22.col_short_text.first_key(d) or "",
-                user=t.common.user.first_key(d) or "",
+                user=_dump_cell(d, _DUMP_LIST_COLUMNS["user"], titles["user"]),
             )
         )
 
