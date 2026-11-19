@@ -27,7 +27,7 @@ from sapguimcp.models import (
 )
 from sapguimcp.models.se37_models import SE37Exception, SE37Parameter, SE37ParameterCategory, SE37TypingMethod
 from sapguimcp.tools.desktop_wait_predicates import named_text_field_present, tab_table_control_loaded
-from sapguimcp.tools.table_helpers import read_table_control
+from sapguimcp.tools.table_helpers import read_table_control_all_rows
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -160,12 +160,12 @@ def _se37_display_reached(fm_name: str, before_title: str, before_status: str) -
 
 
 def _read_se37_table_control(session: Any, _flatten_fn: Any) -> list[dict[str, str]]:
-    """Find and read the first GuiTableControl (type 80) on screen.
+    """Find and read the first GuiTableControl (type 80) on screen, scrolling through all of its rows.
 
-    Scrolls through all rows with a settle delay after each scrollbar change
-    to avoid COM ``RPC_E_SERVERFAULT`` errors (#387).
+    The optional and pass-by-value columns are checkboxes without text: they are read as ``"X"`` when set (#1148).
+    The table control is re-found after each scrollbar change to avoid COM ``RPC_E_SERVERFAULT`` errors (#387).
     """
-    return read_table_control(session, _flatten_fn)
+    return read_table_control_all_rows(session, _flatten_fn, read_checkboxes=True)
 
 
 def _parse_se37_params(
