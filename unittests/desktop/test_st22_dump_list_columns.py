@@ -10,7 +10,7 @@ import pytest
 from sapguimcp import lang
 from sapguimcp.backend.desktop import DesktopBackend
 from sapguimcp.models import TableData
-from sapguimcp.models.sap_results import StatusBarInfo, TableRow
+from sapguimcp.models.sap_results import ScreenInfo, StatusBarInfo, TableRow
 from sapguimcp.tools.st22_tools import _st22_lookup_desktop
 
 # The headers read_table returns for the ST22 dump list on SAP S/4HANA 2025 (German logon)
@@ -23,15 +23,21 @@ def _row(n: int, time: str, user: str, error: str, program: str) -> TableRow:
     return TableRow(row=n, data=data)
 
 
-async def _lookup(table: TableData, language: str = "DE") -> Any:
+def _backend(table: TableData) -> Any:
     backend = MagicMock(spec=DesktopBackend)
     backend.get_status_bar = AsyncMock(return_value=StatusBarInfo(type="S", message=""))
+    backend.get_screen_info = AsyncMock(return_value=ScreenInfo(title="ABAP-Laufzeitfehler", url="sap://s"))
+    backend.wait_for_condition = AsyncMock(return_value=True)
     backend.read_table = AsyncMock(return_value=table)
+    return backend
+
+
+async def _lookup(table: TableData, language: str = "DE") -> Any:
     with (
         patch("sapguimcp.tools.st22_tools._navigate_to_st22", AsyncMock(return_value=None)),
         patch("sapguimcp.tools.st22_tools._execute_search", AsyncMock(return_value=None)),
     ):
-        return await _st22_lookup_desktop(backend, lang.view_for(language), "2026-11-18", None)
+        return await _st22_lookup_desktop(_backend(table), lang.view_for(language), "2026-11-18", None)
 
 
 @pytest.mark.anyio
@@ -79,3 +85,39 @@ async def test_unknown_columns_are_an_error_not_empty_dumps() -> None:
     assert not result.success
     assert "FOO" in (result.error or "")
     assert result.dumps == []
+    assert result.dump_count == 1
+
+
+@pytest.mark.anyio
+async def test_dump_index_opens_the_original_row_of_the_sorted_dump() -> None:
+    """The list is sorted latest first; dump_index 0 must double-click the table row of the latest dump."""
+    rows = [
+        _row(1, "09:15:00", "USER01", "MESSAGE_TYPE_X", "SAPLZTEST"),
+        _row(2, "17:40:12", "USER02", "COMPUTE_INT_ZERODIVIDE", "ZREPORT"),
+    ]
+    select = AsyncMock(return_value=None)
+    with (
+        patch("sapguimcp.tools.st22_tools._navigate_to_st22", AsyncMock(return_value=None)),
+        patch("sapguimcp.tools.st22_tools._execute_search", AsyncMock(return_value=None)),
+        patch("sapguimcp.tools.st22_tools._select_dump_by_index", select),
+        patch("sapguimcp.tools.st22_tools._capture_desktop_detail", AsyncMock(return_value=["Fehleranalyse", "x"])),
+    ):
+        table = TableData(success=True, headers=_TECHNICAL_HEADERS, rows=rows)
+        result = await _st22_lookup_desktop(_backend(table), lang.view_for("DE"), "2026-11-18", 0)
+    assert result.success
+    assert select.await_args.args[1] == 1  # the second table row holds the latest dump
+    assert result.detail.program == "ZREPORT"
+
+
+@pytest.mark.anyio
+async def test_dump_index_does_not_need_the_list_columns() -> None:
+    row = TableRow(row=1, data={"FOO": "1"})
+    with (
+        patch("sapguimcp.tools.st22_tools._navigate_to_st22", AsyncMock(return_value=None)),
+        patch("sapguimcp.tools.st22_tools._execute_search", AsyncMock(return_value=None)),
+        patch("sapguimcp.tools.st22_tools._select_dump_by_index", AsyncMock(return_value=None)),
+        patch("sapguimcp.tools.st22_tools._capture_desktop_detail", AsyncMock(return_value=["Fehleranalyse", "x"])),
+    ):
+        table = TableData(success=True, headers=["FOO"], rows=[row])
+        result = await _st22_lookup_desktop(_backend(table), lang.view_for("DE"), "2026-11-18", 0)
+    assert result.success

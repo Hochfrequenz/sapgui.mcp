@@ -422,10 +422,14 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
         "error_type": t.st22.col_error_type,
         "user": t.common.user,
     }
-    if table_data.rows and not any(
-        _has_column(table_data.headers, _DUMP_LIST_COLUMNS[name], title) for name, title in titles.items()
+    if (
+        dump_index is None
+        and table_data.rows
+        and not any(_has_column(table_data.headers, _DUMP_LIST_COLUMNS[n], title) for n, title in titles.items())
     ):
-        # Without any known column every dump would come back with empty fields; say so instead of success (#1154)
+        # Without any known column every dump would come back with empty fields; say so instead of success (#1154).
+        # Only in list mode: opening a dump by index does not need the list columns. dump_count is the number of
+        # rows the list showed, although none of them could be read into ``dumps``.
         return ST22DumpListResult.failure(
             error=f"ST22 dump list: none of the expected columns found in headers {table_data.headers}",
             dumps=[],
