@@ -31,7 +31,9 @@ class SE16Result(ToolResult):
     """
 
     table: str = Field(description="Table name that was queried")
-    total_hits: int = Field(description="Total rows matching query (from SAP 'Number of Hits')")
+    total_hits: int = Field(
+        description="Total rows matching query (from SAP 'Number of Hits'); capped at max_hits when truncated is true",
+    )
     returned_rows: int = Field(description="Number of rows actually returned")
     truncated: bool = Field(description="True if total_hits >= max_hits (more data may exist in table)")
     columns: list[str] = Field(description="Column names in order")
