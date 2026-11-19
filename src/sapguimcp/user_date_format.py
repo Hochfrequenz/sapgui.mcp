@@ -32,11 +32,12 @@ def derive_date_format(shown: str | None, today: date) -> str | None:
     """
     The ``strftime`` pattern in which a date field shows today's date, or ``None`` when it cannot be told.
 
-    ``None`` is returned for an empty field, for a date that is not today's and for an ambiguous one (day equals
-    month): the caller then falls back to the logon-language default.
+    ``None`` is returned for an empty field and for a date that is not today's: the caller then falls back to the
+    logon-language default. Each of the six SAP formats has its own separator/order, so matching the exact string
+    resolves even a day that equals the month.
     """
     text = (shown or "").strip()
-    if not text or today.day == today.month:
+    if not text:
         return None
     matches = [pattern for pattern in _USER_DATE_FORMATS if today.strftime(pattern) == text]
     return matches[0] if len(matches) == 1 else None
@@ -61,7 +62,7 @@ async def resolve_user_date_format(
         if derived is not None:
             backend.cache_date_format(derived)
             return derived
-        reason = "the date field is empty, ambiguous or does not show today"
+        reason = "the date field is empty or does not show today"
     except Exception as exc:  # pylint: disable=broad-exception-caught
         reason = f"the date field could not be read ({type(exc).__name__})"
     logger.warning(

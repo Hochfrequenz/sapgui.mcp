@@ -36,8 +36,19 @@ def test_an_empty_or_foreign_date_gives_no_format(shown: str | None) -> None:
     assert derive_date_format(shown, TODAY) is None
 
 
-def test_an_ambiguous_date_gives_no_format() -> None:
-    assert derive_date_format("11.11.2026", date(2026, 11, 11)) is None
+@pytest.mark.parametrize(
+    ("shown", "expected"),
+    [
+        ("11.11.2026", "%d.%m.%Y"),
+        ("11/11/2026", "%m/%d/%Y"),
+        ("11-11-2026", "%m-%d-%Y"),
+        ("2026.11.11", "%Y.%m.%d"),
+        ("2026/11/11", "%Y/%m/%d"),
+        ("2026-11-11", "%Y-%m-%d"),
+    ],
+)
+def test_a_day_equal_to_the_month_is_resolved_by_the_exact_string(shown: str, expected: str) -> None:
+    assert derive_date_format(shown, date(2026, 11, 11)) == expected
 
 
 def _backend(shown: str | None, cached: str | None = None) -> Any:
@@ -60,7 +71,7 @@ async def test_the_derived_format_is_cached_per_session() -> None:
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize(("shown", "today"), [(None, TODAY), ("11.11.2026", date(2026, 11, 11)), ("01.01.2020", TODAY)])
+@pytest.mark.parametrize(("shown", "today"), [(None, TODAY), ("01.01.2020", TODAY)])
 async def test_the_logon_language_default_is_the_fallback_and_is_logged(
     shown: str | None, today: date, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -94,8 +105,6 @@ async def test_sm37_types_the_dates_in_the_format_of_the_user() -> None:
     backend.cached_date_format = lambda: None
     backend.cache_date_format = lambda _f: None
     backend.read_field_text = AsyncMock(return_value=date.today().strftime("%Y-%m-%d"))
-    if date.today().day == date.today().month:
-        pytest.skip("ambiguous today")
     await _execute_sm37_lookup_desktop(backend, lang.view_for("DE"), "*", None, None, "2026-10-01", "2026-10-08")
     typed = {c.args[0]: c.args[1] for c in backend.focus_and_type.await_args_list}
     assert typed["BTCH2170-FROM_DATE"] == "2026-10-01"
