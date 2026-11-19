@@ -1,6 +1,7 @@
 """SE37 signature tabs: checkbox columns, the default-value column title and scrolling past the visible rows (#1148).
 
-The row data is modelled on the function builder of a German logon (BAPI_USER_GET_DETAIL), see the issue; the tables tab is shortened to 22 of its 26 rows, which is enough to scroll past the 20 visible ones.
+The row data is modelled on the function builder of a German logon (BAPI_USER_GET_DETAIL), see the issue.
+The tables tab is shortened to 22 of its 26 rows, which is enough to scroll past the 20 visible ones.
 """
 
 from __future__ import annotations
