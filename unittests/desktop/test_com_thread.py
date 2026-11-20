@@ -376,7 +376,14 @@ class TestHaltedByDebugger:
             cancelled.set()
             return True
 
-        thread._get_scripting_engine = object  # type: ignore[method-assign]  # returns a dummy; never reach win32com
+        engine_calls: list[int] = []
+
+        def fake_engine() -> object:
+            engine_calls.append(1)
+            return object()  # a dummy; never reach win32com
+
+        thread._fake_engine_calls = engine_calls  # type: ignore[attr-defined]
+        thread._get_scripting_engine = fake_engine  # type: ignore[method-assign]
         thread._list_debugger_sessions = fake_scan  # type: ignore[method-assign]
         thread._cancel_worker_call = fake_cancel  # type: ignore[method-assign]
         thread._debugger_window_open = lambda: bool(debuggers)  # type: ignore[method-assign]
@@ -604,6 +611,8 @@ class TestNoComAccessWithoutDebugger:
             assert result == "completed without cancel"
             assert await thread.halted_connections() == {}
             assert not scans
+            # Only the watch-time attach; the scan must not attach while no debugger window is open.
+            assert thread._fake_engine_calls == [1]  # type: ignore[attr-defined]
         finally:
             thread.shutdown()
 
@@ -759,7 +768,8 @@ class TestScriptingEngineCaching:
             thread.watch_connection("/app/con[1]")
             await self._wait_until(lambda: attach_calls == ["SAPGUI"])
             thread.watch_connection("/app/con[2]")
-            await self._wait_until(lambda: not thread._attach_engine_requested.is_set())  # watchdog consumed it
+            # The answered scan request is the barrier: _watch runs the requested attach before it.
+            assert await thread.halted_connections() == {}
             assert attach_calls == ["SAPGUI"]
         finally:
             thread.shutdown()

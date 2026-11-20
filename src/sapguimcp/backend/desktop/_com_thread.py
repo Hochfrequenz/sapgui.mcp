@@ -994,15 +994,19 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         ``GetObject("SAPGUI").GetScriptingEngine`` re-attaches a script to SAP GUI on
         every call. With "Notify when a script attaches to SAP GUI" enabled (the SAP GUI
         default), that raises a confirmation dialog every single scan — one per
-        ``halt_check_after_s`` for as long as a debugger window is open — so the scan
-        finds nothing and the watchdog never cancels the stuck call (the #791 symptom
-        recurring). Caching the engine for this thread's lifetime means SAP GUI shows the
-        dialog at most once.
+        ``halt_check_after_s`` for as long as a debugger window is open. Each attach
+        waits on the dialog, the scan guard cancels it, the scan finds nothing and the
+        next scan attaches again, so the watchdog never cancels the stuck call (the #791
+        symptom recurring). Caching the engine for this thread's lifetime means SAP GUI
+        shows the dialog at most once.
 
         Call it outside the scan guard (see ``_attach_engine_if_requested`` and
         ``_halted_watched_connections``): the attach waits for the dialog, and the guard
-        would cancel it. While it waits, the watchdog cancels nothing — an attach blocks
-        it until a person confirms the dialog (accepted trade-off).
+        would cancel it. While it waits, the watchdog cancels nothing and
+        ``halted_connections()`` times out after 5 s, so callers see "not halted"
+        meanwhile (the guard returned no result during the dialog before as well). The
+        attach blocks the watchdog until a person confirms the dialog (accepted
+        trade-off).
         """
         if self._scripting_engine is None:
             import win32com.client  # type: ignore[import-untyped]  # pylint: disable=import-outside-toplevel
