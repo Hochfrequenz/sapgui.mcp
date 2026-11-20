@@ -9,7 +9,7 @@ An MCP (Model Context Protocol) server for SAP automation.
 It allows you to control SAP through Claude Desktop, Claude Code, or [opencode](https://opencode.ai) - via **SAP GUI for Windows** (COM scripting).
 
 > [!IMPORTANT]
-> **SAP Web GUI support moved** to the separate project [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp). v0.20.0 was the last release of this project with both backends. Releases after v0.20.0 only drive SAP GUI for Windows. If you use SAP Web GUI (browser), macOS or Linux, use [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp) instead.
+> **SAP Web GUI support moved** to the separate project [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp). [v0.20.0](https://github.com/Hochfrequenz/sapgui.mcp/releases/tag/v0.20.0) was the last release of this project with both backends. Releases after v0.20.0 only drive SAP GUI for Windows. If you use SAP Web GUI (browser), macOS or Linux, use [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp) instead.
 
 Because it drives the real SAP UI (not a headless API), it is especially well-suited for **end-to-end testing**, **visual validation**, and **capturing screenshots for documentation**.
 The MCP server works with both SAP R/3 and S/4.
