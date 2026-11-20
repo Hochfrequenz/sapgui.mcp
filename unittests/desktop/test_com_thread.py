@@ -376,6 +376,7 @@ class TestHaltedByDebugger:
             cancelled.set()
             return True
 
+        thread._get_scripting_engine = object  # type: ignore[method-assign]  # returns a dummy; never reach win32com
         thread._list_debugger_sessions = fake_scan  # type: ignore[method-assign]
         thread._cancel_worker_call = fake_cancel  # type: ignore[method-assign]
         thread._debugger_window_open = lambda: bool(debuggers)  # type: ignore[method-assign]
@@ -678,6 +679,149 @@ class TestScriptingEngineCaching:
                 thread._list_debugger_sessions({"/app/con[1]"})
             assert thread._list_debugger_sessions({"/app/con[1]"}) == {}
             assert attach_calls == ["SAPGUI", "SAPGUI"]
+        finally:
+            thread.shutdown()
+
+    @staticmethod
+    def _empty_app_get_object(attach_calls, *, first_error: Exception | None = None):
+        class EmptyApp:
+            class Children:
+                Count = 0
+
+        pending_error = [first_error]
+
+        def fake_get_object(moniker):
+            attach_calls.append(moniker)
+            if pending_error[0] is not None:
+                error, pending_error[0] = pending_error[0], None
+                raise error
+
+            class Result:
+                GetScriptingEngine = EmptyApp()
+
+            return Result()
+
+        return fake_get_object
+
+    @staticmethod
+    async def _wait_until(predicate, timeout_s: float = 2.0) -> None:
+        deadline = time.monotonic() + timeout_s
+        while not predicate():
+            assert time.monotonic() < deadline, "condition not reached in time"
+            await asyncio.sleep(0.02)
+
+    @pytest.mark.anyio
+    async def test_slow_attach_is_not_cancelled_by_the_scan_guard(self, monkeypatch):
+        """The attach waits on SAP GUI's notification dialog; under the scan guard it
+        would be cancelled and the next scan would attach (and raise the dialog) again."""
+        from sapguimcp.backend.desktop import _com_thread
+        from sapguimcp.backend.desktop._com_thread import _RPC_E_CALL_CANCELED
+
+        monkeypatch.setattr(_com_thread, "_SCAN_READ_TIMEOUT_S", 0.05)
+        cancel_requested = threading.Event()
+
+        def fake_cancel_call_on(_thread_id):
+            cancel_requested.set()
+            return True
+
+        monkeypatch.setattr(_com_thread, "_cancel_call_on", fake_cancel_call_on)
+        attach_calls: list[str] = []
+        empty_get_object = self._empty_app_get_object(attach_calls)
+
+        def slow_get_object(moniker):
+            result = empty_get_object(moniker)
+            for _ in range(30):  # 0.3 s, several times the guard timeout
+                time.sleep(0.01)
+            if cancel_requested.is_set():
+                raise _FakeComError(_RPC_E_CALL_CANCELED, "Aufruf wurde durch Messagefilter abgebrochen.", None, None)
+            return result
+
+        self._install_fake_win32com(monkeypatch, slow_get_object)
+        thread = ComThread(init_com=False, min_interval_ms=0)
+        try:
+            thread._debugger_window_open = lambda: True  # type: ignore[method-assign]
+            with thread._state_lock:  # directly, so no watch-time attach runs
+                thread._watched_connections.add("/app/con[1]")
+            assert thread._halted_watched_connections() == {}
+            assert thread._halted_watched_connections() == {}
+            assert attach_calls == ["SAPGUI"]
+            assert thread._scripting_engine is not None
+        finally:
+            thread.shutdown()
+
+    @pytest.mark.anyio
+    async def test_engine_is_attached_when_a_connection_is_watched(self, monkeypatch):
+        attach_calls: list[str] = []
+        self._install_fake_win32com(monkeypatch, self._empty_app_get_object(attach_calls))
+        thread = ComThread(init_com=False, min_interval_ms=0, halt_check_after_s=0.2)
+        try:
+            thread._debugger_window_open = lambda: False  # type: ignore[method-assign]
+            thread.watch_connection("/app/con[1]")
+            await self._wait_until(lambda: attach_calls == ["SAPGUI"])
+            thread.watch_connection("/app/con[2]")
+            await self._wait_until(lambda: not thread._attach_engine_requested.is_set())  # watchdog consumed it
+            assert attach_calls == ["SAPGUI"]
+        finally:
+            thread.shutdown()
+
+    @pytest.mark.anyio
+    async def test_failed_watch_attach_is_retried_by_the_scan(self, monkeypatch):
+        attach_calls: list[str] = []
+        get_object = self._empty_app_get_object(attach_calls, first_error=RuntimeError("SAP GUI not running"))
+        self._install_fake_win32com(monkeypatch, get_object)
+        thread = ComThread(init_com=False, min_interval_ms=0, halt_check_after_s=0.2)
+        try:
+            thread._debugger_window_open = lambda: False  # type: ignore[method-assign]
+            thread.watch_connection("/app/con[1]")
+            await self._wait_until(lambda: len(attach_calls) == 1 and thread._watchdog.is_alive())
+            # The request event is cleared before the failed attach, so no tick retries it;
+            # the second attach comes from the scan.
+            thread._debugger_window_open = lambda: True  # type: ignore[method-assign]
+            assert await thread.halted_connections() == {}
+            assert attach_calls == ["SAPGUI", "SAPGUI"]
+            assert thread._watchdog.is_alive()
+        finally:
+            thread.shutdown()
+
+    @pytest.mark.anyio
+    async def test_cancelled_scan_read_keeps_the_engine(self, monkeypatch):
+        """A read cancelled by the guard says nothing about the engine; dropping it would
+        re-attach and raise another SAP GUI dialog."""
+        from sapguimcp.backend.desktop._com_thread import _RPC_E_CALL_CANCELED
+
+        class OnceCancelledApp:
+            accesses = 0
+
+            @property
+            def Children(self):  # noqa: N802 — mirrors the COM property name
+                OnceCancelledApp.accesses += 1
+                if OnceCancelledApp.accesses == 1:
+                    raise _FakeComError(
+                        _RPC_E_CALL_CANCELED, "Aufruf wurde durch Messagefilter abgebrochen.", None, None
+                    )
+
+                class Empty:
+                    Count = 0
+
+                return Empty()
+
+        attach_calls: list[str] = []
+
+        def fake_get_object(moniker):
+            attach_calls.append(moniker)
+
+            class Result:
+                GetScriptingEngine = OnceCancelledApp()
+
+            return Result()
+
+        self._install_fake_win32com(monkeypatch, fake_get_object)
+        thread = ComThread(init_com=False, min_interval_ms=0)
+        try:
+            with pytest.raises(_FakeComError):
+                thread._list_debugger_sessions({"/app/con[1]"})
+            assert thread._list_debugger_sessions({"/app/con[1]"}) == {}
+            assert attach_calls == ["SAPGUI"]
         finally:
             thread.shutdown()
 

@@ -33,7 +33,9 @@ watchdog thread therefore looks for an open ABAP debugger in the watched SAP
 connections whenever a call runs longer than ``halt_check_after_s``, and if it
 finds one, cancels the blocked call with ``CoCancelCall``. The caller gets a
 :class:`SapSessionHaltedError`; SAP keeps the program halted, and the session
-works again once the debugger is continued.
+works again once the debugger is continued. The watchdog attaches its own
+scripting engine once, on its first tick after a connection is watched (or at the
+start of a scan when none is cached), outside the scan-read guard.
 """
 
 # pylint: disable=broad-exception-caught
@@ -64,6 +66,7 @@ _RPC_E_DISCONNECTED = -2147417848
 _RPC_E_SERVERFAULT = -2147417851  # 0x80010105 — "The server threw an exception"
 _RPC_E_SERVERCALL_RETRYLATER = -2147417846  # 0x8001010A
 _RPC_E_CALL_REJECTED = -2147418111  # 0x80010001
+_RPC_E_CALL_CANCELED = -2147418110  # 0x80010002 — what CoCancelCall makes the cancelled call raise
 _RPC_S_UNKNOWN_IF = -2147023179  # 0x800706B5 — "The interface is unknown"
 _RPC_S_SERVER_UNAVAILABLE = -2147023174  # 0x800706BA — "The RPC server is unavailable"
 _RPC_S_CALL_FAILED = -2147023170  # 0x800706BE — "The remote procedure call failed"
@@ -402,6 +405,8 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         self._watched_connections: set[str] = set()
         # Cached scripting engine (watchdog thread only, see ``_get_scripting_engine``).
         self._scripting_engine: Any = None
+        # Set by ``watch_connection`` (asyncio thread), consumed by the watchdog's next tick.
+        self._attach_engine_requested = threading.Event()
         #: Async callback ``(session, exc) -> replacement exception | None``, set by the backend.
         #: ``run`` calls it when a call bound to a session (``com_call_session``) fails, so a dead
         #: handle can be deregistered and reported (issue #789).
@@ -763,6 +768,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         """
         with self._state_lock:
             self._watched_connections.add(connection_id)
+        self._attach_engine_requested.set()
         logger.info("com_watch_connection", extra={"connection_id": connection_id})
 
     def unwatch_connection(self, connection_id: str) -> None:
@@ -848,6 +854,7 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                     request = None
                 # One failing tick must not end the watchdog — the freeze would be back.
                 try:
+                    self._attach_engine_if_requested()
                     if request is not None:
                         self._answer_scan_request(request)
                     self._cancel_if_halted()
@@ -858,6 +865,21 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 import pythoncom  # pylint: disable=import-outside-toplevel
 
                 pythoncom.CoUninitialize()  # pylint: disable=no-member
+
+    def _attach_engine_if_requested(self) -> None:
+        """Attach the scripting engine after ``watch_connection`` asked for it (watchdog thread).
+
+        Attaching here, right after login, shows SAP GUI's attach dialog together with the
+        login dialogs, never during a halt, and outside any scan guard. A failed attach is
+        not retried by a tick (the request is already cleared); the next scan retries it.
+        """
+        if not self._attach_engine_requested.is_set():
+            return
+        self._attach_engine_requested.clear()
+        try:
+            self._get_scripting_engine()
+        except Exception:
+            logger.warning("com_watchdog_attach_failed", exc_info=True)
 
     def _answer_scan_request(self, request: concurrent.futures.Future[dict[str, str]]) -> None:
         result = self._halted_watched_connections()
@@ -908,6 +930,13 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         # so only look inside SAP GUI while an ABAP debugger window is actually open.
         if not self._debugger_window_open():
             return {}
+        # The attach can wait on SAP GUI's notification dialog; under the guard it would be
+        # cancelled and repeated by every scan.
+        try:
+            self._get_scripting_engine()
+        except Exception:
+            logger.debug("com_debugger_scan_failed", exc_info=True)
+            return {}
         # The scan skips busy sessions, but one can turn busy right after its Busy
         # check (the worker starts a roundtrip on it); the next read would then block
         # for that whole roundtrip — or, if it hits the breakpoint, until a human is
@@ -950,10 +979,13 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                     found[connection_id] = str(session.Children(0).Text)
                     break
             return found
-        except Exception:
+        except Exception as exc:
             # The cached engine may be stale (SAP GUI restarted, connection torn down).
-            # Drop it so the next scan re-attaches instead of failing forever.
-            self._scripting_engine = None
+            # Drop it so the next scan re-attaches instead of failing forever. A read the
+            # scan guard cancelled says nothing about the engine, and dropping it would
+            # re-attach and raise another SAP GUI dialog.
+            if _get_com_error_code(exc) != _RPC_E_CALL_CANCELED:
+                self._scripting_engine = None
             raise
 
     def _get_scripting_engine(self) -> Any:
@@ -962,10 +994,15 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         ``GetObject("SAPGUI").GetScriptingEngine`` re-attaches a script to SAP GUI on
         every call. With "Notify when a script attaches to SAP GUI" enabled (the SAP GUI
         default), that raises a confirmation dialog every single scan — one per
-        ``halt_check_after_s`` for as long as a debugger window is open — and the dialog
-        blocks the read past ``_SCAN_READ_TIMEOUT_S``, so the scan finds nothing and the
-        watchdog never cancels the stuck call (the #791 symptom recurring). Caching the
-        engine for this thread's lifetime means SAP GUI shows the dialog at most once.
+        ``halt_check_after_s`` for as long as a debugger window is open — so the scan
+        finds nothing and the watchdog never cancels the stuck call (the #791 symptom
+        recurring). Caching the engine for this thread's lifetime means SAP GUI shows the
+        dialog at most once.
+
+        Call it outside the scan guard (see ``_attach_engine_if_requested`` and
+        ``_halted_watched_connections``): the attach waits for the dialog, and the guard
+        would cancel it. While it waits, the watchdog cancels nothing — an attach blocks
+        it until a person confirms the dialog (accepted trade-off).
         """
         if self._scripting_engine is None:
             import win32com.client  # type: ignore[import-untyped]  # pylint: disable=import-outside-toplevel
