@@ -1,0 +1,5 @@
+# Local tool state that is not committed (excluded via .git/info/exclude or
+# a global ignore file, which Prettier does not read).
+.superpowers/
+.claude/worktrees/
+.claude/bugspecht/

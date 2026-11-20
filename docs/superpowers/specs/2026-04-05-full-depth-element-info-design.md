@@ -90,6 +90,7 @@ to populate the new fields via `_safe_com_attr`.
 The MCP layer handles LLM token concerns. sapsucker does not.
 
 **Tools that gain a `depth` parameter:**
+
 - `sap_com_snapshot(depth=3)`
 - `sap_discover_fields(depth=3)`
 - `sap_discover_buttons(depth=3)`
@@ -134,13 +135,13 @@ When `elements_hidden > 0`, the tool description tells the LLM:
 
 Remove explicit `max_depth` arguments from all 5 limited call sites:
 
-| File | Current | New |
-|------|---------|-----|
-| `__init__.py` check_popup | `dump_tree(max_depth=2)` | `dump_tree()` |
-| `__init__.py` dismiss_popup | `dump_tree(max_depth=2)` | `dump_tree()` |
+| File                                | Current                  | New           |
+| ----------------------------------- | ------------------------ | ------------- |
+| `__init__.py` check_popup           | `dump_tree(max_depth=2)` | `dump_tree()` |
+| `__init__.py` dismiss_popup         | `dump_tree(max_depth=2)` | `dump_tree()` |
 | `sap_tools.py` _get_button_tooltips | `dump_tree(max_depth=3)` | `dump_tree()` |
-| `se24_edit_tools.py` | `dump_tree(max_depth=8)` | `dump_tree()` |
-| `table_helpers.py` | `dump_tree(max_depth=8)` | `dump_tree()` |
+| `se24_edit_tools.py`                | `dump_tree(max_depth=8)` | `dump_tree()` |
+| `table_helpers.py`                  | `dump_tree(max_depth=8)` | `dump_tree()` |
 
 The 18 call sites using `dump_tree()` (default) are unchanged — they already
 get full depth since the new default is unlimited.
@@ -180,24 +181,24 @@ truncation applies to internal operations — only to LLM-facing tool responses.
 
 ### sapsucker (`feat/full-element-info` branch)
 
-| File | Change |
-|------|--------|
-| `sapsucker/models.py` | Extend `ElementInfo` with ~13 new fields |
+| File                           | Change                                                                                                              |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `sapsucker/models.py`          | Extend `ElementInfo` with ~13 new fields                                                                            |
 | `sapsucker/components/base.py` | Read new properties in `_dump_tree_recursive` and `_probe_bdt_fields`, default `max_depth=None` with 200 safety cap |
 
 ### sapguimcp (`feat/full-depth-tree` branch)
 
-| File | Change |
-|------|--------|
-| `backend/desktop/__init__.py` | Remove 2 `max_depth` args, remove tooltip workaround, use `elem.tooltip` |
-| `backend/desktop/_element_finder.py` | No change (benefits automatically from richer ElementInfo) |
-| `tools/sap_tools.py` | Remove 1 `max_depth` arg, add `depth` param to 4 tools, add truncation metadata |
-| `tools/com_tools.py` | Add `depth` param to `sap_com_snapshot` |
-| `tools/se24_edit_tools.py` | Remove 1 `max_depth` arg |
-| `tools/table_helpers.py` | Remove 1 `max_depth` arg |
-| `models/sap_results.py` | Add truncation fields to relevant result classes |
-| `backend/desktop/_truncation.py` | New: `truncate_tree()` helper |
-| `unittests/desktop/test_truncation_unit.py` | New: unit tests for truncation |
+| File                                        | Change                                                                          |
+| ------------------------------------------- | ------------------------------------------------------------------------------- |
+| `backend/desktop/__init__.py`               | Remove 2 `max_depth` args, remove tooltip workaround, use `elem.tooltip`        |
+| `backend/desktop/_element_finder.py`        | No change (benefits automatically from richer ElementInfo)                      |
+| `tools/sap_tools.py`                        | Remove 1 `max_depth` arg, add `depth` param to 4 tools, add truncation metadata |
+| `tools/com_tools.py`                        | Add `depth` param to `sap_com_snapshot`                                         |
+| `tools/se24_edit_tools.py`                  | Remove 1 `max_depth` arg                                                        |
+| `tools/table_helpers.py`                    | Remove 1 `max_depth` arg                                                        |
+| `models/sap_results.py`                     | Add truncation fields to relevant result classes                                |
+| `backend/desktop/_truncation.py`            | New: `truncate_tree()` helper                                                   |
+| `unittests/desktop/test_truncation_unit.py` | New: unit tests for truncation                                                  |
 
 ## Out of scope
 

@@ -16,13 +16,13 @@
 
 ## File Map
 
-| File | Role | Change |
-|------|------|--------|
-| `src/sapguimcp/backend/desktop/_element_finder.py` | Element-finder helpers | Add `_dump_flat_tree` helper. Add required `flat_tree` parameter to `find_field_by_label`, `_find_by_label_text`, `_find_by_readonly_textfield_label`. |
-| `src/sapguimcp/backend/desktop/__init__.py` | Desktop backend impl | Five callers of `find_field_by_label` updated to compute `flat_tree` once at the top of their COM closure and pass it in. `fill_form` is the perf-critical one. |
-| `src/sapguimcp/tools/sap_tools.py` | MCP tool registrations | Append canonical example payload to `sap_fill_form` description string. |
-| `unittests/desktop/test_element_finder.py` | Element-finder unit tests | Update 10 existing `find_field_by_label(...)` call sites to pass a `flat_tree`. Add new regression tests (count assertion, prebuilt-tree assertion). |
-| `unittests/desktop/test_bp_integration.py` | BP integration tests | Add a new `skip_no_sap` test that fills 7 BP fields in one `sap_fill_form` call and asserts it completes under a wall-clock soft limit. |
+| File                                               | Role                      | Change                                                                                                                                                          |
+| -------------------------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/sapguimcp/backend/desktop/_element_finder.py` | Element-finder helpers    | Add `_dump_flat_tree` helper. Add required `flat_tree` parameter to `find_field_by_label`, `_find_by_label_text`, `_find_by_readonly_textfield_label`.          |
+| `src/sapguimcp/backend/desktop/__init__.py`        | Desktop backend impl      | Five callers of `find_field_by_label` updated to compute `flat_tree` once at the top of their COM closure and pass it in. `fill_form` is the perf-critical one. |
+| `src/sapguimcp/tools/sap_tools.py`                 | MCP tool registrations    | Append canonical example payload to `sap_fill_form` description string.                                                                                         |
+| `unittests/desktop/test_element_finder.py`         | Element-finder unit tests | Update 10 existing `find_field_by_label(...)` call sites to pass a `flat_tree`. Add new regression tests (count assertion, prebuilt-tree assertion).            |
+| `unittests/desktop/test_bp_integration.py`         | BP integration tests      | Add a new `skip_no_sap` test that fills 7 BP fields in one `sap_fill_form` call and asserts it completes under a wall-clock soft limit.                         |
 
 ---
 
@@ -59,6 +59,7 @@ Expected: all non-`skip_no_sap` tests pass. (The integration tests under `skip_n
 ## Task 2: Add `_dump_flat_tree` helper in `_element_finder.py`
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/desktop/_element_finder.py` (after `_flatten`, before `_extract_container_path`)
 - Modify: `unittests/desktop/test_element_finder.py` (add new test class)
 
@@ -173,6 +174,7 @@ Refs #627"
 ## Task 3: Refactor `_find_by_label_text` to take `flat_tree`
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/desktop/_element_finder.py:70-96`
 
 This helper is currently called only by `find_field_by_label`. After this task it requires a `flat_tree` parameter and no longer dumps the tree itself. We'll fix the one caller in Task 5.
@@ -231,6 +233,7 @@ Expected: tests in `TestFindFieldByLabelText` and any other class that exercises
 ## Task 4: Refactor `_find_by_readonly_textfield_label` to take `flat_tree`
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/desktop/_element_finder.py:99-152`
 
 Same shape as Task 3.
@@ -308,6 +311,7 @@ def _find_by_readonly_textfield_label(  # pylint: disable=too-many-locals
 ## Task 5: Refactor `find_field_by_label` to take `flat_tree`
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/desktop/_element_finder.py:168-204`
 
 - [ ] **Step 1: Update `find_field_by_label` signature and body**
@@ -373,6 +377,7 @@ def find_field_by_label(
 ## Task 6: Update existing tests in `test_element_finder.py`
 
 **Files:**
+
 - Modify: `unittests/desktop/test_element_finder.py:77, 86, 94, 113, 128, 141, 275, 306, 330, 346`
 
 There are 10 call sites of `find_field_by_label` in this file. Each needs a `flat_tree` argument. Because the existing test helper `_make_session_with_tree` returns elements without children, the same list is its own flat representation.
@@ -381,18 +386,18 @@ There are 10 call sites of `find_field_by_label` in this file. Each needs a `fla
 
 For each line below, change `find_field_by_label(session, "...")` to `find_field_by_label(session, "...", flat_tree)`. The `flat_tree` value is the same list that was passed to `_make_session_with_tree([...])` for that test. The exact mapping:
 
-| Line | Test method | Old call | Tree variable to pass |
-|------|-------------|----------|-----------------------|
-| 77 | `test_finds_text_field_by_name` | `find_field_by_label(session, "MATNR")` | `[]` (test passes `_make_session_with_tree([], ...)`) |
-| 86 | `test_finds_ctext_field_by_name` | `find_field_by_label(session, "MATNR")` | `[]` |
-| 94 | `test_returns_none_when_no_match` | `find_field_by_label(session, "NONEXISTENT")` | `[]` |
-| 113 | `test_finds_field_via_label_text` | `find_field_by_label(session, "Material")` | `[label_elem]` |
-| 128 | `test_case_insensitive_label_match` | `find_field_by_label(session, "company code")` | `[label_elem]` |
-| 141 | `test_finds_via_find_by_name` | `find_field_by_label(session, "SOME_FIELD")` | `[]` |
-| 275 | `test_full_composite_label_resolves_to_first_field` | `find_field_by_label(session, "Straße/Hausnummer")` | `[label, street, house]` |
-| 306 | `test_composite_part_resolves_to_correct_field` | `find_field_by_label(session, "Hausnummer")` | `[label, street, house]` |
-| 330 | `test_non_composite_readonly_label` | `find_field_by_label(session, "Bemerkungen")` | `[label, field]` |
-| 346 | `test_no_following_inputs_returns_none` | `find_field_by_label(session, "Hinweis")` | `[label]` |
+| Line | Test method                                         | Old call                                            | Tree variable to pass                                 |
+| ---- | --------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------- |
+| 77   | `test_finds_text_field_by_name`                     | `find_field_by_label(session, "MATNR")`             | `[]` (test passes `_make_session_with_tree([], ...)`) |
+| 86   | `test_finds_ctext_field_by_name`                    | `find_field_by_label(session, "MATNR")`             | `[]`                                                  |
+| 94   | `test_returns_none_when_no_match`                   | `find_field_by_label(session, "NONEXISTENT")`       | `[]`                                                  |
+| 113  | `test_finds_field_via_label_text`                   | `find_field_by_label(session, "Material")`          | `[label_elem]`                                        |
+| 128  | `test_case_insensitive_label_match`                 | `find_field_by_label(session, "company code")`      | `[label_elem]`                                        |
+| 141  | `test_finds_via_find_by_name`                       | `find_field_by_label(session, "SOME_FIELD")`        | `[]`                                                  |
+| 275  | `test_full_composite_label_resolves_to_first_field` | `find_field_by_label(session, "Straße/Hausnummer")` | `[label, street, house]`                              |
+| 306  | `test_composite_part_resolves_to_correct_field`     | `find_field_by_label(session, "Hausnummer")`        | `[label, street, house]`                              |
+| 330  | `test_non_composite_readonly_label`                 | `find_field_by_label(session, "Bemerkungen")`       | `[label, field]`                                      |
+| 346  | `test_no_following_inputs_returns_none`             | `find_field_by_label(session, "Hinweis")`           | `[label]`                                             |
 
 For each test, **bind the tree to a local variable before calling `_make_session_with_tree`** and reuse it in both calls. Example for line 113 (the first non-trivial one):
 
@@ -455,6 +460,7 @@ Refs #627"
 ## Task 7: Update production callers in `desktop/__init__.py`
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/desktop/__init__.py:919-997, 1094-1115, 1117-1155`
 
 There are five callers of `find_field_by_label` in this file. Each must compute `flat_tree` once at the top of its COM closure and pass it in.
@@ -616,6 +622,7 @@ Fixes #627"
 ## Task 8: Add regression unit test — `fill_form` calls `dump_tree` exactly once
 
 **Files:**
+
 - Modify: `unittests/desktop/test_element_finder.py` (or create a new `unittests/desktop/test_fill_form_dump_tree.py` if you'd rather isolate it)
 
 This is the test that will catch any future regression that re-introduces a per-field dump.
@@ -698,7 +705,7 @@ If the test FAILS, the most likely cause is that one of the strategy helpers in 
 
 - [ ] **Step 4: Add the production-caller-layer test**
 
-The Step 2 test only proves the *helpers* hoist correctly. It does NOT exercise `desktop.fill_form` itself, so a future regression that re-fetches `flat_tree` *inside* the loop in `desktop/__init__.py` would slip past it. Add a second test that calls the real `DesktopBackend.fill_form` against a mocked COM session and asserts the same invariant at the production-caller layer.
+The Step 2 test only proves the _helpers_ hoist correctly. It does NOT exercise `desktop.fill_form` itself, so a future regression that re-fetches `flat_tree` _inside_ the loop in `desktop/__init__.py` would slip past it. Add a second test that calls the real `DesktopBackend.fill_form` against a mocked COM session and asserts the same invariant at the production-caller layer.
 
 Append to the same `TestFillFormDumpTreeCount` class in `unittests/desktop/test_element_finder.py`:
 
@@ -795,9 +802,10 @@ message pointing at #627."
 ## Task 9: Add the canonical example to the `sap_fill_form` tool description
 
 **Files:**
+
 - Modify: `src/sapguimcp/tools/sap_tools.py:1146-1165`
 
-This addresses the *first* error in #627 (`Additional properties are not allowed`), which was the agent guessing the wrong payload shape. A visible example in the tool description prevents the same guess.
+This addresses the _first_ error in #627 (`Additional properties are not allowed`), which was the agent guessing the wrong payload shape. A visible example in the tool description prevents the same guess.
 
 - [ ] **Step 1: Update the description string**
 
@@ -851,6 +859,7 @@ any schema change."
 ## Task 10: Add desktop integration test for BP 7-field fill
 
 **Files:**
+
 - Modify: `unittests/desktop/test_bp_integration.py`
 
 This is the end-to-end proof that the user-reported scenario works. Marked `skip_no_sap`; only runs when an SAP session is available.

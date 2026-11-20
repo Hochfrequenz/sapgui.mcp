@@ -18,6 +18,7 @@ their own system.
 ## Scope
 
 **In scope**
+
 - A demo skill `readme-demo` (tracked in the repo, see "The skill" section for
   location and rationale) that choreographs the demo run and emits a
   transcript + screenshot frames.
@@ -28,6 +29,7 @@ their own system.
   yourself" note pointing at the skill.
 
 **Out of scope**
+
 - Recording real screen video (we build a staged composite instead, see
   Approach below).
 - Redaction of system IDs: the maintainer has explicitly waived the
@@ -54,17 +56,17 @@ personal data can leak. The partner number assigned by SAP is shown as-is.
 
 ### Storyboard (9 beats, ≈27 s final GIF)
 
-| # | Chat says | SAP shows |
-|---|-----------|-----------|
-| 1 | **User:** the task (one sentence, see above) | SAP Easy Access (captured post-login; placed here at assembly time) |
-| 2 | "Logging into the dev system…" `▸ sap_login` | Easy Access after login |
-| 3 | "Opening transaction BP…" `▸ sap_transaction` | BP initial screen |
-| 4 | "Creating a person…" `▸ sap_click_button` / key F5 | BP create screen (empty) |
-| 5 | "Filling in name and address…" `▸ sap_fill_form` | Filled form |
-| 6 | "Saving…" `▸ sap_press_key Ctrl+S` | Status bar: "Business partner … created" |
-| 7 | "Capturing a screenshot for the documentation…" `▸ sap_screenshot` | The saved BP — this frame *is* the demo's own screenshot |
-| 8 | "Now verifying it exists in SE16…" `▸ sap_se16_query` | SE16 result: the BUT000 row |
-| 9 | "✓ Partner <num> exists in BUT000, screenshot saved." | SE16 result, held, ✓ overlay in chat |
+| #   | Chat says                                                          | SAP shows                                                           |
+| --- | ------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| 1   | **User:** the task (one sentence, see above)                       | SAP Easy Access (captured post-login; placed here at assembly time) |
+| 2   | "Logging into the dev system…" `▸ sap_login`                       | Easy Access after login                                             |
+| 3   | "Opening transaction BP…" `▸ sap_transaction`                      | BP initial screen                                                   |
+| 4   | "Creating a person…" `▸ sap_click_button` / key F5                 | BP create screen (empty)                                            |
+| 5   | "Filling in name and address…" `▸ sap_fill_form`                   | Filled form                                                         |
+| 6   | "Saving…" `▸ sap_press_key Ctrl+S`                                 | Status bar: "Business partner … created"                            |
+| 7   | "Capturing a screenshot for the documentation…" `▸ sap_screenshot` | The saved BP — this frame _is_ the demo's own screenshot            |
+| 8   | "Now verifying it exists in SE16…" `▸ sap_se16_query`              | SE16 result: the BUT000 row                                         |
+| 9   | "✓ Partner <num> exists in BUT000, screenshot saved."              | SE16 result, held, ✓ overlay in chat                                |
 
 ### Layout
 
@@ -149,7 +151,7 @@ disclosing internal tooling). Therefore:
   cases (`not_found` fields → `sap_discover_fields`; duplicate/validation
   errors → report to user). This is the documented path for everyone.
 - A single descriptive sentence (no repo/marketplace names) may note that an
-  improved internal recipe may be loaded *if installed*; if absent, the
+  improved internal recipe may be loaded _if installed_; if absent, the
   inline flow is authoritative. External users always use the inline flow.
 - The inline flow is distilled from the internal recipe's hard-won specifics
   (label conventions, status-bar evaluation), so it is not a degraded
@@ -163,15 +165,15 @@ disclosing internal tooling). Therefore:
    frame not captured during the run cannot be added later. So after each
    SAP-visible step the agent saves a `hard_copy` capture (via `sap_run_script`; `sap_screenshot` cannot write files) into
    `readme-demo/frames/` with a beat-numbered name:
-   - `02_easy_access.png` — post-login Easy Access (also serves beat 1, which
-     is placed at assembly time)
-   - `03_bp_initial.png` — after `sap_transaction("bp")`
-   - `04_bp_empty.png` — after F5/type selection
-   - `05_bp_filled.png` — after `sap_fill_form`
-   - `07_bp_saved.png` — after `Ctrl+S` with the success status bar; also kept
-     as `readme-demo/BP_<Nachname>.png`, the screenshot path reported to the
-     user (beat 6 references this same capture)
-   - `08_se16_result.png` — the SE16 result (see step 5)
+    - `02_easy_access.png` — post-login Easy Access (also serves beat 1, which
+      is placed at assembly time)
+    - `03_bp_initial.png` — after `sap_transaction("bp")`
+    - `04_bp_empty.png` — after F5/type selection
+    - `05_bp_filled.png` — after `sap_fill_form`
+    - `07_bp_saved.png` — after `Ctrl+S` with the success status bar; also kept
+      as `readme-demo/BP_<Nachname>.png`, the screenshot path reported to the
+      user (beat 6 references this same capture)
+    - `08_se16_result.png` — the SE16 result (see step 5)
 3. Between steps the agent appends one short chat sentence + tool chip to
    `readme-demo/transcript.md` (format below). No artificial sleeps — pacing
    happens only at GIF assembly time.

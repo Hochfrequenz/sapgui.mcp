@@ -1312,8 +1312,8 @@ The parser in Task 5 contains placeholder patterns. The actual implementation wo
 
 ### File Summary
 
-| File                                      | Action | Description                 |
-| ----------------------------------------- | ------ | --------------------------- |
+| File                                   | Action | Description                 |
+| -------------------------------------- | ------ | --------------------------- |
 | `src/sapguimcp/models/se09_models.py`  | Create | Pydantic models             |
 | `src/sapguimcp/models/__init__.py`     | Modify | Register model exports      |
 | `src/sapguimcp/lang.py`                | Modify | Add SE09 language constants |
@@ -1321,6 +1321,6 @@ The parser in Task 5 contains placeholder patterns. The actual implementation wo
 | `src/sapguimcp/tools/se09_tools.py`    | Create | MCP tool implementation     |
 | `src/sapguimcp/tools/__init__.py`      | Modify | Register tool export        |
 | `src/sapguimcp/server.py`              | Modify | Register tool with server   |
-| `unittests/test_se09_exploration.py`      | Create | Snapshot capture tests      |
-| `unittests/test_se09_parser.py`           | Create | Offline parser tests        |
-| `unittests/test_se09_integration.py`      | Create | End-to-end tests            |
+| `unittests/test_se09_exploration.py`   | Create | Snapshot capture tests      |
+| `unittests/test_se09_parser.py`        | Create | Offline parser tests        |
+| `unittests/test_se09_integration.py`   | Create | End-to-end tests            |

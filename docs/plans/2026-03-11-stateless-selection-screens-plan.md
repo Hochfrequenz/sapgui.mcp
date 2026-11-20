@@ -14,8 +14,8 @@
 
 ## File Structure
 
-| File                                              | Responsibility                                                                                                                              |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| File                                           | Responsibility                                                                                                                              |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/sapguimcp/models/screen_state.py`         | `SelectionScreenState`, `StateChange`, `ScreenStateDiff` Pydantic models                                                                    |
 | `src/sapguimcp/parsers/screen_state_parser.py` | `parse_selection_screen_state()` — pure ARIA snapshot → state extraction                                                                    |
 | `src/sapguimcp/tools/screen_state_helpers.py`  | `ensure_screen_state()`, `bilingual_target()` — transition + verify logic                                                                   |
@@ -27,10 +27,10 @@
 | `src/sapguimcp/tools/se09_tools.py`            | Replace `_set_checkbox_state`/`_try_set_checkbox`/`_set_request_type_filter`/`_set_status_filter` (lines 55-111) with `ensure_screen_state` |
 | `src/sapguimcp/tools/sm37_tools.py`            | Replace `_set_status_checkboxes` (lines 50-73) + fix default-param vulnerability                                                            |
 | `src/sapguimcp/tools/se11_tools.py`            | Replace `_page` radio hacks in `_wait_for_se11_table_screen`/`_wait_for_se11_structure_screen` (lines 228-289)                              |
-| `unittests/test_screen_state_parser.py`           | Parser unit tests against existing + new YAML snapshots                                                                                     |
-| `unittests/test_ensure_screen_state.py`           | Transition logic unit tests with mocked backend                                                                                             |
-| `unittests/test_se09_exploration.py`              | New snapshot capture tests for SE09 checkbox variants                                                                                       |
-| `unittests/test_sm37_exploration.py`              | New snapshot capture tests for SM37 checkbox variants                                                                                       |
+| `unittests/test_screen_state_parser.py`        | Parser unit tests against existing + new YAML snapshots                                                                                     |
+| `unittests/test_ensure_screen_state.py`        | Transition logic unit tests with mocked backend                                                                                             |
+| `unittests/test_se09_exploration.py`           | New snapshot capture tests for SE09 checkbox variants                                                                                       |
+| `unittests/test_sm37_exploration.py`           | New snapshot capture tests for SM37 checkbox variants                                                                                       |
 
 ---
 

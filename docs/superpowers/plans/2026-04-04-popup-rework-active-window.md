@@ -14,22 +14,23 @@
 
 ## File Map
 
-| File | Role | Change |
-|------|------|--------|
-| `src/sapguimcp/backend/desktop/__init__.py` | Desktop backend | Add `_active_window_id()`, update ~15 methods to use it |
-| `src/sapguimcp/backend/desktop/_element_finder.py` | Label→COM resolution | Add `wnd_id` param to 8 public functions |
-| `src/sapguimcp/models/base.py` | Result base class | Add `active_window` field to `ToolResult` |
-| `src/sapguimcp/tools/sap_tools.py` | MCP tool layer | Remove 9 popup-blocking checks (desktop only), populate `active_window` |
-| `src/sapguimcp/tools/abapgit_tools.py` | abapGit pull | Update `_check_for_error_popup_desktop()` |
-| `src/sapguimcp/data/sap_knowledge.md` | Agent instructions | Add active window guidance |
-| `unittests/desktop/test_popup_rework_unit.py` | Unit tests | New: `_active_window_id`, element finder `wnd_id` |
-| `unittests/desktop/test_popup_rework_exploration.py` | Integration tests | Flip assertions, add new tests |
+| File                                                 | Role                 | Change                                                                  |
+| ---------------------------------------------------- | -------------------- | ----------------------------------------------------------------------- |
+| `src/sapguimcp/backend/desktop/__init__.py`          | Desktop backend      | Add `_active_window_id()`, update ~15 methods to use it                 |
+| `src/sapguimcp/backend/desktop/_element_finder.py`   | Label→COM resolution | Add `wnd_id` param to 8 public functions                                |
+| `src/sapguimcp/models/base.py`                       | Result base class    | Add `active_window` field to `ToolResult`                               |
+| `src/sapguimcp/tools/sap_tools.py`                   | MCP tool layer       | Remove 9 popup-blocking checks (desktop only), populate `active_window` |
+| `src/sapguimcp/tools/abapgit_tools.py`               | abapGit pull         | Update `_check_for_error_popup_desktop()`                               |
+| `src/sapguimcp/data/sap_knowledge.md`                | Agent instructions   | Add active window guidance                                              |
+| `unittests/desktop/test_popup_rework_unit.py`        | Unit tests           | New: `_active_window_id`, element finder `wnd_id`                       |
+| `unittests/desktop/test_popup_rework_exploration.py` | Integration tests    | Flip assertions, add new tests                                          |
 
 ---
 
 ### Task 1: Add `_active_window_id()` helper + unit tests
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/desktop/__init__.py` (top of file, after imports)
 - Create: `unittests/desktop/test_popup_rework_unit.py`
 
@@ -141,6 +142,7 @@ git commit -m "feat: add _active_window_id() helper for topmost window detection
 ### Task 2: Add `wnd_id` parameter to element finder functions + unit tests
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/desktop/_element_finder.py`
 - Modify: `unittests/desktop/test_popup_rework_unit.py`
 
@@ -266,6 +268,7 @@ git commit -m "feat: add wnd_id parameter to all element finder functions"
 ### Task 3: Update desktop backend methods to use active window
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/desktop/__init__.py`
 
 Every method that currently hardcodes `wnd[0]` must call `_active_window_id(session)` and use the result. This is a mechanical change across ~15 methods.
@@ -379,6 +382,7 @@ git commit -m "feat: all desktop backend methods operate on active window"
 ### Task 4: Add `active_window` to `ToolResult` base class
 
 **Files:**
+
 - Modify: `src/sapguimcp/models/base.py`
 - Modify: `unittests/desktop/test_popup_rework_unit.py`
 
@@ -443,6 +447,7 @@ git commit -m "feat: add active_window field to ToolResult base class"
 ### Task 5: Remove popup-blocking checks in tool layer (desktop only)
 
 **Files:**
+
 - Modify: `src/sapguimcp/tools/sap_tools.py`
 
 This is the core behavior change. Remove the 9 "popup blocking" pre-checks, but
@@ -597,6 +602,7 @@ git commit -m "feat: remove popup-blocking checks for desktop backend"
 ### Task 6: Populate `active_window` in tool results
 
 **Files:**
+
 - Modify: `src/sapguimcp/tools/sap_tools.py`
 - Modify: `src/sapguimcp/backend/desktop/__init__.py`
 
@@ -690,6 +696,7 @@ git commit -m "feat: populate active_window in tool results"
 ### Task 7: Update abapgit error popup detection
 
 **Files:**
+
 - Modify: `src/sapguimcp/tools/abapgit_tools.py`
 
 The `_check_for_error_popup_desktop()` function (line 216-225) uses
@@ -756,6 +763,7 @@ git commit -m "fix: update abapgit error popup detection for active window model
 ### Task 8: Update `sap_knowledge.md` with active window guidance
 
 **Files:**
+
 - Modify: `src/sapguimcp/data/sap_knowledge.md`
 
 - [ ] **Step 1: Add guidance section**
@@ -773,12 +781,14 @@ transport prompts, and error messages. These appear at `wnd[1]` or `wnd[2]`.
 and other tools target the popup — not the main window behind it.
 
 **How to detect a popup opened:**
+
 - Check the `active_window` field in tool results. `"wnd[0]"` means the main
   window; `"wnd[1]"` or higher means a modal dialog is open.
 - After actions that change screen state (`sap_press_key`, `sap_fill_form`),
   always note the `active_window` value.
 
 **Typical workflow:**
+
 1. `sap_press_key(key="F5")` → result has `active_window="wnd[1]"` (dialog opened)
 2. `sap_discover_fields()` → shows fields in the dialog
 3. `sap_fill_form({...})` → fills dialog fields
@@ -803,6 +813,7 @@ git commit -m "docs: add active window guidance to sap_knowledge.md"
 ### Task 9: Comprehensive regression testing
 
 **Files:**
+
 - Run existing integration tests
 
 - [ ] **Step 1: Run all desktop integration tests**
@@ -812,6 +823,7 @@ python -m pytest unittests/desktop/ -k "integration" -v --tb=short
 ```
 
 Watch for:
+
 - Tests that open popups as part of their workflow (edit tools, abapgit)
 - Tests that rely on `press_key` targeting `wnd[0]` specifically
 - Tests that parse snapshot text looking for `wnd[1]`

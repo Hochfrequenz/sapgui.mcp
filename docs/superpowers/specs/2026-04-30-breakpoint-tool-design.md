@@ -87,13 +87,13 @@ sap_breakpoint_list(
 
 ## Parameters
 
-| Parameter | Required for | Notes |
-|-----------|-------------|-------|
-| `object_type` | all | `"PROG"`, `"CLAS"`, or `"FUGR"` |
-| `object_name` | all | Program name, class name, or function group name |
-| `method_name` | CLAS, FUGR | Method name (CLAS) or FM name (FUGR); None for PROG |
-| `line_number` | set/delete | 1-indexed SAP display line number |
-| `match_pattern` | set/delete | Substring/regex; resolved to a line number before GUI navigation |
+| Parameter       | Required for | Notes                                                            |
+| --------------- | ------------ | ---------------------------------------------------------------- |
+| `object_type`   | all          | `"PROG"`, `"CLAS"`, or `"FUGR"`                                  |
+| `object_name`   | all          | Program name, class name, or function group name                 |
+| `method_name`   | CLAS, FUGR   | Method name (CLAS) or FM name (FUGR); None for PROG              |
+| `line_number`   | set/delete   | 1-indexed SAP display line number                                |
+| `match_pattern` | set/delete   | Substring/regex; resolved to a line number before GUI navigation |
 
 ---
 
@@ -170,10 +170,10 @@ VKey 45 **toggles**: sets if not set, deletes if already set.
 **Consequence:** The tool must check the status bar after VKey 45 to determine what
 actually happened:
 
-| Status bar contains | Meaning |
-|---------------------|---------|
-| `"gesetzt"` | Breakpoint was set |
-| `"gelöscht"` | Breakpoint was deleted (was already set) |
+| Status bar contains | Meaning                                  |
+| ------------------- | ---------------------------------------- |
+| `"gesetzt"`         | Breakpoint was set                       |
+| `"gelöscht"`        | Breakpoint was deleted (was already set) |
 
 For `sap_breakpoint_set`: if result is `"gelöscht"`, the breakpoint was already present
 and SAP deleted it. The tool re-applies VKey 45 once to restore it, then reports
@@ -189,6 +189,7 @@ Verified: setting a breakpoint on a continuation line (e.g. an `EXPORTING` param
 line inside a `CALL FUNCTION`) toggles the breakpoint of the parent statement.
 
 Example — program RSINCL00:
+
 ```
 6: CALL FUNCTION 'RS_CROSSREFERENCE'   ← breakpoint lives here
 7:     EXPORTING
@@ -213,26 +214,27 @@ containing a `SAPGUI.GridViewCtrl.1` at `wnd[1]/usr/cntlG_BP_CONTAINER/shellcont
    `wnd[1]/tbar[0]/btn[5]` ("Alle anzeigen") to expand to all breakpoints for the user
 4. Read `RowCount` on the grid shell
 5. For each row `i` in `range(RowCount)`, call:
-   - `GetCellValue(i, "INCLUDE_DIS")` → include/program name
-   - `GetCellValue(i, "SOURCE_LINE")` → line number as string (parse to int)
-   - `GetCellValue(i, "SOURCE")` → source text at that line
-   - `GetCellValue(i, "MAINPROGRAM_DIS")` → function group / main program name
+    - `GetCellValue(i, "INCLUDE_DIS")` → include/program name
+    - `GetCellValue(i, "SOURCE_LINE")` → line number as string (parse to int)
+    - `GetCellValue(i, "SOURCE")` → source text at that line
+    - `GetCellValue(i, "MAINPROGRAM_DIS")` → function group / main program name
 6. Filter rows where `INCLUDE_DIS` matches the requested object/method
 7. Close dialog with `wnd[1].SendVKey(12)` (F12 = Abbrechen)
 
 **Verified column names** (from `FORM prepare_alv_bp` in `LBREAF10`):
 
-| col_pos | FIELDNAME | Label | Content |
-|---------|-----------|-------|---------|
-| 1 | `ICON` | Typ | icon (use `GetCellIcon`, not `GetCellValue`) |
-| 2 | `MAINPROGRAM_DIS` | Rahmenprogramm | function group / main program (e.g. `"BREA"`) |
-| 3 | `INCLUDE_DIS` | Include | include or program name (e.g. `"LBREAO10"`) |
-| 4 | `SOURCE_LINE` | Zeile | line number as string (e.g. `"18"`) |
-| 5 | `SOURCE` | Quelltext | source text (e.g. `"IF reset_flag NE space."`) |
+| col_pos | FIELDNAME         | Label          | Content                                        |
+| ------- | ----------------- | -------------- | ---------------------------------------------- |
+| 1       | `ICON`            | Typ            | icon (use `GetCellIcon`, not `GetCellValue`)   |
+| 2       | `MAINPROGRAM_DIS` | Rahmenprogramm | function group / main program (e.g. `"BREA"`)  |
+| 3       | `INCLUDE_DIS`     | Include        | include or program name (e.g. `"LBREAO10"`)    |
+| 4       | `SOURCE_LINE`     | Zeile          | line number as string (e.g. `"18"`)            |
+| 5       | `SOURCE`          | Quelltext      | source text (e.g. `"IF reset_flag NE space."`) |
 
 All four text columns verified live with `GetCellValue` returning correct values.
 
 **Filter logic for `sap_breakpoint_list`:**
+
 - For PROG: filter rows where `INCLUDE_DIS == object_name`
 - For CLAS: filter rows where `MAINPROGRAM_DIS == class_name` (SAP stores class
   breakpoints in generated method includes but sets `MAINPROGRAM_DIS` to the class name;
@@ -244,11 +246,11 @@ All four text columns verified live with `GetCellValue` returning correct values
 
 ## Navigation Flow per Object Type
 
-| Type | Transaction | Open | Navigate to code |
-|------|------------|------|-----------------|
-| PROG | SE38 | Click "Anzeigen" (F5 fails on desktop; button click works) | — |
-| CLAS | SE24 | Click "Anzeigen" button | Methods tab → click "Quelltext" button (`btnPUSH_EDITOR`) |
-| FUGR | SE37 | Click "Anzeigen" button | Opens directly on "Quelltext" tab; click tab `tabpSOURCE` to activate |
+| Type | Transaction | Open                                                       | Navigate to code                                                      |
+| ---- | ----------- | ---------------------------------------------------------- | --------------------------------------------------------------------- |
+| PROG | SE38        | Click "Anzeigen" (F5 fails on desktop; button click works) | —                                                                     |
+| CLAS | SE24        | Click "Anzeigen" button                                    | Methods tab → click "Quelltext" button (`btnPUSH_EDITOR`)             |
+| FUGR | SE37        | Click "Anzeigen" button                                    | Opens directly on "Quelltext" tab; click tab `tabpSOURCE` to activate |
 
 All navigation uses existing patterns from `se38_edit_tools.py` /
 `se24_edit_tools.py` / `se37_edit_tools.py`.
@@ -258,13 +260,14 @@ All navigation uses existing patterns from `se38_edit_tools.py` /
 The `AbapEditor` COM shell path varies per transaction. The implementation must
 use the correct path for each object type rather than hardcoding a single path.
 
-| Transaction | Shell path (relative to `wnd[0]`) |
-|-------------|-----------------------------------|
-| SE38 | `usr/cntlEDITOR/shellcont/shell` |
-| SE24 | `usr/subEDITORSUBSCREEN:SAPLEDITOR_START:8430/cntlEDITOR/shellcont/shell` |
-| SE37 | `usr/tabsFUNC_TAB_STRIP/tabpSOURCE/ssubSCREEN_HEADER:SAPLEDITOR_START:8430/cntlEDITOR/shellcont/shell` |
+| Transaction | Shell path (relative to `wnd[0]`)                                                                      |
+| ----------- | ------------------------------------------------------------------------------------------------------ |
+| SE38        | `usr/cntlEDITOR/shellcont/shell`                                                                       |
+| SE24        | `usr/subEDITORSUBSCREEN:SAPLEDITOR_START:8430/cntlEDITOR/shellcont/shell`                              |
+| SE37        | `usr/tabsFUNC_TAB_STRIP/tabpSOURCE/ssubSCREEN_HEADER:SAPLEDITOR_START:8430/cntlEDITOR/shellcont/shell` |
 
 All three paths verified live:
+
 - `GetLineCount` / `GetLineText` work identically on all three
 - `SelectRange(n, 0, n, 0)` is 1-indexed on all three (matching SAP display "Ze N")
 - `SendVKey(45)` on `wnd[0]` sets/deletes external breakpoints on all three
@@ -289,29 +292,32 @@ When `match_pattern` is provided instead of `line_number`:
 
 ## Error Handling
 
-| Condition | Behavior |
-|-----------|----------|
-| WebGUI backend | `success=False`, explain desktop-only limitation |
-| Object not found | `success=False`, report SE38/SE24/SE37 navigation error |
-| `match_pattern` not found in source | `success=False`, "Pattern not found" |
-| Line number out of range | `success=False`, "Line N exceeds source length (M lines)" |
-| Toggle resulted in opposite action (double-toggle failed) | `success=False`, report status messages |
-| `method_name` missing for CLAS/FUGR | `success=False`, "method_name required for CLAS/FUGR" |
-| Navigation failed (wrong screen after transaction) | `success=False` + status bar text |
+| Condition                                                 | Behavior                                                  |
+| --------------------------------------------------------- | --------------------------------------------------------- |
+| WebGUI backend                                            | `success=False`, explain desktop-only limitation          |
+| Object not found                                          | `success=False`, report SE38/SE24/SE37 navigation error   |
+| `match_pattern` not found in source                       | `success=False`, "Pattern not found"                      |
+| Line number out of range                                  | `success=False`, "Line N exceeds source length (M lines)" |
+| Toggle resulted in opposite action (double-toggle failed) | `success=False`, report status messages                   |
+| `method_name` missing for CLAS/FUGR                       | `success=False`, "method_name required for CLAS/FUGR"     |
+| Navigation failed (wrong screen after transaction)        | `success=False` + status bar text                         |
 
 ---
 
 ## Files
 
 ### New files
+
 - `src/sapguimcp/tools/breakpoint_tools.py`
 - `src/sapguimcp/models/breakpoint_models.py`
 
 ### Modified files
+
 - `src/sapguimcp/tools/__init__.py` — add `register_breakpoint_tools`
 - `src/sapguimcp/server.py` — register tool
 
 ### Tests
+
 - `unittests/test_breakpoint_models.py` — unit tests for model validation
 - `unittests/desktop/test_breakpoint_tools.py` — integration tests
   (marked `@pytest.mark.integration`, skipped in CI without SAP access)
@@ -321,13 +327,13 @@ When `match_pattern` is provided instead of `line_number`:
 ## Open Questions
 
 ~~1. **Listing via dialog vs. raw COM**: The `Hilfsmittel > Breakpoints > Anzeigen...`
-   dialog approach needs a live prototype to confirm the dialog structure.~~
-   **Resolved**: Dialog verified live. Use `Alle anzeigen` (btn[5]) + `GetCellValue` with
-   columns `INCLUDE_DIS`, `SOURCE_LINE`, `SOURCE`, `MAINPROGRAM_DIS`. No fallback needed.
+dialog approach needs a live prototype to confirm the dialog structure.~~
+**Resolved**: Dialog verified live. Use `Alle anzeigen` (btn[5]) + `GetCellValue` with
+columns `INCLUDE_DIS`, `SOURCE_LINE`, `SOURCE`, `MAINPROGRAM_DIS`. No fallback needed.
 
 ~~2. **SE24 method navigation**: Multi-step (class → Methods tab → method → source view).~~
-   **Resolved**: Use Methods tab → click `btnPUSH_EDITOR` ("Quelltext") button.
-   Shell path verified: `usr/subEDITORSUBSCREEN:SAPLEDITOR_START:8430/cntlEDITOR/shellcont/shell`.
+**Resolved**: Use Methods tab → click `btnPUSH_EDITOR` ("Quelltext") button.
+Shell path verified: `usr/subEDITORSUBSCREEN:SAPLEDITOR_START:8430/cntlEDITOR/shellcont/shell`.
 
 ~~3. **SelectRange index on SE24/SE37**: Verified only for SE38. Expected to be identical~~
-   **Resolved**: Verified live on SE24 and SE37 — identical 1-indexed behavior.
+**Resolved**: Verified live on SE24 and SE37 — identical 1-indexed behavior.

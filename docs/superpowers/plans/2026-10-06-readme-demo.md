@@ -14,28 +14,29 @@ Spec: `docs/superpowers/specs/2026-10-06-readme-demo-design.md`
 
 ## File Structure
 
-| File | Action | Responsibility |
-| --- | --- | --- |
-| `.gitignore` | Modify | Glob-form `.claude/*` recipe (skill trackable, rest ignored) + `/readme-demo/` working dir |
-| `.claude/skills/readme-demo/SKILL.md` | Create | The committed demo skill: trigger phrases, inline BP flow, transcript writing, per-beat screenshot capture, SE16 verification |
-| `src/sapguimcp/demo/__init__.py` | Create | Package marker (importable by unittests without path hacks) |
+| File                                       | Action | Responsibility                                                                                                                                  |
+| ------------------------------------------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gitignore`                               | Modify | Glob-form `.claude/*` recipe (skill trackable, rest ignored) + `/readme-demo/` working dir                                                      |
+| `.claude/skills/readme-demo/SKILL.md`      | Create | The committed demo skill: trigger phrases, inline BP flow, transcript writing, per-beat screenshot capture, SE16 verification                   |
+| `src/sapguimcp/demo/__init__.py`           | Create | Package marker (importable by unittests without path hacks)                                                                                     |
 | `src/sapguimcp/demo/render_readme_demo.py` | Create | Transcript parser + layout renderer + assembler entry point (single module: parser and layout share the `Beat` dataclass; ~300 lines, cohesive) |
-| `unittests/test_readme_demo_transcript.py` | Create | Parser tests (keys, repeats, malformed input) |
-| `unittests/test_readme_demo_render.py` | Create | Renderer tests (canvas math, bubble layout, composite count, determinism) |
-| `scripts/render_readme_demo.py` | Create | 3-line shim importing and calling `sapguimcp.demo.render_readme_demo.main()` (matches scripts/ being dev-only wrappers) |
-| `scripts/README.md` | Modify | Document the renderer + the exact ffmpeg GIF command |
-| `pyproject.toml` | Modify | Add `pillow` to the `tests` dependency group (pinned) |
-| `README.md` | Modify | Embed the GIF placeholder + "run this demo yourself" note (GIF file added in Task 6) |
+| `unittests/test_readme_demo_transcript.py` | Create | Parser tests (keys, repeats, malformed input)                                                                                                   |
+| `unittests/test_readme_demo_render.py`     | Create | Renderer tests (canvas math, bubble layout, composite count, determinism)                                                                       |
+| `scripts/render_readme_demo.py`            | Create | 3-line shim importing and calling `sapguimcp.demo.render_readme_demo.main()` (matches scripts/ being dev-only wrappers)                         |
+| `scripts/README.md`                        | Modify | Document the renderer + the exact ffmpeg GIF command                                                                                            |
+| `pyproject.toml`                           | Modify | Add `pillow` to the `tests` dependency group (pinned)                                                                                           |
+| `README.md`                                | Modify | Embed the GIF placeholder + "run this demo yourself" note (GIF file added in Task 6)                                                            |
 
 Deliberately **not** created: a `docs/` copy of the skill, a config-driven layout file (YAGNI — one canvas, constants in the module), a Python GIF encoder (ffmpeg does palette better).
 
-Conventions: ruff line-length 120, mypy strict on `src/`, unittests run offline via `uv run --locked --group tests python -m pytest` (testpaths is `unittests/`), commit style is conventional (`feat:`, `docs:`, `chore:`), no SAP hostnames/SIDs in committed files (system IDs visible in the *screenshots* are waived by the maintainer; that waiver does not extend to prose). Follow the memory rule: run only the tests relevant to the task (`pytest -k readme_demo`), not the whole suite.
+Conventions: ruff line-length 120, mypy strict on `src/`, unittests run offline via `uv run --locked --group tests python -m pytest` (testpaths is `unittests/`), commit style is conventional (`feat:`, `docs:`, `chore:`), no SAP hostnames/SIDs in committed files (system IDs visible in the _screenshots_ are waived by the maintainer; that waiver does not extend to prose). Follow the memory rule: run only the tests relevant to the task (`pytest -k readme_demo`), not the whole suite.
 
 ---
 
 ## Task 1: Gitignore recipe + dependency group
 
 **Files:**
+
 - Modify: `.gitignore` (line 104, `.claude/`)
 - Modify: `pyproject.toml` (dependency-groups, `tests`)
 
@@ -110,6 +111,7 @@ git commit -m "chore: make .claude/skills/readme-demo trackable and add pillow t
 ## Task 2: Transcript parser
 
 **Files:**
+
 - Create: `src/sapguimcp/demo/__init__.py`
 - Create: `src/sapguimcp/demo/render_readme_demo.py` (parser part)
 - Test: `unittests/test_readme_demo_transcript.py`
@@ -361,6 +363,7 @@ git commit -m "feat(readme-demo): transcript sidecar parser"
 ## Task 3: Layout renderer and assembler
 
 **Files:**
+
 - Modify: `src/sapguimcp/demo/render_readme_demo.py` (renderer part)
 - Test: `unittests/test_readme_demo_render.py`
 
@@ -834,6 +837,7 @@ git commit -m "feat(readme-demo): composite renderer with chat/SAP layout"
 ## Task 4: Scripts shim, scripts/README.md ffmpeg docs, smoke-render a synthetic run
 
 **Files:**
+
 - Create: `scripts/render_readme_demo.py`
 - Modify: `scripts/README.md`
 
@@ -854,7 +858,7 @@ if __name__ == "__main__":
 
 Add a section after the existing "Transaction Catalog Building" section:
 
-```markdown
+````markdown
 ## README Demo GIF
 
 The README GIF is produced from a real agent run by the `readme-demo` skill
@@ -872,7 +876,7 @@ ffmpeg -f concat -safe 0 -i readme-demo/composite/concat.txt \
 Copy `readme-demo.gif` to `docs/readme-demo.gif` and commit it. The GIF is a
 re-timed composite of a real run — real messages, real screenshots; only the
 pacing is edited (see the spec's honesty note).
-```
+````
 
 - [ ] **Step 3: Smoke-render a synthetic run end to end (not committed)**
 
@@ -928,6 +932,7 @@ git commit -m "feat(readme-demo): scripts shim and GIF encode docs"
 ## Task 5: The skill itself
 
 **Files:**
+
 - Create: `.claude/skills/readme-demo/SKILL.md`
 
 - [ ] **Step 1: Write SKILL.md**
@@ -938,13 +943,13 @@ Create `.claude/skills/readme-demo/SKILL.md`:
 ---
 name: readme-demo
 description: >
-  End-to-end demo of this MCP server for the project README and for users who
-  want to see it in action: log into an SAP system, create a business partner
-  (Max Mustermann by default), save it with Ctrl+S, capture a screenshot for
-  the documentation, and verify the partner in SE16 (table BUT000). Use when
-  the user says "run the readme demo", "demo the SAP MCP server", or invokes
-  /readme-demo. Announce each step in one short chat sentence so the run reads
-  as a story, and capture a numbered screenshot after every SAP-visible step.
+    End-to-end demo of this MCP server for the project README and for users who
+    want to see it in action: log into an SAP system, create a business partner
+    (Max Mustermann by default), save it with Ctrl+S, capture a screenshot for
+    the documentation, and verify the partner in SE16 (table BUT000). Use when
+    the user says "run the readme demo", "demo the SAP MCP server", or invokes
+    /readme-demo. Announce each step in one short chat sentence so the run reads
+    as a story, and capture a numbered screenshot after every SAP-visible step.
 ---
 
 # README Demo
@@ -981,7 +986,7 @@ assembly time, outside this skill.
 
 ### How to capture frames (important)
 
-`sap_screenshot` returns the picture to *you* (the agent sees it) but cannot
+`sap_screenshot` returns the picture to _you_ (the agent sees it) but cannot
 save it to disk. To write a frame file, use `sap_run_script` (desktop backend)
 with the COM `hard_copy` call — the same way the server itself implements
 screenshots. Absolute path required:
@@ -999,17 +1004,17 @@ absolute path form on the first live frame before proceeding with the run.)
 
 ### Beats
 
-| Beat | Say | Do | Frame (if any) |
-| --- | --- | --- | --- |
-| 1 | State the whole task in one sentence. | — (no tool call; this is the user prompt you received) | — |
-| 2 | "Logging into the dev system…" | `sap_login(system_key=…)` | `frames/02_easy_access.png` |
-| 3 | "Opening transaction BP…" | `sap_transaction(tcode="bp")` | `frames/03_bp_initial.png` |
-| 4 | "Creating a person…" | `sap_press_key(key="F5")` (confirm a type popup with `sap_press_key(key="Enter")` if one appears) | `frames/04_bp_empty.png` |
-| 5 | "Filling in name and address…" | `sap_fill_form({...})` — see field table | `frames/05_bp_filled.png` |
-| 6 | "Saving…" | `sap_press_key(key="Ctrl+S")` | (beat 6 references beat 7's frame) |
-| 7 | "Capturing a screenshot for the documentation…" | `sap_screenshot` (shows you the picture) + `sap_run_script` `hard_copy` → `frames/07_bp_saved.png`, and copy that file as `readme-demo/BP_<Nachname>.png` | `frames/07_bp_saved.png` |
-| 8 | "Now verifying it exists in SE16…" | `sap_transaction(tcode="se16")`, table `BUT000`, filter `PARTNER = <GP number>`, execute | `frames/08_se16_result.png` |
-| 9 | "✓ Partner <GP number> exists in BUT000, screenshot saved as BP_<Nachname>.png." | — (report to the user) | (holds beat 8's frame) |
+| Beat | Say                                                                              | Do                                                                                                                                                        | Frame (if any)                     |
+| ---- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| 1    | State the whole task in one sentence.                                            | — (no tool call; this is the user prompt you received)                                                                                                    | —                                  |
+| 2    | "Logging into the dev system…"                                                   | `sap_login(system_key=…)`                                                                                                                                 | `frames/02_easy_access.png`        |
+| 3    | "Opening transaction BP…"                                                        | `sap_transaction(tcode="bp")`                                                                                                                             | `frames/03_bp_initial.png`         |
+| 4    | "Creating a person…"                                                             | `sap_press_key(key="F5")` (confirm a type popup with `sap_press_key(key="Enter")` if one appears)                                                         | `frames/04_bp_empty.png`           |
+| 5    | "Filling in name and address…"                                                   | `sap_fill_form({...})` — see field table                                                                                                                  | `frames/05_bp_filled.png`          |
+| 6    | "Saving…"                                                                        | `sap_press_key(key="Ctrl+S")`                                                                                                                             | (beat 6 references beat 7's frame) |
+| 7    | "Capturing a screenshot for the documentation…"                                  | `sap_screenshot` (shows you the picture) + `sap_run_script` `hard_copy` → `frames/07_bp_saved.png`, and copy that file as `readme-demo/BP_<Nachname>.png` | `frames/07_bp_saved.png`           |
+| 8    | "Now verifying it exists in SE16…"                                               | `sap_transaction(tcode="se16")`, table `BUT000`, filter `PARTNER = <GP number>`, execute                                                                  | `frames/08_se16_result.png`        |
+| 9    | "✓ Partner <GP number> exists in BUT000, screenshot saved as BP_<Nachname>.png." | — (report to the user)                                                                                                                                    | (holds beat 8's frame)             |
 
 Beat numbering in `transcript.md` follows the table. If a step needs extra
 tool calls (field discovery, popup handling), fold them into the narrative of
@@ -1017,15 +1022,15 @@ the current beat — do not invent new beats.
 
 ### BP form fields (labels are the keys for `sap_fill_form`)
 
-| Key | Value |
-| --- | --- |
-| `Anrede` | (leave default unless user specified) |
-| `Vorname` | `<first name>` |
-| `Nachname` | `<last name>` |
-| `Straße/Hausnummer` | `<street>` |
-| `Postleitzahl/Ort` | `<postal code>` |
-| `Ort` | `<city>` |
-| `Land` | `DE` |
+| Key                 | Value                                 |
+| ------------------- | ------------------------------------- |
+| `Anrede`            | (leave default unless user specified) |
+| `Vorname`           | `<first name>`                        |
+| `Nachname`          | `<last name>`                         |
+| `Straße/Hausnummer` | `<street>`                            |
+| `Postleitzahl/Ort`  | `<postal code>`                       |
+| `Ort`               | `<city>`                              |
+| `Land`              | `DE`                                  |
 
 > `Postleitzahl/Ort` labels the whole address row and resolves to the postal
 > code field; `Ort` addresses the city field in the same row, which has no
@@ -1043,7 +1048,7 @@ carries `status_bar_type` and `status_bar_message` — read the result directly
 from that response; no separate `sap_read_status_bar` call is needed. On
 `type=S` (success), extract the business partner number from the message.
 Report it in beat 9 and use it as the `PARTNER` filter in beat 8. Note: run
-beat 7's screenshot *after* the successful save so the status bar shows the
+beat 7's screenshot _after_ the successful save so the status bar shows the
 success message.
 
 ### Transcript sidecar format
@@ -1098,6 +1103,7 @@ git commit -m "feat(readme-demo): demo skill with inline BP flow and beat choreo
 ## Task 6: README embed
 
 **Files:**
+
 - Modify: `README.md` (intro, after line 11)
 
 - [ ] **Step 1: Add the GIF + demo note**
@@ -1105,7 +1111,6 @@ git commit -m "feat(readme-demo): demo skill with inline BP flow and beat choreo
 After the intro paragraph (after the line "The MCP works with both SAP R/3 and S/4."), insert:
 
 ```markdown
-
 ![Demo: chat with Claude on the left, SAP GUI reacting on the right — login, create a business partner, screenshot, SE16 verification](docs/readme-demo.gif)
 
 > [!TIP]
@@ -1131,7 +1136,7 @@ deep (`docs/*.md`, `scripts/*.md` pattern semantics of `**/*.md` under dash) —
 npx prettier --check scripts/README.md
 ```
 
-(`README.md` at the repo root is *not* covered by CI's glob, but keeping it
+(`README.md` at the repo root is _not_ covered by CI's glob, but keeping it
 prettier-clean is still polite; run `npx prettier --check README.md` and fix
 the new block only.)
 
@@ -1149,6 +1154,7 @@ git commit -m "docs: embed readme demo GIF and skill pointer"
 ## Task 7: Real run + GIF production (maintainer-side, manual, not for CI)
 
 **Files:**
+
 - Generated (not committed): `readme-demo/transcript.md`, `readme-demo/frames/*.png`, `readme-demo/composite/*.png`
 - Create: `docs/readme-demo.gif`
 
@@ -1162,7 +1168,7 @@ This task requires the real SAP test system (VPN up, per `docs/SAP_TEST_PREREQUI
 
 - [ ] **Step 2: Run the demo**
 
-In Claude Desktop, ask: *"run the readme demo"*. Watch that the run produces `readme-demo/transcript.md` and all six frames (`02_easy_access`, `03_bp_initial`, `04_bp_empty`, `05_bp_filled`, `07_bp_saved`, `08_se16_result`). If the run deviates (extra popups, label mismatches), fix SKILL.md and re-run — the skill is the product; do not hand-edit the transcript into shape. Before rendering, prepend the title-card block to the transcript (the skill's beats start at 1, but the spec's storyboard opens with a title card):
+In Claude Desktop, ask: _"run the readme demo"_. Watch that the run produces `readme-demo/transcript.md` and all six frames (`02_easy_access`, `03_bp_initial`, `04_bp_empty`, `05_bp_filled`, `07_bp_saved`, `08_se16_result`). If the run deviates (extra popups, label mismatches), fix SKILL.md and re-run — the skill is the product; do not hand-edit the transcript into shape. Before rendering, prepend the title-card block to the transcript (the skill's beats start at 1, but the spec's storyboard opens with a title card):
 
 ```markdown
 [beat 0] role=title
@@ -1188,7 +1194,7 @@ git add docs/readme-demo.gif src/sapguimcp/demo/render_readme_demo.py
 git commit -m "docs: add readme demo GIF (staged composite of a real run)"
 ```
 
-The PR description must state: *the GIF is a re-timed composite of a real run — real messages and real screenshots; only the pacing is edited.*
+The PR description must state: _the GIF is a re-timed composite of a real run — real messages and real screenshots; only the pacing is edited._
 
 ---
 

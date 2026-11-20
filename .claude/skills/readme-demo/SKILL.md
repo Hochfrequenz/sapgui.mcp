@@ -1,13 +1,13 @@
 ---
 name: readme-demo
 description: >
-  End-to-end demo of this MCP server for the project README and for users who
-  want to see it in action: log into an SAP system, create a business partner
-  (Max Mustermann by default), save it with Ctrl+S, capture a screenshot for
-  the documentation, and verify the partner in SE16 (table BUT000). Use when
-  the user says "run the readme demo", "demo the SAP MCP server", or invokes
-  /readme-demo. Announce each step in one short chat sentence so the run reads
-  as a story, and capture a numbered screenshot after every SAP-visible step.
+    End-to-end demo of this MCP server for the project README and for users who
+    want to see it in action: log into an SAP system, create a business partner
+    (Max Mustermann by default), save it with Ctrl+S, capture a screenshot for
+    the documentation, and verify the partner in SE16 (table BUT000). Use when
+    the user says "run the readme demo", "demo the SAP MCP server", or invokes
+    /readme-demo. Announce each step in one short chat sentence so the run reads
+    as a story, and capture a numbered screenshot after every SAP-visible step.
 ---
 
 # README Demo
@@ -48,7 +48,7 @@ Work through the beats below. For every beat:
 first frame; stop and tell the user if you have none.
 
 **Once, right after `sap_login`:** note the `session_id` from its result
-(`sap_login` always opens a *new* session) and pass `session=<that id>` on
+(`sap_login` always opens a _new_ session) and pass `session=<that id>` on
 **every** later call, including every `sap_run_script` — otherwise calls go to
 the primary session, which may be an older login. Then shrink the SAP window so
 its text stays legible at GIF size: `wnd.restore()` then
@@ -62,7 +62,7 @@ assembly time, outside this skill.
 
 ### How to capture frames (important)
 
-`sap_screenshot` returns the picture to *you* (the agent sees it) but cannot
+`sap_screenshot` returns the picture to _you_ (the agent sees it) but cannot
 save it to disk. To write a frame file, use `sap_run_script`
 with the COM `hard_copy` call — the same way the server itself implements
 screenshots. Absolute path required:
@@ -81,17 +81,17 @@ does not, the path form is wrong.)
 
 ### Beats
 
-| Beat | Say | Do | Frame (if any) |
-| --- | --- | --- | --- |
-| 1 | State the whole task in one sentence. | — (no tool call; transcript block is `role=user` with the user's prompt text) | none of its own — write `frame=frames/02_easy_access.png` (the later beat-2 frame) |
-| 2 | "Logging into the dev system…" | `sap_login(system_key=…)` | `frames/02_easy_access.png` |
-| 3 | "Opening transaction BP…" | `sap_transaction(tcode="bp")` | `frames/03_bp_initial.png` |
-| 4 | "Creating a person…" | `sap_press_key(key="F5")` (if a type-selection popup appears — visible as `wnd[1]` in the `sap_press_key` response's `active_window` — confirm it with `sap_press_key(key="Enter")`) | `frames/04_bp_empty.png` |
-| 5 | "Filling in name and address…" | `sap_fill_form({...})` — see field table | `frames/05_bp_filled.png` |
-| 6 | "Saving…" | `sap_press_key(key="Ctrl+S")` | none of its own — write `frame=frames/07_bp_saved.png` (the later beat-7 frame) |
-| 7 | "Capturing a screenshot for the documentation…" | `sap_screenshot` (shows you the picture) + `sap_run_script` `hard_copy` → `frames/07_bp_saved.png`, and a second `hard_copy` in the same script → `readme-demo/BP_<Nachname>.png` | `frames/07_bp_saved.png` |
-| 8 | "Now verifying it exists in SE16…" | `sap_se16_query(table="BUT000", filters={"PARTNER": "<GP number>"})` (leaves the result list on screen for the frame) | `frames/08_se16_result.png` |
-| 9 | "✓ Partner <GP number> exists in BUT000, screenshot saved as BP_<Nachname>.png." | — (report to the user) | none of its own — repeat `frame=frames/08_se16_result.png` |
+| Beat | Say                                                                              | Do                                                                                                                                                                                   | Frame (if any)                                                                     |
+| ---- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| 1    | State the whole task in one sentence.                                            | — (no tool call; transcript block is `role=user` with the user's prompt text)                                                                                                        | none of its own — write `frame=frames/02_easy_access.png` (the later beat-2 frame) |
+| 2    | "Logging into the dev system…"                                                   | `sap_login(system_key=…)`                                                                                                                                                            | `frames/02_easy_access.png`                                                        |
+| 3    | "Opening transaction BP…"                                                        | `sap_transaction(tcode="bp")`                                                                                                                                                        | `frames/03_bp_initial.png`                                                         |
+| 4    | "Creating a person…"                                                             | `sap_press_key(key="F5")` (if a type-selection popup appears — visible as `wnd[1]` in the `sap_press_key` response's `active_window` — confirm it with `sap_press_key(key="Enter")`) | `frames/04_bp_empty.png`                                                           |
+| 5    | "Filling in name and address…"                                                   | `sap_fill_form({...})` — see field table                                                                                                                                             | `frames/05_bp_filled.png`                                                          |
+| 6    | "Saving…"                                                                        | `sap_press_key(key="Ctrl+S")`                                                                                                                                                        | none of its own — write `frame=frames/07_bp_saved.png` (the later beat-7 frame)    |
+| 7    | "Capturing a screenshot for the documentation…"                                  | `sap_screenshot` (shows you the picture) + `sap_run_script` `hard_copy` → `frames/07_bp_saved.png`, and a second `hard_copy` in the same script → `readme-demo/BP_<Nachname>.png`    | `frames/07_bp_saved.png`                                                           |
+| 8    | "Now verifying it exists in SE16…"                                               | `sap_se16_query(table="BUT000", filters={"PARTNER": "<GP number>"})` (leaves the result list on screen for the frame)                                                                | `frames/08_se16_result.png`                                                        |
+| 9    | "✓ Partner <GP number> exists in BUT000, screenshot saved as BP_<Nachname>.png." | — (report to the user)                                                                                                                                                               | none of its own — repeat `frame=frames/08_se16_result.png`                         |
 
 Beat numbering in `transcript.md` follows the table. If a step needs extra
 tool calls (field discovery, popup handling), fold them into the narrative of
@@ -99,14 +99,14 @@ the current beat — do not invent new beats.
 
 ### BP form fields (labels are the keys for `sap_fill_form`)
 
-| Key | Value |
-| --- | --- |
-| `Vorname` | `<first name>` |
-| `Nachname` | `<last name>` |
-| `Straße/Hausnummer` | `<street>` |
-| `Postleitzahl/Ort` | `<postal code>` |
-| `Ort` | `<city>` |
-| `Land` | `DE` |
+| Key                 | Value           |
+| ------------------- | --------------- |
+| `Vorname`           | `<first name>`  |
+| `Nachname`          | `<last name>`   |
+| `Straße/Hausnummer` | `<street>`      |
+| `Postleitzahl/Ort`  | `<postal code>` |
+| `Ort`               | `<city>`        |
+| `Land`              | `DE`            |
 
 > `Postleitzahl/Ort` labels the whole address row and resolves to the postal
 > code field; `Ort` addresses the city field in the same row, which has no
@@ -132,7 +132,7 @@ from that response; no separate `sap_read_status_bar` call is needed. On
 the message carries no partner number or the type is not `S`, show it to the
 user and stop (you may re-read the status bar with `sap_read_status_bar`).
 Report it in beat 9 and use it as the `PARTNER` filter in beat 8. Note: run
-beat 7's screenshot *after* the successful save so the status bar shows the
+beat 7's screenshot _after_ the successful save so the status bar shows the
 success message.
 
 ### Transcript sidecar format
@@ -171,7 +171,7 @@ Rules:
 orange ring and caption pill around an element of the frame; `status=x,y,w,h text`
 draws the status-bar message (the screenshot does not render it; at most one
 per beat). `x,y,w,h` are four plain integers separated by commas — no spaces,
-brackets or minus signs — in pixels *of the captured frame*. A malformed line
+brackets or minus signs — in pixels _of the captured frame_. A malformed line
 is a parse error in the renderer.
 
 Which beats get overlays: beat 3 marks the command field (`Transaction: BP`),

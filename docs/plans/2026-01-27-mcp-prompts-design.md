@@ -12,14 +12,14 @@ Add MCP prompts to the sapguimcp server. Prompts are reusable recipes that guide
 
 ## Design Decisions
 
-| Decision          | Choice                          | Rationale                                  |
-| ----------------- | ------------------------------- | ------------------------------------------ |
-| Storage format    | Markdown with YAML frontmatter  | Easy to write/maintain, version-controlled |
-| Location          | `src/sapguimcp/prompts/*.md` | Alongside tools/, models/, skills/         |
-| Registration      | Auto-discovery at startup       | No manual decorator per prompt             |
-| Prompt name       | Derived from filename           | Keeps name and file in sync                |
-| Required metadata | `description` only              | KISS, YAGNI                                |
-| Formatting        | Prettier (existing CI)          | Consistent with project standards          |
+| Decision          | Choice                         | Rationale                                  |
+| ----------------- | ------------------------------ | ------------------------------------------ |
+| Storage format    | Markdown with YAML frontmatter | Easy to write/maintain, version-controlled |
+| Location          | `src/sapguimcp/prompts/*.md`   | Alongside tools/, models/, skills/         |
+| Registration      | Auto-discovery at startup      | No manual decorator per prompt             |
+| Prompt name       | Derived from filename          | Keeps name and file in sync                |
+| Required metadata | `description` only             | KISS, YAGNI                                |
+| Formatting        | Prettier (existing CI)         | Consistent with project standards          |
 
 ## Directory Structure
 
