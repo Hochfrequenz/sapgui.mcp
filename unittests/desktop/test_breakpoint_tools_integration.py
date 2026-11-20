@@ -86,7 +86,7 @@ async def test_breakpoint_list_prog(backend):
     opened, open_err = await backend.com.run(lambda: _open_bp_list_dialog_com(session))
     assert opened, f"Dialog open failed: {open_err}"
 
-    rows, read_err = await backend.com.run(lambda: _read_bp_grid_and_close_com(session, "PROG", TEST_REPORT, None))
+    rows, read_err = await backend.com.run(lambda: _read_bp_grid_and_close_com(session))
     assert not read_err, f"Grid read failed: {read_err}"
 
     entries = _filter_bp_rows(rows, "PROG", TEST_REPORT, None)
