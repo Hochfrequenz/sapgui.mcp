@@ -24,10 +24,12 @@
 ### Task 1: `confirm_destructive_action` helper module
 
 **Files:**
+
 - Create: `src/sapguimcp/tools/confirmation_helpers.py`
 - Test: `unittests/test_confirmation_helpers.py`
 
 **Interfaces:**
+
 - Produces: `async def confirm_destructive_action(ctx: Context | None, message: str) -> tuple[bool, str, bool]` — importable as `from sapguimcp.tools.confirmation_helpers import confirm_destructive_action`. Returns `(proceed, reason, skipped)`: `proceed=True` to continue, `proceed=False` to abort with `reason` explaining why; `skipped=True` means no real human confirmation was obtained (fail-open) — whenever `skipped=True`, `proceed` is always `True`. Task 2 imports and calls this directly.
 
 - [ ] **Step 1: Write the failing test**
@@ -193,11 +195,13 @@ git commit -m "feat: add confirm_destructive_action MCP elicitation helper"
 ### Task 2: Wire confirmation into `sap_breakpoint_set`
 
 **Files:**
+
 - Modify: `src/sapguimcp/models/breakpoint_models.py` (add `confirmation_skipped` field to `BreakpointSetResult`)
 - Modify: `src/sapguimcp/tools/breakpoint_tools.py:11` (import), `:21` (import), `:453-477` (add message-builder helper after `_resolve_line_number`), `:510-529` (function signature + docstring), `:592-602` (insert confirmation call)
 - Test: `unittests/test_breakpoint_tools_confirmation.py`
 
 **Interfaces:**
+
 - Consumes: `confirm_destructive_action(ctx: Context | None, message: str) -> tuple[bool, str, bool]` from Task 1 (`sapguimcp.tools.confirmation_helpers`).
 - Produces: `sap_breakpoint_set` gains a `ctx: Context | None = None` parameter (FastMCP auto-injects it; it does not appear in the tool's client-visible schema). `_build_breakpoint_confirm_message(object_type, object_name, method_name, line_number) -> str` is a new private module function in `breakpoint_tools.py` (not consumed elsewhere). `BreakpointSetResult` gains `confirmation_skipped: bool = False`.
 

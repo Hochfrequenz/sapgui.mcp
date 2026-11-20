@@ -13,7 +13,7 @@ needs ~7 fields (Vorname, Nachname, Land/Region, Strasse, PLZ, Ort, etc.).
 
 ### Surface symptoms
 
-When the agent passes the *correct* payload shape
+When the agent passes the _correct_ payload shape
 (`{"fields": {...}, "strict": false}`):
 
 - The MCP client (e.g. OpenCode) waits for the request.
@@ -38,12 +38,12 @@ That's a pure documentation problem, addressed separately in this spec.
 internally calls `dump_tree()` once or twice depending on which strategy
 succeeds:
 
-| Strategy | Function                              | Calls `dump_tree`? |
-| -------- | ------------------------------------- | ------------------ |
-| 1        | `_find_by_name_prefix`                | No                 |
-| 2        | `_find_by_label_text`                 | **Yes**            |
-| 3        | `_find_by_readonly_textfield_label`   | **Yes**            |
-| 4        | `_find_by_sap_name`                   | No                 |
+| Strategy | Function                            | Calls `dump_tree`? |
+| -------- | ----------------------------------- | ------------------ |
+| 1        | `_find_by_name_prefix`              | No                 |
+| 2        | `_find_by_label_text`               | **Yes**            |
+| 3        | `_find_by_readonly_textfield_label` | **Yes**            |
+| 4        | `_find_by_sap_name`                 | No                 |
 
 For German BP labels like `Vorname`, `Nachname`, Strategy 1 misses, so
 Strategy 2 fires (1 dump). For composite labels like `Strasse/Hausnummer`,
@@ -61,12 +61,12 @@ There is no per-field round-trip. The bug is desktop-specific.
 
 ### When the bug was introduced
 
-- **2026-03-15**, commit `7eec6feb` (#376, *feat(desktop): Phase 2 - fill
-  fields, click buttons, element finder*) - desktop `fill_form` and
+- **2026-03-15**, commit `7eec6feb` (#376, _feat(desktop): Phase 2 - fill
+  fields, click buttons, element finder_) - desktop `fill_form` and
   `find_field_by_label` are added in this commit. Strategy 2 already calls
   `dump_tree` per call. At this point: 1 dump per missed-Strategy-1 field.
-- **2026-03-19**, commit `2fd35e8c` (#452, *composite label support for
-  sap_fill_form*) - Strategy 3 added. Strategy 3 also calls `dump_tree`, so
+- **2026-03-19**, commit `2fd35e8c` (#452, _composite label support for
+  sap_fill_form_) - Strategy 3 added. Strategy 3 also calls `dump_tree`, so
   any field that misses Strategy 2 now does **two** dumps. This is the
   commit that turned a slow function into one that times out on real
   payloads.
@@ -257,7 +257,7 @@ unchanged.
 
 1. **Unit: `find_field_by_label` accepts a pre-built tree.** Pass a
    hand-built `flat_tree` (list of fake elements) to `find_field_by_label`
-   and assert it finds the expected field via Strategy 2 *without* the
+   and assert it finds the expected field via Strategy 2 _without_ the
    test's mock session being asked for `dump_tree`. Proves the helper no
    longer dumps internally.
 
@@ -273,7 +273,7 @@ unchanged.
 
 4. **Integration (desktop, marked `skip_no_sap`): BP person creation with
    multi-field `fill_form`.** Add a test to `unittests/desktop/test_bp_
-   integration.py` (or extend the existing one) that fills 5-7 fields in
+integration.py` (or extend the existing one) that fills 5-7 fields in
    the BP person-creation screen via a single `sap_fill_form` call and
    asserts it completes well under any reasonable timeout (soft-assert
    wall-clock < 5 seconds). This is the end-to-end proof that the

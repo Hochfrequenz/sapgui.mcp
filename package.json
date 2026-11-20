@@ -6,7 +6,7 @@
     "prettier": "3.10.1"
   },
   "scripts": {
-    "format": "prettier --write **/*.md",
-    "format:check": "prettier --check **/*.md"
+    "format": "prettier --write \"**/*.md\"",
+    "format:check": "prettier --check \"**/*.md\""
   }
 }

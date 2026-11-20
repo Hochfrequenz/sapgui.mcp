@@ -8,9 +8,9 @@ Automatically create GitHub issues from model feedback logged via `log_feedback`
 
 Two new env vars in `SapGuiSettings`:
 
-| Variable      | Description                                       | Default                      |
-| ------------- | ------------------------------------------------- | ---------------------------- |
-| `GITHUB_PAT`  | GitHub PAT for creating issues (empty = disabled) | (empty)                      |
+| Variable      | Description                                       | Default                   |
+| ------------- | ------------------------------------------------- | ------------------------- |
+| `GITHUB_PAT`  | GitHub PAT for creating issues (empty = disabled) | (empty)                   |
 | `GITHUB_REPO` | Repository for issues (owner/repo)                | `Hochfrequenz/sapgui.mcp` |
 
 ## Architecture

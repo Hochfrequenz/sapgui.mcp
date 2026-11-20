@@ -2,7 +2,7 @@
 
 ## Problem
 
-`ComThread._execute_with_retry` retries the *entire* callable `fn()` on
+`ComThread._execute_with_retry` retries the _entire_ callable `fn()` on
 RETRYLATER / CALL_REJECTED / RPC_S_UNKNOWN_IF. If `fn` is a multi-step batch
 (e.g. `sap_com_evaluate`'s `_run_all`, or `DesktopBackend.login`'s sapsucker
 login lambda), a transient error mid-batch re-runs every already-completed
@@ -10,7 +10,7 @@ step. For a batch that contains a Save (SendVKey 11), the Save fires twice.
 
 ## Approach: progress-aware re-invocation (opt-in per callable)
 
-Retrying only the *failing COM call* is impossible from the ComThread — it
+Retrying only the _failing COM call_ is impossible from the ComThread — it
 sees one opaque `fn()`. So the fix moves the retry boundary into the callable
 and makes the whole-callable retry safe:
 
@@ -19,7 +19,7 @@ and makes the whole-callable retry safe:
    attempted). On a retryable COM error the op's own try/except in
    `_execute_single_op` already catches per-op exceptions — the ONLY errors
    that escape to `_execute_with_retry` are COM transport errors raised
-   *inside* a COM call. So: catch retryable COM errors per-op inside
+   _inside_ a COM call. So: catch retryable COM errors per-op inside
    `_run_all`, remember the resume point, and re-raise a dedicated
    `BatchRetry` exception carrying (results-so-far, resume-index). The
    ComThread, seeing `BatchRetry`, retries `fn` which fast-forwards past

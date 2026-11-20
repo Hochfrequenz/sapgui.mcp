@@ -32,12 +32,12 @@ Move `_find_landscape_path()` and `_parse_landscape_xml()` from `tools/sap_list_
 This breaks the only `backend → tools` edge: `desktop/__init__.py` no longer imports from `tools/`. With the cycle gone:
 
 - `manager.py` can import both backends at top-level. Desktop imports use a platform guard:
-  ```python
-  if sys.platform == "win32":
-      from sapguimcp.backend.desktop import DesktopBackend, _current_session_id
-      from sapguimcp.backend.desktop._com_thread import ComThread
-  ```
-  This is needed because `desktop/__init__.py` imports `sapsucker.login` at top-level, which only exists on Windows.
+    ```python
+    if sys.platform == "win32":
+        from sapguimcp.backend.desktop import DesktopBackend, _current_session_id
+        from sapguimcp.backend.desktop._com_thread import ComThread
+    ```
+    This is needed because `desktop/__init__.py` imports `sapsucker.login` at top-level, which only exists on Windows.
 - `desktop/__init__.py` can import result models and `get_settings` at top-level since there is no longer a reverse path back to `tools/`.
 
 **Eliminates:** 5 lazy imports in `manager.py`, 1 lazy import in `desktop/__init__.py` (the `sap_list_connections_impl` import).
@@ -46,17 +46,17 @@ This breaks the only `backend → tools` edge: `desktop/__init__.py` no longer i
 
 These imports have no circular dependency risk and are local for historical reasons only.
 
-| Import | Files | Lines |
-|--------|-------|-------|
-| `time` | se09_tools.py, se11_tools.py, desktop/__init__.py | 4 |
-| `asyncio` | spro_tools.py | 2 |
-| `typing.Any`, `typing.cast` | se09_tools.py, se24_edit_tools.py | 4 |
-| `PlaywrightError` | webgui/backend.py | 2 |
-| `SapFieldType` | webgui/backend.py | 1 |
-| `get_browser_manager` | webgui/backend.py | 1 |
-| `get_settings` | desktop/__init__.py | 2 |
-| `get_backend` | quick_report_tools.py | 1 |
-| Result models (`FormFieldsResult`, `FillFormResult`, `DropdownFillResult`, `ClosePopupResult`, `CheckActivateResult`, `PopupButton`, `PopupType`) | desktop/__init__.py | 7 |
+| Import                                                                                                                                            | Files                                               | Lines |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ----- |
+| `time`                                                                                                                                            | se09_tools.py, se11_tools.py, `desktop/__init__.py` | 4     |
+| `asyncio`                                                                                                                                         | spro_tools.py                                       | 2     |
+| `typing.Any`, `typing.cast`                                                                                                                       | se09_tools.py, se24_edit_tools.py                   | 4     |
+| `PlaywrightError`                                                                                                                                 | webgui/backend.py                                   | 2     |
+| `SapFieldType`                                                                                                                                    | webgui/backend.py                                   | 1     |
+| `get_browser_manager`                                                                                                                             | webgui/backend.py                                   | 1     |
+| `get_settings`                                                                                                                                    | `desktop/__init__.py`                               | 2     |
+| `get_backend`                                                                                                                                     | quick_report_tools.py                               | 1     |
+| Result models (`FormFieldsResult`, `FillFormResult`, `DropdownFillResult`, `ClosePopupResult`, `CheckActivateResult`, `PopupButton`, `PopupType`) | `desktop/__init__.py`                               | 7     |
 
 **Eliminates:** ~24 lazy imports.
 
@@ -81,38 +81,38 @@ Note: `_discovery.py` lines 128-130 (`sapsucker.login`, `SapGui`, `SapConnection
 
 These are justified and should remain:
 
-| Import | File(s) | Count | Reason |
-|--------|---------|-------|--------|
-| `DesktopBackend` | 12 tool helper functions | 12 | Need concrete class for `._com`, `._require_session()` |
-| `_flatten` | 5 tool files (co-located with DesktopBackend) | 5 | Same guard block as DesktopBackend |
-| `pythoncom` | `_com_thread.py` | 2 | Runtime `if self._init_com` platform guard |
-| `winreg` | `sap_list_connections_impl.py` | 1 | `sys.platform == "win32"` guard |
-| `wrap_com_object` | `desktop/__init__.py` | 1 | COM thread callback |
-| `sapsucker.login`, `SapGui`, `SapConnectionError` | `_discovery.py` | 3 | Heavy import chain, called rarely |
-| `GuiVContainer` | `se93_tools.py` | 1 | sapsucker component in COM callback |
-| `server` | `__init__.py` | 1 | `__getattr__` lazy module loading |
-| `_sapguimcp_version` | `server.py` | 1 | Generated file, may not exist |
-| `open_and_discover_clients` | `desktop/__init__.py` | 1 | Heavy import chain, called rarely |
+| Import                                            | File(s)                                       | Count | Reason                                                 |
+| ------------------------------------------------- | --------------------------------------------- | ----- | ------------------------------------------------------ |
+| `DesktopBackend`                                  | 12 tool helper functions                      | 12    | Need concrete class for `._com`, `._require_session()` |
+| `_flatten`                                        | 5 tool files (co-located with DesktopBackend) | 5     | Same guard block as DesktopBackend                     |
+| `pythoncom`                                       | `_com_thread.py`                              | 2     | Runtime `if self._init_com` platform guard             |
+| `winreg`                                          | `sap_list_connections_impl.py`                | 1     | `sys.platform == "win32"` guard                        |
+| `wrap_com_object`                                 | `desktop/__init__.py`                         | 1     | COM thread callback                                    |
+| `sapsucker.login`, `SapGui`, `SapConnectionError` | `_discovery.py`                               | 3     | Heavy import chain, called rarely                      |
+| `GuiVContainer`                                   | `se93_tools.py`                               | 1     | sapsucker component in COM callback                    |
+| `server`                                          | `__init__.py`                                 | 1     | `__getattr__` lazy module loading                      |
+| `_sapguimcp_version`                              | `server.py`                                   | 1     | Generated file, may not exist                          |
+| `open_and_discover_clients`                       | `desktop/__init__.py`                         | 1     | Heavy import chain, called rarely                      |
 
 **Total remaining: ~28**
 
 ## File changes
 
-| Action | File |
-|--------|------|
-| **Edit** | `backend/protocol.py` — add `backend_type` property |
-| **Edit** | `backend/desktop/__init__.py` — implement property, promote ~14 imports to top-level |
-| **Edit** | `backend/webgui/backend.py` — implement property, promote 4 imports |
-| **Create** | `backend/desktop/_landscape.py` — move landscape XML parsing here |
-| **Edit** | `tools/sap_list_connections_impl.py` — import from `_landscape.py` |
-| **Edit** | `backend/manager.py` — promote 5 backend imports with platform guard |
-| **Edit** | `tools/_backend_utils.py` — use `backend_type` property |
-| **Edit** | `tools/se09_tools.py` — promote `time`, `Any` |
-| **Edit** | `tools/se11_tools.py` — promote `time` |
-| **Edit** | `tools/se24_edit_tools.py` — promote `Any`, `cast` |
-| **Edit** | `tools/spro_tools.py` — promote `asyncio` |
-| **Edit** | `tools/quick_report_tools.py` — promote `get_backend` |
-| **Edit** | `backend/desktop/_discovery.py` — consolidate top-level sapsucker imports |
+| Action     | File                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------ |
+| **Edit**   | `backend/protocol.py` — add `backend_type` property                                  |
+| **Edit**   | `backend/desktop/__init__.py` — implement property, promote ~14 imports to top-level |
+| **Edit**   | `backend/webgui/backend.py` — implement property, promote 4 imports                  |
+| **Create** | `backend/desktop/_landscape.py` — move landscape XML parsing here                    |
+| **Edit**   | `tools/sap_list_connections_impl.py` — import from `_landscape.py`                   |
+| **Edit**   | `backend/manager.py` — promote 5 backend imports with platform guard                 |
+| **Edit**   | `tools/_backend_utils.py` — use `backend_type` property                              |
+| **Edit**   | `tools/se09_tools.py` — promote `time`, `Any`                                        |
+| **Edit**   | `tools/se11_tools.py` — promote `time`                                               |
+| **Edit**   | `tools/se24_edit_tools.py` — promote `Any`, `cast`                                   |
+| **Edit**   | `tools/spro_tools.py` — promote `asyncio`                                            |
+| **Edit**   | `tools/quick_report_tools.py` — promote `get_backend`                                |
+| **Edit**   | `backend/desktop/_discovery.py` — consolidate top-level sapsucker imports            |
 
 ## Verification
 

@@ -23,6 +23,7 @@ README.md    # The only file modified
 ## Task 1: Update intro text and heading
 
 **Files:**
+
 - Modify: `README.md:1-9`
 
 - [ ] **Step 1: Update heading and tagline**
@@ -57,6 +58,7 @@ git commit -m "docs: update README heading and tagline for dual-backend support"
 ## Task 2: Restructure .exe section with desktop + WebGUI options
 
 **Files:**
+
 - Modify: `README.md:28-102` (the `<details>` block for Standalone Executable)
 
 - [ ] **Step 1: Replace the .exe section content**
@@ -73,18 +75,19 @@ Download `sapgui_mcp_windows_<version>.exe` from
 
 Choose a backend:
 
-| | Desktop Backend (SAP GUI) | WebGUI Backend (Browser) |
-|---|---|---|
-| **Platform** | Windows only | Windows, macOS, Linux |
-| **Requires** | SAP GUI for Windows | Chrome browser |
-| **Speed** | Faster (direct COM) | Slower (browser automation) |
-| **Setup** | Simpler (no Chrome/CDP) | More steps |
+|              | Desktop Backend (SAP GUI) | WebGUI Backend (Browser)    |
+| ------------ | ------------------------- | --------------------------- |
+| **Platform** | Windows only              | Windows, macOS, Linux       |
+| **Requires** | SAP GUI for Windows       | Chrome browser              |
+| **Speed**    | Faster (direct COM)       | Slower (browser automation) |
+| **Setup**    | Simpler (no Chrome/CDP)   | More steps                  |
 
 ### Option A: Desktop Backend (SAP GUI)
 
 **Windows-only.** Automates SAP GUI directly via COM — no browser needed.
 
 **Prerequisites:**
+
 - SAP GUI for Windows installed (standard path — the server finds it automatically via Windows registry)
 - SAP GUI Scripting enabled (one-time setup, see below)
 
@@ -92,10 +95,12 @@ Choose a backend:
 <summary>Enable SAP GUI Scripting (one-time)</summary>
 
 **Server side** (requires admin/basis team):
+
 - Transaction `RZ11` → parameter `sapgui/user_scripting` → set to `TRUE`
 - Dynamic parameter — no server restart needed, but users must re-login (close and reopen SAP GUI)
 
 **Client side** (your PC):
+
 1. Open SAP GUI → go to Options (menu bar or tray icon)
 2. Navigate to **Accessibility & Scripting → Scripting**
 3. Check **"Enable Scripting"**
@@ -152,6 +157,7 @@ Add to `.mcp.json` in your project root:
 ```
 
 Replace:
+
 - `Your SAP Logon Entry` with the connection name from SAP Logon pad (e.g. `"DEV S/4HANA"`)
 - `your_username` / `your_password` with your SAP credentials
 
@@ -243,6 +249,7 @@ git commit -m "docs: restructure .exe section with desktop and WebGUI backend op
 ## Task 3: Update Configuration Reference table
 
 **Files:**
+
 - Modify: `README.md` — the Configuration Reference table and footnotes
 
 - [ ] **Step 1: Add BACKEND_TYPE and SAP_CONNECTION_NAME rows, update SAP_URL**
@@ -250,27 +257,27 @@ git commit -m "docs: restructure .exe section with desktop and WebGUI backend op
 Replace the Configuration Reference table with:
 
 ```markdown
-| Variable              | Required                          | Description                                                  | Default                      |
-| --------------------- | --------------------------------- | ------------------------------------------------------------ | ---------------------------- |
-| `BACKEND_TYPE`        | No                                | `webgui` (browser automation) or `desktop` (SAP GUI COM, Windows only) | `webgui`           |
-| `SAP_CONNECTION_NAME` | When `BACKEND_TYPE=desktop`       | SAP Logon pad connection entry name (e.g. `"DEV S/4HANA"`)       | —                            |
-| `SAP_URL`             | When `BACKEND_TYPE=webgui` <sup>1</sup> | SAP Web GUI URL                                        | `""`                         |
-| `SAP_USER`            | **Yes** <sup>1</sup>             | SAP username for auto-login                                  | `""`                         |
-| `SAP_PASSWORD`        | **Yes** <sup>1</sup>             | SAP password for auto-login                                  | `""`                         |
-| `SAP_MANDANT`         | **Yes** <sup>1</sup>             | SAP client (3-digit, e.g., `100`)                            | `""`                         |
-| `SAP_LANGUAGE`        | No                                | Login language (`DE` or `EN`)                                | `EN`                         |
-| `BROWSER_MODE`        | No                                | `connect` (existing Chrome) or `launch` (Playwright). WebGUI only. | `connect`              |
-| `BROWSER_TYPE`        | No                                | `chromium`, `firefox`, or `webkit`. WebGUI only.             | `chromium`                   |
-| `BROWSER_HEADLESS`    | No                                | Run browser in headless mode. WebGUI only.                   | `false`                      |
-| `CDP_URL`             | When `BROWSER_MODE=connect`       | Chrome DevTools Protocol URL. WebGUI only.                   | `http://localhost:9222`      |
-| `GITHUB_PAT`          | No                                | GitHub PAT for `log_feedback` issues and abapGit auth        | —                            |
-| `GITHUB_USER`         | No                                | GitHub username for abapGit (falls back to `x-access-token`) | —                            |
-| `GITHUB_REPO`         | No                                | Repository for feedback issues                               | `Hochfrequenz/sapgui.mcp` |
-| `ABAPGIT_PAT`         | No                                | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)     | —                            |
-| `PAPERTRAIL_HOST`     | No                                | Papertrail syslog host (empty to disable)                    | `""` (off) <sup>2</sup>      |
-| `PAPERTRAIL_PORT`     | No                                | Papertrail syslog port                                       | `0` (off) <sup>2</sup>       |
-| `LOG_FORMAT`          | No                                | Set to `json` for JSON log output                            | `""` (human-readable)        |
-| `LOG_LEVEL`           | No                                | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                       | `INFO`                       |
+| Variable              | Required                                | Description                                                            | Default                   |
+| --------------------- | --------------------------------------- | ---------------------------------------------------------------------- | ------------------------- |
+| `BACKEND_TYPE`        | No                                      | `webgui` (browser automation) or `desktop` (SAP GUI COM, Windows only) | `webgui`                  |
+| `SAP_CONNECTION_NAME` | When `BACKEND_TYPE=desktop`             | SAP Logon pad connection entry name (e.g. `"DEV S/4HANA"`)             | —                         |
+| `SAP_URL`             | When `BACKEND_TYPE=webgui` <sup>1</sup> | SAP Web GUI URL                                                        | `""`                      |
+| `SAP_USER`            | **Yes** <sup>1</sup>                    | SAP username for auto-login                                            | `""`                      |
+| `SAP_PASSWORD`        | **Yes** <sup>1</sup>                    | SAP password for auto-login                                            | `""`                      |
+| `SAP_MANDANT`         | **Yes** <sup>1</sup>                    | SAP client (3-digit, e.g., `100`)                                      | `""`                      |
+| `SAP_LANGUAGE`        | No                                      | Login language (`DE` or `EN`)                                          | `EN`                      |
+| `BROWSER_MODE`        | No                                      | `connect` (existing Chrome) or `launch` (Playwright). WebGUI only.     | `connect`                 |
+| `BROWSER_TYPE`        | No                                      | `chromium`, `firefox`, or `webkit`. WebGUI only.                       | `chromium`                |
+| `BROWSER_HEADLESS`    | No                                      | Run browser in headless mode. WebGUI only.                             | `false`                   |
+| `CDP_URL`             | When `BROWSER_MODE=connect`             | Chrome DevTools Protocol URL. WebGUI only.                             | `http://localhost:9222`   |
+| `GITHUB_PAT`          | No                                      | GitHub PAT for `log_feedback` issues and abapGit auth                  | —                         |
+| `GITHUB_USER`         | No                                      | GitHub username for abapGit (falls back to `x-access-token`)           | —                         |
+| `GITHUB_REPO`         | No                                      | Repository for feedback issues                                         | `Hochfrequenz/sapgui.mcp` |
+| `ABAPGIT_PAT`         | No                                      | Separate PAT for abapGit (overrides `GITHUB_PAT` if set)               | —                         |
+| `PAPERTRAIL_HOST`     | No                                      | Papertrail syslog host (empty to disable)                              | `""` (off) <sup>2</sup>   |
+| `PAPERTRAIL_PORT`     | No                                      | Papertrail syslog port                                                 | `0` (off) <sup>2</sup>    |
+| `LOG_FORMAT`          | No                                      | Set to `json` for JSON log output                                      | `""` (human-readable)     |
+| `LOG_LEVEL`           | No                                      | `DEBUG`, `INFO`, `WARNING`, or `ERROR`                                 | `INFO`                    |
 ```
 
 Footnote 1 stays the same. No change to footnote 2.
@@ -287,6 +294,7 @@ git commit -m "docs: add BACKEND_TYPE and SAP_CONNECTION_NAME to config referenc
 ## Task 4: Update Architecture diagram
 
 **Files:**
+
 - Modify: `README.md` — the Architecture section
 
 - [ ] **Step 1: Add desktop architecture diagram and label the existing one**

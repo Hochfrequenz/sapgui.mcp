@@ -1614,7 +1614,7 @@ agent time; stop when it runs out and leave the rest as `NOT_LOOKED_UP`.
       job-status domain, confirmed in DD07T), the `*.initial_screen` and other transaction titles
       (`Transaction`), field labels and column headers (`DataElement`: search DD04T by the EN
       text, e.g. `SELECT ROLLNAME, SCRTEXT_M FROM DD04T WHERE DDLANGUAGE = 'E' AND SCRTEXT_M =
-  'Table Name'`, then confirm that the DE text of the same `ROLLNAME` is the DE pack variant),
+'Table Name'`, then confirm that the DE text of the same `ROLLNAME` is the DE pack variant),
       status-bar texts (`Message`: search T100 by text), then screen texts and buttons
       (`ScreenText`, `GuiFunction`) for the screens the tools read. Search by the pack text, do
       not guess IDs.

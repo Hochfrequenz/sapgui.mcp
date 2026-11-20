@@ -15,6 +15,7 @@
 ### Task 1: Add `backend_type` property to protocol and backends
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/protocol.py`
 - Modify: `src/sapguimcp/backend/desktop/__init__.py`
 - Modify: `src/sapguimcp/backend/webgui/backend.py`
@@ -100,6 +101,7 @@ git add -u && git commit -m "refactor: add backend_type property, remove lazy im
 ### Task 2: Extract `_landscape.py` — break the circular chain
 
 **Files:**
+
 - Create: `src/sapguimcp/backend/desktop/_landscape.py`
 - Modify: `src/sapguimcp/tools/sap_list_connections_impl.py`
 - Modify: `src/sapguimcp/backend/desktop/__init__.py`
@@ -201,6 +203,7 @@ git add -u && git commit -m "refactor: extract _landscape.py to break desktop �
 ### Task 3: Promote manager.py backend imports to top-level
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/manager.py`
 
 - [ ] **Step 1: Move lazy imports to top-level with platform guard**
@@ -242,11 +245,13 @@ git add -u && git commit -m "refactor: promote manager.py backend imports to top
 ### Task 4: Promote trivial imports in `desktop/__init__.py`
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/desktop/__init__.py`
 
 - [ ] **Step 1: Move result models from TYPE_CHECKING to runtime imports**
 
 In `desktop/__init__.py`, the TYPE_CHECKING block (lines 59-68) has:
+
 ```python
 if TYPE_CHECKING:
     from sapsucker.components.session import GuiSession
@@ -265,6 +270,7 @@ Then remove the 5 corresponding lazy imports inside methods (lines ~574, ~882, ~
 - [ ] **Step 2: Promote `get_settings`, `time`, `PopupButton`, `PopupType`**
 
 Move these lazy imports to top-level:
+
 - `from sapguimcp.models.config import get_settings` — add to top-level imports
 - `import time` — add to stdlib imports at top
 - `from sapguimcp.models.base import PopupButton, PopupType` — add `PopupButton, PopupType` to the existing `from sapguimcp.models.base import PopupInfo, ToolResult` line
@@ -304,6 +310,7 @@ git add -u && git commit -m "refactor: promote ~14 lazy imports to top-level in 
 ### Task 5: Promote trivial imports in webgui and tool files
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/webgui/backend.py`
 - Modify: `src/sapguimcp/tools/se09_tools.py`
 - Modify: `src/sapguimcp/tools/se11_tools.py`
@@ -315,6 +322,7 @@ git add -u && git commit -m "refactor: promote ~14 lazy imports to top-level in 
 - [ ] **Step 1: Promote imports in `webgui/backend.py`**
 
 Move to top-level:
+
 - `from playwright.async_api import Error as PlaywrightError` (used at lines ~1262, ~1275)
 - `from sapguimcp.models.sap_results import SapFieldType` (used at line ~1059)
 - `from sapguimcp.backend.webgui.browser import get_browser_manager` (used at line ~1416)

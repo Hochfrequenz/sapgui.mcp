@@ -37,7 +37,7 @@ responds. This design ports that pattern to Python/FastMCP for `sap_breakpoint_s
   session-collapse risk per #791). It must also be honest about the underlying **toggle**
   semantics (see Design §2) — it must not claim "set" when the action could equally
   delete an existing breakpoint at that line.
-- The tool's result must indicate when a breakpoint was armed *without* a real human
+- The tool's result must indicate when a breakpoint was armed _without_ a real human
   confirmation (fail-open triggered because the client can't do elicitation), so a human
   reviewing the transcript can tell "confirmed" apart from "confirmation unavailable,
   proceeded anyway."
@@ -85,14 +85,14 @@ async def confirm_destructive_action(ctx: Context | None, message: str) -> tuple
 
 Behavior:
 
-| Condition | Result `(proceed, reason, skipped)` |
-|---|---|
-| `ctx is None` | `(True, "", True)` — no client context available (e.g. bare unit test) |
-| `ctx.elicit(...)` raises any exception | Logged as a warning, then `(True, "", True)` (fail-open) |
-| Client accepts, `value=True` | `(True, "", False)` |
-| Client accepts, `value=False` | `(False, "user declined via confirmation form", False)` |
-| Client declines the form | `(False, "user declined the confirmation", False)` |
-| Client cancels the form | `(False, "user cancelled the confirmation", False)` |
+| Condition                              | Result `(proceed, reason, skipped)`                                    |
+| -------------------------------------- | ---------------------------------------------------------------------- |
+| `ctx is None`                          | `(True, "", True)` — no client context available (e.g. bare unit test) |
+| `ctx.elicit(...)` raises any exception | Logged as a warning, then `(True, "", True)` (fail-open)               |
+| Client accepts, `value=True`           | `(True, "", False)`                                                    |
+| Client accepts, `value=False`          | `(False, "user declined via confirmation form", False)`                |
+| Client declines the form               | `(False, "user declined the confirmation", False)`                     |
+| Client cancels the form                | `(False, "user cancelled the confirmation", False)`                    |
 
 Implementation calls `ctx.elicit(message, response_type=bool, response_title="Proceed?")`.
 FastMCP auto-generates a single-field `{value: boolean}` schema for a primitive
@@ -112,7 +112,7 @@ File: `src/sapguimcp/tools/breakpoint_tools.py`.
   line is known, so the confirmation message can name it. Navigation itself has no
   destructive effect, so doing it before asking is safe.
 - New helper `_build_breakpoint_confirm_message(object_type, object_name, method_name,
-  resolved_line) -> str` builds the message text. It must describe the action as a
+resolved_line) -> str` builds the message text. It must describe the action as a
   **toggle**, not an unconditional "set" — `_toggle_breakpoint_com` deletes an existing
   breakpoint at that exact line instead of setting a new one (see the tool's own
   docstring: "SAP toggles breakpoints: if the line already has a breakpoint, VKey 45
@@ -120,18 +120,18 @@ File: `src/sapguimcp/tools/breakpoint_tools.py`.
   only discovered after the toggle, via the status-bar text), so it states both outcomes
   honestly rather than pre-checking with an extra COM round trip:
 
-  > "About to toggle the external ABAP breakpoint on PROG Z_TICTACTOE, line 250: if no
-  > breakpoint exists there yet, this SETS one; if one already exists at this exact
-  > line, SAP briefly clears it and this tool immediately re-arms it — either way the
-  > breakpoint ends up ARMED.
-  >
-  > Setting a breakpoint is dangerous: once it fires, SAP GUI opens a modal debugger
-  > that only a human can drive — there is no tool to step, continue, or read
-  > variables. Live-verified: firing it can destroy ALL open sessions for this agent at
-  > once (issue #791), not just this one. Proceed?"
+    > "About to toggle the external ABAP breakpoint on PROG Z_TICTACTOE, line 250: if no
+    > breakpoint exists there yet, this SETS one; if one already exists at this exact
+    > line, SAP briefly clears it and this tool immediately re-arms it — either way the
+    > breakpoint ends up ARMED.
+    >
+    > Setting a breakpoint is dangerous: once it fires, SAP GUI opens a modal debugger
+    > that only a human can drive — there is no tool to step, continue, or read
+    > variables. Live-verified: firing it can destroy ALL open sessions for this agent at
+    > once (issue #791), not just this one. Proceed?"
 
 - On `proceed=False`: return `BreakpointSetResult.failure(error=f"sap_breakpoint_set
-  aborted: {reason}", ...)` immediately. The COM toggle is never invoked.
+aborted: {reason}", ...)` immediately. The COM toggle is never invoked.
 - On `proceed=True`: pass `skipped` through to a new `confirmation_skipped: bool` field
   on `BreakpointSetResult` (default `False`), set to the helper's `skipped` value on the
   success path. This is how the fail-open case (§ Goals) becomes visible to whoever reads
