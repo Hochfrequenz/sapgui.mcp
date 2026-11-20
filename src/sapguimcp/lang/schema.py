@@ -340,6 +340,8 @@ class St22Section:
     col_error_type: Text
     col_short_text: Text
     call_stack_heading: Text
+    termination_heading: Text
+    """Heading of the text on where the program terminated, which names the include and line in full (#1156)."""
     other_headings: Text
     """Headings that end a section of the dump detail (the ones in ``section`` and ``call_stack_heading`` do too)."""
 

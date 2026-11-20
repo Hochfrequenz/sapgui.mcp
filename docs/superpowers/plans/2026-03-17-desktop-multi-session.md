@@ -15,12 +15,14 @@
 ## Task 1: DesktopSessionRegistry — unit tests + implementation
 
 **Files:**
+
 - Create: `src/sapguimcp/backend/desktop/_session_registry.py`
 - Create: `unittests/test_desktop_session_registry.py`
 
 - [ ] **Step 1.1: Write failing tests for the registry**
 
 Create `unittests/test_desktop_session_registry.py` with tests covering:
+
 - `TestRegister`: first=s1, second=s2, counter increments to s5
 - `TestGetSession`: returns correct session, None defaults to s1, unknown raises ValueError, empty registry + None raises ValueError, stale session auto-unregisters (monkeypatch `_last_probe` to bypass TTL)
 - `TestTTLCache`: session probed on first access, NOT probed within TTL window even if COM would fail, probed again after TTL expires
@@ -38,6 +40,7 @@ Expected: FAIL with `ImportError: cannot import name 'DesktopSessionRegistry'`
 - [ ] **Step 1.3: Implement DesktopSessionRegistry**
 
 Create `src/sapguimcp/backend/desktop/_session_registry.py` with:
+
 - `_PROBE_TTL_SECONDS = 5.0` constant
 - `register(session) → str`: increments counter, stores session, sets probe timestamp
 - `get_session(session_id | None) → GuiSession`: None→"s1", probes COM with TTL, auto-unregisters on failure
@@ -59,6 +62,7 @@ Expected: All tests PASS (target: ~18 tests)
 ## Task 2: Wire registry into DesktopBackend + ContextVar routing
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/desktop/__init__.py`
 - Modify: `src/sapguimcp/backend/manager.py`
 - Create: `unittests/test_contextvar_routing.py` (unit test for ContextVar + _require_session)
@@ -68,6 +72,7 @@ Expected: All tests PASS (target: ~18 tests)
 In `src/sapguimcp/backend/desktop/__init__.py`:
 
 Module-level:
+
 ```python
 from contextvars import ContextVar
 from sapguimcp.backend.desktop._session_registry import DesktopSessionRegistry
@@ -76,6 +81,7 @@ _current_session_id: ContextVar[str | None] = ContextVar("_current_session_id", 
 ```
 
 Change `__init__`:
+
 ```python
 def __init__(self, com_thread=None):
     self._com = com_thread or ComThread()
@@ -83,6 +89,7 @@ def __init__(self, com_thread=None):
 ```
 
 Change `login` — register directly (NOT via property setter):
+
 ```python
 async def login(self, url, username, password, client, language, session_id=None):
     # ... existing COM login code ...
@@ -92,6 +99,7 @@ async def login(self, url, username, password, client, language, session_id=None
 ```
 
 Add backward compat property (read-only, for external code like conftest teardown):
+
 ```python
 @property
 def _session(self) -> GuiSession | None:
@@ -102,6 +110,7 @@ def _session(self) -> GuiSession | None:
 ```
 
 Change `_require_session`:
+
 ```python
 def _require_session(self) -> GuiSession:
     session_id = _current_session_id.get()
@@ -111,6 +120,7 @@ def _require_session(self) -> GuiSession:
 - [ ] **Step 2.2: Rewrite session management methods**
 
 `open_new_session`:
+
 ```python
 async def open_new_session(self, tcode):
     session = self._require_session()
@@ -137,6 +147,7 @@ async def open_new_session(self, tcode):
 ```
 
 `close_session` — accepts registry ID, maps to COM ID:
+
 ```python
 async def close_session(self, session_id):
     if not self._registry.has_session(session_id):
@@ -157,6 +168,7 @@ async def close_session(self, session_id):
 ```
 
 `list_sessions` — registry is source of truth:
+
 ```python
 async def list_sessions(self):
     result = []
@@ -178,6 +190,7 @@ async def list_sessions(self):
 ```
 
 `bind_session`, `release_session`, `has_session`:
+
 ```python
 async def bind_session(self, session_id, agent_id):
     prev = self._registry.get_bound_agent(session_id)
@@ -196,6 +209,7 @@ async def has_session(self, session_id):
 - [ ] **Step 2.3: Update BackendManager**
 
 In `src/sapguimcp/backend/manager.py`, change desktop branch:
+
 - Single instance keyed as `"desktop"` (not per-session)
 - Set `_current_session_id` ContextVar before returning
 - Call `registry.check_binding` if session is specified
@@ -203,6 +217,7 @@ In `src/sapguimcp/backend/manager.py`, change desktop branch:
 - [ ] **Step 2.4: Write ContextVar routing unit test**
 
 Create `unittests/test_contextvar_routing.py`:
+
 - Mock registry with two sessions
 - Set `_current_session_id` to "s1" → verify `_require_session()` returns session 1
 - Set to "s2" → verify returns session 2
@@ -212,6 +227,7 @@ Create `unittests/test_contextvar_routing.py`:
 - [ ] **Step 2.5: Update conftest teardown**
 
 In `unittests/desktop/conftest.py`, update the backend fixture teardown to clear the registry:
+
 ```python
 # After closing connections
 if hasattr(b, '_registry'):
@@ -232,11 +248,13 @@ Run: `python -m pytest unittests/test_desktop_session_registry.py unittests/test
 ## Task 3: Desktop integration tests for multi-session
 
 **Files:**
+
 - Create: `unittests/desktop/test_multi_session_integration.py`
 
 - [ ] **Step 3.1: Write integration tests**
 
 Tests to write:
+
 - `test_open_second_session`: open s2, verify both s1 and s2 exist, cleanup
 - `test_parallel_navigation`: open s2, set ContextVar per-task, `asyncio.gather(navigate_s1_to_SE37, navigate_s2_to_SE16)`, verify each on correct transaction
 - `test_close_session`: open s2, close it, verify s2 gone + s1 works

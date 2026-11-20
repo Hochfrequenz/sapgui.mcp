@@ -44,6 +44,7 @@ _current_session_id: ContextVar[str | None] = ContextVar("_current_session_id", 
 ```
 
 Flow:
+
 1. `BackendManager.get_or_create(session="s2")` sets `_current_session_id.set("s2")`
 2. Tool calls `backend.fill_field(...)` → `_require_session()`
 3. `_require_session()` reads `_current_session_id.get()` → `registry.get_session("s2")` → correct `GuiSession`
@@ -91,25 +92,27 @@ Currently `BackendManager.get_or_create()` creates a **new `DesktopBackend`** fo
 
 ### Differences from WebGUI SessionRegistry
 
-| Aspect | WebGUI | Desktop |
-|--------|--------|---------|
-| Stored object | Playwright `Page` | pysapgui `GuiSession` |
-| Auto-cleanup | `page.on("close")` event | Check-on-access (COM probe with TTL) |
-| Stale detection | `page.is_closed()` | `session.com.Info.Transaction` probe |
-| Session creation | `/o` opens browser tab | `session.create_session()` COM call |
-| BackendManager | One `WebGuiBackend` per page | Single `DesktopBackend` shared |
+| Aspect           | WebGUI                       | Desktop                              |
+| ---------------- | ---------------------------- | ------------------------------------ |
+| Stored object    | Playwright `Page`            | pysapgui `GuiSession`                |
+| Auto-cleanup     | `page.on("close")` event     | Check-on-access (COM probe with TTL) |
+| Stale detection  | `page.is_closed()`           | `session.com.Info.Transaction` probe |
+| Session creation | `/o` opens browser tab       | `session.create_session()` COM call  |
+| BackendManager   | One `WebGuiBackend` per page | Single `DesktopBackend` shared       |
 
 Everything else is identical: ID scheme, binding, check_binding (warn-only), list/has/close.
 
 ## Testing
 
 ### Unit tests (no SAP)
+
 - Registry: register/get/unregister/bind/release/check_binding/list with mock GuiSession
 - `_require_session()` with ContextVar: verify correct session routing per async task
 - Stale session: mock dead COM, verify ValueError + auto-unregister
 - Edge cases: get nonexistent session, unregister primary, TTL cache behavior
 
 ### Integration tests (live SAP)
+
 - Open second session, verify "s2" returned and session count = 2
 - **Parallel navigation** via `asyncio.gather()`: s1 navigates to SE37, s2 to SE16 concurrently — verify each is on the correct transaction afterward
 - Session isolation: fill field on s1 → verify s2 screen is unaffected

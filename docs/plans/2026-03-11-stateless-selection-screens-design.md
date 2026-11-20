@@ -407,8 +407,8 @@ await ensure_screen_state(backend, target)
 
 ## File Layout
 
-| File                                              | Purpose                                                          |
-| ------------------------------------------------- | ---------------------------------------------------------------- |
+| File                                           | Purpose                                                          |
+| ---------------------------------------------- | ---------------------------------------------------------------- |
 | `src/sapguimcp/models/screen_state.py`         | `SelectionScreenState`, `ScreenStateDiff` models                 |
 | `src/sapguimcp/parsers/screen_state_parser.py` | `parse_selection_screen_state()` — pure ARIA snapshot parsing    |
 | `src/sapguimcp/tools/screen_state_helpers.py`  | `ensure_screen_state()`, `bilingual_target()` — transition logic |
@@ -416,8 +416,8 @@ await ensure_screen_state(backend, target)
 | `src/sapguimcp/backend/webgui/backend.py`      | Implement `set_radio_button()`                                   |
 | `src/sapguimcp/models/sap_results.py`          | Add `checked` field to `FormField`                               |
 | `src/sapguimcp/js/detect_form_fields.js`       | Return `el.checked` for checkbox/radio                           |
-| `unittests/test_screen_state_parser.py`           | Parser unit tests against existing YAML snapshots                |
-| `unittests/test_ensure_screen_state.py`           | Transition logic unit tests with mocked backend                  |
+| `unittests/test_screen_state_parser.py`        | Parser unit tests against existing YAML snapshots                |
+| `unittests/test_ensure_screen_state.py`        | Transition logic unit tests with mocked backend                  |
 
 ## Migration Plan
 

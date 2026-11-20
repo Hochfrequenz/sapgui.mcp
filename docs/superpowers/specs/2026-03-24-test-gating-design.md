@@ -36,12 +36,12 @@ Update the test section to document credential-based gating instead of hostname-
 
 ## Files
 
-| File | Change |
-|------|--------|
-| `unittests/conftest.py` | Remove hostname set + function, add `has_sap_desktop_creds()` and `has_sap_webgui_creds()` |
-| `unittests/desktop/conftest.py` | Replace `skip_not_sap` + `skip_no_creds` with single `skip_no_sap` |
-| `unittests/webgui/conftest.py` | Remove hostname check from `sap_mcp_client`, use credential check |
-| ~20 desktop integration test files | Replace `@skip_not_sap` / `@skip_no_creds` with `@skip_no_sap` |
-| ~15 webgui integration test files | Remove hostname references if any |
-| `tox.ini` | Expand `unit_tests` env to run all offline tests |
-| `ARCHITECTURE.md` | Update test gating docs |
+| File                               | Change                                                                                     |
+| ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| `unittests/conftest.py`            | Remove hostname set + function, add `has_sap_desktop_creds()` and `has_sap_webgui_creds()` |
+| `unittests/desktop/conftest.py`    | Replace `skip_not_sap` + `skip_no_creds` with single `skip_no_sap`                         |
+| `unittests/webgui/conftest.py`     | Remove hostname check from `sap_mcp_client`, use credential check                          |
+| ~20 desktop integration test files | Replace `@skip_not_sap` / `@skip_no_creds` with `@skip_no_sap`                             |
+| ~15 webgui integration test files  | Remove hostname references if any                                                          |
+| `tox.ini`                          | Expand `unit_tests` env to run all offline tests                                           |
+| `ARCHITECTURE.md`                  | Update test gating docs                                                                    |

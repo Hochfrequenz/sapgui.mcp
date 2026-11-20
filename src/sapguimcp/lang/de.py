@@ -154,7 +154,7 @@ DE = LanguagePack(
         parameter_name_column=Text(("Parametername",)),
         typing_column=Text(("Typisierung",)),
         type_ref_column=Text(("Bezugstyp",)),
-        default_column=Text(("Standardwert",)),
+        default_column=Text(("Vorschlagswert", "Standardwert")),
         optional_column=Text(("Optional",)),
         pass_value_column=Text(("Wertübergabe",)),
         short_text_column=Text(("Kurztext",)),
@@ -232,6 +232,7 @@ DE = LanguagePack(
         col_error_type=Text(("Laufzeitfehler", "Fehler")),
         col_short_text=Text(("Kurztext",)),
         call_stack_heading=Text(("Aktive Aufrufe/Ereignisse", "Aktive Aufrufe", "Aufrufhierarchie")),
+        termination_heading=Text(("Informationen zur Abbruchstelle",)),
         other_headings=Text(
             (
                 "Systemumgebung",

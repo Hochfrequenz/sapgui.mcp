@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, PropertyMock
 
 import pytest
 
+from sapguimcp.backend.desktop._com_thread import SapSessionDeadError
 from sapguimcp.backend.desktop._session_registry import DesktopSessionRegistry
 
 
@@ -451,3 +452,51 @@ def test_clear_clears_language_so_it_does_not_attach_to_the_next_s1() -> None:
     reg.clear()
     assert reg.register(_make_mock_session()) == sid  # the counter restarted
     assert reg.language_of(sid) is None
+
+
+class TestDeadIds:
+    """#789: an explicit lookup of a pruned id says "dead", not "not found"."""
+
+    def test_pruned_id_raises_dead_error(self) -> None:
+        registry = DesktopSessionRegistry()
+        sid = registry.register(MagicMock())
+        registry.prune([sid])
+
+        with pytest.raises(SapSessionDeadError, match="sap_login"):
+            registry.get_session(sid)
+        with pytest.raises(ValueError, match="not found"):
+            registry.get_session("s9")
+
+    def test_clear_and_register_reuse_the_id(self) -> None:
+        registry = DesktopSessionRegistry()
+        registry.prune([registry.register(MagicMock())])
+        registry.clear()
+        fresh = MagicMock()
+        assert registry.register(fresh) == "s1"
+        assert registry.get_session("s1") is fresh
+
+    def test_register_discards_dead_id(self) -> None:
+        registry = DesktopSessionRegistry()
+        registry.prune([registry.register(MagicMock())])
+        registry._dead_ids.add("s2")
+        assert registry.register(MagicMock()) == "s2"
+        assert registry.get_session("s2") is not None
+
+
+class TestDateFormatLifetime:
+    """A cached date format (#1043) never outlives its session: ids are reused after clear()."""
+
+    def test_prune_drops_the_date_format(self) -> None:
+        registry = DesktopSessionRegistry()
+        sid = registry.register(_make_mock_session())
+        registry.set_date_format(sid, "%Y-%m-%d")
+        registry.prune([sid])
+        assert registry.date_format_of(sid) is None
+
+    def test_clear_drops_the_date_format_so_a_reused_id_starts_fresh(self) -> None:
+        registry = DesktopSessionRegistry()
+        sid = registry.register(_make_mock_session())
+        registry.set_date_format(sid, "%Y-%m-%d")
+        registry.clear()
+        assert registry.register(_make_mock_session()) == sid
+        assert registry.date_format_of(sid) is None

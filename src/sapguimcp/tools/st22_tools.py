@@ -37,6 +37,7 @@ from sapguimcp.models.st22_models import (
 )
 from sapguimcp.tools.classic_list_helpers import read_classic_list_lines
 from sapguimcp.tools.desktop_wait_predicates import screen_changed
+from sapguimcp.user_date_format import resolve_user_date_format
 from sapguimcp.utils import format_sap_date_as
 
 if TYPE_CHECKING:
@@ -54,6 +55,16 @@ _ST22_DETAIL_WAIT_MS = 1000
 _ST22_DETAIL_MAX_LINES = 800
 
 __all__ = ["register_st22_tools"]
+
+# The desktop dump list is an ALV grid; ``read_table`` keys its cells by the technical column names (field names of
+# the list structure), which are the same in every logon language (#1154). The translated column titles in the
+# language packs stay as a fallback for a list that is keyed by its titles.
+_DUMP_LIST_COLUMNS: dict[str, tuple[str, ...]] = {  # lang-ok: technical ALV field names, not UI text
+    "time": ("UZEIT",),
+    "program": ("GPROGRAM",),
+    "error_type": ("ERRORID",),
+    "user": ("UNAME",),
+}
 
 
 # =============================================================================
@@ -95,7 +106,9 @@ async def _clear_user_field(backend: "DesktopBackend", t: LanguagePack) -> None:
 async def _fill_date_field(backend: "DesktopBackend", t: LanguagePack, target_date: str) -> str | None:
     """Fill the date field with a formatted date. Returns error or None."""
     try:
-        formatted = format_sap_date_as(target_date, t.date_format)
+        # Typed in the date format of the user, read off the pre-filled date before it is overwritten.
+        date_format = await resolve_user_date_format(backend, ("S_DATUM-LOW",), t.date_format)
+        formatted = format_sap_date_as(target_date, date_format)
     except ValueError:
         return f"Invalid date format: {target_date} (expected YYYY-MM-DD)"
 
@@ -231,6 +244,8 @@ class _Headings:
     how_to_correct: frozenset[str]
     """'What can you do?' and 'How to correct the error' are both advice: how_to_correct holds every such section."""
     call_stack: frozenset[str]
+    termination: frozenset[str]
+    """The section on where the program terminated, which names the include and line in full."""
     every: frozenset[str]
     """Every heading that ends a section, the ones above included."""
 
@@ -244,13 +259,21 @@ def _headings(t: LanguagePack) -> _Headings:
     what_happened = keys(t.st22.section[DumpSection.WHAT_HAPPENED])
     how_to_correct = keys(t.st22.section[DumpSection.HOW_TO_CORRECT])
     call_stack = keys(t.st22.call_stack_heading)
-    other = keys(t.st22.section[DumpSection.ERROR_ANALYSIS]) | keys(t.st22.other_headings)
-    return _Headings(what_happened, how_to_correct, call_stack, what_happened | how_to_correct | call_stack | other)
+    termination = keys(t.st22.termination_heading)
+    other = keys(t.st22.section[DumpSection.ERROR_ANALYSIS]) | keys(t.st22.other_headings) | termination
+    return _Headings(
+        what_happened, how_to_correct, call_stack, termination, what_happened | how_to_correct | call_stack | other
+    )
 
 
 # One call stack entry: number, kind, program, include and (if the list is wide enough to show it) the line number;
 # the name of the called method or form follows on the next line.
-_CALL_STACK_ENTRY = re.compile(r"^(\d+)\s+([A-Z][A-Z_]*)\s+(\S+)\s+(\S+)(?:\s+(\d+))?$")
+# The kind can carry a qualifier in brackets, e.g. "MODULE (PBO)" (#1156).
+_CALL_STACK_ENTRY = re.compile(r"^(\d+)\s+([A-Z][A-Z_]*(?:\s+\([A-Z]+\))?)\s+(\S+)\s+(\S+)(?:\s+(\d+))?$")
+# A line number followed by a quoted include, as in the text on where the program terminated: 'in line 36 of the
+# include "ZCL_X======CM00C"' (German: 'in Zeile 36 des Includes "..."'). The number stands on its own, so digits
+# inside a name do not count.
+_LINE_AND_INCLUDE = re.compile(r'(?<!\S)(\d+)(?=\s)[^"\d]*"([^"\s]+)"')
 _MAX_CALL_STACK_ENTRIES = 20
 
 
@@ -294,6 +317,25 @@ def _call_stack_entries(lines: list[str], headings: _Headings) -> list[tuple[re.
     return entries
 
 
+def _termination_point(
+    lines: list[str], include: str | None, line: int | None, headings: _Headings
+) -> tuple[str | None, int | None]:
+    """The include and line where the program terminated, completed from the text of the dump (#1156).
+
+    The call stack shows the include cut off at its column width (``ZCL_X======CM`` for ``ZCL_X======CM00C``) and,
+    in a narrow window, no line. The section on where the program terminated names both in full: its first line
+    number followed by a quoted include that starts with the include of the call stack. Only that section is
+    searched, so numbers of other sections (e.g. the release in the system environment) cannot be taken for the line.
+    """
+    if not include:
+        return include, line
+    section = _section_text(lines, headings.termination, headings.every)
+    for match in _LINE_AND_INCLUDE.finditer(section):
+        if match.group(2).startswith(include):
+            return match.group(2), line if line is not None else int(match.group(1))
+    return include, line
+
+
 def _parse_desktop_detail_lines(lines: list[str], source_dump: "ST22Dump", t: LanguagePack) -> "ST22DumpDetail":
     """Parse the lines of the dump detail screen into an ST22DumpDetail model.
 
@@ -312,10 +354,14 @@ def _parse_desktop_detail_lines(lines: list[str], source_dump: "ST22Dump", t: La
         program = top.group(3)
         include = top.group(4)
         line = int(top.group(5)) if top.group(5) else None
+        include, line = _termination_point(lines, include, line, headings)
     call_stack = [" ".join(part for part in (*match.groups(default=""), name) if part) for match, name in stack]
+    # The detail repeats the short text under a heading named like the short text column of the list
+    short_text_headings = frozenset(_heading_key(variant) for variant in t.st22.col_short_text) & headings.every
+    short_text = " ".join(_section_text(lines, short_text_headings, headings.every).splitlines())
     return ST22DumpDetail(
         error_type=source_dump.error_type,
-        short_text=source_dump.short_text,
+        short_text=short_text or source_dump.short_text,
         what_happened=_section_text(lines, headings.what_happened, headings.every),
         how_to_correct=_section_text(lines, headings.how_to_correct, headings.every),
         program=program,
@@ -329,6 +375,19 @@ def _parse_desktop_detail_lines(lines: list[str], source_dump: "ST22Dump", t: La
 # =============================================================================
 # Main Lookup Logic
 # =============================================================================
+
+
+def _has_column(headers: list[str], technical: tuple[str, ...], title: Text) -> bool:
+    """True when the dump list has the column, under its technical name or one of its titles."""
+    return any(h in technical for h in headers) or any(title.equals(h) for h in headers)
+
+
+def _dump_cell(row: dict[str, str], technical: tuple[str, ...], title: Text) -> str:
+    """The cell of a dump-list row, looked up by technical column name first, then by column title (#1154)."""
+    for name in technical:
+        if name in row:
+            return row[name] or ""
+    return title.first_key(row) or ""
 
 
 async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-branches,too-many-return-statements
@@ -390,6 +449,28 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
             retrieved_at=now,
         )
 
+    titles: dict[str, Text] = {
+        "time": t.st22.col_time,
+        "program": t.st22.col_program,
+        "error_type": t.st22.col_error_type,
+        "user": t.common.user,
+    }
+    if (
+        dump_index is None
+        and table_data.rows
+        and not any(_has_column(table_data.headers, _DUMP_LIST_COLUMNS[n], title) for n, title in titles.items())
+    ):
+        # Without any known column every dump would come back with empty fields; say so instead of success (#1154).
+        # Only in list mode: opening a dump by index does not need the list columns. dump_count is the number of
+        # rows the list showed, although none of them could be read into ``dumps``.
+        return ST22DumpListResult.failure(
+            error=f"ST22 dump list: none of the expected columns found in headers {table_data.headers}",
+            dumps=[],
+            dump_count=len(table_data.rows),
+            date_searched=date_str,
+            retrieved_at=now,
+        )
+
     # Convert to ST22Dump models
     dumps: list[ST22Dump] = []
     for idx, tr in enumerate(table_data.rows):
@@ -397,12 +478,12 @@ async def _st22_lookup_desktop(  # pylint: disable=too-many-locals,too-many-bran
         dumps.append(
             ST22Dump(
                 index=idx,
-                time=t.st22.col_time.first_key(d) or "",
-                program=t.st22.col_program.first_key(d) or "",
+                time=_dump_cell(d, _DUMP_LIST_COLUMNS["time"], titles["time"]),
+                program=_dump_cell(d, _DUMP_LIST_COLUMNS["program"], titles["program"]),
                 include=d.get("Include", None),  # lang-ok: column title is the same in every language
-                error_type=t.st22.col_error_type.first_key(d) or "",
+                error_type=_dump_cell(d, _DUMP_LIST_COLUMNS["error_type"], titles["error_type"]),
                 short_text=t.st22.col_short_text.first_key(d) or "",
-                user=t.common.user.first_key(d) or "",
+                user=_dump_cell(d, _DUMP_LIST_COLUMNS["user"], titles["user"]),
             )
         )
 

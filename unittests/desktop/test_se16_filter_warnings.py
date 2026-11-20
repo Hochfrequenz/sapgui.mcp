@@ -567,3 +567,33 @@ async def test_execute_se16_query_desktop_waits_for_expected_conditions(lang_de:
         assert awaited[0] is _se16n_initial_screen_ready
         assert len(awaited) == 2
         assert _is_pred(awaited[1], "_se16n_result_displayed")
+
+
+def _backend_with_hits(total: int, returned: int) -> AsyncMock:
+    backend = _make_desktop_backend()
+    backend.read_table = AsyncMock(
+        return_value=TableData(
+            headers=["TCODE"],
+            rows=[TableRow(row=i + 1, data={"TCODE": f"T{i}"}) for i in range(returned)],
+            total_rows=total,
+        )
+    )
+    return backend
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("total", "returned", "expected_truncated"),
+    [
+        (10, 10, True),  # SE16N capped at max_hits: more rows may exist
+        (11, 10, True),
+        (5, 5, False),  # fewer hits than the cap: complete
+        (9, 9, False),
+        (10, 7, True),  # fewer rows read than hits
+    ],
+)
+async def test_execute_se16_query_desktop_truncated_flag(total: int, returned: int, expected_truncated: bool) -> None:
+    fill = _FilterFillResult(unapplied_fields=[], other_errors=[])
+    result, _ = await _run_desktop_query_with_fill(fill, _backend_with_hits(total, returned))
+
+    assert result.truncated is expected_truncated

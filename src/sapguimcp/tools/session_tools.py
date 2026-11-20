@@ -46,7 +46,7 @@ async def sap_session_list_impl() -> SessionListResult:
         if com_engine is not None:
             sessions = await backend.list_sessions_fast()
         else:
-            sessions = await backend.list_sessions()
+            sessions = await backend.list_sessions(include_dead=True)
         return SessionListResult(sessions=sessions, com_engine=com_engine)
 
     except Exception as e:  # pylint: disable=broad-exception-caught

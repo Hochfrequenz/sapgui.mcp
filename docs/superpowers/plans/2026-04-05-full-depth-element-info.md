@@ -18,12 +18,12 @@
 
 ### File Map
 
-| File | Role | Change |
-|------|------|--------|
-| `src/sapsucker/models.py` | Data models | Add 13 new fields to `ElementInfo` |
+| File                               | Role               | Change                                                                                     |
+| ---------------------------------- | ------------------ | ------------------------------------------------------------------------------------------ |
+| `src/sapsucker/models.py`          | Data models        | Add 13 new fields to `ElementInfo`                                                         |
 | `src/sapsucker/components/base.py` | COM tree traversal | Read new props in `_dump_tree_recursive` and `_probe_bdt_fields`, default `max_depth=None` |
-| `unittests/test_models.py` | Model tests | Add tests for new fields + backward compat |
-| `unittests/test_base.py` | dump_tree tests | Add tests for new props in tree, unlimited depth |
+| `unittests/test_models.py`         | Model tests        | Add tests for new fields + backward compat                                                 |
+| `unittests/test_base.py`           | dump_tree tests    | Add tests for new props in tree, unlimited depth                                           |
 
 ---
 
@@ -47,6 +47,7 @@ python -m pytest unittests/test_models.py unittests/test_base.py -v --tb=short
 ### Task A2: Extend `ElementInfo` with all COM properties
 
 **Files:**
+
 - Modify: `src/sapsucker/models.py`
 - Modify: `unittests/test_models.py`
 
@@ -172,6 +173,7 @@ git commit -m "feat: extend ElementInfo with all COM properties (13 new fields)"
 ### Task A3: Read new properties in `_dump_tree_recursive` and `_probe_bdt_fields`
 
 **Files:**
+
 - Modify: `src/sapsucker/components/base.py`
 - Modify: `unittests/test_base.py`
 
@@ -314,6 +316,7 @@ git commit -m "feat: read all COM properties in dump_tree and BDT probe"
 ### Task A4: Default `max_depth=None` (unlimited) with safety cap
 
 **Files:**
+
 - Modify: `src/sapsucker/components/base.py`
 - Modify: `unittests/test_base.py`
 
@@ -355,6 +358,7 @@ python -m pytest unittests/test_base.py -v -k "unlimited_depth or explicit_max_d
 In `src/sapsucker/components/base.py`:
 
 Update `dump_tree` (line ~299):
+
 ```python
     def dump_tree(self, max_depth: int | None = None) -> list[ElementInfo]:
         """Return a recursive tree of ElementInfo for all children.
@@ -412,6 +416,7 @@ gh pr checks <PR_NUMBER>
 ### Prerequisites
 
 Install sapsucker dev mode:
+
 ```bash
 cd C:/github/sapgui.mcp
 pip install -e C:/github/sapsucker
@@ -419,16 +424,16 @@ pip install -e C:/github/sapsucker
 
 ### File Map
 
-| File | Role | Change |
-|------|------|--------|
-| `backend/desktop/__init__.py` | Desktop backend | Remove `max_depth` args, remove tooltip workaround, use `elem.tooltip` |
-| `backend/desktop/_truncation.py` | New: truncation helper | `truncate_tree()` + `compute_tree_depth()` |
-| `tools/sap_tools.py` | MCP tools | Add `depth` param to 3 tools, remove 1 `max_depth` arg |
-| `tools/com_tools.py` | COM snapshot tool | Add `depth` param to `sap_com_snapshot` |
-| `tools/se24_edit_tools.py` | SE24 editor | Remove 1 `max_depth` arg |
-| `tools/table_helpers.py` | Table helper | Remove 1 `max_depth` arg |
-| `models/sap_results.py` | Result models | Add truncation metadata fields |
-| `unittests/desktop/test_truncation_unit.py` | New: truncation tests | Unit tests for truncate_tree |
+| File                                        | Role                   | Change                                                                 |
+| ------------------------------------------- | ---------------------- | ---------------------------------------------------------------------- |
+| `backend/desktop/__init__.py`               | Desktop backend        | Remove `max_depth` args, remove tooltip workaround, use `elem.tooltip` |
+| `backend/desktop/_truncation.py`            | New: truncation helper | `truncate_tree()` + `compute_tree_depth()`                             |
+| `tools/sap_tools.py`                        | MCP tools              | Add `depth` param to 3 tools, remove 1 `max_depth` arg                 |
+| `tools/com_tools.py`                        | COM snapshot tool      | Add `depth` param to `sap_com_snapshot`                                |
+| `tools/se24_edit_tools.py`                  | SE24 editor            | Remove 1 `max_depth` arg                                               |
+| `tools/table_helpers.py`                    | Table helper           | Remove 1 `max_depth` arg                                               |
+| `models/sap_results.py`                     | Result models          | Add truncation metadata fields                                         |
+| `unittests/desktop/test_truncation_unit.py` | New: truncation tests  | Unit tests for truncate_tree                                           |
 
 ---
 
@@ -460,6 +465,7 @@ Expected: ` ` (two empty strings)
 ### Task B2: Create truncation helper
 
 **Files:**
+
 - Create: `src/sapguimcp/backend/desktop/_truncation.py`
 - Create: `unittests/desktop/test_truncation_unit.py`
 
@@ -618,6 +624,7 @@ git commit -m "feat: add tree truncation helper for LLM-facing tool responses"
 ### Task B3: Remove all hardcoded `max_depth` values
 
 **Files:**
+
 - Modify: `src/sapguimcp/backend/desktop/__init__.py` (2 locations)
 - Modify: `src/sapguimcp/tools/sap_tools.py` (1 location)
 - Modify: `src/sapguimcp/tools/se24_edit_tools.py` (1 location)
@@ -645,6 +652,7 @@ In `backend/desktop/__init__.py`, the tooltip fallback code (from PR #614)
 now becomes unnecessary — `elem.tooltip` is available directly.
 
 In `discover_buttons` (~lines 654-666), replace the tooltip workaround:
+
 ```python
             for elem in _flatten(tree):
                 if elem.type_as_number != 40:
@@ -676,6 +684,7 @@ git commit -m "feat: remove all hardcoded max_depth values, simplify tooltip fal
 ### Task B4: Add `depth` parameter to MCP tools
 
 **Files:**
+
 - Modify: `src/sapguimcp/tools/sap_tools.py`
 - Modify: `src/sapguimcp/tools/com_tools.py`
 - Modify: `src/sapguimcp/backend/desktop/__init__.py`
@@ -712,6 +721,7 @@ so the LLM knows if there are deeper elements.
 ```
 
 After getting fields from `backend.discover_fields()`, add truncation metadata:
+
 ```python
     from sapguimcp.backend.desktop._truncation import compute_tree_depth
     # The backend searched full depth; report how deep the tree goes
@@ -724,9 +734,11 @@ In `tools/com_tools.py`, add `depth: int = 3` parameter. Thread it through to
 `backend.get_snapshot(depth=depth)`.
 
 Update `get_snapshot` in `backend/desktop/__init__.py` to accept `depth`:
+
 ```python
     async def get_snapshot(self, depth: int | None = None) -> ComTreeSnapshot:
 ```
+
 When `depth` is provided, truncate the tree before formatting as text. Append
 a summary line: `"--- N elements at depth 4-7 not shown. Use depth=7 to see all. ---"`
 

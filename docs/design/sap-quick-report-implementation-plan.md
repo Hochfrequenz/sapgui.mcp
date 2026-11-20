@@ -16,22 +16,23 @@
 
 ## File Map
 
-| Action | File | Responsibility |
-|---|---|---|
-| Create | `src/sapguimcp/models/quick_report_models.py` | `ScreenClassification`, `QuickReportResult` |
-| Create | `src/sapguimcp/tools/quick_report_tools.py` | `classify_result_screen()`, `sap_quick_report` pipeline, `register_quick_report_tools()` |
-| Create | `unittests/test_quick_report_models.py` | Model validation tests |
-| Create | `unittests/test_quick_report_classifier.py` | Screen classifier unit tests |
-| Create | `unittests/test_quick_report_pipeline.py` | Pipeline + post_f8_keys unit tests |
-| Modify | `src/sapguimcp/models/__init__.py` | Export `ScreenClassification`, `QuickReportResult` |
-| Modify | `src/sapguimcp/tools/__init__.py` | Export `register_quick_report_tools` |
-| Modify | `src/sapguimcp/server.py` | Call `register_quick_report_tools(mcp)` |
+| Action | File                                          | Responsibility                                                                           |
+| ------ | --------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Create | `src/sapguimcp/models/quick_report_models.py` | `ScreenClassification`, `QuickReportResult`                                              |
+| Create | `src/sapguimcp/tools/quick_report_tools.py`   | `classify_result_screen()`, `sap_quick_report` pipeline, `register_quick_report_tools()` |
+| Create | `unittests/test_quick_report_models.py`       | Model validation tests                                                                   |
+| Create | `unittests/test_quick_report_classifier.py`   | Screen classifier unit tests                                                             |
+| Create | `unittests/test_quick_report_pipeline.py`     | Pipeline + post_f8_keys unit tests                                                       |
+| Modify | `src/sapguimcp/models/__init__.py`            | Export `ScreenClassification`, `QuickReportResult`                                       |
+| Modify | `src/sapguimcp/tools/__init__.py`             | Export `register_quick_report_tools`                                                     |
+| Modify | `src/sapguimcp/server.py`                     | Call `register_quick_report_tools(mcp)`                                                  |
 
 ---
 
 ## Task 1: Models — `ScreenClassification` + `QuickReportResult`
 
 **Files:**
+
 - Create: `src/sapguimcp/models/quick_report_models.py`
 - Create: `unittests/test_quick_report_models.py`
 - Modify: `src/sapguimcp/models/__init__.py`
@@ -248,15 +249,18 @@ And add `QuickReportResult`, `ScreenClassification` to the `__all__` list (if on
 ## Task 2: Screen Classifier — `classify_result_screen()`
 
 **Files:**
+
 - Create: `unittests/test_quick_report_classifier.py`
 - Create: `src/sapguimcp/tools/quick_report_tools.py` (first function)
 
 **Context:** The classifier examines the current screen after F8 and returns a `ScreenClassification`. It uses:
+
 - `backend.get_status_bar()` → `StatusBarInfo` (has `.type` and `.message`)
 - `backend.get_snapshot()` → `AriaSnapshot` (YAML string, check for `- grid` line = ALV grid)
 - `backend.get_screen_text()` → `ScreenText` (for unknown screens)
 
 **Detection logic:**
+
 1. Read status bar
 2. Status bar type `"E"` → ERROR
 3. Status bar message contains "keine Daten"/"no data"/"keine Werte"/"no entries" → EMPTY
@@ -476,10 +480,12 @@ async def classify_result_screen(
 ## Task 3: Pipeline — `sap_quick_report` tool function + `post_f8_keys`
 
 **Files:**
+
 - Create: `unittests/test_quick_report_pipeline.py`
 - Modify: `src/sapguimcp/tools/quick_report_tools.py`
 
 **Context:** The pipeline function calls:
+
 1. `_is_desktop_backend(backend)` from `tools/_backend_utils.py`
 2. `backend.enter_transaction(tcode)` → `TransactionResult`
 3. `ensure_screen_state(backend, target)` from `tools/screen_state_helpers.py` — takes a `SelectionScreenState`
@@ -1014,6 +1020,7 @@ async def _execute_quick_report(
 ## Task 4: Tool Registration + Wiring
 
 **Files:**
+
 - Modify: `src/sapguimcp/tools/quick_report_tools.py` (add `register_quick_report_tools`)
 - Modify: `src/sapguimcp/tools/__init__.py`
 - Modify: `src/sapguimcp/server.py`

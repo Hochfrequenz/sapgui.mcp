@@ -18,6 +18,7 @@ import tempfile
 import threading
 import time
 import weakref
+from collections.abc import Sequence
 from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, cast
@@ -36,11 +37,15 @@ from sapguimcp.backend.desktop._com_thread import (
     NO_SESSION_TARGET,
     RERAISE_COM_ERRORS,
     ComThread,
+    SapSessionDeadError,
     SapSessionHaltedError,
     _get_com_error_code,
     classify_login_failure,
+    com_call_session,
     com_call_target,
+    dead_handle_code,
     describe_com_error,
+    is_dead_handle_error,
     is_server_fault_error,
     is_transient_busy_error,
 )
@@ -89,7 +94,7 @@ from sapguimcp.models.sap_results import (
 from sapguimcp.session_language import set_session_language
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable, Iterator, Sequence
 
     from sapsucker.components.session import GuiSession
 
@@ -637,6 +642,52 @@ class DesktopBackend:
         # COM IDs or close newly-spawned sessions mid-iteration. See issue
         # #637 for the original failure mode.
         self._mutation_lock: asyncio.Lock = asyncio.Lock()
+        # #789: a session-bound COM call that fails with a dead handle deregisters the session.
+        if hasattr(self.com, "dead_handle_hook"):
+            self.com.dead_handle_hook = self._on_session_call_failed
+
+    def _session_id_of(self, session: GuiSession) -> str | None:
+        """Registry id of *session* (by identity), or None if it is not registered."""
+        for sid in self.registry.list_sessions():
+            try:
+                if self.registry.get_session(sid) is session:
+                    return sid
+            except ValueError:
+                continue
+        return None
+
+    async def _on_session_call_failed(self, session: GuiSession, exc: BaseException) -> BaseException | None:
+        """Dead-handle hook of the COM thread (#789): deregister a dead session and say so.
+
+        ``RPC_E_DISCONNECTED`` is conclusive. ``RPC_S_UNKNOWN_IF`` can also be a stale proxy of a
+        single control on a healthy session, so it is confirmed with a fail-fast probe of the session
+        window first. Returns the replacement error, or None when the session is not dead (the
+        original error then propagates).
+        """
+        sid = self._session_id_of(session)
+        if sid is None:
+            return None
+        if dead_handle_code(exc) != _RPC_E_DISCONNECTED and not await self._probe_is_dead(session):
+            return None
+        # Runs on the event loop after ``wrap_future`` (not on the COM thread). Deliberately does not
+        # take ``_mutation_lock``: callers such as ``list_sessions`` already hold it while running COM
+        # calls, so waiting for it here would deadlock. ``prune`` is synchronous and COM-free.
+        self.registry.prune([sid])
+        self._unwatch_orphaned_connections()
+        logger.warning("session_dead", extra={"session_id": sid, "hresult": dead_handle_code(exc)})
+        return SapSessionDeadError(sid)
+
+    async def _probe_is_dead(self, session: GuiSession) -> bool:
+        """True if one fail-fast read of the session window fails with a dead-handle error."""
+        try:
+            with self._com_target(session, track_dead=False):
+                await asyncio.wait_for(
+                    self.com.run(lambda: str(session.com.FindById("wnd[0]").Type), max_retries=0),
+                    timeout=self._RECONCILE_PROBE_TIMEOUT_S,
+                )
+        except Exception as probe_exc:  # pylint: disable=broad-exception-caught
+            return is_dead_handle_error(probe_exc)
+        return False
 
     @property
     def _session(self) -> GuiSession | None:
@@ -671,6 +722,7 @@ class DesktopBackend:
         session = self.registry.get_session(session_id)  # None → "s1"
         # The COM calls this task makes next are for this session's connection.
         com_call_target.set(self._connection_of(session))
+        com_call_session.set(session)
         return session
 
     def _connection_of(self, session: GuiSession) -> str | None:
@@ -684,12 +736,18 @@ class DesktopBackend:
             return None
 
     @contextlib.contextmanager
-    def _com_target(self, session: GuiSession) -> Iterator[None]:
-        """Mark the COM calls inside the block as targeting *session*'s connection."""
+    def _com_target(self, session: GuiSession, *, track_dead: bool = True) -> Iterator[None]:
+        """Mark the COM calls inside the block as targeting *session*'s connection.
+
+        ``track_dead=False`` is for liveness probes, which read the raw error themselves instead
+        of having a dead handle deregistered and replaced (issue #789).
+        """
         token = com_call_target.set(self._connection_of(session))
+        session_token = com_call_session.set(session if track_dead else None)
         try:
             yield
         finally:
+            com_call_session.reset(session_token)
             com_call_target.reset(token)
 
     def _unwatch_orphaned_connections(self) -> None:
@@ -778,6 +836,7 @@ class DesktopBackend:
                 # surfaces instead; the next login's reconcile prunes any ghost
                 # connection the attempt left behind.
                 com_call_target.set(NO_SESSION_TARGET)
+                com_call_session.set(None)
                 session = await self.com.run(
                     lambda: _sapsucker_login(
                         connection_name=connection_name,
@@ -788,6 +847,20 @@ class DesktopBackend:
                     ),
                     max_retries=0,
                 )
+
+                # #789: health check — the new session must answer a real COM round-trip
+                # (session.info alone is cached). A dead handle is reported instead of a session id.
+                if await self._login_session_is_dead(session):
+                    logger.warning("login", extra={"success": False, "reason": "session_dead_after_login"})
+                    return LoginResult(
+                        success=False,
+                        error=(
+                            "SAP GUI opened the connection but the new session does not answer over COM "
+                            "(RPC_S_UNKNOWN_IF / RPC_E_DISCONNECTED). No session was registered. Close any stray "
+                            "SAP GUI window it left open, restart SAP Logon if that does not help, and call "
+                            "sap_login again."
+                        ),
+                    )
 
                 # Reconcile: prune any sessions whose underlying COM proxy
                 # has died (e.g. external SAP GUI close, network drop). Live
@@ -840,6 +913,21 @@ class DesktopBackend:
                     except Exception:  # pylint: disable=broad-exception-caught
                         logger.warning("login: reconcile after engine loss failed", exc_info=True)
                 return LoginResult(success=False, error=failure.message)
+
+    async def _login_session_is_dead(self, session: GuiSession) -> bool:
+        """True if the freshly logged-in session fails one fail-fast read with a dead-handle error.
+
+        Any other failure (busy, server fault, timeout) is not proof of a dead session and does
+        not fail the login.
+        """
+        try:
+            await asyncio.wait_for(
+                self.com.run(lambda: str(session.com.FindById("wnd[0]").Type), max_retries=0),
+                timeout=self._STATUS_PROBE_TIMEOUT_S,
+            )
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            return is_dead_handle_error(exc)
+        return False
 
     async def _watch_connection_of(self, session: GuiSession) -> None:
         """Let the COM thread watch *session*'s connection for an ABAP debugger.
@@ -938,6 +1026,8 @@ class DesktopBackend:
                 session = self.registry.get_session(session_id)
             else:
                 session = self.require_session()
+        except SapSessionDeadError as exc:
+            return SessionStatus(success=True, status="dead", message=str(exc))
         except ValueError:
             return SessionStatus(success=True, status="logged_off", message="Not logged in")
 
@@ -957,7 +1047,7 @@ class DesktopBackend:
             # asyncio.wait_for so a wedged COM thread can't hang the very
             # diagnostic call agents reach for — same rationale as
             # _reconcile_locked's probe.
-            with self._com_target(session):
+            with self._com_target(session, track_dead=False):
                 user = await asyncio.wait_for(
                     self.com.run(_probe, max_retries=0),
                     timeout=self._STATUS_PROBE_TIMEOUT_S,
@@ -978,6 +1068,17 @@ class DesktopBackend:
         except SapSessionHaltedError as exc:
             return SessionStatus(success=True, status="unknown", message=str(exc))
         except Exception as exc:  # pylint: disable=broad-exception-caught
+            if is_dead_handle_error(exc):
+                # #789: the window/connection is gone. Reported, not deregistered here: the next call
+                # on the session deregisters it and says so (sap_session_list prunes it too).
+                return SessionStatus(
+                    success=True,
+                    status="dead",
+                    message=(
+                        "Session is dead: its SAP GUI window or connection was closed (COM handle gone). "
+                        "It cannot be used again. Call sap_login to open a new session."
+                    ),
+                )
             if is_transient_busy_error(exc):
                 return SessionStatus(
                     success=True,
@@ -1173,18 +1274,30 @@ class DesktopBackend:
             return dict(state)
         return None
 
-    async def list_sessions(self) -> list[SessionInfo]:
+    async def list_sessions(self, *, include_dead: bool = False) -> list[SessionInfo]:
         """List all sessions from the registry with their COM properties.
 
         Reconciles the registry first so the returned list reflects reality
         — dead sessions are pruned, never silently included or silently
-        skipped. Serialised through ``_mutation_lock`` so concurrent
+        skipped (``include_dead=True`` adds the pruned ones with status ``dead``).
+        Serialised through ``_mutation_lock`` so concurrent
         ``open_new_session`` / ``close_session`` cannot leave the snapshot
         and the underlying COM tree out of sync.
         """
         async with self._mutation_lock:
-            await self._reconcile_locked()
-            return await self._list_sessions_locked()
+            reconciled = await self._reconcile_locked()
+            sessions = await self._list_sessions_locked()
+            if not include_dead:
+                return sessions
+            # #789: sessions the probe found dead are reported as such (and are already deregistered),
+            # not silently dropped from the list.
+            return [
+                *sessions,
+                *(
+                    SessionInfo(session_id=sid, status="dead", is_primary=(sid == "s1"))
+                    for sid in reconciled.get("removed", [])
+                ),
+            ]
 
     async def _list_sessions_locked(self) -> list[SessionInfo]:
         """``list_sessions`` body — caller must hold ``_mutation_lock``."""
@@ -1193,7 +1306,7 @@ class DesktopBackend:
             try:
                 ses = self.registry.get_session(sid)
 
-                def _info(s: Any = ses) -> dict[str, str]:
+                def _info(s: Any = ses) -> dict[str, Any]:
                     info = s.com.Info
                     return {
                         "tcode": str(info.Transaction),
@@ -1203,7 +1316,7 @@ class DesktopBackend:
                         "user": str(info.User),
                     }
 
-                with self._com_target(ses):
+                with self._com_target(ses, track_dead=False):
                     info = await self.com.run(_info)
                 result.append(
                     SessionInfo(
@@ -1275,7 +1388,7 @@ class DesktopBackend:
                 conn.CloseSession(com_id)  # ownership-checked above (is_attached)
                 return True
 
-            with self._com_target(target):
+            with self._com_target(target, track_dead=False):
                 result = await self.com.run(_close)
         except SapSessionHaltedError as exc:
             # The close was cancelled while the session sits in the ABAP debugger —
@@ -1302,7 +1415,7 @@ class DesktopBackend:
         """True if the session still answers one ``Id`` read (fail-fast probe, no retries)."""
         try:
             target = self.registry.get_session(session_id)
-            with self._com_target(target):
+            with self._com_target(target, track_dead=False):
                 await self.com.run(lambda: str(target.com.Id), max_retries=0)
         except Exception:  # pylint: disable=broad-exception-caught
             return False
@@ -1384,7 +1497,7 @@ class DesktopBackend:
                 return str(s.com.FindById("wnd[0]").Type)
 
             try:
-                with self._com_target(ses):
+                with self._com_target(ses, track_dead=False):
                     await asyncio.wait_for(
                         self.com.run(_probe, max_retries=0),
                         timeout=self._RECONCILE_PROBE_TIMEOUT_S,
@@ -2285,6 +2398,36 @@ class DesktopBackend:
         data = await self.com.run(_select)
         logger.info("select_dropdown", extra={"label": label, "option": option, "success": data["success"]})
         return DropdownFillResult(**data)
+
+    def _current_session_key(self) -> str:
+        """Registry id of the session the current async context works on."""
+        return _current_session_id.get() or self.registry.primary_session
+
+    def cached_date_format(self) -> str | None:
+        """The user's date format derived for the current session (#1043), or ``None``."""
+        return self.registry.date_format_of(self._current_session_key())
+
+    def cache_date_format(self, date_format: str) -> None:
+        """Remember the user's date format (a ``strftime`` pattern) for the current session (#1043)."""
+        self.registry.set_date_format(self._current_session_key(), date_format)
+
+    async def read_field_text(self, field_names: Sequence[str]) -> str | None:
+        """Text of the first of the fields (technical names) that exists and shows a value, else ``None``."""
+        session = self.require_session()
+
+        def _read() -> str | None:
+            wnd_id = _active_window_id(session)
+            for name in field_names:
+                for prefix in ("ctxt", "txt"):
+                    field = session.find_by_id(f"{wnd_id}/usr/{prefix}{name}", raise_error=False)
+                    if field is None:
+                        continue
+                    text = str(getattr(_unwrap_com(field), "Text", "") or "").strip()
+                    if text:
+                        return text
+            return None
+
+        return await self.com.run(_read)
 
     async def focus_and_type(  # pylint: disable=unused-argument
         self, accessible_name: str, text: str, delay_ms: int = 0

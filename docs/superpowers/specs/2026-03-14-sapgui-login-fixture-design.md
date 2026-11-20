@@ -69,12 +69,13 @@ session = _wait_for_session(conn, timeout=30)  # raises SapGuiTimeoutError on ti
 The login screen is program `SAPMSYST`, screen `20` (sometimes `500` for newer systems). Detected via `session.info.program == "SAPMSYST"`.
 
 Field IDs (standard on ALL SAP systems):
-| Field | ID | Type |
-|-------|----|------|
-| Client | `wnd[0]/usr/txtRSYST-MANDT` | GuiTextField |
-| User | `wnd[0]/usr/txtRSYST-BNAME` | GuiTextField |
+
+| Field    | ID                          | Type             |
+| -------- | --------------------------- | ---------------- |
+| Client   | `wnd[0]/usr/txtRSYST-MANDT` | GuiTextField     |
+| User     | `wnd[0]/usr/txtRSYST-BNAME` | GuiTextField     |
 | Password | `wnd[0]/usr/pwdRSYST-BCODE` | GuiPasswordField |
-| Language | `wnd[0]/usr/txtRSYST-LANGU` | GuiTextField |
+| Language | `wnd[0]/usr/txtRSYST-LANGU` | GuiTextField     |
 
 ```python
 session.find_by_id("wnd[0]/usr/txtRSYST-MANDT").text = client
@@ -102,11 +103,12 @@ if popup is not None:
 ```
 
 Popup field IDs (captured from a live S/4HANA system):
-| Element | ID |
-|---------|----|
+
+| Element                                 | ID                    |
+| --------------------------------------- | --------------------- |
 | Option 1 (end all others — destructive) | `radMULTI_LOGON_OPT1` |
-| Option 2 (continue, keep others) | `radMULTI_LOGON_OPT2` |
-| Option 3 (cancel login) | `radMULTI_LOGON_OPT3` |
+| Option 2 (continue, keep others)        | `radMULTI_LOGON_OPT2` |
+| Option 3 (cancel login)                 | `radMULTI_LOGON_OPT3` |
 
 ### Step 5: Verify login succeeded
 

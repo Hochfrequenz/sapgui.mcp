@@ -13,6 +13,7 @@ grid") or conditional branching ("if status == 'Error' then…") still require m
 calls — one per decision point — which is slow and error-prone.
 
 Two root causes:
+
 1. **Round-trip cost** — each LLM tool call is a separate MCP request/response cycle.
 2. **Logic reliability** — the LLM must produce a correct sequence of tool calls up-front, with no
    ability to branch based on runtime SAP responses.
@@ -105,6 +106,7 @@ exec(compile(script, "<sap_script>", "exec"), {
 ```
 
 Injected sandbox helpers:
+
 - `wait(ms)`: pause execution for `ms` milliseconds via `time.sleep()`.
 - `wait_until(element_id, timeout_ms, poll_ms=200)`: poll for an element by ID until `session.find_by_id` succeeds, returning the element; returns `None` after `timeout_ms` elapses (raises `TimeoutError` if the tool `timeout` is hit first). `wait` raises `TimeoutError` instead of sleeping past the tool `timeout`. Waits count against `timeout` and block the connection's COM thread; keep them short.
 
@@ -179,17 +181,19 @@ block the COM thread until the MCP transport times out. This is accepted for v1.
 without duplication.
 
 The inherited `failure()` signature is:
+
 ```python
 @classmethod
 def failure(cls, error: str, **kwargs: Any) -> Self: ...
 ```
+
 Use `**kwargs` to pass partial results: `SapRunScriptResult.failure("NameError: ...", output=collected)`.
 
-| field | type | notes |
-|---|---|---|
-| `success` | `bool` | `True` if script completed without raising |
-| `output` | `list[Any]` | Everything passed to `output()`, in call order (JSON-safe by construction) |
-| `error` | `str \| None` | `ExceptionType: message` if script raised or `compile()` failed |
+| field             | type          | notes                                                                                 |
+| ----------------- | ------------- | ------------------------------------------------------------------------------------- |
+| `success`         | `bool`        | `True` if script completed without raising                                            |
+| `output`          | `list[Any]`   | Everything passed to `output()`, in call order (JSON-safe by construction)            |
+| `error`           | `str \| None` | `ExceptionType: message` if script raised or `compile()` failed                       |
 | `error_traceback` | `str \| None` | Populated via `traceback.format_exc()` in the except block; default `None` on success |
 
 When `success=True` and `output=[]` (script completed but never called `output()`), the result is
@@ -223,6 +227,7 @@ summary.
 > `sap_com_snapshot` first to verify the correct ID.
 >
 > Example:
+>
 > ```python
 > grid = session.find_by_id("wnd[0]/usr/cntlGRID/shellcont/shell")
 > errors = [grid.get_cell_value(r, "VBELN") for r in range(grid.row_count)
@@ -232,13 +237,13 @@ summary.
 
 ### File layout
 
-| action | path |
-|---|---|
-| new | `src/sapguimcp/backend/desktop/models/script_results.py` — `SapRunScriptResult` |
-| new | `src/sapguimcp/tools/script_tools.py` — tool + sandbox + `SAFE_BUILTINS` |
-| new | `unittests/desktop/test_script_tools_unit.py` — unit tests (mock session) |
-| edit | `src/sapguimcp/tools/__init__.py` — export `register_script_tools` |
-| edit | `src/sapguimcp/server.py` — register behind desktop gate |
+| action | path                                                                            |
+| ------ | ------------------------------------------------------------------------------- |
+| new    | `src/sapguimcp/backend/desktop/models/script_results.py` — `SapRunScriptResult` |
+| new    | `src/sapguimcp/tools/script_tools.py` — tool + sandbox + `SAFE_BUILTINS`        |
+| new    | `unittests/desktop/test_script_tools_unit.py` — unit tests (mock session)       |
+| edit   | `src/sapguimcp/tools/__init__.py` — export `register_script_tools`              |
+| edit   | `src/sapguimcp/server.py` — register behind desktop gate                        |
 
 Desktop-only models live in `backend/desktop/models/` (alongside `com_results.py`,
 `TreeContextMenuResult`, etc.). A separate `script_results.py` is created rather than appending to

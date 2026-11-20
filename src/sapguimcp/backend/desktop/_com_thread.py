@@ -51,7 +51,7 @@ import queue
 import threading
 import time
 from contextvars import ContextVar, copy_context
-from typing import Any, Callable, NamedTuple, TypeVar
+from typing import Any, Awaitable, Callable, NamedTuple, TypeVar
 
 from sapguimcp import lang
 
@@ -259,6 +259,51 @@ def classify_login_failure(exc: BaseException) -> LoginFailure:
     return LoginFailure(message, engine_lost, hresult, cause_type)
 
 
+#: HRESULTs that mean one session's COM handle is gone (its window or connection was closed).
+SESSION_DEAD_CODES = frozenset({_RPC_S_UNKNOWN_IF, _RPC_E_DISCONNECTED})
+
+
+def dead_handle_code(exc: BaseException) -> int | None:
+    """The dead-handle HRESULT (``SESSION_DEAD_CODES``) in *exc*'s cause chain, or None (issue #789)."""
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    for _ in range(_MAX_CAUSE_HOPS + 1):
+        if current is None or id(current) in seen:
+            return None
+        seen.add(id(current))
+        if isinstance(current, Exception) and not isinstance(current, OSError):
+            code = _get_com_error_code(current)
+            if code in SESSION_DEAD_CODES:
+                return code
+        current = current.__cause__
+    return None
+
+
+def is_dead_handle_error(exc: BaseException) -> bool:
+    """True if *exc* or one of its causes is ``RPC_S_UNKNOWN_IF`` / ``RPC_E_DISCONNECTED`` (issue #789)."""
+    return dead_handle_code(exc) is not None
+
+
+class SapSessionDeadError(RuntimeError, ValueError):
+    """A COM call failed because its session's SAP GUI handle is dead; the session was deregistered.
+
+    Also a ``ValueError`` so callers that treat an unknown session id as ``ValueError`` still catch it.
+    """
+
+    def __init__(self, session_id: str) -> None:
+        super().__init__(
+            f"SAP session '{session_id}' is dead: its SAP GUI window or connection was closed "
+            "(COM handle gone, RPC_S_UNKNOWN_IF / RPC_E_DISCONNECTED). The session was removed from the "
+            "registry. Call sap_login again to open a new session."
+        )
+        self.session_id = session_id
+
+
+#: Session object (``GuiSession``) the COM calls of the current task target, so a dead-handle
+#: failure can be attributed to its session. ``None`` = unknown / not session-bound (e.g. login).
+com_call_session: ContextVar[Any] = ContextVar("com_call_session", default=None)
+
+
 def is_transient_busy_error(exc: Exception) -> bool:
     """True if *exc* is a "server busy" COM signal, not a dead session.
 
@@ -357,6 +402,10 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         self._watched_connections: set[str] = set()
         # Cached scripting engine (watchdog thread only, see ``_get_scripting_engine``).
         self._scripting_engine: Any = None
+        #: Async callback ``(session, exc) -> replacement exception | None``, set by the backend.
+        #: ``run`` calls it when a call bound to a session (``com_call_session``) fails, so a dead
+        #: handle can be deregistered and reported (issue #789).
+        self.dead_handle_hook: Callable[[Any, BaseException], Awaitable[BaseException | None]] | None = None
         self._scan_requests: queue.Queue[concurrent.futures.Future[dict[str, str]]] = queue.Queue()
         self._stopping = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True, name="sapgui-com-worker")
@@ -593,7 +642,13 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
             # Decay slowly: reduce by 10%
             self._current_interval_s = max(self._current_interval_s * 0.9, self._min_interval_s)
 
-    async def run(self, fn: Callable[[], T], *, max_retries: int | None = None, retry_server_fault: bool = False) -> T:
+    async def run(
+        self,
+        fn: Callable[[], T],
+        *,
+        max_retries: int | None = None,
+        retry_server_fault: bool = False,
+    ) -> T:
         """Submit a callable to the COM thread and await its result.
 
         Args:
@@ -606,6 +661,10 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
                 no throttle inflation). ONLY for read-only callables that re-fetch every
                 COM object inside the callable: a server fault means the call reached
                 the server, so a retry of anything with a side effect could repeat it.
+
+        If ``dead_handle_hook`` is set and the call is bound to a session (``com_call_session``),
+        a dead-handle failure is passed to the hook, which may replace it with a
+        ``SapSessionDeadError`` (issue #789).
         """
         if not self._thread.is_alive():
             # Pair this with ``com_thread_crashed`` from ``_run`` to bracket
@@ -630,7 +689,16 @@ class ComThread:  # pylint: disable=too-many-instance-attributes
         self._queue.put(
             (functools.partial(ctx.run, fn), cf_future, max_retries, com_call_target.get(), retry_server_fault)
         )
-        return await asyncio.wrap_future(cf_future)
+        try:
+            return await asyncio.wrap_future(cf_future)
+        except Exception as exc:
+            hook = self.dead_handle_hook
+            session = com_call_session.get()
+            if hook is not None and session is not None and is_dead_handle_error(exc):
+                replacement = await hook(session, exc)
+                if replacement is not None:
+                    raise replacement from exc
+            raise
 
     @property
     def is_alive(self) -> bool:
