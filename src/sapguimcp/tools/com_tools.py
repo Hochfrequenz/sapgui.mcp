@@ -289,6 +289,9 @@ def register_com_tools(mcp: FastMCP) -> None:
             "**depth** controls how many tree levels to return (default 3). "
             "Increase depth to see deeper nested elements. "
             "When truncated, the response shows how many elements were hidden.\n\n"
+            "**root** starts the tree at an element id (e.g. `wnd[0]/usr`); depth then counts from there. "
+            '**exclude** leaves out the subtrees of the given element ids (e.g. `["wnd[0]/mbar"]` for the '
+            "menu bar, which dominates deep snapshots).\n\n"
             "Example output:\n"
             "```\n"
             "GuiMainWindow[wnd[0]]: 'SAP Easy Access'\n"
@@ -300,6 +303,8 @@ def register_com_tools(mcp: FastMCP) -> None:
     )
     async def sap_com_snapshot(
         depth: Annotated[int, Field(ge=1)] = 3,
+        root: str | None = None,
+        exclude: list[str] | None = None,
         session: str | None = None,
         agent_id: str | None = None,
     ) -> ComSnapshotResult:
@@ -309,6 +314,8 @@ def register_com_tools(mcp: FastMCP) -> None:
         Args:
             depth: Number of tree levels to return (default 3).
                 Increase to see deeper nested elements.
+            root: Element id to start the tree at (e.g. "wnd[0]/usr"). None = the active window.
+            exclude: Element ids whose subtrees are left out (e.g. ["wnd[0]/mbar"]).
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
@@ -320,12 +327,18 @@ def register_com_tools(mcp: FastMCP) -> None:
         except ValueError as e:
             return ComSnapshotResult.failure(str(e))
 
-        snapshot, max_depth_found, elements_hidden = await backend.get_snapshot_with_depth(depth=depth)
+        try:
+            snapshot, max_depth_found, elements_hidden, elements_excluded = await backend.get_snapshot_with_depth(
+                depth=depth, root=root, exclude=exclude
+            )
+        except ValueError as e:
+            return ComSnapshotResult.failure(str(e))
         return ComSnapshotResult(
             snapshot=str(snapshot),
             depth_shown=depth,
             max_depth_found=max_depth_found or None,
             elements_hidden=elements_hidden or None,
+            elements_excluded=elements_excluded or None,
         )
 
     @mcp.tool(

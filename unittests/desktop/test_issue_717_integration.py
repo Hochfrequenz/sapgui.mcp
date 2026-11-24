@@ -63,7 +63,7 @@ async def test_na2_dcs_shell_ids_are_reachable(backend):
 
         # The DCS tree sits at wnd[0]/shellcont — directly on the window,
         # not under /usr. Depth 3 is enough to reach it.
-        snapshot, _, _ = await backend.get_snapshot_with_depth(depth=3)
+        snapshot, *_ = await backend.get_snapshot_with_depth(depth=3)
         text = str(snapshot)
 
         id_lines = [ln for ln in text.splitlines() if " id=" in ln]
