@@ -221,3 +221,73 @@ class TestCheckAndActivate:
         assert result.success is False
         assert result.activated is False
         assert "COM is busy" in (result.error or "")
+
+
+class _Window:
+    def __init__(self, session: StackedSession, index: int, title: str) -> None:
+        self._session = session
+        self._index = index
+        self.text = title
+
+    def send_v_key(self, key: int) -> None:
+        self._session.press(self._index, key)
+
+
+class StackedSession:
+    """Fake GuiSession with a real window stack: Ctrl+F3 opens the worklist, Enter opens an error dialog."""
+
+    def __init__(self, activation_fails: bool) -> None:
+        self._activation_fails = activation_fails
+        self.windows: dict[int, str] = {}
+        self.message = ""
+        self.keys: list[tuple[int, int]] = []
+
+    def press(self, index: int, key: int) -> None:
+        self.keys.append((index, key))
+        if index != max(self.windows, default=0):
+            raise AssertionError(f"key {key} sent to covered window wnd[{index}]")
+        if index == 0 and key == 27:
+            self.windows[1] = INACTIVE_OBJECTS
+        elif index == 1 and key == 0:
+            if self._activation_fails:
+                self.windows[2] = "Aktivierungsfehler"
+            else:
+                del self.windows[1]
+                self.message = "Objekt(e) wurde(n) aktiviert"
+        elif index > 0 and key == 12:
+            del self.windows[index]
+
+    def find_by_id(self, element_id: str, raise_error: bool = True) -> Any:
+        del raise_error  # a missing window is always None here
+        if element_id == "wnd[0]/sbar":
+            return MagicMock(text=self.message, message_type="S" if self.message else "")
+        index = int(element_id[4])
+        if index == 0:
+            return _Window(self, 0, "SAP")
+        if index in self.windows:
+            return _Window(self, index, self.windows[index])
+        return None
+
+
+class TestActivationErrorDialog:
+    @pytest.mark.anyio
+    async def test_error_dialog_on_the_worklist_fails_and_is_cancelled(self):
+        """#1169: Enter on the error dialog would answer 'Activate' and activate the broken source."""
+        session = StackedSession(activation_fails=True)
+        result = await make_backend(session).check_and_activate()
+        assert result.success is False
+        assert result.activated is False
+        assert "Aktivierungsfehler" in (result.error or "")
+        assert (2, 12) in session.keys
+        assert (1, 12) in session.keys
+        assert (2, 0) not in session.keys
+        assert session.windows == {}
+
+    @pytest.mark.anyio
+    async def test_worklist_confirmed_with_enter_still_activates(self):
+        session = StackedSession(activation_fails=False)
+        result = await make_backend(session).check_and_activate()
+        assert result.success is True
+        assert result.activated is True
+        assert (1, 0) in session.keys
+        assert (1, 12) not in session.keys

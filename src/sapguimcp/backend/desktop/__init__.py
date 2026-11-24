@@ -2600,6 +2600,12 @@ class DesktopBackend:
         ``activated`` is only True when the final message positively confirms
         an activation; ``success`` is False only on explicit error evidence,
         so a merely unconfirmed activation does not trigger an auto-revert.
+
+        Keys only ever go to the topmost window.  A dialog standing on top of
+        the "Inactive Objects" worklist (the activation-error dialog, whose
+        Enter would answer "Activate") is an explicit activation failure: it
+        is cancelled with F12, the worklist is closed with F12 too, and
+        ``success`` is False so the edit tools revert (#1169).
         """
 
         session = self.require_session()
@@ -2610,6 +2616,7 @@ class DesktopBackend:
             wnd = session.find_by_id("wnd[0]")
             messages: list[str] = []
             unexpected_dialogs: list[str] = []
+            error_dialogs: list[str] = []
 
             def read_sbar() -> tuple[str, str]:
                 sbar = session.find_by_id("wnd[0]/sbar")
@@ -2635,7 +2642,20 @@ class DesktopBackend:
                     if msg:
                         last_msg, last_type = msg, msg_type
                         note(label, msg)
+                    top = session.find_by_id("wnd[2]", raise_error=False)
                     popup = session.find_by_id("wnd[1]", raise_error=False)
+                    if top is not None and popup is not None:
+                        # Never send keys to the covered window (#1169).
+                        if any(known in str(cast(Any, popup).text).lower() for known in safe_popups):
+                            error_title = str(cast(Any, top).text)
+                            error_dialogs.append(error_title)
+                            note(label, f"activation error dialog '{error_title}' was cancelled")
+                            for index in (2, 1):  # F12 = Cancel; Enter would answer "Activate"
+                                window = session.find_by_id(f"wnd[{index}]", raise_error=False)
+                                if window is not None:
+                                    cast(Any, window).send_v_key(12)
+                            return last_msg, last_type
+                        popup = top
                     if popup is None:
                         return last_msg, last_type
                     title = str(cast(Any, popup).text)
@@ -2652,14 +2672,14 @@ class DesktopBackend:
             # Check (Ctrl+F2 = VKey 26)
             cast(Any, wnd).send_v_key(26)
             _, check_type = collect("Check")
-            if check_type in _ERROR_MESSAGE_TYPES:
+            if check_type in _ERROR_MESSAGE_TYPES or error_dialogs:
                 return messages, False, False
 
             # Activate (Ctrl+F3 = VKey 27)
             cast(Any, wnd).send_v_key(27)
             msg, msg_type = collect("Activate")
 
-            failed = msg_type in _ERROR_MESSAGE_TYPES
+            failed = msg_type in _ERROR_MESSAGE_TYPES or bool(error_dialogs)
             activated = not failed and not unexpected_dialogs and _confirms_activation(msg)
             if not failed and not activated:
                 detail = (
