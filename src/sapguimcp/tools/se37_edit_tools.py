@@ -39,6 +39,8 @@ async def _open_fm_in_change_mode_desktop(backend: DesktopBackend, function_modu
 
     Returns an error message or None on success.
     """
+    if not function_module:
+        return "No function module name given"  # lang-ok: our own message
     await backend.enter_transaction("SE37")
     await backend.wait_for_ready()
 
@@ -186,7 +188,7 @@ def register_se37_edit_tools(mcp: FastMCP) -> None:
         """Edit an existing function module, check syntax, and activate.
 
         Args:
-            function_module: Name of the function module (e.g., 'Z_TEST_MCP_EDIT').
+            function_module: Name of the function module (e.g., 'Z_MCP_TEST_FM').
             new_source: Complete new ABAP source code to replace the current code.
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.

@@ -97,6 +97,13 @@ async def test_open_fm_that_does_not_exist_reports_the_status_text(lang_de: Lang
 
 
 @pytest.mark.anyio
+async def test_open_fm_without_a_name_is_an_error_before_navigating(lang_de: LanguagePack) -> None:
+    backend = _backend(titles=[_INITIAL])
+    assert await _open_fm_in_change_mode_desktop(backend, "", lang_de) == "No function module name given"
+    backend.enter_transaction.assert_not_called()
+
+
+@pytest.mark.anyio
 async def test_open_fm_that_does_not_exist_without_status_text_still_reports_an_error(lang_de: LanguagePack) -> None:
     backend = _backend(titles=[_INITIAL])
     assert await _open_fm_in_change_mode_desktop(backend, "Z_X", lang_de) == "Function module 'Z_X' not found"
