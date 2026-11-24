@@ -35,6 +35,7 @@ from sapguimcp.tools import (
     register_feedback_tools,
     register_fm_tools,
     register_intent_tools,
+    register_quick_report_tools,
     register_sap_tools,
     register_script_tools,
     register_se09_tools,
@@ -328,6 +329,7 @@ register_se93_tools(mcp)
 register_slg1_tools(mcp)
 register_sm30_tools(mcp)
 register_sm37_tools(mcp)
+register_quick_report_tools(mcp)
 register_spro_tools(mcp)
 register_st22_tools(mcp)
 register_catalog_tools(mcp)

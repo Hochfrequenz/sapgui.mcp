@@ -16,6 +16,7 @@ tools/
 ├── se37_tools.py          # SE37 Function Builder lookup
 ├── se93_tools.py          # SE93 Transaction Maintenance lookup
 ├── sm37_tools.py          # SM37 background job lookup
+├── quick_report_tools.py  # sap_quick_report: run any report transaction in one call
 ├── ...                    # More transaction tools (se09, slg1, sm30, spro, st22, ...)
 └── README.md              # This file
 ```
@@ -35,14 +36,15 @@ High-level, SAP-specific operations:
 
 ### Specialized Transaction Tools (faster, return structured data)
 
-| Tool              | File            | Description                                               |
-| ----------------- | --------------- | --------------------------------------------------------- |
-| `sap_se11_lookup` | `se11_tools.py` | Look up table/structure metadata from ABAP Dictionary     |
-| `sap_se16_query`  | `se16_tools.py` | Query table data via SE16N with pagination                |
-| `sap_se24_lookup` | `se24_tools.py` | Look up class/interface metadata from Class Builder       |
-| `sap_se37_lookup` | `se37_tools.py` | Look up function module signatures from Function Builder  |
-| `sap_se93_lookup` | `se93_tools.py` | Look up transaction metadata from Transaction Maintenance |
-| `sap_sm37_lookup` | `sm37_tools.py` | Look up background job status and logs                    |
+| Tool               | File                    | Description                                                                 |
+| ------------------ | ----------------------- | --------------------------------------------------------------------------- |
+| `sap_se11_lookup`  | `se11_tools.py`         | Look up table/structure metadata from ABAP Dictionary                       |
+| `sap_se16_query`   | `se16_tools.py`         | Query table data via SE16N with pagination                                  |
+| `sap_se24_lookup`  | `se24_tools.py`         | Look up class/interface metadata from Class Builder                         |
+| `sap_se37_lookup`  | `se37_tools.py`         | Look up function module signatures from Function Builder                    |
+| `sap_se93_lookup`  | `se93_tools.py`         | Look up transaction metadata from Transaction Maintenance                   |
+| `sap_sm37_lookup`  | `sm37_tools.py`         | Look up background job status and logs                                      |
+| `sap_quick_report` | `quick_report_tools.py` | Enter a transaction, fill the selection screen, press F8, return the result |
 
 **Note:** Use these specialized tools instead of `sap_transaction('SExx')` - they are faster
 and return structured Pydantic models instead of requiring manual screen parsing.
