@@ -5,9 +5,9 @@ window (wnd[1]), and BCALV_EDIT_02, whose key column CARRID is always read-only.
 so the edits never reach the database; the tests leave them without saving.
 
 DEMO_DYNPRO_TABCONT_LOOP_AT shows the table control FLIGHTS over the rows of SPFLI, held only in an internal table
-(it has no save function either). Its first columns are ready for input, the others only after the function code
-TOGGLE, which the tests never trigger, nor DELETE. It holds more rows than its window, so a write below the window
-scrolls.
+(it has no save function either). Its columns are output only until the function code TOGGLE makes the city columns
+ready for input; the tests trigger TOGGLE where they need an editable column, and never DELETE. It holds more rows
+than its window, so a write below the window scrolls.
 """
 
 from __future__ import annotations
@@ -170,7 +170,14 @@ async def flights(backend: Any) -> AsyncIterator[Any]:
         yield tc_backend
 
 
+def _toggle_input(session: Any, _: Any) -> None:
+    session.find_by_id("wnd[0]/tbar[0]/okcd").text = "TOGGLE"  # lang-ok: function code of the demo report
+    session.find_by_id("wnd[0]").send_v_key(0)
+
+
 async def _editable_text_column(backend: Any) -> tuple[str, int]:
+    """Make the demo's city columns ready for input (TOGGLE), then return the first editable text column."""
+    await _table_control_round_trip(backend, _toggle_input)
     columns, visible = await _table_control_columns_live(backend)
     header = next((h for h, kind, changeable in columns if changeable and kind in _TEXT_FIELDS), None)
     assert header is not None, f"no editable text column: {columns}"
@@ -182,29 +189,41 @@ async def _editable_text_column(backend: Any) -> tuple[str, int]:
 async def test_table_control_write_below_the_window_changes_only_that_row(flights: Any) -> None:
     backend = flights
     col, visible = await _editable_text_column(backend)
-    before = await backend.read_table(max_rows=100)  # maximizes the window, so it shows more than ``visible`` rows
-    assert before.success, before.error
-    target = before.rows[-1].row
-    assert target > visible, f"row {target} is inside the {visible}-line window: the write would not scroll"
-    old = before.rows[-1].data[col].strip()
-    # A value another row holds passes the field's input checks when the screen is processed again.
-    new = next(r.data[col].strip() for r in before.rows if r.data[col].strip() not in ("", old))
+    top = await backend.read_table(max_rows=100)
+    assert top.success, top.error
+    target = min(top.total_rows, visible + 3)
+    assert target > visible, f"the control holds {top.total_rows} rows, not more than its {visible}-line window"
 
-    result = await backend.modify_cell(target, col, new, expected_row=dict(before.rows[-1].data))
+    def _scroll_to(position: int) -> Any:
+        def _scroll(_: Any, raw: Any) -> None:
+            raw.VerticalScrollbar.Position = position
+
+        return _scroll
+
+    # Read the target row's window (read_table numbers rows absolutely), then go back to the top.
+    await _table_control_round_trip(backend, _scroll_to(target - 1))
+    below = await backend.read_table(max_rows=100)
+    assert below.success, below.error
+    target_data = next(r.data for r in below.rows if r.row == target)
+    await _table_control_round_trip(backend, _scroll_to(0))
+
+    old = target_data[col].strip()
+    # A value another row holds passes the field's input checks when the screen is processed again.
+    new = next(r.data[col].strip() for r in top.rows if r.data[col].strip() not in ("", old))
+
+    result = await backend.modify_cell(target, col, new, expected_row=dict(target_data))
     assert result.success, result.error
     assert result.written
     assert result.scrolled
     assert result.table_type == "GuiTableControl"
     assert (result.column, result.previous_value, result.value) == (col, old, new)
 
-    await _table_control_round_trip(backend, _scroll_to_top)
-    after = await backend.read_table(max_rows=100)
-    assert after.success, after.error
-    by_row = {r.row: r.data for r in after.rows}
-    assert set(by_row) >= {r.row for r in before.rows}
-    assert by_row[target][col].strip() == new
-    changed = [r.row for r in before.rows if r.row != target and by_row[r.row] != r.data]
+    after_below = {r.row: r.data for r in (await backend.read_table(max_rows=100)).rows}
+    assert after_below[target][col].strip() == new
+    changed = [r.row for r in below.rows if r.row != target and r.row in after_below and after_below[r.row] != r.data]
     assert changed == [], f"other rows changed: {changed}"
+    await _table_control_round_trip(backend, _scroll_to(0))
+    assert [r.data for r in (await backend.read_table(max_rows=100)).rows] == [r.data for r in top.rows]
 
 
 @skip_no_sap
