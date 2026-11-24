@@ -26,8 +26,8 @@ until November 2026 and are kept in sync by hand. The procedure is in Hochfreque
 - **opening a pull request.** Every pull request body needs a `## Counterpart in sapwebgui.mcp`
   section with a `Counterpart:` line. Decide by the classes in that issue whether the change has a
   counterpart in sapwebgui.mcp. If you can create issues in this session, create the issue there
-  (search for an existing one first) and link it. A bugspecht sprint session cannot
-  create issues: write `Counterpart: pending: ...` there instead; the next sync run creates it.
+  (search for an existing one first) and link it. Inside a bugspecht sprint no issues are
+  created: write `Counterpart: pending: ...` there instead; the next sync run creates it.
 - **a request to sync the two repositories**, for example "sync sapgui.mcp and sapwebgui.mcp",
   possibly with "and start working on the issues". That is the sync run of that issue.
 
