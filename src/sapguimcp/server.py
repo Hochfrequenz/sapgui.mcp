@@ -42,6 +42,7 @@ from sapguimcp.tools import (
     register_se16_tools,
     register_se24_edit_tools,
     register_se24_tools,
+    register_se37_edit_tools,
     register_se37_tools,
     register_se38_edit_tools,
     register_se93_tools,
@@ -335,6 +336,7 @@ register_table_tools(mcp)
 register_fm_tools(mcp)
 register_class_tools(mcp)
 register_se24_edit_tools(mcp)
+register_se37_edit_tools(mcp)
 register_se38_edit_tools(mcp)
 register_breakpoint_tools(mcp)
 

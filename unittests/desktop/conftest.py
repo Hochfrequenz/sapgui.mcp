@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 
 TEST_REPORT = "ZTEST_MCP_EDIT"
+TEST_FUNCTION_MODULE = "Z_MCP_TEST_FM"
 TEST_CLASS = "ZCL_TEST_MCP_EDIT"
 TEST_METHOD = "DO_SOMETHING"
 # Local ($TMP) class whose original language (EN) differs from the DE logon language of the test user.

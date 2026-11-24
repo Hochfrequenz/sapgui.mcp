@@ -14,6 +14,7 @@ tools/
 ├── se16_tools.py          # SE16N table data query
 ├── se24_tools.py          # SE24 Class Builder lookup
 ├── se37_tools.py          # SE37 Function Builder lookup
+├── se37_edit_tools.py     # SE37 function module source editing (sap_se37_edit)
 ├── se93_tools.py          # SE93 Transaction Maintenance lookup
 ├── sm37_tools.py          # SM37 background job lookup
 ├── ...                    # More transaction tools (se09, slg1, sm30, spro, st22, ...)

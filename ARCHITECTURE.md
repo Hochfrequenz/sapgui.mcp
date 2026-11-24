@@ -96,6 +96,7 @@ src/sapguimcp/
     se24_tools.py              # SE24 class lookup
     se24_edit_tools.py         # SE24 class source editing
     se37_tools.py              # SE37 function module lookup
+    se37_edit_tools.py         # SE37 function module source editing
     se38_edit_tools.py         # SE38 report editing
     ...                        # More transaction tools (se09, se11, se93, sm30, sm37, slg1, spro, st22)
     field_helpers.py           # Shared field-filling logic

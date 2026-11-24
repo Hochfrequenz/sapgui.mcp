@@ -170,6 +170,7 @@ IT = LanguagePack(
         changing_tab=Text(("Modifica",)),
         tables_tab=Text(("Tabelle",)),
         exceptions_tab=Text(("Eccezioni",)),
+        source_tab=Text(("Testo sorgente",)),
         parameter_name_column=Text(("Nome parametro",)),
         typing_column=Text(("Tipizzaz.",)),
         type_ref_column=Text(("Tipo di rif.",)),

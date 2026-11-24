@@ -173,6 +173,7 @@ SOURCES: Mapping[str, Source] = MappingProxyType(
         "se37.changing_tab": Manual("tab title of the function builder tab strip"),
         "se37.tables_tab": Manual("tab title of the function builder tab strip"),
         "se37.exceptions_tab": Manual("tab title of the function builder tab strip"),
+        "se37.source_tab": Manual("tab title of the function builder tab strip"),
         "se37.parameter_name_column": Manual("table control column title of the signature tabs"),
         "se37.typing_column": Manual("table control column title of the signature tabs"),
         "se37.type_ref_column": Manual("table control column title of the signature tabs"),

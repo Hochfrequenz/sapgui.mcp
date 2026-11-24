@@ -1,9 +1,11 @@
-"""Tests for the SE37 edit tool: result model (unit tests, no SAP)."""
+"""Tests for the SE37 edit tool: result model and registration (unit tests, no SAP)."""
 
 import pytest
+from fastmcp import FastMCP
 from pydantic import ValidationError
 
 from sapguimcp.models.se37_edit_models import SE37EditResult
+from sapguimcp.tools.se37_edit_tools import register_se37_edit_tools
 
 
 def test_se37_edit_result_success() -> None:
@@ -47,3 +49,13 @@ def test_se37_edit_result_validation_error() -> None:
             check_messages=[],
             activated=False,
         )
+
+
+@pytest.mark.anyio
+async def test_se37_edit_tool_is_registered() -> None:
+    """Test that register_se37_edit_tools adds the tool to a FastMCP instance."""
+    mcp = FastMCP("test")
+    register_se37_edit_tools(mcp)
+
+    tool = await mcp.get_tool("sap_se37_edit")
+    assert tool is not None, "sap_se37_edit tool not found after registration"
