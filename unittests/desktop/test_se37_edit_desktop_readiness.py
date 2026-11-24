@@ -41,6 +41,7 @@ def _backend(*, titles: list[str], popup: PopupInfo | None = None, status: str =
     ):
         setattr(backend, name, AsyncMock())
     backend.focus_and_type = AsyncMock(return_value=True)
+    backend.leave_transaction_without_saving = AsyncMock(return_value=True)
     backend.wait_for_condition = AsyncMock(return_value=True)
     iterator = iter(titles)
     backend.get_screen_info = AsyncMock(side_effect=lambda: ScreenInfo(title=next(iterator, titles[-1]), url="sap://s"))

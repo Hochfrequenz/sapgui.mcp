@@ -55,6 +55,13 @@ async def go_home(backend) -> None:  # type: ignore[no-untyped-def]
         await backend.press_key("F3")
 
 
+async def assert_left_editor(backend, tcode: str) -> None:  # type: ignore[no-untyped-def]
+    """The edit tool left ``tcode`` without a dialog standing, so the object is no longer locked (#1166)."""
+    assert await backend.check_popup() is None, "A dialog is still open after the edit"
+    transaction = (await backend.get_screen_info()).transaction
+    assert transaction != tcode, f"The session is still in {tcode} after the edit, so the object stays locked"
+
+
 # Successful, non-empty abapGit repo lists, cached to spare repeated SAP round trips.
 # Assumes one SAP system per pytest process.
 _REPO_LIST_CACHE: list[AbapGitRepoInfo] = []

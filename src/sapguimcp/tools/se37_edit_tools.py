@@ -17,7 +17,12 @@ from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.se37_edit_models import SE37EditResult
 from sapguimcp.tools.desktop_wait_predicates import editor_loaded
-from sapguimcp.tools.edit_helpers import confirm_language_dialog, describe_failed_replace, switch_to_change_mode
+from sapguimcp.tools.edit_helpers import (
+    confirm_language_dialog,
+    describe_failed_replace,
+    leave_editor_after,
+    switch_to_change_mode,
+)
 from sapguimcp.tools.se37_tools import _fill_fm_name_desktop, _se37_display_reached
 
 if TYPE_CHECKING:
@@ -90,6 +95,13 @@ async def _open_source_tab_desktop(backend: DesktopBackend, function_module: str
 
 
 async def _edit_check_activate_fm(
+    backend: DesktopBackend, function_module: str, new_source: str, t: LanguagePack
+) -> SE37EditResult:
+    """Edit the function module, then leave SE37 so its function group is no longer locked (#1166)."""
+    return await leave_editor_after(backend, "SE37", _edit_fm_in_editor(backend, function_module, new_source, t))
+
+
+async def _edit_fm_in_editor(
     backend: DesktopBackend, function_module: str, new_source: str, t: LanguagePack
 ) -> SE37EditResult:
     """Core edit logic: navigate, read backup, replace, check, activate, revert on failure."""
@@ -174,7 +186,9 @@ def register_se37_edit_tools(mcp: FastMCP) -> None:
             "set_source_from_file tools — faster, no GUI needed.\n\n"
             "Replaces the entire source code (including the FUNCTION and ENDFUNCTION lines), "
             "runs syntax check (Ctrl+F2), and activates (Ctrl+F3). "
-            "Auto-reverts if check or activation fails.\n\n"
+            "Auto-reverts if check or activation fails. "
+            "Afterwards, also after a failure, it leaves SE37 without saving, so the function group is not left "
+            "locked.\n\n"
             "**Important:** Only for EXISTING function modules. To create new ones, use abapGit.\n\n"
             "**Workflow:** Read the current source first (sap-adt get_source, or the backup_source "
             "that this tool returns), modify it, then call this tool with the full new source."

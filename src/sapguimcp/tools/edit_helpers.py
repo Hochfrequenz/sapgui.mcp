@@ -3,14 +3,21 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
+from sapguimcp.models.se24_edit_models import SE24EditResult
+from sapguimcp.models.se37_edit_models import SE37EditResult
+from sapguimcp.models.se38_edit_models import SE38EditResult
 from sapguimcp.tools.desktop_wait_predicates import popup_closed_and_screen_changed, window_title_changed
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable
+
     from sapguimcp.backend.desktop import DesktopBackend
 
 logger = logging.getLogger(__name__)
+
+EditResult = TypeVar("EditResult", SE24EditResult, SE37EditResult, SE38EditResult)
 
 
 async def describe_failed_replace(backend: DesktopBackend, backup_source: str) -> str:
@@ -29,8 +36,8 @@ async def describe_failed_replace(backend: DesktopBackend, backup_source: str) -
         "The original source was restored into the editor."
         if restored
         else (
-            "WARNING: the editor buffer could not be restored and now holds partial content. "
-            "Leave SE38 WITHOUT saving, or paste backup_source back manually."
+            "WARNING: the editor buffer could not be restored and holds partial content. "
+            "It is discarded when the editor is left without saving."
         )
     )
     return (
@@ -80,3 +87,27 @@ async def switch_to_change_mode(backend: DesktopBackend, *, toggle_wait_ms: int,
     if not await backend.wait_for_condition(window_title_changed(display_title), timeout_ms=toggle_wait_ms):
         logger.debug("The window title did not change after Ctrl+F1 within %d ms", toggle_wait_ms)
     return await confirm_language_dialog(backend, display_title, before_status, timeout_ms=dialog_wait_ms)
+
+
+async def leave_editor_after(backend: DesktopBackend, tcode: str, edit: Awaitable[EditResult]) -> EditResult:
+    """Run ``edit``, then leave ``tcode`` without saving, so the object is no longer locked (#1166).
+
+    The editor is left on every path, also when ``edit`` fails or raises: by then the server side is settled
+    (activated, restored, or nothing saved), and whatever the editor still holds is meant to be discarded. A
+    failed leave does not change the outcome of the edit, which is already final on the server: it is logged
+    and noted in ``check_messages``, so the caller knows the lock may still be held.
+    """
+    try:
+        result = await edit
+    finally:
+        try:
+            left = await backend.leave_transaction_without_saving(tcode)
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.exception("Leaving %s after the edit failed", tcode)
+            left = False
+    if not left:
+        result.check_messages.append(
+            f"The session could not leave {tcode}, so the object may still be locked. "  # lang-ok: our own message
+            "Leave the transaction without saving."
+        )
+    return result

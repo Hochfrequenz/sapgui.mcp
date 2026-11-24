@@ -26,7 +26,12 @@ from sapguimcp.tools.desktop_wait_predicates import (
     screen_changed,
     tab_table_control_loaded,
 )
-from sapguimcp.tools.edit_helpers import confirm_language_dialog, describe_failed_replace, switch_to_change_mode
+from sapguimcp.tools.edit_helpers import (
+    confirm_language_dialog,
+    describe_failed_replace,
+    leave_editor_after,
+    switch_to_change_mode,
+)
 from sapguimcp.tools.field_helpers import fill_field_with_keyboard
 
 if TYPE_CHECKING:
@@ -183,6 +188,14 @@ async def _navigate_to_method_editor_desktop(
 async def _edit_check_activate_method(
     backend: DesktopBackend, class_name: str, method_name: str, new_source: str, t: LanguagePack
 ) -> SE24EditResult:
+    """Edit the method, then leave SE24 so the class is no longer locked (#1166)."""
+    edit = _edit_method_in_editor(backend, class_name, method_name, new_source, t)
+    return await leave_editor_after(backend, "SE24", edit)
+
+
+async def _edit_method_in_editor(
+    backend: DesktopBackend, class_name: str, method_name: str, new_source: str, t: LanguagePack
+) -> SE24EditResult:
     """Core edit logic: navigate, read backup, replace, check, activate, revert on failure."""
     nav_error = await _navigate_to_method_editor_desktop(backend, class_name, method_name, t)
     if nav_error:
@@ -259,7 +272,8 @@ def register_se24_edit_tools(mcp: FastMCP) -> None:
             "If sap-adt is available, prefer its patch_source or "
             "set_source_from_file tools — faster, no GUI needed.\n\n"
             "Replaces the method's source code, runs syntax check (Ctrl+F2), "
-            "and activates (Ctrl+F3). Auto-reverts if check or activation fails.\n\n"
+            "and activates (Ctrl+F3). Auto-reverts if check or activation fails. "
+            "Afterwards, also after a failure, it leaves SE24 without saving, so the class is not left locked.\n\n"
             "**Important:** Only for EXISTING classes and methods. To create new ones, use abapGit.\n\n"
             "**Workflow:** Read current class with sap_se24_lookup first to see methods, "
             "then call this tool with the full new method source."

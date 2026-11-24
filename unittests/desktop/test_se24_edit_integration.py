@@ -8,7 +8,7 @@ from sapguimcp.tools.se24_edit_tools import (
     _edit_check_activate_method,
     _navigate_to_method_editor_desktop,
 )
-from unittests.desktop.conftest import TEST_CLASS, TEST_METHOD, go_home, skip_no_sap
+from unittests.desktop.conftest import TEST_CLASS, TEST_METHOD, assert_left_editor, go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
@@ -78,4 +78,5 @@ async def test_se24_full_edit_check_activate(pack, backend):
     assert result.method_name == _TEST_METHOD
     assert result.backup_source, "Should have saved a backup"
     assert result.activated
+    await assert_left_editor(backend, "SE24")
     await go_home(backend)

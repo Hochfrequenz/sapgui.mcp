@@ -2729,6 +2729,46 @@ class DesktopBackend:
             logger.warning("check_and_activate", extra={"error": str(e)})
             return CheckActivateResult(success=False, error=str(e), messages=[], activated=False)
 
+    async def leave_transaction_without_saving(self, tcode: str) -> bool:
+        """End ``tcode`` with ``/n`` without saving anything; True when the session is no longer in it.
+
+        Leaving releases the locks an editor in change mode holds (#1166). A session that is not in ``tcode``
+        is left alone. Every dialog, the ones already open as well as one that ``/n`` raises (such as
+        "save changes?"), is answered topmost first by position and button ID, never by text: its "No"
+        button (``SPOP-OPTION2`` of the standard confirmation popup) when it has one, else F12 (Cancel).
+        Never Enter, whose default answer can be "Yes", that is: save.
+        """
+        session = self.require_session()
+
+        def _answer_dialogs() -> None:
+            for _ in range(_MAX_POPUP_ROUNDS + 1):
+                index = next((i for i in (3, 2, 1) if session.find_by_id(f"wnd[{i}]", raise_error=False)), None)
+                if index is None:
+                    return
+                no_button = session.find_by_id(f"wnd[{index}]/usr/btnSPOP-OPTION2", raise_error=False)
+                if no_button is not None:
+                    cast(Any, no_button).press()
+                else:
+                    cast(Any, session.find_by_id(f"wnd[{index}]")).send_v_key(12)  # F12 = Cancel
+
+        def _dialog_open() -> bool:
+            return any(session.find_by_id(f"wnd[{i}]", raise_error=False) is not None for i in (1, 2, 3))
+
+        def _leave() -> bool:
+            if str(session.info.transaction) != tcode:
+                return True
+            _answer_dialogs()
+            if _dialog_open():  # the command field cannot be used while a modal dialog stands
+                return False
+            cast(Any, session.find_by_id("wnd[0]/tbar[0]/okcd")).text = "/n"
+            cast(Any, session.find_by_id("wnd[0]")).send_v_key(0)
+            _answer_dialogs()
+            return not _dialog_open() and str(session.info.transaction) != tcode
+
+        left = await self.com.run(_leave)
+        logger.info("leave_transaction_without_saving", extra={"tcode": tcode, "left": left})
+        return left
+
     async def dismiss_language_dialog(self) -> None:
         """Dismiss the 'Different original and logon languages' dialog if present.
 

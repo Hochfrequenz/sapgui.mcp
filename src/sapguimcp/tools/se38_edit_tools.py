@@ -18,7 +18,7 @@ from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.se38_edit_models import SE38EditResult
 from sapguimcp.tools.desktop_wait_predicates import editor_loaded_or_popup_open, screen_changed
-from sapguimcp.tools.edit_helpers import describe_failed_replace
+from sapguimcp.tools.edit_helpers import describe_failed_replace, leave_editor_after
 from sapguimcp.tools.field_helpers import fill_field_with_keyboard
 
 if TYPE_CHECKING:
@@ -82,6 +82,13 @@ async def _navigate_and_open_editor_desktop(backend: DesktopBackend, program_nam
 
 
 async def _edit_check_activate(
+    backend: DesktopBackend, program_name: str, new_source: str, t: LanguagePack
+) -> SE38EditResult:
+    """Edit the report, then leave SE38 so it is no longer locked (#1166)."""
+    return await leave_editor_after(backend, "SE38", _edit_in_editor(backend, program_name, new_source, t))
+
+
+async def _edit_in_editor(
     backend: DesktopBackend, program_name: str, new_source: str, t: LanguagePack
 ) -> SE38EditResult:
     """Core edit logic: read backup, replace, check, activate, revert on failure."""
@@ -155,7 +162,8 @@ def register_se38_edit_tools(mcp: FastMCP) -> None:
             "If sap-adt is available, prefer its patch_source or "
             "set_source_from_file tools — faster, no GUI needed.\n\n"
             "Replaces the entire source code, runs syntax check (Ctrl+F2), "
-            "and activates (Ctrl+F3). Auto-reverts if check or activation fails.\n\n"
+            "and activates (Ctrl+F3). Auto-reverts if check or activation fails. "
+            "Afterwards, also after a failure, it leaves SE38 without saving, so the report is not left locked.\n\n"
             "**Important:** Only for EXISTING reports. To create new reports, use abapGit.\n\n"
             "**Workflow:** Read current source with sap_read_se38_source first, "
             "modify it, then call this tool with the full new source."

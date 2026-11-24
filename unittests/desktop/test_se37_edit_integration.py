@@ -9,7 +9,7 @@ from sapguimcp.tools.se37_edit_tools import (
     _open_fm_in_change_mode_desktop,
     _open_source_tab_desktop,
 )
-from unittests.desktop.conftest import TEST_FUNCTION_MODULE, go_home, skip_no_sap
+from unittests.desktop.conftest import TEST_FUNCTION_MODULE, assert_left_editor, go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
@@ -79,6 +79,7 @@ async def test_se37_full_edit_check_activate(pack, backend):
     await go_home(backend)
 
     result = await _edit_check_activate_fm(backend, TEST_FUNCTION_MODULE, original, pack)
+    await assert_left_editor(backend, "SE37")
     await go_home(backend)
     assert result.success, f"Edit workflow failed: {result.error}"
     assert result.function_module == TEST_FUNCTION_MODULE
@@ -126,6 +127,7 @@ async def test_se37_broken_source_is_reverted_and_reactivated(pack, backend):
         result = await _edit_check_activate_fm(backend, TEST_FUNCTION_MODULE, broken, pack)
         assert not result.success, "A syntax error must fail the edit"
         assert "Auto-reverted to original source and re-activated successfully" in (result.error or ""), result.error
+        await assert_left_editor(backend, "SE37")  # also after a failed edit (#1166)
         await go_home(backend)
 
         await _open_source(pack, backend)

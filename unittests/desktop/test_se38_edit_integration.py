@@ -5,7 +5,7 @@ import sys
 import pytest
 
 from sapguimcp.tools.se38_edit_tools import _edit_check_activate, _navigate_and_open_editor_desktop
-from unittests.desktop.conftest import TEST_REPORT, go_home, skip_no_sap
+from unittests.desktop.conftest import TEST_REPORT, assert_left_editor, go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
@@ -144,4 +144,5 @@ async def test_se38_full_edit_check_activate(pack, backend):
     assert result.program_name == _TEST_REPORT
     assert result.backup_source, "Should have saved a backup"
     assert result.activated
+    await assert_left_editor(backend, "SE38")
     await go_home(backend)
