@@ -3,7 +3,7 @@
 The context-menu tool is a follow-up to https://github.com/Hochfrequenz/sapgui.mcp/issues/717.
 #717's snapshot-ID fix made ``GuiShell`` trees inside a ``GuiDockShell``
 reachable, but the reporter's actual workflow (right-click → "Task
-anlegen" on ``/n/NA2/DCS``) still failed because
+anlegen" on ``/n/ABC/EXAMPLE``) still failed because
 ``SelectContextMenuItemByText("Task anlegen")`` raises
 ``SAP Error 613 — The method got an invalid argument``.
 
@@ -321,7 +321,8 @@ def register_tree_tools(mcp: FastMCP) -> None:
         description=(
             "Activate a tree node like a user would: double-click the node (or the item `item_name`), "
             "or with mode='click_link' click the hyperlink item `item_name` (a column name from "
-            "sap_tree_read). Can navigate or start an action; check the returned title and status bar."
+            "sap_tree_read; list trees number their items '1', '2', ...). "
+            "Can navigate or start an action; check the returned title and status bar."
         ),
     )
     async def sap_tree_activate(

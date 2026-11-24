@@ -2,19 +2,24 @@
 and ``sap_tree_activate``.
 
 Nothing is changed in the system: the tests only expand, collapse and select nodes, and the one
-activation switches views in a view cluster opened in display mode. Requires desktop SAP
+activation switches views in a view cluster opened in display mode (selecting a table row
+first when only a dependent view is available). Requires desktop SAP
 credentials (see docs/SAP_TEST_PREREQUISITES.md); skipped without them. Every test returns to the
 Easy Access screen in ``finally``.
 """
 
 from __future__ import annotations
 
+import json
 import sys
 from typing import TYPE_CHECKING, Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
+from fastmcp import Client, FastMCP
 
-from sapguimcp.backend.desktop._tree_helpers import activate_node, expand_node, select_node
+from sapguimcp.backend.desktop._tree_helpers import expand_node, select_node
+from sapguimcp.tools.tree_tools import register_tree_tools
 from unittests.desktop.conftest import go_home, skip_no_sap
 from unittests.desktop.test_tree_read_integration import SM34_CLUSTER, _open_img, _read
 
@@ -89,7 +94,12 @@ async def test_se80_select_in_docking_tree(backend):
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_sm34_double_click_switches_view(backend):
+async def test_sm34_activate_tool_switches_view(backend):
+    """Double-click another view of a view cluster through the tool layer; the window title changes.
+
+    The target is chosen from the tree structure: another top-level view when there is one, else a
+    dependent view of the current one, which needs a selected entry first (the first table row).
+    """
     try:
         await go_home(backend)
         tx = await backend.enter_transaction("SM34")
@@ -97,23 +107,56 @@ async def test_sm34_double_click_switches_view(backend):
         await backend.wait_for_ready()
         session = backend.require_session()
 
+        def _raw() -> Any:
+            return getattr(session, "com", getattr(session, "_com", session))
+
         def _open_cluster_in_display_mode() -> None:
-            raw = getattr(session, "com", getattr(session, "_com", session))
-            raw.FindById("wnd[0]/usr/ctxtVCLDIR-VCLNAME").Text = SM34_CLUSTER
-            raw.FindById("wnd[0]/usr/btnSHOW_PUSH").Press()
+            _raw().FindById("wnd[0]/usr/ctxtVCLDIR-VCLNAME").Text = SM34_CLUSTER
+            _raw().FindById("wnd[0]/usr/btnSHOW_PUSH").Press()
 
         await backend.com.run(_open_cluster_in_display_mode)
         await backend.wait_for_ready()
         tree = await _read(backend)
-        assert len(tree["nodes"]) >= 2, "view cluster needs at least two views"
-        title_before = await backend.get_page_title()
+        top_level = min(n["level"] for n in tree["nodes"])
+        top = [n for n in tree["nodes"] if n["level"] == top_level]
 
-        target = tree["nodes"][-1]
-        result = await _act(backend, lambda raw: activate_node(raw, None, target["key"]))
-        await backend.wait_for_ready()
-        title_after = await backend.get_page_title()
-        print("SM34 ACTIVATE", result, repr(title_before), "->", repr(title_after))
-        assert result["node_text"] == target["text"]
-        assert title_after != title_before, "double-click on another view did not switch the view"
+        def _selected_node() -> str:
+            try:
+                return str(_raw().FindById(tree["tree_id"]).SelectedNode or "")
+            except Exception:  # some trees do not expose a single selected node
+                return ""
+
+        selected = await backend.com.run(_selected_node)
+        current = selected if selected in {n["key"] for n in top} else top[0]["key"]
+
+        others = [n for n in top if n["key"] != current]
+        if others:
+            target = others[0]
+        else:
+            dependents = (await _read(backend, root_key=current))["nodes"]
+            assert dependents, "view cluster has neither a second view nor a dependent view"
+            target = dependents[0]
+
+            def _select_first_row() -> None:
+                usr = _raw().FindById("wnd[0]/usr")
+                tables = [usr.Children.Item(i) for i in range(usr.Children.Count)]
+                table = next(t for t in tables if t.Type == "GuiTableControl")
+                table.GetAbsoluteRow(0).Selected = True
+
+            await backend.com.run(_select_first_row)
+
+        title_before = await backend.get_page_title()
+        local = FastMCP("tree-live")
+        register_tree_tools(local)
+        with patch("sapguimcp.tools.tree_tools.get_backend", AsyncMock(return_value=backend)):
+            async with Client(local) as client:
+                raw = await client.call_tool("sap_tree_activate", {"node_key": target["key"]})
+        data = json.loads(raw.content[0].text)
+        print("SM34 ACTIVATE", "dependent" if not others else "top-level", data, repr(title_before))
+        assert data["success"] is True, data["error"]
+        assert data["node_text"] == target["text"]
+        assert data["status_bar_type"] is not None
+        assert data["current_session_title_after"], "title after the action was not read"
+        assert data["current_session_title_after"] != title_before, "activating another view did not switch"
     finally:
         await go_home(backend)

@@ -76,10 +76,31 @@ def test_expand_that_never_takes_effect_fails_clearly():
     assert tree.counts["IsFolderExpanded"] == _tree_helpers._EXPAND_POLLS
 
 
-def test_expand_empty_folder_reports_zero_children():
-    result = expand_node(dock(_tree()), None, "          5")
+def test_expand_empty_folder_reports_zero_children_without_extra_polls():
+    tree = _tree()
+    result = expand_node(dock(tree), None, "          5")
     assert result["expanded"] is True
     assert result["child_count"] == 0
+    assert tree.counts["IsFolderExpanded"] == 1
+
+
+def test_expand_reads_state_from_refetched_tree():
+    """After the server round trip the old reference may be stale; the state is read from a fresh FindById."""
+    fresh = FakeTree(TREE_ID, simple_nodes())
+
+    class _Stale(FakeTree):
+        def ExpandNode(self, key: str) -> None:  # noqa: N802
+            self._record("ExpandNode", key)
+            session._registry[TREE_ID] = fresh
+            fresh._nodes[key].expanded = True
+
+        def IsFolderExpanded(self, key: str) -> bool:  # noqa: N802, ARG002
+            raise AssertionError("stale reference used")
+
+    session = dock(_Stale(TREE_ID, simple_nodes()))
+    result = expand_node(session, None, "          3")
+    assert result["expanded"] is True
+    assert fresh.counts["IsFolderExpanded"] == 1
 
 
 def test_expand_leaf_is_value_error_without_calling_the_control():

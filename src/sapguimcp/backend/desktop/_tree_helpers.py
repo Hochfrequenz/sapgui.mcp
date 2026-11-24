@@ -334,15 +334,24 @@ def read_tree(  # pylint: disable=too-many-locals
 
 
 def _require_node(tree: Any, tree_id: str, node_key: str) -> str:
-    """Return the label of ``node_key``; raise ``ValueError`` with some valid keys when it is unknown."""
+    """Return the label of ``node_key``; raise ``ValueError`` with some valid keys when it is not loaded.
+
+    SAP GUI returns an empty label for an unknown key instead of failing, so the key is looked up in
+    ``GetAllNodeKeys``. Beyond the scan ceiling the key cannot be checked and the action decides.
+    """
     try:
-        return _TreeReader(tree, tree_id).text(node_key)
+        key_collection = tree.GetAllNodeKeys()
+        total = int(key_collection.Count)
+        keys = [str(k) for k in _collection(key_collection, MAX_SCAN_NODES)]
     except Exception as exc:
         _reraise_if_transient(exc)
-        hints = _try(lambda: [str(k) for k in _collection(tree.GetAllNodeKeys(), _KEY_HINT_COUNT)]) or []
+        raise RuntimeError(f"tree {tree_id!r}: reading node keys failed: {exc}") from exc
+    if node_key not in keys and total <= len(keys):
         raise ValueError(
-            f"node_key {node_key!r} not found in tree {tree_id!r} (keys are exact and padded); some valid keys: {hints}"
-        ) from exc
+            f"node_key {node_key!r} not found among the loaded nodes of tree {tree_id!r} "
+            f"(keys are exact and padded); some valid keys: {keys[:_KEY_HINT_COUNT]}"
+        )
+    return _TreeReader(tree, tree_id).text(node_key)
 
 
 def _call(tree: Any, tree_id: str, node_key: str, method: str, *args: Any) -> None:
@@ -352,6 +361,15 @@ def _call(tree: Any, tree_id: str, node_key: str, method: str, *args: Any) -> No
     except Exception as exc:
         _reraise_if_transient(exc)
         raise RuntimeError(f"tree {tree_id!r}: {method} on node {node_key!r} failed: {exc}") from exc
+
+
+def _refetch(raw_session: Any, tree_id: str, method: str) -> Any:
+    """Look the tree up again: a reference from before a server round trip may be stale."""
+    try:
+        return raw_session.FindById(tree_id)
+    except Exception as exc:
+        _reraise_if_transient(exc)
+        raise RuntimeError(f"tree {tree_id!r} not found after {method}: {exc}") from exc
 
 
 def expand_node(raw_session: Any, tree_id: str | None, node_key: str, *, expand: bool = True) -> dict[str, Any]:
@@ -367,15 +385,16 @@ def expand_node(raw_session: Any, tree_id: str | None, node_key: str, *, expand:
         raise ValueError(f"node {node_key!r} ({text!r}) of tree {resolved_id!r} is not an expandable folder")
     method = "ExpandNode" if expand else "CollapseNode"
     _call(tree, resolved_id, node_key, method, node_key)
+    tree = _refetch(raw_session, resolved_id, method)
 
-    expanded = count = None
+    expanded = None
     for attempt in range(_EXPAND_POLLS):
         if attempt:
             time.sleep(_EXPAND_POLL_S)
         expanded = _try(tree.IsFolderExpanded, node_key)
-        count = _try(tree.GetNodeChildrenCount, node_key)
-        if expanded is None or (bool(expanded) == expand and (count or not expand)):
+        if expanded is None or bool(expanded) == expand:
             break
+    count = _try(tree.GetNodeChildrenCount, node_key)
     if expanded is not None and bool(expanded) != expand:
         state = "collapsed" if expand else "expanded"
         raise RuntimeError(f"tree {resolved_id!r}: node {node_key!r} ({text!r}) is still {state} after {method}")
@@ -393,6 +412,7 @@ def select_node(raw_session: Any, tree_id: str | None, node_key: str) -> dict[st
     tree, resolved_id = resolve_tree(raw_session, tree_id)
     text = _require_node(tree, resolved_id, node_key)
     _call(tree, resolved_id, node_key, "SelectNode", node_key)
+    tree = _refetch(raw_session, resolved_id, "SelectNode")
     # Multiple-selection trees have no single SelectedNode; only a different, non-empty value is a failure.
     selected = _try(getattr, tree, "SelectedNode")
     if selected and str(selected) != node_key:
@@ -420,14 +440,11 @@ def activate_node(
         raise ValueError("mode='click_link' needs item_name (a column name from sap_tree_read)")
     tree, resolved_id = resolve_tree(raw_session, tree_id)
     text = _require_node(tree, resolved_id, node_key)
-    method = "ClickLink" if mode == "click_link" else "DoubleClickItem"
-    args: tuple[str, ...] = (node_key, item_name) if item_name is not None else (node_key,)
-    if item_name is None:  # only a double-click gets here without an item
-        method = "DoubleClickNode"
+    method = "ClickLink" if mode == "click_link" else "DoubleClickNode" if item_name is None else "DoubleClickItem"
+    args: tuple[str, ...] = (node_key,) if item_name is None else (node_key, item_name)
     try:
         _call(tree, resolved_id, node_key, method, *args)
     except RuntimeError as exc:
-        _reraise_if_transient(exc)
         if item_name is None:
             raise
         raise RuntimeError(f"{exc}; column names of this tree: {_column_names(tree)}") from exc

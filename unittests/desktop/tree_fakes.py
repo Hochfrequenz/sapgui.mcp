@@ -66,7 +66,7 @@ class FakeTree:
 
     def _record(self, name: str, *args: Any) -> None:
         self.calls.append(f"{name}{args}")
-        if name in self._broken_methods:
+        if name in self._broken_methods or args[0] not in self._nodes:
             raise RuntimeError(f"{name} failed")
 
     def ExpandNode(self, key: str) -> None:  # noqa: N802
@@ -112,11 +112,12 @@ class FakeTree:
     def GetAllNodeKeys(self) -> FakeCollection:  # noqa: N802
         return FakeCollection(list(self._order))
 
+    # Like real SAP GUI, the text getters return "" for an unknown key instead of failing.
     def GetNodeTextByKey(self, key: str) -> str:  # noqa: N802
-        return self._node(key).text
+        return self._node(key).text if key in self._nodes else ""
 
     def GetItemText(self, key: str, column: str) -> str:  # noqa: N802
-        return self._node(key).items.get(column, "")
+        return self._node(key).items.get(column, "") if key in self._nodes else ""
 
     def GetParent(self, key: str) -> str:  # noqa: N802
         self._count("GetParent")
