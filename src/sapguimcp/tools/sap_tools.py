@@ -11,7 +11,7 @@ This module contains tools for:
 - sap_get_screen_text: Get all readable text from current screen
 - sap_read_table: Read data from ALV grids and tables (with cell selectors)
 - sap_click_table_cell: Click a cell in an ALV grid table
-- sap_modify_cell: Write a cell of an editable ALV grid and read it back
+- sap_modify_cell: Write a cell of an editable ALV grid or table control and read it back
 - sap_read_status_bar: Read status bar messages
 - sap_get_screen_info: Get technical screen information
 - sap_lookup_fields: Look up known field selectors for a transaction
@@ -800,9 +800,11 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             read_only_hint=False, destructive_hint=True, idempotent_hint=True, open_world_hint=False
         ),
         description=(
-            "Write one cell of the editable ALV grid shown by sap_read_table and read it back. "
+            "Write one cell of the editable ALV grid or table control shown by sap_read_table and read it back. "
             "When you read the row earlier, pass its key columns as expected_row: the write is refused if the row "
-            "moved. The change usually reaches SAP only with Enter or Save; some grids react at once."
+            "moved. A table control row outside its window is scrolled into view (scrolled=True); the scroll "
+            "submits the screen, so the program's input checks run and earlier cell writes reach the program. "
+            "The change usually reaches SAP only with Enter or Save; some grids react at once."
         ),
     )
     async def sap_modify_cell(
@@ -811,19 +813,22 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         value: str,
         expected_current: str | None = None,
         expected_row: dict[str, str] | None = None,
+        allow_empty_row: bool = False,
         session: str | None = None,
         agent_id: str | None = None,
     ) -> ModifyCellResult:
         """
-        Write one cell of the first ALV grid of the active window.
+        Write one cell of the first ALV grid or table control of the active window.
 
         Args:
             row: Row number (1-indexed), as sap_read_table shows it
-            column: Column index (0-based) or technical column name, as in sap_read_table's headers
+            column: Column index (0-based), header as in sap_read_table's headers, or technical column name
             value: New cell value
             expected_current: Value the cell must hold now (trimmed); otherwise nothing is written
-            expected_row: Technical column name -> value (trimmed) the row must hold now, e.g. its key columns;
+            expected_row: Column (as for column) -> value (trimmed) the row must hold now, e.g. its key columns;
                 otherwise nothing is written
+            allow_empty_row: Table control only: allow writing into an empty line after the last row (for example
+                to add an entry); refused otherwise
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
@@ -837,7 +842,9 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return ModifyCellResult.failure(str(e), row=row, column=str(column))
 
         try:
-            return await backend.modify_cell(row, column, value, expected_current, expected_row)
+            return await backend.modify_cell(
+                row, column, value, expected_current, expected_row, allow_empty_row=allow_empty_row
+            )
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Modifying table cell", extra={"row": row, "column": column})
             return ModifyCellResult.failure(
