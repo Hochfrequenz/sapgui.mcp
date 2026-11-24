@@ -1993,6 +1993,8 @@ class DesktopBackend:
             start = session.find_by_id(root or _active_window_id(session), raise_error=False)
             if start is None:
                 raise ValueError(f"Element '{root}' not found on the current screen. Copy an id= from the snapshot.")
+            if not hasattr(start, "dump_tree"):  # only containers (user area, shells, tabs, ...) have children
+                raise ValueError(f"Element '{root}' has no child elements. Pass a container id as root.")
             tree = cast(Any, start).dump_tree()
 
             max_depth_found = 0

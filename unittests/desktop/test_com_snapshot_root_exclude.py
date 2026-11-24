@@ -37,6 +37,8 @@ def _backend(elements: dict[str, list[ElementInfo]]) -> DesktopBackend:
     def find_by_id(elem_id: str, raise_error: bool = True) -> Any:  # noqa: ARG001 - mirrors sapsucker
         if elem_id not in elements:
             return None
+        if elem_id.endswith("txtFIELD"):  # a field, not a container
+            return MagicMock(spec=["text"])
         return MagicMock(dump_tree=MagicMock(return_value=elements[elem_id]))
 
     backend = DesktopBackend(com_thread=_FakeComThread())  # type: ignore[arg-type]
@@ -75,6 +77,13 @@ async def test_root_starts_the_tree_and_the_depth_there() -> None:
 async def test_unknown_root_is_an_error() -> None:
     with pytest.raises(ValueError, match="wnd\\[0\\]/nope"):
         await _backend({"wnd[0]": _WINDOW}).get_snapshot_with_depth(root="wnd[0]/nope")
+
+
+@pytest.mark.anyio
+async def test_root_without_children_is_an_error() -> None:
+    backend = _backend({"wnd[0]": _WINDOW, "wnd[0]/usr/txtFIELD": []})
+    with pytest.raises(ValueError, match="container"):
+        await backend.get_snapshot_with_depth(root="wnd[0]/usr/txtFIELD")
 
 
 @skip_no_sap
