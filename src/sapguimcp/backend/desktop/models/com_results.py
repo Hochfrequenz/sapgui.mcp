@@ -72,7 +72,7 @@ class TreeContextMenuResult(ToolResult):
         default=None,
         description=(
             "Title of the topmost active window in the CURRENT SAP session after the selection. "
-            "Note: some menu actions (e.g. DCS 'Task: Anlegen') open a PARALLEL session rather "
+            "Note: some menu actions open a PARALLEL session rather "
             "than replacing the current window — in that case this title is unchanged. Use "
             "sap_com_snapshot or iterate the connection's child sessions to find the new screen."
         ),

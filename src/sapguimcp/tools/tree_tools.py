@@ -92,7 +92,7 @@ def _invoke_tree_context_menu(  # pylint: disable=too-many-arguments,too-many-lo
     shell = raw_session.FindById(shell_id)
 
     # SelectNode before NodeContextMenu mirrors what SAP GUI Scripting Recorder
-    # emits for tree right-clicks — the DCS TableTreeControl.1 probe (see
+    # emits for tree right-clicks — a TableTreeControl.1 probe (see
     # scripts/probe_tree_context_menu.py) confirmed both calls are needed for
     # CurrentContextMenu to populate. Trees that don't require it still tolerate
     # the extra selectionChanged event; this path prioritises "works everywhere".
@@ -348,7 +348,7 @@ def register_tree_tools(mcp: FastMCP) -> None:
         description=(
             "Invoke the right-click context menu on a ``GuiShell``/``GuiTree`` node.\n\n"
             "Use this when you want to discover or fire an action from a tree node's "
-            "context menu — e.g. 'Task: Anlegen' on ``/n/NA2/DCS`` — and the plain "
+            "context menu — e.g. a 'create' entry in an application tree — and the plain "
             "``sap_com_evaluate`` path fails because you don't know the exact label text.\n\n"
             "**Workflow:**\n"
             "1. `sap_com_snapshot` → copy the tree's ``id=`` (e.g. `wnd[0]/shellcont/shell`).\n"
@@ -364,7 +364,7 @@ def register_tree_tools(mcp: FastMCP) -> None:
             "language-independent (e.g. `T_1310` regardless of SAP logon language) and "
             "immune to punctuation/casing drift.\n\n"
             "Some menu actions open the follow-up screen in a PARALLEL SAP session "
-            "(e.g. DCS 'Task: Anlegen' opens in a new session), not the current window. "
+            "(e.g. some 'create' entries open in a new session), not the current window. "
             "After a select call, use `sap_com_snapshot` or iterate the connection's "
             "child sessions to locate the new screen.\n\n"
             "`select_*` args are mutually exclusive; pass at most one."
@@ -432,7 +432,7 @@ def register_tree_tools(mcp: FastMCP) -> None:
         selected = TreeContextMenuItem(**raw["selected"]) if raw["selected"] is not None else None
 
         # Current-session title after the action — note that many menu actions
-        # open a PARALLEL session (DCS 'Task: Anlegen' does), in which case this
+        # open a PARALLEL session, in which case this
         # stays on the original screen. The field name reflects that honestly.
         current_session_title_after: str | None = None
         try:
