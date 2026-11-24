@@ -52,13 +52,14 @@ async def test_two_clients_on_one_logon_entry_coexist(backend: Any) -> None:
     assert set(sessions) == {"s1", "s2"}
     assert sessions["s1"].client == default.client
     assert sessions["s2"].client == other.client
+    assert (sessions["s1"].is_primary, sessions["s2"].is_primary) == (True, False)
     for sid in ("s1", "s2"):
         assert (await backend.get_session_status(session_id=sid)).status == "active"
 
     # Closing the primary s1 leaves s2 alive, and s2 becomes the primary.
     assert await backend.close_session("s1")
-    assert backend.registry.list_sessions() == ["s2"]
-    assert backend.registry.primary_session == "s2"
+    remaining = await backend.list_sessions()
+    assert [(r.session_id, r.is_primary) for r in remaining] == [("s2", True)]
     assert (await backend.get_session_status(session_id="s2")).status == "active"
 
     assert await backend.close_session("s2")
