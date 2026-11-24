@@ -21,7 +21,7 @@ import weakref
 from collections.abc import Sequence
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, NamedTuple, cast
 
 from sapsucker.login import login as _sapsucker_login
 
@@ -97,6 +97,9 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Sequence
 
     from sapsucker.components.session import GuiSession
+
+    #: modify_cell's target: column, (column, expected value) checks, current values of the row, write, read back
+    _CellAccess = tuple[str, list[tuple[str, str]], dict[str, str], Callable[[str], None], Callable[[], str]]
 
 logger = logging.getLogger(__name__)
 
@@ -662,6 +665,109 @@ def _resolve_grid_column(columns: list[str], column: int | str) -> str:
 def _status_bar_text(session: Any, wnd_id: str) -> str:
     sbar = session.find_by_id(f"{wnd_id}/sbar", raise_error=False)
     return "" if sbar is None else str(cast(Any, sbar).text).strip()
+
+
+def _resolve_table_control_column(columns: list[tuple[str, str]], column: int | str) -> tuple[int, str]:
+    """``(index in Columns, header)`` for a 0-based index, a header as ``sap_read_table`` shows it, or a technical name.
+
+    Names are compared case-insensitively; one that fits several columns is refused (the index is unambiguous).
+    """
+    if isinstance(column, int):
+        if not 0 <= column < len(columns):
+            raise ValueError(f"Column index {column} is out of range: the table control has {len(columns)} column(s).")
+        return column, columns[column][0]
+    wanted = column.strip().upper()
+    matches = [i for i, (header, name) in enumerate(columns) if wanted in (header.upper(), name.upper())]
+    if len(matches) == 1:
+        return matches[0], columns[matches[0]][0]
+    listed = ", ".join(header if name in ("", header) else f"{header} ({name})" for header, name in columns)
+    problem = "fits several columns, pass its index" if matches else "not found"  # lang-ok: our own message
+    raise ValueError(f"Column '{column}' {problem}. Columns: {listed}.")
+
+
+class _TableControlView(NamedTuple):
+    """A table control's window, read once it had settled."""
+
+    control: Any  # raw COM object, fetched by id for this read
+    row_count: int  # RowCount: the rows plus SAP's empty padding lines
+    visible: int  # VisibleRowCount
+    top: int  # 0-based index of the row on the window's first line
+    total: int  # the rows the control really holds (``_table_control_row_total``)
+    rows: dict[int, dict[str, str]]  # 1-based row number -> header -> text, for the window's filled rows
+
+
+def _table_control_view(session: Any, element_id: str) -> _TableControlView:
+    """Fetch the table control by id and read its window with the settle wait of ``_read_table_control``."""
+    control = session.find_by_id(element_id)
+    raw: Any = getattr(control, "com", getattr(control, "_com", control))
+    row_count, visible = int(raw.RowCount), int(raw.VisibleRowCount)
+    top = int(raw.VerticalScrollbar.Position) if row_count > visible else 0
+    data = _read_table_control(control, 1, None, max(row_count, 1))
+    rows = {r["row"]: r["data"] for r in data["rows"]}
+    return _TableControlView(raw, row_count, visible, top, data["total_rows"], rows)
+
+
+def _line_in_view(view: _TableControlView, row: int) -> int | None:
+    """The window line (0-based) that shows ``row`` (1-based), or None if the row is not safely in view.
+
+    The last line of a scrollable window can be only partly visible and then reads blank: it counts only with text.
+    """
+    line = row - 1 - view.top
+    if not 0 <= line < view.visible:
+        return None
+    last_line = line == view.visible - 1 and view.row_count > view.visible
+    if last_line and not any(text.strip() for text in view.rows.get(row, {}).values()):
+        return None
+    return line
+
+
+_SCROLL_IDLE_TIMEOUT_S = 2.0
+
+
+def _scroll_table_control(session: Any, element_id: str, row: int, wnd_id: str) -> None:
+    """Scroll ``row`` (1-based) to the top of a table control's window, then wait until the session is idle.
+
+    A scroll is a server round trip. Reading the control before SAP GUI has rebuilt it gave half-empty windows and COM
+    errors and is the suspected trigger of a SAP GUI crash (#387, #937), so: one attempt without retry, a wait for
+    ``session.busy`` to clear, and the caller fetches the control again by id and waits for a settled window.
+    """
+    control = session.find_by_id(element_id)
+    raw: Any = getattr(control, "com", getattr(control, "_com", control))
+    try:
+        raw.VerticalScrollbar.Position = min(row - 1, int(raw.VerticalScrollbar.Maximum))
+    except Exception as exc:
+        raise ValueError(f"Could not scroll the table control to row {row} ({exc}).") from exc
+    deadline = time.monotonic() + _SCROLL_IDLE_TIMEOUT_S
+    while session.busy:
+        if time.monotonic() >= deadline:
+            raise ValueError(f"SAP GUI was still busy {_SCROLL_IDLE_TIMEOUT_S:.0f} s after scrolling to row {row}.")
+        time.sleep(_TABLE_CONTROL_SETTLE_POLL_S)
+    if (now_wnd := _active_window_id(session)) != wnd_id:
+        raise ValueError(f"Scrolling to row {row} opened window {now_wnd}: handle it first.")
+
+
+_TEXT_FIELD_TYPES = frozenset({"GuiTextField", "GuiCTextField"})  # lang-ok: COM type names
+
+
+def _table_control_cell(
+    view: _TableControlView, row: int, line: int, col_index: int, header: str, columns: list[tuple[str, str]]
+) -> Any:
+    """The cell of ``row`` (window ``line``) in column ``col_index``, verified as that cell and an editable text field.
+
+    The cell's own id must name the line and the column: ``[col,row]`` at its end, and the column's field name (the
+    column number in the id need not be the index in ``Columns``, see ``_cell_header``).
+    """
+    cell = view.control.GetCell(line, col_index)
+    cell_id = str(cell.Id)
+    match = _TABLE_CELL_ID.search(cell_id)
+    if match is None or int(match.group(2)) != line or _cell_header(cell_id, int(match.group(1)), columns) != header:
+        raise ValueError(f"The cell found for row {row}, column {header} is {cell_id.rsplit('/', 1)[-1]}, another one.")
+    cell_type = str(cell.Type)
+    if cell_type not in _TEXT_FIELD_TYPES:
+        raise ValueError(f"The cell in row {row}, column {header} is a {cell_type}; only text fields.")
+    if not cell.Changeable:
+        raise ValueError(f"The cell in row {row}, column {header} is not editable.")
+    return cell
 
 
 class DesktopBackend:
@@ -2202,42 +2308,46 @@ class DesktopBackend:
         value: str,
         expected_current: str | None = None,
         expected_row: dict[str, str] | None = None,
+        allow_empty_row: bool = False,
     ) -> ModifyCellResult:
-        """Write one cell of the editable ALV grid on screen and read it back (#1010).
+        """Write one cell of the editable ALV grid or table control on screen and read it back (#1010).
 
-        Never writes a cell other than the requested one: a grid addresses rows absolutely (no window offset to get
-        wrong), an untransferred row is loaded before it is read, and ``expected_current`` / ``expected_row`` turn the
-        write into a compare-and-swap against a row that moved since it was read. The grid usually keeps the change in
-        the frontend until Enter or a save; some grids react at once.
+        Never writes a cell other than the requested one. A grid addresses rows absolutely, and an untransferred row is
+        loaded before it is read. A table control only holds its window: a row outside it is scrolled to the top, and
+        the window line is computed from the scroll position read after the scroll; the cell's own id must name that
+        line and column. ``expected_current`` / ``expected_row`` turn the write into a compare-and-swap against a row
+        that moved since it was read. ``allow_empty_row`` permits a table control's empty lines after its last row.
+        The change usually stays in the frontend until Enter or a save; some grids react at once.
         """
         session = self.require_session()
-        write_started = False  # set on the COM thread; read here if the call ends in an error (e.g. a watchdog halt)
+        # set on the COM thread; read here if the call ends in an error (e.g. a watchdog halt)
+        write_started = False
+        table_type: str | None = None
+        scrolled = False
 
-        def _modify() -> ModifyCellResult:
-            nonlocal write_started
-            found = _locate_table(session)
-            if found is None:
-                raise ValueError("No ALV grid on screen.")
-            grid, kind, _ = found
-            if kind != "GuiGridView":  # lang-ok: COM type name
-                raise ValueError("Table controls are not supported yet, only ALV grids.")
+        def _expected(resolve: Callable[[str], str], col: str) -> list[tuple[str, str]]:
+            # Every condition is kept, also two on the same column (expected_current and an expected_row entry).
+            expected = [(resolve(k), v.strip()) for k, v in (expected_row or {}).items()]
+            if expected_current is not None:
+                expected.append((col, expected_current.strip()))
+            return expected
+
+        def _grid_cell(grid: Any, wnd_id: str) -> _CellAccess:
+            nonlocal scrolled
             row_count = int(grid.row_count)
             if not 1 <= row <= row_count:
                 raise ValueError(f"Row {row} is out of range: the grid has {row_count} row(s).")
             columns = _grid_column_names(grid)
             col = _resolve_grid_column(columns, column)
-            # Every condition is kept, also two on the same column (expected_current and an expected_row entry).
-            expected = [(_resolve_grid_column(columns, k), v.strip()) for k, v in (expected_row or {}).items()]
-            if expected_current is not None:
-                expected.append((col, expected_current.strip()))
+            expected = _expected(lambda k: _resolve_grid_column(columns, k), col)
             row0 = row - 1
-            wnd_id = _active_window_id(session)
             # An untransferred row reads blank or as a placeholder, its changeable state included: load it first.
             if _row_not_fully_loaded({c: str(grid.get_cell_value(row0, c)) for c in columns}, row0):
                 try:
                     grid.first_visible_row = row0
                 except Exception as exc:
                     raise ValueError(f"Could not scroll to row {row} to load it ({exc}).") from exc
+                scrolled = True
                 if (now_wnd := _active_window_id(session)) != wnd_id:
                     raise ValueError(f"Scrolling to row {row} opened window {now_wnd}: handle it first.")
             if not grid.get_cell_changeable(row0, col):
@@ -2246,6 +2356,69 @@ class DesktopBackend:
             if cell_type != "Normal":  # lang-ok: COM cell type
                 raise ValueError(f"The cell in row {row}, column {col} is a {cell_type} cell; only text cells.")
             current = {c: str(grid.get_cell_value(row0, c)).strip() for c in {col, *(c for c, _ in expected)}}
+
+            def write(text: str) -> None:
+                grid.modify_cell(row0, col, text)
+
+            def read() -> str:
+                return str(grid.get_cell_value(row0, col)).strip()
+
+            return col, expected, current, write, read
+
+        def _table_control_cell_of(control: Any, element_id: str, wnd_id: str) -> _CellAccess:
+            nonlocal scrolled
+            columns = _table_control_columns(getattr(control, "com", getattr(control, "_com", control)))
+            col_index, col = _resolve_table_control_column(columns, column)
+            expected = _expected(lambda k: _resolve_table_control_column(columns, k)[1], col)
+            view = _table_control_view(session, element_id)
+            if not 1 <= row <= view.row_count:
+                raise ValueError(
+                    f"Row {row} is out of range: the table control has {view.total} row(s) and "
+                    f"{view.row_count - view.total} empty line(s) after them."
+                )
+            if row > view.total and not allow_empty_row:
+                raise ValueError(
+                    f"Row {row} is an empty line after the table control's last row ({view.total}); pass "
+                    "allow_empty_row=True to write into it. A last row that is only partly visible on screen also "
+                    "reads as empty."
+                )
+            line = _line_in_view(view, row)
+            if line is None:
+                _scroll_table_control(session, element_id, row, wnd_id)
+                scrolled = True
+                view = _table_control_view(session, element_id)  # the scroll invalidated the old control
+                line = _line_in_view(view, row)
+                if line is None:
+                    raise ValueError(
+                        f"Row {row} could not be brought into view; the table control now shows rows {view.top + 1} "
+                        f"to {view.top + view.visible}."
+                    )
+            cell = _table_control_cell(view, row, line, col_index, col, columns)
+            shown = view.rows.get(row, {})
+            current = {c: shown.get(c, "").strip() for c, _ in expected}
+            current[col] = str(cell.Text).strip()
+
+            def write(text: str) -> None:
+                cell.Text = text
+
+            def read() -> str:
+                return str(cell.Text).strip()
+
+            return col, expected, current, write, read
+
+        def _modify() -> ModifyCellResult:
+            nonlocal write_started, table_type
+            found = _locate_table(session)
+            if found is None:
+                raise ValueError("No ALV grid or table control on screen.")
+            control, table_type, element_id = found
+            wnd_id = _active_window_id(session)
+            if table_type == "GuiGridView":  # lang-ok: COM type name
+                col, expected, current, write, read = _grid_cell(control, wnd_id)
+                commit_note = "The change usually reaches SAP only with Enter or a save (some grids react at once)"
+            else:
+                col, expected, current, write, read = _table_control_cell_of(control, element_id, wnd_id)
+                commit_note = "The change reaches SAP only with Enter or a save"
             previous = current[col]
             differing = [f"{c} holds '{current[c]}', not '{v}'" for c, v in expected if current[c] != v]
             if differing:
@@ -2253,13 +2426,19 @@ class DesktopBackend:
                     f"Row {row} is not the expected row: {'; '.join(differing)}. It may have moved since it was read."
                 )
             status_before = _status_bar_text(session, wnd_id)
-            base: dict[str, Any] = {"row": row, "column": col, "previous_value": previous}
+            base: dict[str, Any] = {
+                "row": row,
+                "column": col,
+                "previous_value": previous,
+                "table_type": table_type,
+                "scrolled": scrolled,
+            }
             try:
                 write_started = True
-                grid.modify_cell(row0, col, value)
+                write(value)
             except Exception as exc:
                 try:
-                    now: str | None = str(grid.get_cell_value(row0, col)).strip()
+                    now: str | None = read()
                 except Exception:
                     now = None
                 if now is not None and now != previous:
@@ -2284,17 +2463,14 @@ class DesktopBackend:
                 status_after = _status_bar_text(session, post_wnd)
                 if status_after and status_after != status_before:
                     notes.append(f"Status bar: {status_after}")  # lang-ok: our own message
-                actual = str(grid.get_cell_value(row0, col)).strip()
+                actual = read()
             except Exception as exc:
                 return ModifyCellResult.failure(
                     f"The cell was written but could not be read back: {exc}", written=True, **base
                 )
             taken = actual == value.strip()
             if taken:
-                notes.append(
-                    "The change usually reaches SAP only with Enter or a save (some grids react at once): "
-                    "press Enter to run its input checks, then save."
-                )
+                notes.append(f"{commit_note}: press Enter to run its input checks, then save.")
             result: dict[str, Any] = {"value": actual, "note": " ".join(notes), "active_window": post_wnd, **base}
             if taken:
                 return ModifyCellResult(written=True, **result)
@@ -2313,13 +2489,13 @@ class DesktopBackend:
             return await self.com.run(_modify)
         except Exception as e:
             logger.debug("modify_cell refused or failed", exc_info=True)
+            where: dict[str, Any] = {"row": row, "column": str(column), "table_type": table_type, "scrolled": scrolled}
             if write_started:  # e.g. the session was halted after the write was sent
                 return ModifyCellResult.failure(
                     f"{e} The write was already sent: it is unknown whether the cell was modified; read it again.",
-                    row=row,
-                    column=str(column),
+                    **where,
                 )
-            return ModifyCellResult.failure(f"{e} No cell was modified.", row=row, column=str(column))
+            return ModifyCellResult.failure(f"{e} No cell was modified.", **where)
 
     async def get_dropdown_options(self, label: str) -> list[str]:
         """Get options from a GuiComboBox dropdown found by label.

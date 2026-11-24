@@ -37,9 +37,11 @@ Install via abapGit pull, or create manually:
 | Class `ZCL_TEST_MCP_EDIT`           | SE24        | Public class with method `DO_SOMETHING`                                                                                                                              |
 | Class `ZCL_SAPGUIMCP_ORIGLANG_TEST` | SE24        | Local (`$TMP`) class with original language **EN**, i.e. different from the DE logon language of the test user (optional: the language dialog test skips without it) |
 
-The `sap_modify_cell` live tests (`unittests/desktop/test_modify_cell_integration.py`) use SAP's demo report
-`BCALV_EDIT_01` (an editable ALV grid over table `SFLIGHT`, no save function). It needs flight demo data in `SFLIGHT`;
-an empty table can be filled with SAP's report `SAPBC_DATA_GENERATOR`.
+The `sap_modify_cell` live tests (`unittests/desktop/test_modify_cell_integration.py`) use SAP's demo reports
+`BCALV_EDIT_01` and `BCALV_EDIT_02` (editable ALV grids over table `SFLIGHT`) and `DEMO_DYNPRO_TABCONT_LOOP_AT` (an
+editable table control over table `SPFLI`). None of them can save. They need flight demo data in `SFLIGHT` and
+`SPFLI`, with more `SPFLI` rows than the table control's window shows; empty tables can be filled with SAP's report
+`SAPBC_DATA_GENERATOR`.
 
 Creating these objects generates **transport requests** owned by the test user (needed for SE09 tests).
 

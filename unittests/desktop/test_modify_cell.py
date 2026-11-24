@@ -128,6 +128,7 @@ async def test_writes_the_zero_based_row_and_reports_the_value_read_back() -> No
     assert grid.writes == [(1, "PRICE", "999.00")]
     assert (result.row, result.column, result.previous_value, result.value) == (2, "PRICE", "101.00", "999.00")
     assert result.written
+    assert (result.table_type, result.scrolled) == ("GuiGridView", False)
     assert "Enter" in result.note
 
 
@@ -311,6 +312,7 @@ async def test_an_unloaded_row_is_scrolled_to_before_anything_is_read() -> None:
     assert result.success, result.error
     assert grid.first_visible_row == 2
     assert grid.writes == [(2, "PRICE", "8.00")]
+    assert result.scrolled
 
 
 @pytest.mark.anyio
@@ -341,13 +343,6 @@ async def test_a_failed_scroll_writes_nothing() -> None:
 
 
 @pytest.mark.anyio
-async def test_a_table_control_is_refused() -> None:
-    result = await _modify(_Session(object(), type_number=80), 1, 0, "x")
-    assert not result.success
-    assert "not supported yet" in (result.error or "")
-
-
-@pytest.mark.anyio
 async def test_no_grid_on_screen_is_refused() -> None:
     result = await _modify(_Session(object(), type_number=31), 1, 0, "x")
     assert not result.success
@@ -370,7 +365,7 @@ async def test_the_tool_passes_its_arguments_to_the_backend() -> None:
     backend = MagicMock()
     backend.modify_cell = AsyncMock(return_value=ModifyCellResult(row=2, column="PRICE", value="1", written=True))
     data = await _call_tool(AsyncMock(return_value=backend))
-    backend.modify_cell.assert_awaited_once_with(2, "PRICE", "1", None, None)
+    backend.modify_cell.assert_awaited_once_with(2, "PRICE", "1", None, None, allow_empty_row=False)
     assert data["success"] is True
 
 

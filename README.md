@@ -366,7 +366,7 @@ claude mcp add --scope user sap-desktop '--' C:/path/to/sapgui.mcp/.venv/Scripts
 
 Your AI client automatically discovers all individual tools and their schemas dynamically upon connection. At a high level, the server gives your agent:
 
-- **Drive Any SAP Transaction** — Execute transaction codes, fill form fields, click buttons, navigate tabs, read and interact with ALV grids and tables, edit cells of editable ALV grids (`sap_modify_cell`, read back after the write), and handle modal popups and status bar messages.
+- **Drive Any SAP Transaction** — Execute transaction codes, fill form fields, click buttons, navigate tabs, read and interact with ALV grids and tables, edit cells of editable ALV grids and table controls (`sap_modify_cell`, read back after the write), and handle modal popups and status bar messages.
 - **Transaction Shortcuts** — Built-in workflows for common developer and basis tasks: query tables (SE16/SE16N), inspect transports (SE09/SE10), search background jobs (SM37), inspect short dumps (ST22), query application logs (SLG1), maintain table views (SM30), and look up Data Dictionary objects (SE11).
 - **High-Performance Scripting (`sap_run_script`)** — For bulk operations or complex multi-step workflows, the agent can write and run sandboxed Python scripts against the SAP GUI COM API in a single round-trip instead of dozens of tool calls. The sandbox contract is exposed via `sandbox://sap_run_script`.
 - **Tree Navigation (`sap_tree_read`)** — Read or search the already-loaded nodes of any tree control (SPRO IMG, SE80 object tree, SM34 navigation tree, docking-container trees) with a node cap and ancestor paths. Read-only: it never expands or selects.

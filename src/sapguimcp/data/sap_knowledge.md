@@ -216,10 +216,11 @@ For general-purpose exploration of unknown screens:
 - Use `sap_set_radio_button(label)` to select a radio button
 - These tools are safer than raw `sap_com_evaluate` for SAP form controls
 
-## Editing ALV Grid Cells
+## Editing ALV Grid and Table Control Cells
 
-- `sap_modify_cell(row, column, value)` writes one cell of an editable ALV grid; row and column are numbered as in
-  `sap_read_table`. It reads the cell back and reports that value, not the one you sent.
+- `sap_modify_cell(row, column, value)` writes one cell of an editable ALV grid or table control (for example SM30);
+  row and column are numbered as in `sap_read_table`. It reads the cell back and reports that value, not the one you
+  sent. `table_type` says which kind of table it wrote.
 - Row numbers are positions in the current view: after a sort, a filter or a refresh they can point at another
   record. When you read first and write later, pass the row's key columns as `expected_row` (technical column name
   to the value `sap_read_table` showed, e.g. `{"CARRID": "LH", "CONNID": "0400", "FLDATE": "..."}`); the write is
@@ -228,8 +229,13 @@ For general-purpose exploration of unknown screens:
 - `success=False` with `written=True` means the cell did change, but to another value than requested (SAP converted
   or reformatted it). If the write itself raised an error, the message says whether the cell changed or whether that
   is unknown.
+- A table control only holds the rows in its window. A row outside it is scrolled to the top of the window first
+  (`scrolled=True`), and the scroll position stays there. The write is refused if the row cannot be brought into
+  view.
+- A table control shows empty lines after its last row. Writing into one (for example to add an entry on a "New
+  Entries" screen) needs `allow_empty_row=True`. Only text fields are written; checkboxes and dropdowns are refused.
 - The change usually reaches SAP only with Enter or a save (some grids react at once): press Enter (`sap_press_key`)
-  to run SAP's input checks, then save. Table controls (for example SM30) are not supported yet.
+  to run SAP's input checks, then save.
 
 ## Multi-Session Support (Parallel Agents)
 
