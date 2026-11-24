@@ -259,6 +259,23 @@ async def test_edit_reverts_and_reactivates_when_check_or_activation_fails(lang_
 
 
 @pytest.mark.anyio
+async def test_edit_does_not_claim_a_restore_without_a_confirmed_activation(lang_de: LanguagePack) -> None:
+    backend = _edit_backend()
+    backend.check_and_activate = AsyncMock(
+        side_effect=[
+            _failed("Syntax error in line 2"),
+            CheckActivateResult(success=True, activated=False, messages=["Activation not confirmed"]),
+        ]
+    )
+    result = await _edit_check_activate_fm(backend, "Z_X", _NEW, lang_de)
+    assert not result.success
+    assert "re-activated successfully" not in (result.error or "")
+    assert "Auto-reverted source but re-activation could not be confirmed: Activation not confirmed" in (
+        result.check_messages
+    )
+
+
+@pytest.mark.anyio
 async def test_edit_reports_a_failed_reactivation_after_the_revert(lang_de: LanguagePack) -> None:
     backend = _edit_backend()
     backend.check_and_activate = AsyncMock(

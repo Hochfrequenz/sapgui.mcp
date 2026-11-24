@@ -89,10 +89,18 @@ async def test_se37_edit_persists_and_is_reverted(pack, backend):
         assert persisted is not None
         assert _trim(persisted) == _trim(modified), f"Persisted source does not match: {persisted!r}"
     finally:
-        # Always put the test function module back and never let a cleanup failure mask the real error.
+        # Always put the test function module back. A failed restore fails the test, but never masks an earlier error.
+        test_failed = sys.exc_info()[0] is not None
         try:
             await go_home(backend)
-            await _edit_check_activate_fm(backend, TEST_FUNCTION_MODULE, original, pack)
+            restored = await _edit_check_activate_fm(backend, TEST_FUNCTION_MODULE, original, pack)
             await go_home(backend)
+            cleanup_error = None if restored.success and restored.activated else f"restore failed: {restored.error}"
         except Exception as exc:  # pylint: disable=broad-except
-            print(f"WARNING: could not restore {TEST_FUNCTION_MODULE}: {exc}")
+            cleanup_error = f"restore raised: {exc!r}"
+        if cleanup_error:
+            print(f"WARNING: could not restore {TEST_FUNCTION_MODULE}: {cleanup_error}")
+            if not test_failed:
+                pytest.fail(
+                    f"Cleanup of {TEST_FUNCTION_MODULE} failed, the test object may be left modified: {cleanup_error}"
+                )

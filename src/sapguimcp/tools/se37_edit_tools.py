@@ -132,8 +132,14 @@ async def _edit_check_activate_fm(
         reverted = await backend.replace_editor_source(backup_source)
         if reverted:
             revert_result = await backend.check_and_activate()
-            if revert_result.success:
+            if revert_result.success and revert_result.activated:
                 result.messages.append("Auto-reverted to original source and re-activated successfully")
+            elif revert_result.success:
+                # No activation confirmation from the backend: do not claim the restore worked
+                result.messages.append(
+                    "Auto-reverted source but re-activation could not be confirmed: "
+                    f"{'; '.join(revert_result.messages)}"
+                )
             else:
                 result.messages.append(
                     f"Auto-reverted source but re-activation failed: {'; '.join(revert_result.messages)}"
