@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import logging
 import re
-from contextlib import suppress
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
@@ -470,10 +469,8 @@ async def _analyze_pull_result(backend: "DesktopBackend", repo: str, t: Language
     if is_error:
         return AbapGitActionResult.failure_result(action="pull", repo_name=repo, error=_enrich_transport_error(msg))
 
-    # Retry status bar read. The session was already awaited after F8, so a still-busy session is the only case worth
-    # waiting for; the bound is the former fixed wait (#928). Like that wait, a failed readiness poll must not raise.
-    with suppress(Exception):
-        await backend.wait_for_ready(timeout_ms=2000)
+    # Retry status bar read
+    await backend.wait(2000)
     status = await backend.get_status_bar()
     final_msg = status.message or msg
     final_type = status.type or msg_type
@@ -517,8 +514,7 @@ async def _handle_popup_error(backend: "DesktopBackend", repo: str) -> AbapGitAc
     popup_error = await _check_for_error_popup(backend)
     if popup_error:
         await backend.press_key("Enter")
-        with suppress(Exception):  # a failed readiness poll must not hide the popup's error text
-            await backend.wait_for_ready(timeout_ms=500)
+        await backend.wait(500)
         return AbapGitActionResult.failure_result(
             action="pull", repo_name=repo, error=_enrich_transport_error(popup_error)
         )
@@ -560,10 +556,8 @@ async def _run_pull_and_check_errors(backend: "DesktopBackend", repo: str) -> Ab
     """Execute F8 and wait for SAP to finish processing. Returns error if found."""
     await backend.press_key("F8")
 
-    # Fast-fail: check for immediate error popups (bad transport, auth error). SendVKey returns after the round trip,
-    # so a popup is there once the session is idle; the bound is the former fixed wait (#928).
-    with suppress(Exception):
-        await backend.wait_for_ready(timeout_ms=2000)
+    # Fast-fail: check for immediate error popups (bad transport, auth error)
+    await backend.wait(2000)
     popup_result = await _handle_popup_error(backend, repo)
     if popup_result:
         return popup_result
@@ -580,6 +574,7 @@ async def _run_pull_and_check_errors(backend: "DesktopBackend", repo: str) -> Ab
     if popup and _is_inactive_objects_popup(popup):
         logger.info("Detected inactive objects popup, confirming with Enter")
         await backend.press_key("Enter")
+        await backend.wait(2000)
         try:
             await backend.wait_for_ready(timeout_ms=30_000)
         except Exception:  # pylint: disable=broad-exception-caught
