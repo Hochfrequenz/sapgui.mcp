@@ -12,6 +12,7 @@ from sapguimcp.backend.desktop import DesktopBackend
 from sapguimcp.models.base import CheckActivateResult
 from sapguimcp.models.sap_results import PopupInfo, ScreenInfo, StatusBarInfo
 from sapguimcp.tools.desktop_wait_predicates import editor_loaded
+from sapguimcp.tools.edit_helpers import REVERT_FAILED
 from sapguimcp.tools.se37_edit_tools import (
     _edit_check_activate_fm,
     _open_fm_in_change_mode_desktop,
@@ -208,6 +209,7 @@ async def test_edit_replaces_the_source_and_activates(lang_de: LanguagePack) -> 
     assert (result.function_module, result.backup_source, result.activated) == ("Z_X", _BACKUP, True)
     backend.replace_editor_source.assert_awaited_once_with(_NEW)
     backend.check_and_activate.assert_awaited_once()
+    backend.leave_transaction_without_saving.assert_awaited_once_with("SE37")
 
 
 @pytest.mark.anyio
@@ -297,5 +299,28 @@ async def test_edit_warns_when_the_revert_itself_fails(lang_de: LanguagePack) ->
     backend.check_and_activate = AsyncMock(return_value=_failed("Syntax error in line 2"))
     result = await _edit_check_activate_fm(backend, "Z_X", _NEW, lang_de)
     assert not result.success
-    assert "WARNING: Auto-revert failed! Manual intervention needed." in result.check_messages
+    assert REVERT_FAILED in result.check_messages
     backend.check_and_activate.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_edit_that_fails_before_change_mode_leaves_the_users_dialog_alone(lang_de: LanguagePack) -> None:
+    """A dialog that is not the language dialog stands when the display is reached: it is reported, not answered."""
+    backend = _backend(titles=[_INITIAL, _DISPLAY])
+    backend.check_popup = AsyncMock(return_value=PopupInfo(message="Object is locked by another user", buttons=[]))
+    backend.dismiss_popup = AsyncMock()
+    result = await _edit_check_activate_fm(backend, "Z_X", _NEW, lang_de)
+    assert not result.success
+    assert "Unexpected popup while displaying" in (result.error or "")
+    assert _pressed(backend) == ["F7"]  # no Ctrl+F1, no F12
+    backend.dismiss_popup.assert_not_awaited()
+    backend.leave_transaction_without_saving.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_edit_that_fails_after_change_mode_leaves_se37(lang_de: LanguagePack) -> None:
+    backend = _edit_backend()
+    backend.click_tab = AsyncMock(side_effect=ValueError("no such tab"))
+    result = await _edit_check_activate_fm(backend, "Z_X", _NEW, lang_de)
+    assert result.error == "Could not find the source code tab"
+    backend.leave_transaction_without_saving.assert_awaited_once_with("SE37")

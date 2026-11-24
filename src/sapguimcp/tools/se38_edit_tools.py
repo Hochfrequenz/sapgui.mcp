@@ -18,7 +18,12 @@ from sapguimcp import lang
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.se38_edit_models import SE38EditResult
 from sapguimcp.tools.desktop_wait_predicates import editor_loaded_or_popup_open, screen_changed
-from sapguimcp.tools.edit_helpers import describe_failed_replace, leave_editor_after
+from sapguimcp.tools.edit_helpers import (
+    REVERT_FAILED,
+    change_mode_requested,
+    describe_failed_replace,
+    leave_editor_after,
+)
 from sapguimcp.tools.field_helpers import fill_field_with_keyboard
 
 if TYPE_CHECKING:
@@ -52,6 +57,7 @@ async def _navigate_and_open_editor_desktop(backend: DesktopBackend, program_nam
     # text or a popup) instead of a fixed time (#928).
     before_title = (await backend.get_screen_info()).title or ""
     before_status = (await backend.get_status_bar()).message.strip()
+    change_mode_requested()
     await backend.press_key("F6")
     await backend.wait_for_ready()
     await backend.wait_for_condition(screen_changed(before_title, before_status), timeout_ms=_SE38_SCREEN_WAIT_MS)
@@ -134,7 +140,7 @@ async def _edit_in_editor(
                     f"Auto-reverted source but re-activation failed: {'; '.join(revert_result.messages)}"
                 )
         else:
-            result.messages.append("WARNING: Auto-revert failed! Manual intervention needed.")
+            result.messages.append(REVERT_FAILED)
 
         return SE38EditResult.failure(
             error=f"Check/activate failed: {'; '.join(result.messages)}",

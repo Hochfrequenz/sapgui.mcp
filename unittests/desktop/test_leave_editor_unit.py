@@ -13,7 +13,7 @@ from sapguimcp.models.se24_edit_models import SE24EditResult
 from sapguimcp.models.se37_edit_models import SE37EditResult
 from sapguimcp.models.se38_edit_models import SE38EditResult
 from sapguimcp.tools import se24_edit_tools, se37_edit_tools, se38_edit_tools
-from sapguimcp.tools.edit_helpers import leave_editor_after
+from sapguimcp.tools.edit_helpers import change_mode_requested, leave_editor_after
 
 # ---- DesktopBackend.leave_transaction_without_saving --------------------------------------------------------------
 
@@ -153,7 +153,9 @@ def _leaving_backend(**leave: Any) -> Any:
     return backend
 
 
-async def _returns(result: SE38EditResult) -> SE38EditResult:
+async def _returns(result: SE38EditResult, *, change_mode: bool = True) -> SE38EditResult:
+    if change_mode:
+        change_mode_requested()
     return result
 
 
@@ -172,11 +174,29 @@ async def test_the_editor_is_left_when_the_edit_raises() -> None:
     backend = _leaving_backend(return_value=True)
 
     async def edit() -> SE38EditResult:
+        change_mode_requested()
         raise RuntimeError("COM broke")
 
     with pytest.raises(RuntimeError, match="COM broke"):
         await leave_editor_after(backend, "SE38", edit())
     backend.leave_transaction_without_saving.assert_awaited_once_with("SE38")
+
+
+@pytest.mark.anyio
+async def test_nothing_is_touched_when_the_edit_never_asked_for_change_mode() -> None:
+    """Before the tool's own switch to change mode, the screen and its dialogs may be the user's."""
+    backend = _leaving_backend(return_value=True)
+    result = await leave_editor_after(backend, "SE38", _returns(_result(False), change_mode=False))
+    assert result.check_messages == []
+    backend.leave_transaction_without_saving.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_an_earlier_edit_does_not_make_a_later_one_leave() -> None:
+    backend = _leaving_backend(return_value=True)
+    await leave_editor_after(backend, "SE38", _returns(_result()))
+    await leave_editor_after(backend, "SE38", _returns(_result(), change_mode=False))
+    backend.leave_transaction_without_saving.assert_awaited_once()
 
 
 @pytest.mark.anyio
@@ -190,6 +210,14 @@ async def test_a_failed_leave_keeps_the_result_and_adds_a_note(leave: dict[str, 
 
 
 # ---- the three tools ----------------------------------------------------------------------------------------------
+
+
+def _in_change_mode(result: Any) -> Any:
+    def effect(*_args: Any, **_kwargs: Any) -> Any:
+        change_mode_requested()
+        return result
+
+    return effect
 
 
 @pytest.mark.anyio
@@ -223,6 +251,23 @@ async def test_each_edit_tool_leaves_its_transaction(
     module: Any, inner: str, tcode: str, result: Any, call: Any
 ) -> None:
     backend = _leaving_backend(return_value=True)
-    with patch.object(module, inner, AsyncMock(return_value=result)):
+    with patch.object(module, inner, AsyncMock(side_effect=_in_change_mode(result))):
         assert await call(backend) is result
     backend.leave_transaction_without_saving.assert_awaited_once_with(tcode)
+
+
+@pytest.mark.anyio
+async def test_se38_navigation_that_fails_before_change_mode_leaves_the_users_screen_alone(lang_de: Any) -> None:
+    """The session is in the user's SE38 with a dialog open: the name field cannot be filled, nothing is answered."""
+    backend = _leaving_backend(return_value=True)
+    backend.enter_transaction = AsyncMock()
+    backend.wait_for_ready = AsyncMock()
+    backend.press_key = AsyncMock()
+    backend.dismiss_popup = AsyncMock()
+    backend.focus_and_type = AsyncMock(return_value=False)
+    with patch.object(se38_edit_tools, "fill_field_with_keyboard", AsyncMock(return_value=False)):
+        result = await se38_edit_tools._edit_check_activate(backend, "Z_X", "new", lang_de)
+    assert result.error == "Could not fill program name field on desktop"
+    backend.leave_transaction_without_saving.assert_not_awaited()
+    backend.press_key.assert_not_awaited()
+    backend.dismiss_popup.assert_not_awaited()

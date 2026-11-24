@@ -79,12 +79,14 @@ async def test_se37_full_edit_check_activate(pack, backend):
     await go_home(backend)
 
     result = await _edit_check_activate_fm(backend, TEST_FUNCTION_MODULE, original, pack)
-    await assert_left_editor(backend, "SE37")
-    await go_home(backend)
-    assert result.success, f"Edit workflow failed: {result.error}"
-    assert result.function_module == TEST_FUNCTION_MODULE
-    assert _trim(result.backup_source) == _trim(original)
-    assert result.activated
+    try:
+        assert result.success, f"Edit workflow failed: {result.error}"
+        assert result.function_module == TEST_FUNCTION_MODULE
+        assert _trim(result.backup_source) == _trim(original)
+        assert result.activated
+        await assert_left_editor(backend, "SE37")
+    finally:
+        await go_home(backend)
 
 
 @skip_no_sap
@@ -135,3 +137,30 @@ async def test_se37_broken_source_is_reverted_and_reactivated(pack, backend):
     finally:
         # Only a failed auto-revert leaves the broken source saved; restoring the unchanged source is then harmless.
         await _restore_original(pack, backend, original, test_failed=sys.exc_info()[0] is not None)
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_se37_leaving_discards_an_unsaved_change(pack, backend):
+    """SE37: leaving the editor with an unsaved change answers any "save?" popup with No (#1166).
+
+    The session must leave SE37, and the function module on the server must keep its original source.
+    """
+    await _open_source(pack, backend)
+    original = await backend.read_editor_source()
+    assert original
+    try:
+        changed = original.rstrip() + "\n* unsaved change, must be discarded"
+        assert await backend.replace_editor_source(changed), "Could not change the editor content"
+        assert await backend.leave_transaction_without_saving("SE37"), "The session did not leave SE37"
+        await assert_left_editor(backend, "SE37")
+
+        await _open_source(pack, backend)
+        persisted = await backend.read_editor_source()
+        assert _trim(persisted or "") == _trim(original), f"The unsaved change reached the server: {persisted!r}"
+        await backend.leave_transaction_without_saving("SE37")
+    finally:
+        if sys.exc_info()[0] is not None:
+            await _restore_original(pack, backend, original, test_failed=True)
+        else:
+            await go_home(backend)

@@ -27,6 +27,7 @@ from sapguimcp.tools.desktop_wait_predicates import (
     tab_table_control_loaded,
 )
 from sapguimcp.tools.edit_helpers import (
+    REVERT_FAILED,
     confirm_language_dialog,
     describe_failed_replace,
     leave_editor_after,
@@ -242,7 +243,7 @@ async def _edit_method_in_editor(
                     f"Auto-reverted source but re-activation failed: {'; '.join(revert_result.messages)}"
                 )
         else:
-            result.messages.append("WARNING: Auto-revert failed! Manual intervention needed.")
+            result.messages.append(REVERT_FAILED)
 
         return SE24EditResult.failure(
             error=f"Check/activate failed: {'; '.join(result.messages)}",
