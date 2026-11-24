@@ -11,6 +11,7 @@ from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.quick_report_models import QuickReportResult, ScreenClassification
 from sapguimcp.models.sap_results import ScreenText, StatusBarInfo, TableData
 from sapguimcp.tools.classic_list_helpers import read_classic_list_lines
+from sapguimcp.tools.sap_tools import _transaction_desktop
 from sapguimcp.utils import resolve_output_file_path, write_json_output_file
 
 if TYPE_CHECKING:
@@ -122,7 +123,9 @@ async def _execute_quick_report(  # noqa: PLR0911  # pylint: disable=too-many-ar
 
     warnings: list[str] = []
     try:
-        entered = await backend.enter_transaction(tcode)
+        # Shared with sap_transaction: an unknown transaction code is no error to SAP GUI (it stays on the old
+        # screen and says so in the status bar), which that function turns into a failure.
+        entered = await _transaction_desktop(backend, tcode, new_window=False)
         if not entered.success:
             return QuickReportResult.failure(
                 error=f"Failed to open transaction {tcode}: {entered.error}",
@@ -131,7 +134,7 @@ async def _execute_quick_report(  # noqa: PLR0911  # pylint: disable=too-many-ar
             )
         await backend.wait_for_ready()
         opened = await backend.get_status_bar()
-        if opened.type == "E":  # e.g. the transaction does not exist: SAP stays where it was
+        if opened.type == "E":  # SAP refused the transaction (e.g. no authorization)
             return QuickReportResult.failure(
                 error=f"Failed to open transaction {tcode}: {opened.message}",
                 tcode=tcode,

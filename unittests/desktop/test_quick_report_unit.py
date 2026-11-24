@@ -28,6 +28,8 @@ class _Screen:
     program: str = "SAPMSSY0"
     dynpro: str = "0120"
     status: tuple[str, str] = ("none", "")
+    message_id: str | None = None
+    message_number: str | None = None
     popup: PopupInfo | None = None
     table: TableData | None = None
     lines: list[str] = field(default_factory=list)
@@ -62,7 +64,9 @@ def _backend(*screens: _Screen) -> Any:
 
     async def status() -> StatusBarInfo:
         kind, message = current().status
-        return StatusBarInfo(type=kind, message=message)  # type: ignore[arg-type]
+        return StatusBarInfo(
+            type=kind, message=message, message_id=current().message_id, message_number=current().message_number
+        )  # type: ignore[arg-type]
 
     async def screen_info() -> Any:
         return SimpleNamespace(program=current().program, dynpro=current().dynpro)
@@ -82,6 +86,7 @@ def _backend(*screens: _Screen) -> Any:
     backend.get_page_title = AsyncMock(return_value="Title")
     backend.get_screen_text = AsyncMock(return_value=ScreenText(title="Title"))
     backend.wait_for_ready = AsyncMock()
+    backend.wait = AsyncMock()
     backend.fill_form = AsyncMock(return_value=FillFormResult())
     backend.set_checkbox = AsyncMock()
     backend.set_radio_button = AsyncMock()
@@ -315,3 +320,16 @@ async def test_an_output_file_outside_the_sandbox_fails_before_the_report_runs(
     assert not result.success
     assert "output_file" in (result.error or "")
     backend.enter_transaction.assert_not_awaited()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("message", ["Transaktion ZZNOSUCH existiert nicht", "Transaction ZZNOSUCH does not exist"])
+async def test_an_unknown_transaction_code_fails_whatever_the_language(message: str) -> None:
+    """SAP stays on the start menu and reports the code in the status bar as a success message (S#343)."""
+    easy_access = _Screen(program="SAPLSMTR_NAVIGATION", status=("S", message), message_id="S#", message_number="343")
+    backend = _backend(easy_access)
+    result = await _execute_quick_report(backend, tcode="ZZNOSUCH")
+    assert not result.success
+    assert message in (result.error or "")
+    backend.fill_form.assert_not_awaited()
+    backend.press_key.assert_not_awaited()
