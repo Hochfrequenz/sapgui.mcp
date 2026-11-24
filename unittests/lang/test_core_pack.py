@@ -18,15 +18,16 @@ from sapguimcp.backend.desktop import _classify_popup, _confirms_activation
 from sapguimcp.lang import CorePack, UnsupportedLanguageError, _register_for_tests
 from sapguimcp.lang.de import DE
 from sapguimcp.lang.en import EN
-from sapguimcp.lang.schema import Key, PopupSection, StatusTypeSection, UniversalView, merge
-from sapguimcp.lang.text import Text
+from sapguimcp.lang.schema import Key, Leaf, PackLike, UniversalView, iter_leaves, merge
+from sapguimcp.lang.text import RegexText, Text
 from sapguimcp.models.base import PopupType
 from sapguimcp.session_language import set_session_language
 from sapguimcp.tools.sap_tools import parse_shortcut_from_title
 from sapguimcp.tools.se16_tools import register_se16_tools
 from unittests.lang.synthetic_pack import CORE_CODE, core_pack, core_word
 
-FULL = lang.supported_languages()  # the real full packs; a new pack must not break these tests
+FULL = lang.supported_languages()  # snapshots of the real packs; a new full or core pack must not break these tests
+LOGON = lang.logon_languages()
 YY = core_pack()
 
 
@@ -43,7 +44,7 @@ def yy() -> Iterator[CorePack]:
 
 @pytest.mark.usefixtures("yy")
 def test_a_core_language_is_a_logon_language_but_not_a_full_one() -> None:
-    assert lang.logon_languages() == (*FULL, CORE_CODE)
+    assert lang.logon_languages() == (*LOGON, CORE_CODE)
     assert lang.supported_languages() == FULL
     with pytest.raises(UnsupportedLanguageError):
         lang.pack_for(CORE_CODE)
@@ -58,11 +59,12 @@ def test_language_support(code: str | None, level: str) -> None:
 
 
 def test_registration_is_scoped_to_the_block() -> None:
+    ctrl = lang.universal().keys.names[Key.CTRL].variants
     with _register_for_tests(YY):
         assert lang.language_support(CORE_CODE) == "core"
-    assert lang.logon_languages() == FULL
+    assert lang.logon_languages() == LOGON
     assert lang.language_support(CORE_CODE) == "none"
-    assert lang.universal().keys.names[Key.CTRL].variants == ("Strg", "Ctrl")
+    assert lang.universal().keys.names[Key.CTRL].variants == ctrl
 
 
 def test_registration_refuses_a_code_that_has_a_full_pack() -> None:
@@ -92,9 +94,10 @@ def test_a_core_pack_is_not_a_language_pack() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.usefixtures("yy")
-def test_universal_holds_the_core_language_after_the_full_ones() -> None:
-    assert lang.universal().keys.names[Key.CTRL].variants == ("Strg", "Ctrl", core_word("Ctrl"))
+def test_universal_holds_the_core_language_after_the_other_ones() -> None:
+    ctrl = lang.universal().keys.names[Key.CTRL].variants
+    with _register_for_tests(YY):
+        assert lang.universal().keys.names[Key.CTRL].variants == (*ctrl, core_word("Ctrl"))
 
 
 @pytest.mark.usefixtures("yy")
@@ -137,10 +140,11 @@ async def test_a_transaction_tool_in_a_core_language_fails_with_a_clear_error(
 
 
 # ---------------------------------------------------------------------------
-# Collision guard: another language's keywords must not change how EN/DE texts are read
+# Collision guard: another language's texts must not match EN/DE texts that EN/DE do not match
 # ---------------------------------------------------------------------------
 
-_EN_DE_POPUPS = (
+_EN_DE_TEXTS = (
+    # popup titles and texts
     "Fehler",
     "Error",
     "Hinweis",
@@ -154,15 +158,14 @@ _EN_DE_POPUPS = (
     "ABAP-Laufzeitfehler",
     "ABAP Runtime Errors",
     "Abweichende Original- und Anmeldesprache",
+    "Originalsprache und Anmeldesprache",
     "Different original and logon languages",
     "Requests",
-    "Object is locked by another user",
     "Objekttyp CL_X ist nicht vorhanden",
+    # abapGit messages
     "Transport required: provide P_TRKORR",
-)
-"""EN/DE popup titles and texts from the popup tests, as ``_classify_popup`` sees them."""
-
-_EN_DE_STATUS = (
+    "Branch restore failed: was refs/heads/main; Transport required",
+    # status-bar messages
     "Objekt wurde aktiviert",
     "Object activated",
     "Objekt konnte nicht aktiviert werden",
@@ -171,47 +174,75 @@ _EN_DE_STATUS = (
     "Daten gesichert",
     "Document saved",
     "Object is locked by another user",
+    # window titles and key names
+    "SAP Easy Access",
+    "Sichern (Strg+S)",
+    "Save (Ctrl+S)",
+    "Beenden (Umschalt+F3)",
+    "Weiter (Eingabe)",
+    "Löschen (Entf)",
 )
-"""EN/DE status-bar messages from the activation and status tests."""
+"""EN/DE screen texts from the popup, status and shortcut tests."""
 
-_POPUP_FIELDS = ("type_error", "type_info", "type_confirm")
-_STATUS_FIELDS = ("activation_confirmed", "activation_denied")
+_UNIVERSAL = {field.name for field in dataclasses.fields(UniversalView)}
+_OWN = dict(iter_leaves(merge([DE, EN])))
 
 
-def _new_matches(popup: PopupSection, status: StatusTypeSection) -> list[str]:
-    """Keyword fields that match an EN/DE text the EN and DE keywords of the same field do not match."""
-    own_popup = merge([DE.popup, EN.popup])
-    own_status = merge([DE.status_type, EN.status_type])
-    checks: list[tuple[str, Text, Text, tuple[str, ...]]] = [
-        *((f"popup.{name}", getattr(popup, name), getattr(own_popup, name), _EN_DE_POPUPS) for name in _POPUP_FIELDS),
-        *(
-            (f"status_type.{name}", getattr(status, name), getattr(own_status, name), _EN_DE_STATUS)
-            for name in _STATUS_FIELDS
-        ),
-    ]
+def _universal_leaves(pack: PackLike) -> dict[str, Leaf]:
+    """Every text of the ``universal()`` sections, so a new field there is guarded without an edit."""
+    return {path: leaf for path, leaf in iter_leaves(pack) if path.split(".")[0] in _UNIVERSAL}
+
+
+def _matches(leaf: Leaf, text: str) -> bool:
+    """Wider than any call site: a substring in any case (the desktop lower-cases titles itself)."""
+    if isinstance(leaf, RegexText):
+        return bool(leaf.pattern.search(text) or leaf.pattern.search(text.lower()))
+    return any(variant.lower() in text.lower() for variant in leaf.variants)
+
+
+def _new_matches(leaves: dict[str, Leaf]) -> list[str]:
+    """Texts a field matches although the EN and DE values of the same field do not."""
     return [
         f"{path} matches {text!r}"
-        for path, theirs, own, texts in checks
-        for text in texts
-        if theirs.contains(text) and not own.contains(text)
+        for path, leaf in leaves.items()
+        for text in _EN_DE_TEXTS
+        if _matches(leaf, text) and not _matches(_OWN[path], text)
     ]
 
 
-@pytest.mark.parametrize("code", [code for code in lang.logon_languages() if code not in ("DE", "EN")])
-def test_no_registered_language_changes_en_de_classification(code: str) -> None:
+@pytest.mark.parametrize("code", [code for code in LOGON if code not in ("DE", "EN")])
+def test_no_registered_language_changes_how_en_de_texts_are_read(code: str) -> None:
     """Every shipped full or core pack besides DE and EN."""
     pack = lang._CORE_PACKS.get(code) or lang.pack_for(code)  # pylint: disable=protected-access
-    assert _new_matches(pack.popup, pack.status_type) == []
+    assert _new_matches(_universal_leaves(pack)) == []
 
 
-def test_the_test_core_pack_changes_no_en_de_classification() -> None:
-    assert _new_matches(YY.popup, YY.status_type) == []
+def test_the_test_core_pack_changes_no_en_de_reading() -> None:
+    assert _new_matches(_universal_leaves(YY)) == []
 
 
-def test_a_colliding_core_keyword_fails_the_guard() -> None:
-    """A word of the new language that also occurs in German text would turn DE popups into errors."""
-    colliding = dataclasses.replace(YY.popup, type_error=Text(("Objekt",)))
-    assert _new_matches(colliding, YY.status_type) == [
-        "popup.type_error matches 'Inaktive Objekte'",
-        "popup.type_error matches 'Objekttyp CL_X ist nicht vorhanden'",
-    ]
+def test_the_guard_covers_every_universal_field() -> None:
+    assert {path.split("[")[0] for path in _universal_leaves(YY)} >= {
+        "popup.type_error",
+        "popup.inactive_objects",
+        "popup.original_language_hint",
+        "popup.abapgit_transport_required",
+        "status_type.activation_denied",
+        "session_pages.debugger_window",
+        "keys.names",
+    }
+
+
+@pytest.mark.parametrize(
+    ("path", "leaf", "text"),
+    [
+        ("popup.type_error", Text(("Objekt",)), "Objekttyp CL_X ist nicht vorhanden"),
+        ("popup.inactive_objects", Text(("Daten",), fold=False), "Daten gesichert"),
+        ("popup.original_language_hint", RegexText(("gesichert",)), "Daten gesichert"),
+        ("popup.abapgit_no_task", Text(("required",)), "Transport required: provide P_TRKORR"),
+        ("keys.names[Ctrl]", Text(("Weiter",), word=True), "Weiter (Eingabe)"),
+    ],
+)
+def test_a_colliding_word_fails_the_guard(path: str, leaf: Leaf, text: str) -> None:
+    """A word of the new language that also occurs in EN or DE text would change how that text is read."""
+    assert f"{path} matches {text!r}" in _new_matches({**_universal_leaves(YY), path: leaf})

@@ -11,7 +11,7 @@ import pytest
 from dotenv import load_dotenv
 from sap_mcp_config import load_default
 
-from sapguimcp.lang import supported_languages
+from sapguimcp.lang import logon_languages
 from unittests.lang.harvest_script import harvest
 
 pytestmark = pytest.mark.integration
@@ -22,7 +22,7 @@ def test_pack_matches_sap(language: str) -> None:
     # The autouse clean_environment fixture drops SAP_CONFIG_FILE; restore it from .env.
     load_dotenv(override=False)
     try:
-        config = load_default(supported_languages=supported_languages())
+        config = load_default(supported_languages=logon_languages())
     except Exception as exc:  # no systems.json on this machine
         pytest.skip(f"no SAP configuration: {exc}")
     system = config.systems[os.environ.get("SAP_HARVEST_SYSTEM") or config.default_system]

@@ -2,15 +2,12 @@
 
 import errno
 import json
-import logging
 import os
 from collections.abc import Iterable
 from contextlib import suppress
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
-
-logger = logging.getLogger(__name__)
 
 SapLanguage = Literal["DE", "EN", "IT"]
 

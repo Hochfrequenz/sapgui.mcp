@@ -129,6 +129,7 @@ def pack_for(code: str) -> LanguagePack:
 def _build_view(code: str) -> LanguagePack:
     """Merge each section per its ``MERGE`` mode; scalar pack fields come from the session pack."""
     session = _PACKS[code]
+    # Full packs only: core packs are not merged in here, so read the ``all`` sections through universal().
     every = [session, *(pack for pack in _PACKS.values() if pack is not session)]
     session_en = [session] if code == FALLBACK_LANGUAGE else [session, _PACKS[FALLBACK_LANGUAGE]]
     merged = {

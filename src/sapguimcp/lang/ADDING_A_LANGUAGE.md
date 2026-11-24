@@ -73,7 +73,7 @@ they may reject a language that this server accepts.
 2. **Register the pack** in `__init__.py` (`_PACKS`). Do this before verifying: `--verify` and the
    config accept only registered codes (`--draft` and `--print-sql` accept any 2-character key; with direct ADT access `--draft` rejects a key missing from `T002`). The
    code is then accepted as `language` in `systems.json`, because the config takes its list from
-   `supported_languages()`.
+   `logon_languages()` (the full packs, then the core packs).
 3. **Settle every `TODO` from SAP, not from a dictionary.** The source of most fields is recorded
    in `sources.py`, so the lookup is a query: `--print-sql` prints the SQL for every sourced field.
    Run it through ADT (`run_query`; these tables are development metadata). For `Manual` fields,
