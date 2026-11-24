@@ -34,6 +34,7 @@ class QuickReportResult(ToolResult):
     list_lines: list[str] | None = Field(
         default=None, description="Text lines of the classic list (screen_type 'list')"
     )
+    list_truncated: bool = Field(default=False, description="True if the classic list has more lines than max_rows")
     screen_text: ScreenText | None = Field(
         default=None, description="Screen text when screen_type is 'error' or 'unknown'"
     )

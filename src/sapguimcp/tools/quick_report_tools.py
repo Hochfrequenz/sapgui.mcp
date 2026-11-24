@@ -7,6 +7,7 @@ from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
+from sapguimcp.backend.desktop._key_mapping import key_to_vkey
 from sapguimcp.backend.manager import get_backend
 from sapguimcp.models.quick_report_models import QuickReportResult, ScreenClassification
 from sapguimcp.models.sap_results import ScreenText, StatusBarInfo, TableData
@@ -20,20 +21,14 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _MAX_POST_F8_KEYS = 3
-# After F8 the screen is resolved once it shows one of these (a result, no data, or an error to report).
-_RESOLVED = (
-    ScreenClassification.TABLE,
-    ScreenClassification.LIST,
-    ScreenClassification.EMPTY,
-    ScreenClassification.ERROR,
-)
 
 
 async def _read_list_lines(backend: "DesktopBackend", max_rows: int) -> list[str]:
     """The lines of the classic list on screen (empty if there is none)."""
     session = backend.require_session()
+    # one line more than wanted, to tell whether the list was cut off
     lines: list[str] = await backend.com.run(
-        lambda: read_classic_list_lines(session, max_rows), retry_server_fault=True
+        lambda: read_classic_list_lines(session, max_rows + 1), retry_server_fault=True
     )
     return lines
 
@@ -61,7 +56,9 @@ async def _classify(  # noqa: PLR0911
 
     info = await backend.get_screen_info()
     if (info.program, info.dynpro) == selection_screen:
-        # F8 did not leave the selection screen: SAP reports "no data" as a message there.
+        # F8 did not leave the selection screen: SAP reports "no data" as a message there. Limit of this heuristic:
+        # any other success or info message on the selection screen (e.g. "job scheduled") also reads as "empty";
+        # the status bar message is returned, so the caller can tell.
         empty = status.type in ("S", "I") and bool(status.message)
         return ScreenClassification.EMPTY if empty else ScreenClassification.ERROR, status, None, None
 
@@ -121,8 +118,33 @@ async def _execute_quick_report(  # noqa: PLR0911  # pylint: disable=too-many-ar
         except ValueError as exc:
             return QuickReportResult.failure(error=str(exc), tcode=tcode, screen_type=ScreenClassification.ERROR)
 
+    if tcode.startswith("/"):  # /n and /o open the start menu or a new window instead of the transaction
+        return QuickReportResult.failure(
+            error=f"tcode must be a plain transaction code, got '{tcode}' (no /n or /o prefix)",
+            tcode=tcode,
+            screen_type=ScreenClassification.ERROR,
+        )
+    keys = list(post_f8_keys or [])
+    for key in keys:
+        try:
+            key_to_vkey(key)
+        except KeyError as exc:
+            return QuickReportResult.failure(
+                error=f"Invalid post_f8_keys entry: {exc.args[0]}", tcode=tcode, screen_type=ScreenClassification.ERROR
+            )
+
     warnings: list[str] = []
     try:
+        # Fields, keys and F8 go to the topmost window: with a popup open they would hit the popup.
+        popup = await backend.check_popup()
+        if popup:
+            return QuickReportResult.failure(
+                error="Cannot start: a modal dialog is open (dismiss it first with sap_close_popup). "
+                f"Dialog: {popup.message or 'confirmation required'}",
+                tcode=tcode,
+                screen_type=ScreenClassification.ERROR,
+                popup=popup,
+            )
         # Shared with sap_transaction: an unknown transaction code is no error to SAP GUI (it stays on the old
         # screen and says so in the status bar), which that function turns into a failure.
         entered = await _transaction_desktop(backend, tcode, new_window=False)
@@ -133,6 +155,15 @@ async def _execute_quick_report(  # noqa: PLR0911  # pylint: disable=too-many-ar
                 screen_type=ScreenClassification.ERROR,
             )
         await backend.wait_for_ready()
+        popup = await backend.check_popup()
+        if popup:  # e.g. an authorization or system message instead of the selection screen
+            return QuickReportResult.failure(
+                error=f"Transaction {tcode} opened a dialog instead of the selection screen: "
+                f"{popup.message or popup.title or 'no text'}",
+                tcode=tcode,
+                screen_type=ScreenClassification.ERROR,
+                popup=popup,
+            )
         opened = await backend.get_status_bar()
         if opened.type == "E":  # SAP refused the transaction (e.g. no authorization)
             return QuickReportResult.failure(
@@ -152,18 +183,31 @@ async def _execute_quick_report(  # noqa: PLR0911  # pylint: disable=too-many-ar
 
         screen = await backend.get_screen_info()
         selection_screen = (screen.program, screen.dynpro)
-        await backend.press_key("F8")
+        pressed = await backend.press_key("F8")
+        if not pressed.success:
+            return QuickReportResult.failure(
+                error=f"F8 could not be sent: {pressed.error}",
+                tcode=tcode,
+                screen_type=ScreenClassification.ERROR,
+                warnings=warnings,
+            )
         await backend.wait_for_ready()
         classification, status, table, lines = await _classify(backend, selection_screen, max_rows)
 
-        keys = list(post_f8_keys or [])
         if len(keys) > _MAX_POST_F8_KEYS:
             warnings.append(f"post_f8_keys has {len(keys)} keys, only the first {_MAX_POST_F8_KEYS} are used")
             keys = keys[:_MAX_POST_F8_KEYS]
         for key in keys:
-            if classification in _RESOLVED:
+            if not await backend.check_popup():  # the keys are for popups only
                 break
-            await backend.press_key(key)
+            pressed = await backend.press_key(key)
+            if not pressed.success:
+                return QuickReportResult.failure(
+                    error=f"Key {key} could not be sent after F8: {pressed.error}",
+                    tcode=tcode,
+                    screen_type=classification,
+                    warnings=warnings,
+                )
             await backend.wait_for_ready()
             classification, status, table, lines = await _classify(backend, selection_screen, max_rows)
 
@@ -177,7 +221,8 @@ async def _execute_quick_report(  # noqa: PLR0911  # pylint: disable=too-many-ar
             status_bar_type=status.type,
             status_bar_message=status.message,
             table=table,
-            list_lines=lines,
+            list_lines=lines[:max_rows] if lines is not None else None,
+            list_truncated=lines is not None and len(lines) > max_rows,
             screen_text=screen_text,
             popup=await backend.check_popup(),
             warnings=warnings,
@@ -203,18 +248,26 @@ def register_quick_report_tools(mcp: FastMCP) -> None:
         description=(
             "Run a report transaction in one call: enter the transaction, fill the selection screen (fields, "
             "checkboxes, radio buttons), press Execute (F8) and return the result.\n\n"
+            "F8 really runs the report: reports that post, change or delete data will do so. Use display reports "
+            "or the report's test-run option.\n\n"
             "Works with any report or list transaction that has a selection screen (VA05, ME2M, MB51, FBL1N, "
-            "Z-transactions, ...). Fields are matched by label or technical name. A field, checkbox or radio "
-            "button that cannot be found fails the call before F8. SAP remembers the last values of a selection "
-            "screen: fields you do not pass keep their previous value.\n\n"
-            "screen_type tells what came back: table (ALV grid or table control, in `table`), list (classic list, "
-            "in `list_lines`), empty (no data), error (status bar text and screen text say why) or unknown (screen "
-            "text, or the open popup). The session stays on that screen, so you can continue with the individual "
-            "tools. If a transaction shows a popup after F8, pass post_f8_keys=['Enter'] to dismiss it.\n\n"
+            "Z-transactions, ...). tcode must be a plain code (no /n or /o). Fields are matched by label or "
+            "technical name. SAP remembers the last values of a selection screen: fields you do not pass keep "
+            "their previous value.\n\n"
+            "success=false: F8 was not pressed (or could not be sent). Causes: an open popup, an unknown "
+            "transaction, a field, checkbox or radio button that cannot be found, an invalid post_f8_keys entry "
+            "or an unusable output_file; the error says which. success=true: F8 was pressed and screen_type tells "
+            "what came back: table (ALV grid or table control, in `table`), list (classic list, in "
+            "`list_lines`), empty (no data), error (SAP answered with an error or warning, or F8 did not leave "
+            "the selection screen; status bar and screen text say why) or unknown (screen text, or the open "
+            "popup). The session stays on that screen, so you can continue with the individual tools.\n\n"
+            "If a transaction shows a popup after F8, pass post_f8_keys=['Enter'] to answer it. The keys are "
+            "pressed only while a popup is open, and Enter accepts the popup's default button, which may be a "
+            "confirmation (e.g. Yes).\n\n"
             "Do NOT use for transactions with a dedicated tool (SE16: sap_se16_query, SM37: sap_sm37_lookup, "
             "SE11/SE24/SE37: the lookup tools) or without a selection screen (BP, VA01)."
         ),
-        annotations=ToolAnnotations(read_only_hint=False, open_world_hint=False),
+        annotations=ToolAnnotations(read_only_hint=False, destructive_hint=True, open_world_hint=False),
     )
     async def sap_quick_report(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         tcode: str,
@@ -235,8 +288,8 @@ def register_quick_report_tools(mcp: FastMCP) -> None:
             checkboxes: Label to checked pairs for checkboxes of the selection screen.
             radios: Label to True pairs for radio buttons to select (a radio button cannot be unselected).
             max_rows: Maximum rows (or list lines) to read from the result. Must be >= 1.
-            post_f8_keys: Keys to press after F8 to dismiss popups (e.g. ["Enter"]), at most 3. Each key is only
-                pressed while the result is still unresolved.
+            post_f8_keys: Keys to press after F8 to answer popups (e.g. ["Enter"], the default button), at most 3.
+                Each key is only pressed while a popup is open.
             output_file: If provided, write the result as JSON to this file (inside the output directory).
             session: Session ID (e.g. "s1", "s2"). None uses the primary session.
             agent_id: Agent ID for multi-agent session binding.

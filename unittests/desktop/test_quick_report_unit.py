@@ -9,13 +9,14 @@ from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from fastmcp import FastMCP
 
 from sapguimcp import utils
 from sapguimcp.models import ScreenText, TableData, TableRow
 from sapguimcp.models.base import PopupInfo
 from sapguimcp.models.quick_report_models import ScreenClassification
-from sapguimcp.models.sap_results import FillFormResult, StatusBarInfo
-from sapguimcp.tools.quick_report_tools import _execute_quick_report
+from sapguimcp.models.sap_results import FillFormResult, KeyboardResult, StatusBarInfo
+from sapguimcp.tools.quick_report_tools import _execute_quick_report, register_quick_report_tools
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -59,8 +60,9 @@ def _backend(*screens: _Screen) -> Any:
     def current() -> _Screen:
         return screens[min(state.index, len(screens) - 1)]
 
-    async def press_key(_key: str) -> None:
+    async def press_key(key: str) -> KeyboardResult:
         state.index += 1
+        return KeyboardResult(key=key)
 
     async def status() -> StatusBarInfo:
         kind, message = current().status
@@ -227,7 +229,12 @@ async def test_the_selection_is_filled_before_f8() -> None:
     backend.fill_form.side_effect = fill_form
     backend.set_checkbox.side_effect = lambda label, checked: order.append(f"chk {label}={checked}")
     backend.set_radio_button.side_effect = lambda label: order.append(f"rad {label}")
-    backend.press_key.side_effect = order.append
+
+    async def press_key(key: str) -> KeyboardResult:
+        order.append(key)
+        return KeyboardResult(key=key)
+
+    backend.press_key.side_effect = press_key
     result = await _run(
         backend, fields={"Name": "X*"}, checkboxes={"Flag": True, "Other": False}, radios={"Choice": True}
     )
@@ -333,3 +340,105 @@ async def test_an_unknown_transaction_code_fails_whatever_the_language(message: 
     assert message in (result.error or "")
     backend.fill_form.assert_not_awaited()
     backend.press_key.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_it_refuses_to_start_while_a_popup_is_open() -> None:
+    backend = _backend(_Screen(popup=_POPUP), _result_screen())
+    result = await _run(backend)
+    assert not result.success
+    assert "modal dialog" in (result.error or "")
+    assert result.popup == _POPUP
+    backend.enter_transaction.assert_not_awaited()
+    backend.press_key.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_a_popup_after_entering_the_transaction_fails_before_filling() -> None:
+    backend = _backend(_SELECTION, _result_screen())
+    backend.check_popup = AsyncMock(side_effect=[None, _POPUP])
+    result = await _run(backend, fields={"Name": "X"})
+    assert not result.success
+    assert "instead of the selection screen" in (result.error or "")
+    assert result.popup == _POPUP
+    backend.fill_form.assert_not_awaited()
+    backend.press_key.assert_not_awaited()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("tcode", ["/nSE16", "/oSE16", "/n"])
+async def test_a_tcode_with_a_navigation_prefix_is_rejected(tcode: str) -> None:
+    backend = _backend(_SELECTION, _result_screen())
+    result = await _execute_quick_report(backend, tcode=tcode)
+    assert not result.success
+    assert "plain transaction code" in (result.error or "")
+    backend.enter_transaction.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_a_failed_f8_is_a_failure_with_the_reason() -> None:
+    backend = _backend(_SELECTION, _result_screen())
+    backend.press_key.side_effect = None
+    backend.press_key.return_value = KeyboardResult(success=False, key="F8", error="Unknown key: F8")
+    result = await _run(backend)
+    assert not result.success
+    assert "F8 could not be sent" in (result.error or "")
+    assert "Unknown key" in (result.error or "")
+
+
+@pytest.mark.anyio
+async def test_a_failed_post_f8_key_is_a_failure_with_the_reason() -> None:
+    backend = _backend(_SELECTION, _Screen(program="SAPLSPO1", dynpro="0100", popup=_POPUP))
+    results = iter([KeyboardResult(key="F8"), KeyboardResult(success=False, key="Enter", error="boom")])
+    backend.press_key.side_effect = _next_result(results)
+    backend.check_popup = AsyncMock(side_effect=[None, None, _POPUP, _POPUP])  # start, entered, classified, loop
+    result = await _run(backend, post_f8_keys=["Enter"])
+    assert not result.success
+    assert "Enter" in (result.error or "")
+    assert "boom" in (result.error or "")
+
+
+def _next_result(results: Any) -> Any:
+    async def press_key(_key: str) -> KeyboardResult:
+        return next(results)  # type: ignore[no-any-return]
+
+    return press_key
+
+
+@pytest.mark.anyio
+async def test_an_invalid_post_f8_key_fails_before_anything_happens() -> None:
+    backend = _backend(_SELECTION, _result_screen())
+    result = await _run(backend, post_f8_keys=["Entr"])
+    assert not result.success
+    assert "Entr" in (result.error or "")
+    backend.enter_transaction.assert_not_awaited()
+    backend.press_key.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_post_f8_keys_are_not_pressed_on_an_unknown_screen_without_a_popup() -> None:
+    backend = _backend(_SELECTION, _Screen(program="SAPLXYZ", dynpro="0100"))
+    result = await _run(backend, post_f8_keys=["Enter"])
+    assert result.screen_type == ScreenClassification.UNKNOWN
+    assert _pressed(backend) == ["F8"]
+
+
+@pytest.mark.anyio
+async def test_a_classic_list_longer_than_max_rows_is_cut_and_flagged() -> None:
+    lines = [f"line {i}" for i in range(7)]
+    backend = _backend(_SELECTION, _Screen(program="RSREPORT", dynpro="1001", lines=lines))
+    result = await _run(backend, max_rows=5)
+    assert result.list_lines == lines[:5]
+    assert result.list_truncated is True
+    result = await _run(_backend(_SELECTION, _Screen(program="RSREPORT", dynpro="1001", lines=lines[:5])), max_rows=5)
+    assert result.list_truncated is False
+
+
+@pytest.mark.anyio
+async def test_the_tool_is_marked_destructive() -> None:
+    server = FastMCP("t")
+    register_quick_report_tools(server)
+    tool = await server.get_tool("sap_quick_report")
+    assert tool.annotations is not None
+    assert tool.annotations.destructiveHint is True
+    assert tool.annotations.readOnlyHint is False
