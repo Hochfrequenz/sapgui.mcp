@@ -15,36 +15,6 @@ logger = logging.getLogger(__name__)
 SapLanguage = Literal["DE", "EN", "IT"]
 
 
-def as_sap_language(value: str) -> SapLanguage:
-    """Narrow a configured language string to the values date formatting handles.
-
-    The configured language is only guaranteed to be ``DE``, ``EN`` or ``IT`` because
-    ``sapguimcp.models.config`` passes this module's :data:`SapLanguage` values
-    to ``sap-mcp-config`` as ``supported_languages`` when loading (since
-    sap-mcp-config 2.0.0 the library no longer hardcodes the list).  The check
-    runs on load only; a directly constructed ``Config`` skips it.  Besides,
-    ``sap-mcp-config`` *types* the field as ``str``, which is too wide to assign
-    straight to :data:`SapLanguage`.
-
-    Narrowing at runtime rather than with a ``cast`` keeps this correct even if
-    the upstream guarantee changes again.  Anything unrecognised becomes ``EN``,
-    which is the same default the config layer applies for a missing language —
-    but it is logged, because an EN fallback formats dates as ``MM/DD/YYYY``,
-    and typing that into a DE selection screen silently selects the wrong range.
-    """
-    normalized = value.strip().upper()
-    if normalized == "DE":
-        return "DE"
-    if normalized == "IT":
-        return "IT"
-    if normalized != "EN":
-        logger.warning(
-            "unexpected configured language, falling back to EN",
-            extra={"language": value},
-        )
-    return "EN"
-
-
 def format_sap_date(iso_date: str, language: SapLanguage) -> str:
     """
     Convert ISO date (YYYY-MM-DD) to SAP locale format.

@@ -25,6 +25,41 @@ verification. Design and rationale: `docs/superpowers/specs/2026-11-10-language-
 - `INVARIANT` (`invariant.py`) holds texts that are the same in every logon language (our own
   report output, abapGit's English-only messages). A new language never touches it.
 
+## Core first (optional)
+
+A full pack takes a lot of work. A language can start with a _core pack_ instead: a `CorePack`
+(`schema.py`) holds only the four sections that `lang.universal()` reads (`popup`, `status_type`,
+`session_pages`, `keys`). With a core pack registered:
+
+- the language is accepted as `language` in `systems.json` (`lang.logon_languages()`), and
+  `sap_login` reports `language_support: "core"`;
+- popups, activation messages and key names in that language are recognised in every session;
+- the transaction tools (everything that calls `lang.current()`) fail before they touch SAP, with an
+  `UnsupportedLanguageError` that says the language has only a core pack.
+
+Steps:
+
+1. Create `lang/<xx>.py` with `XX = CorePack(code="XX", popup=..., status_type=...,
+session_pages=..., keys=...)`, modelled on the same sections of `en.py` (same kinds and flags).
+2. Register it in `__init__.py` in `_CORE_PACKS`, not in `_PACKS`.
+3. Settle every text live on SAP GUI for Windows, logged on in the new language. Apart from
+   `popup.maintain_in_original` (a screen text), every core field is `Manual` in `sources.py`, so
+   `harvest_lang_texts.py` cannot help: read the popup titles (error, information, confirmation,
+   "Inactive Objects", the original-language popup and its button), the activation messages in the
+   status bar, the debugger window title and the key names in button tooltips. abapGit's own
+   messages are English only; keep the EN values there, as `it.py` does.
+4. Run the guards: `uv run --group tests pytest unittests/lang -q`.
+   `unittests/lang/test_core_pack.py` checks that no keyword of the new language changes how the
+   EN and DE popup and status texts of the tests are classified. These keywords are matched as
+   substrings in every session, so a short word ("No", "Info") can turn a German popup into a
+   different type.
+
+To turn a core pack into a full pack later, follow the procedure below; the core sections carry
+over, and the pack moves from `_CORE_PACKS` to `_PACKS`.
+
+Other MCP servers that read the same `systems.json` check the language against their own list, so
+they may reject a language that this server accepts.
+
 ## Procedure
 
 1. **Draft the pack.** Run
@@ -81,9 +116,9 @@ These are lessons from migrating DE and EN (#1044, PRs #1055–#1061):
 - **Short fragments match too much.** A text checked with `contains()` over a whole snapshot
   ("No logs", "nicht vorhanden") also matches result data. Keep such texts long, or check them
   only where the message appears (status bar, note lines).
-- **Status-bar noise and popup buttons** (`status_type.noise`, `popup.button_labels`) apply to
-  every session (`universal()`). A new language's noise word must never be part of a real
-  message ("Execute" vs "executed"), so keep them case-sensitive and specific.
+- **Popup and activation keywords** (`popup.type_*`, `status_type.activation_*`) apply to every
+  session (`universal()`). A new language's keyword must never be part of a real EN or DE text
+  ("Execute" vs "executed"), so keep them specific; `test_core_pack.py` guards this.
 - **Prefer technical IDs over texts.** Before adding a text, check whether the code can use a
   field name (`GD-TAB`), a column `Name`, the program and screen number (`SAPLSD_ENTRY` / `1000`),
   a T100 message ID or a WebGUI `lsdata` attribute. Use it only if it is identical on every

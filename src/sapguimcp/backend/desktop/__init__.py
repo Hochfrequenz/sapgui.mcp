@@ -896,7 +896,13 @@ class DesktopBackend:
                         "success": True,
                     },
                 )
-                return LoginResult(success=True, user=user_name, session_id=new_session_id)
+                return LoginResult(
+                    success=True,
+                    user=user_name,
+                    session_id=new_session_id,
+                    language=logon_language,
+                    language_support=lang.language_support(logon_language) if logon_language else None,
+                )
             except Exception as e:
                 # #789: surface the real COM cause sapsucker's message hides. No retry (#879).
                 failure = classify_login_failure(e)

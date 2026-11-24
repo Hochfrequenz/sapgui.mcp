@@ -33,8 +33,10 @@ import pytest
 
 from sapguimcp.backend.desktop import DesktopBackend, _current_session_id
 from sapguimcp.backend.desktop._com_thread import ComThread, SapSessionDeadError
+from sapguimcp.lang import _register_for_tests
 from sapguimcp.session_language import current_language, use_language
 from unittests.desktop.conftest import make_mock_session
+from unittests.lang.synthetic_pack import core_pack
 
 
 def _make_backend() -> DesktopBackend:
@@ -490,6 +492,29 @@ async def test_login_records_logon_language_and_sets_context_variable() -> None:
         assert result.session_id is not None
         assert backend.registry.language_of(result.session_id) == "DE"
         assert current_language() == "DE"
+        assert (result.language, result.language_support) == ("DE", "full")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(("logon_language", "support"), [("YY", "core"), ("QQ", "none")])
+async def test_login_reports_how_far_the_logon_language_is_supported(logon_language: str, support: str) -> None:
+    """#1081: the agent learns at login that the transaction tools will fail in this language."""
+    with use_language(None), _register_for_tests(core_pack()):
+        backend = _make_backend()
+        with patch(
+            "sapguimcp.backend.desktop._sapsucker_login", return_value=make_mock_session(language=logon_language)
+        ):
+            result = await backend.login(
+                url="ignored",
+                username="user",
+                password="pass",
+                client="100",
+                language=logon_language,
+                connection_name="TEST_CONN",
+            )
+
+    assert result.success is True
+    assert (result.language, result.language_support) == (logon_language, support)
 
 
 @pytest.mark.anyio
@@ -568,6 +593,7 @@ async def test_login_survives_a_failing_language_read() -> None:
         assert result.user == "TESTUSER"
         assert result.session_id is not None
         assert backend.registry.language_of(result.session_id) is None
+        assert (result.language, result.language_support) == (None, None)
 
 
 # ---------------------------------------------------------------------------
