@@ -23,6 +23,7 @@ This module contains tools for:
 
 import logging
 import re
+from contextlib import suppress
 from importlib import resources
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -207,8 +208,10 @@ async def _transaction_desktop(backend: "DesktopBackend", tcode: str, new_window
         # Backend always uses /n prefix for non-prefixed tcodes
         result = await backend.enter_transaction(tcode)
 
-        # Small wait to let popup render if it appeared
-        await backend.wait(200)
+        # Let a popup render if it appeared: wait until the session is idle, at most the former fixed 200 ms (#928).
+        # Like that fixed wait, a failed readiness poll must not fail the navigation.
+        with suppress(Exception):
+            await backend.wait_for_ready(timeout_ms=200)
 
         if result.success:
             # SAP stays on the screen it was on and reports the unknown code in the status bar, as a
@@ -586,8 +589,10 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             # Send the keystroke (backend handles bring_to_front, networkidle, status bar)
             result = await backend.press_key(key)
 
-            # Wait for popup to render (SAP popups may appear after networkidle)
-            await backend.wait(300)
+            # Wait for popup to render: until the session is idle, at most the former fixed 300 ms (#928).
+            # Like that fixed wait, a failed readiness poll must not turn the sent key into a failure.
+            with suppress(Exception):
+                await backend.wait_for_ready(timeout_ms=300)
 
             return result
 

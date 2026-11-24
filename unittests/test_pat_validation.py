@@ -209,8 +209,9 @@ class TestRunPullAndCheckErrors:
         # Should press F8 via backend
         mock_backend.press_key.assert_any_call("F8")
 
-        # Should wait for networkidle via the protocol method
-        mock_backend.wait_for_ready.assert_called_once_with(timeout_ms=120_000)
+        # Waits for readiness (bounded fast-fail check, then the pull itself), never for a fixed time (#928)
+        assert mock_backend.wait_for_ready.await_args_list == [call(timeout_ms=2000), call(timeout_ms=120_000)]
+        mock_backend.wait.assert_not_awaited()
 
         # Without inactive objects popup, should NOT press Enter
         enter_calls = [c for c in mock_backend.press_key.call_args_list if c == call("Enter")]
@@ -261,6 +262,9 @@ class TestRunPullAndCheckErrors:
         # Should press Enter via backend to confirm inactive objects popup
         enter_calls = [c for c in mock_backend.press_key.call_args_list if c == call("Enter")]
         assert len(enter_calls) == 1, f"Expected 1 Enter press for popup, got {enter_calls}"
+        # After Enter, the readiness wait follows directly, without a fixed wait before it (#928)
+        assert mock_backend.wait_for_ready.await_args_list[-1] == call(timeout_ms=30_000)
+        mock_backend.wait.assert_not_awaited()
 
     @pytest.mark.anyio
     @pytest.mark.parametrize(

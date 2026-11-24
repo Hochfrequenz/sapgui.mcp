@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import sys
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 
@@ -935,6 +935,35 @@ def test_status_bar_info_model_defaults():
     assert info.message_id is None
     assert info.message_number is None
     assert info.message_parameters == []
+
+
+class TestWaitForReady:
+    """DesktopBackend.wait_for_ready polls session.Busy; its timeout bounds the wait without raising (#928)."""
+
+    @staticmethod
+    def _backend_with_busy(*values: bool):
+        session = make_mock_session()
+        busy = PropertyMock(side_effect=values)
+        type(session).busy = busy
+        return _make_backend(session), busy
+
+    @pytest.mark.anyio
+    async def test_returns_immediately_when_not_busy(self):
+        backend, busy = self._backend_with_busy(False)
+        await backend.wait_for_ready(timeout_ms=200)
+        assert busy.call_count == 1
+
+    @pytest.mark.anyio
+    async def test_waits_until_no_longer_busy(self):
+        backend, busy = self._backend_with_busy(True, True, False)
+        await backend.wait_for_ready(timeout_ms=5000)
+        assert busy.call_count == 3
+
+    @pytest.mark.anyio
+    async def test_timeout_returns_without_raising(self):
+        backend, busy = self._backend_with_busy(*([True] * 50))
+        await backend.wait_for_ready(timeout_ms=50)
+        assert 1 <= busy.call_count < 50
 
 
 class TestWaitForCondition:

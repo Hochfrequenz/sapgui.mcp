@@ -14,7 +14,7 @@ from sapguimcp.tools.sap_tools import register_sap_tools
 async def _call(status: StatusBarInfo) -> dict[str, Any]:
     backend = MagicMock()
     backend.check_popup = AsyncMock(return_value=None)
-    backend.wait = AsyncMock()
+    backend.wait_for_ready = AsyncMock()
     backend.enter_transaction = AsyncMock(return_value=TransactionResult(tcode="NOSUCH1", page_title="SAP Easy Access"))
     backend.get_status_bar = AsyncMock(return_value=status)
     server = FastMCP("t")

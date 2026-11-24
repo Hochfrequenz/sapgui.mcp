@@ -106,7 +106,7 @@ class _EmptyStatusBackend:
     async def get_status_bar(self) -> SimpleNamespace:
         return SimpleNamespace(message="", type="none")
 
-    async def wait(self, _ms: int) -> None:
+    async def wait_for_ready(self, **_kwargs: int) -> None:
         return None
 
     async def get_snapshot(self) -> str:
