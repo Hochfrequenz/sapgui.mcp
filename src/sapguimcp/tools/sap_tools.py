@@ -11,6 +11,7 @@ This module contains tools for:
 - sap_get_screen_text: Get all readable text from current screen
 - sap_read_table: Read data from ALV grids and tables (with cell selectors)
 - sap_click_table_cell: Click a cell in an ALV grid table
+- sap_modify_cell: Write a cell of an editable ALV grid and read it back
 - sap_read_status_bar: Read status bar messages
 - sap_get_screen_info: Get technical screen information
 - sap_lookup_fields: Look up known field selectors for a transaction
@@ -19,6 +20,9 @@ This module contains tools for:
 - sap_select_tab: Select a tab by label text
 - sap_select_dropdown: Select a dropdown option by label and value
 - sap_screenshot: Take a screenshot of the current SAP screen
+
+sap_modify_cell's refusal to write a cell it cannot identify is inspired by kts982/mcp-sap-gui
+(https://github.com/kts982/mcp-sap-gui, MIT License, Copyright (c) 2026 mcp-sap-gui contributors); no code is copied.
 """
 
 import logging
@@ -46,6 +50,7 @@ from sapguimcp.models import (
     KeepaliveResult,
     KeyboardResult,
     LoginResult,
+    ModifyCellResult,
     ScreenInfo,
     ScreenText,
     SelectDropdownResult,
@@ -788,6 +793,54 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
                 row=row,
                 column=column,
                 selector_used="",
+            )
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False, destructive_hint=True, idempotent_hint=True, open_world_hint=False
+        ),
+        description=(
+            "Write one cell of the editable ALV grid shown by sap_read_table and read it back. "
+            "Pass expected_current when you read the cell earlier: the write is refused if the cell changed. "
+            "Nothing is sent to SAP until Enter, nothing saved until Save."
+        ),
+    )
+    async def sap_modify_cell(
+        row: int,
+        column: int | str,
+        value: str,
+        expected_current: str | None = None,
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> ModifyCellResult:
+        """
+        Write one cell of the first ALV grid of the active window.
+
+        Args:
+            row: Row number (1-indexed), as sap_read_table shows it
+            column: Column index (0-based) or technical column name, as in sap_read_table's headers
+            value: New cell value
+            expected_current: Value the cell must hold now (trimmed); otherwise nothing is written
+            session: Session ID (e.g., "s1", "s2"). None uses primary session.
+            agent_id: Agent identifier for binding check. Optional.
+
+        Returns:
+            ModifyCellResult with the previous value and the value read back. written=True on a failure means the cell
+            did change.
+        """
+        try:
+            backend = await get_backend(session=session, agent_id=agent_id, tool_name="sap_modify_cell")
+        except ValueError as e:
+            return ModifyCellResult.failure(str(e), row=row, column=str(column))
+
+        try:
+            return await backend.modify_cell(row, column, value, expected_current)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.exception("Modifying table cell", extra={"row": row, "column": column})
+            return ModifyCellResult.failure(
+                f"Error modifying table cell: {e} No cell was modified.",  # lang-ok: our own message
+                row=row,
+                column=str(column),
             )
 
     @mcp.tool(

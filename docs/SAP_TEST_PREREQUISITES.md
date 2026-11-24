@@ -37,6 +37,10 @@ Install via abapGit pull, or create manually:
 | Class `ZCL_TEST_MCP_EDIT`           | SE24        | Public class with method `DO_SOMETHING`                                                                                                                              |
 | Class `ZCL_SAPGUIMCP_ORIGLANG_TEST` | SE24        | Local (`$TMP`) class with original language **EN**, i.e. different from the DE logon language of the test user (optional: the language dialog test skips without it) |
 
+The `sap_modify_cell` live tests (`unittests/desktop/test_modify_cell_integration.py`) use SAP's demo report
+`BCALV_EDIT_01` (an editable ALV grid over table `SFLIGHT`, no save function). It needs flight demo data in `SFLIGHT`;
+an empty table can be filled with SAP's report `SAPBC_DATA_GENERATOR`.
+
 Creating these objects generates **transport requests** owned by the test user (needed for SE09 tests).
 
 Create `ZCL_SAPGUIMCP_ORIGLANG_TEST` **logged on in EN** (SE24, Create, Local Object, activate), because SAP takes the original language from the logon language. Creating it through ADT does not work: ADT uses the configured DE logon language, so `TADIR-MASTERLANG` would be `D`. Verify with `SELECT MASTERLANG FROM TADIR WHERE PGMID = 'R3TR' AND OBJECT = 'CLAS' AND OBJ_NAME = 'ZCL_SAPGUIMCP_ORIGLANG_TEST'` (expected `E`). Switching it to change mode in a DE session shows the dialog `SAPLSETX` 0100 ("Abweichende Original- und Anmeldesprache", #1087).
