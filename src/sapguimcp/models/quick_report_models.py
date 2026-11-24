@@ -38,4 +38,9 @@ class QuickReportResult(ToolResult):
     screen_text: ScreenText | None = Field(
         default=None, description="Screen text when screen_type is 'error' or 'unknown'"
     )
+    report_executed: bool = Field(
+        default=False,
+        description="True once F8 was sent: the report may have run (and posted or changed data) even if "
+        "success is false, so do not retry such a call blindly",
+    )
     warnings: list[str] = Field(default_factory=list, description="Non-fatal warnings from the pipeline")

@@ -1,6 +1,7 @@
 """sap_quick_report composite tool: enter a transaction, fill the selection screen, press F8, read the result."""
 
 import logging
+import re
 from typing import TYPE_CHECKING
 
 from fastmcp import FastMCP
@@ -21,6 +22,24 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _MAX_POST_F8_KEYS = 3
+_CLASSIC_LIST_SCREEN = ("SAPMSSY0", "0120")  # program and screen of every classic list, also of its detail lists
+# A plain code, or a code in a namespace (/NAMESPACE/NAME, optionally with parameters). Every other code starting
+# with "/" is a command (/n, /o, /i, /nex, /*, /h ...) that leaves the transaction or opens another window.
+_TCODE = re.compile(r"(?:/[A-Z0-9_]{3,10}/)?[A-Za-z0-9_]+(?: .*)?")  # namespace upper case: "/nab/x" is a command
+
+
+def _check_output_file(output_file: str) -> None:
+    """Raise ValueError if ``output_file`` cannot be written, without touching it (the report must not run first)."""
+    path = resolve_output_file_path(output_file)
+    if path.is_symlink():
+        raise ValueError("output_file must not be a symbolic link")
+    if path.is_dir():
+        raise ValueError("output_file must name a file, not a directory")
+    for parent in path.parents:
+        if parent.exists():
+            if not parent.is_dir():
+                raise ValueError(f"output_file cannot be created: {parent.name} is a file, not a directory")
+            break
 
 
 async def _read_list_lines(backend: "DesktopBackend", max_rows: int) -> list[str]:
@@ -28,7 +47,7 @@ async def _read_list_lines(backend: "DesktopBackend", max_rows: int) -> list[str
     session = backend.require_session()
     # one line more than wanted, to tell whether the list was cut off
     lines: list[str] = await backend.com.run(
-        lambda: read_classic_list_lines(session, max_rows + 1), retry_server_fault=True
+        lambda: read_classic_list_lines(session, max_rows + 1, wide=True), retry_server_fault=True
     )
     return lines
 
@@ -62,7 +81,8 @@ async def _classify(  # noqa: PLR0911
         empty = status.type in ("S", "I") and bool(status.message)
         return ScreenClassification.EMPTY if empty else ScreenClassification.ERROR, status, None, None
 
-    lines = await _read_list_lines(backend, max_rows)
+    # Only a classic list screen has the positioned labels the list reader looks at; a dynpro may have such labels too.
+    lines = await _read_list_lines(backend, max_rows) if (info.program, info.dynpro) == _CLASSIC_LIST_SCREEN else []
     if lines:
         return ScreenClassification.LIST, status, None, lines
     return ScreenClassification.UNKNOWN, status, None, None
@@ -114,13 +134,13 @@ async def _execute_quick_report(  # noqa: PLR0911  # pylint: disable=too-many-ar
         )
     if output_file:  # checked first: the report must not run when its result cannot be written
         try:
-            resolve_output_file_path(output_file)
+            _check_output_file(output_file)
         except ValueError as exc:
             return QuickReportResult.failure(error=str(exc), tcode=tcode, screen_type=ScreenClassification.ERROR)
 
-    if tcode.startswith("/"):  # /n and /o open the start menu or a new window instead of the transaction
+    if not _TCODE.fullmatch(tcode):
         return QuickReportResult.failure(
-            error=f"tcode must be a plain transaction code, got '{tcode}' (no /n or /o prefix)",
+            error=f"tcode must be a transaction code (/NAMESPACE/NAME is fine), not a command: '{tcode}'",
             tcode=tcode,
             screen_type=ScreenClassification.ERROR,
         )
@@ -134,6 +154,7 @@ async def _execute_quick_report(  # noqa: PLR0911  # pylint: disable=too-many-ar
             )
 
     warnings: list[str] = []
+    executed = False  # F8 was sent: the report may have run
     try:
         # Fields, keys and F8 go to the topmost window: with a popup open they would hit the popup.
         popup = await backend.check_popup()
@@ -183,12 +204,14 @@ async def _execute_quick_report(  # noqa: PLR0911  # pylint: disable=too-many-ar
 
         screen = await backend.get_screen_info()
         selection_screen = (screen.program, screen.dynpro)
+        executed = True
         pressed = await backend.press_key("F8")
         if not pressed.success:
             return QuickReportResult.failure(
                 error=f"F8 could not be sent: {pressed.error}",
                 tcode=tcode,
                 screen_type=ScreenClassification.ERROR,
+                report_executed=False,
                 warnings=warnings,
             )
         await backend.wait_for_ready()
@@ -206,6 +229,7 @@ async def _execute_quick_report(  # noqa: PLR0911  # pylint: disable=too-many-ar
                     error=f"Key {key} could not be sent after F8: {pressed.error}",
                     tcode=tcode,
                     screen_type=classification,
+                    report_executed=True,
                     warnings=warnings,
                 )
             await backend.wait_for_ready()
@@ -222,6 +246,7 @@ async def _execute_quick_report(  # noqa: PLR0911  # pylint: disable=too-many-ar
             status_bar_message=status.message,
             table=table,
             list_lines=lines[:max_rows] if lines is not None else None,
+            report_executed=True,
             list_truncated=lines is not None and len(lines) > max_rows,
             screen_text=screen_text,
             popup=await backend.check_popup(),
@@ -230,7 +255,11 @@ async def _execute_quick_report(  # noqa: PLR0911  # pylint: disable=too-many-ar
     except Exception as exc:  # pylint: disable=broad-exception-caught
         logger.exception("sap_quick_report failed", extra={"tcode": tcode})
         return QuickReportResult.failure(
-            error=f"Pipeline error: {exc}", tcode=tcode, screen_type=ScreenClassification.ERROR, warnings=warnings
+            error=f"Pipeline error: {exc}",
+            tcode=tcode,
+            screen_type=ScreenClassification.ERROR,
+            report_executed=executed,
+            warnings=warnings,
         )
 
     if output_file:
@@ -251,16 +280,19 @@ def register_quick_report_tools(mcp: FastMCP) -> None:
             "F8 really runs the report: reports that post, change or delete data will do so. Use display reports "
             "or the report's test-run option.\n\n"
             "Works with any report or list transaction that has a selection screen (VA05, ME2M, MB51, FBL1N, "
-            "Z-transactions, ...). tcode must be a plain code (no /n or /o). Fields are matched by label or "
-            "technical name. SAP remembers the last values of a selection screen: fields you do not pass keep "
-            "their previous value.\n\n"
-            "success=false: F8 was not pressed (or could not be sent). Causes: an open popup, an unknown "
+            "Z-transactions, ...). tcode must be a transaction code (namespaces like /NAMESPACE/NAME are fine, "
+            "/n or /o commands are not). Fields are matched by label or technical name. "
+            "SAP remembers the last values of a selection screen: fields you do not pass keep their previous value.\n\n"
+            "success=false with report_executed=false: F8 was not sent. Causes: an open popup, an unknown "
             "transaction, a field, checkbox or radio button that cannot be found, an invalid post_f8_keys entry "
-            "or an unusable output_file; the error says which. success=true: F8 was pressed and screen_type tells "
-            "what came back: table (ALV grid or table control, in `table`), list (classic list, in "
-            "`list_lines`), empty (no data), error (SAP answered with an error or warning, or F8 did not leave "
-            "the selection screen; status bar and screen text say why) or unknown (screen text, or the open "
-            "popup). The session stays on that screen, so you can continue with the individual tools.\n\n"
+            "or an unusable output_file; the error says which. success=false with report_executed=true: F8 was "
+            "sent and the call failed afterwards (a post_f8_keys press, reading the result); the report may have "
+            "run, so check the screen with the individual tools and do not retry blindly. success=true: F8 was "
+            "pressed and screen_type tells what came back: table (ALV grid or table control, in `table`), "
+            "list (classic list, in `list_lines`), empty (no data), error (SAP answered with an error or warning, "
+            "or F8 did not leave the selection screen; status bar and screen text say why) or unknown (screen "
+            "text, or the open popup). The session stays on that screen, so you can continue with the individual "
+            "tools.\n\n"
             "If a transaction shows a popup after F8, pass post_f8_keys=['Enter'] to answer it. The keys are "
             "pressed only while a popup is open, and Enter accepts the popup's default button, which may be a "
             "confirmation (e.g. Yes).\n\n"

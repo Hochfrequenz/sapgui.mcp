@@ -16,6 +16,7 @@ from sapguimcp.models import ScreenText, TableData, TableRow
 from sapguimcp.models.base import PopupInfo
 from sapguimcp.models.quick_report_models import ScreenClassification
 from sapguimcp.models.sap_results import FillFormResult, KeyboardResult, StatusBarInfo
+from sapguimcp.tools import quick_report_tools
 from sapguimcp.tools.quick_report_tools import _execute_quick_report, register_quick_report_tools
 
 if TYPE_CHECKING:
@@ -173,7 +174,7 @@ async def test_staying_on_the_selection_screen_without_a_message_is_an_error() -
 
 @pytest.mark.anyio
 async def test_a_classic_list_is_returned_as_lines() -> None:
-    backend = _backend(_SELECTION, _Screen(program="RSREPORT", dynpro="1001", lines=["head", "row 1"]))
+    backend = _backend(_SELECTION, _Screen(program="SAPMSSY0", dynpro="0120", lines=["head", "row 1"]))
     result = await _run(backend, max_rows=5)
     assert result.screen_type == ScreenClassification.LIST
     assert result.list_lines == ["head", "row 1"]
@@ -366,12 +367,12 @@ async def test_a_popup_after_entering_the_transaction_fails_before_filling() -> 
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("tcode", ["/nSE16", "/oSE16", "/n"])
+@pytest.mark.parametrize("tcode", ["/nSE16", "/oSE16", "/n", "/nex", "/*", "/h", "/i", "/nab/x", "/n/ABC/REPORT", ""])
 async def test_a_tcode_with_a_navigation_prefix_is_rejected(tcode: str) -> None:
     backend = _backend(_SELECTION, _result_screen())
     result = await _execute_quick_report(backend, tcode=tcode)
     assert not result.success
-    assert "plain transaction code" in (result.error or "")
+    assert "not a command" in (result.error or "")
     backend.enter_transaction.assert_not_awaited()
 
 
@@ -426,11 +427,11 @@ async def test_post_f8_keys_are_not_pressed_on_an_unknown_screen_without_a_popup
 @pytest.mark.anyio
 async def test_a_classic_list_longer_than_max_rows_is_cut_and_flagged() -> None:
     lines = [f"line {i}" for i in range(7)]
-    backend = _backend(_SELECTION, _Screen(program="RSREPORT", dynpro="1001", lines=lines))
+    backend = _backend(_SELECTION, _Screen(program="SAPMSSY0", dynpro="0120", lines=lines))
     result = await _run(backend, max_rows=5)
     assert result.list_lines == lines[:5]
     assert result.list_truncated is True
-    result = await _run(_backend(_SELECTION, _Screen(program="RSREPORT", dynpro="1001", lines=lines[:5])), max_rows=5)
+    result = await _run(_backend(_SELECTION, _Screen(program="SAPMSSY0", dynpro="0120", lines=lines[:5])), max_rows=5)
     assert result.list_truncated is False
 
 
@@ -442,3 +443,116 @@ async def test_the_tool_is_marked_destructive() -> None:
     assert tool.annotations is not None
     assert tool.annotations.destructiveHint is True
     assert tool.annotations.readOnlyHint is False
+
+
+@pytest.mark.anyio
+async def test_a_namespaced_transaction_code_is_accepted() -> None:
+    backend = _backend(_SELECTION, _result_screen())
+    result = await _execute_quick_report(backend, tcode="/ABC/REPORT")
+    assert result.success
+    backend.enter_transaction.assert_awaited_once_with("/ABC/REPORT")
+
+
+@pytest.mark.anyio
+async def test_labels_that_are_no_classic_list_are_not_read_as_one() -> None:
+    backend = _backend(_SELECTION, _Screen(program="SAPLXYZ", dynpro="0100", lines=["looks like a list line"]))
+    result = await _run(backend)
+    assert result.screen_type == ScreenClassification.UNKNOWN
+    assert result.list_lines is None
+    backend.com.run.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_the_classic_list_is_read_with_horizontal_stitching(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: dict[str, Any] = {}
+
+    def reader(_session: Any, max_lines: int, wide: bool = False) -> list[str]:
+        seen.update(max_lines=max_lines, wide=wide)
+        return ["line"]
+
+    monkeypatch.setattr(quick_report_tools, "read_classic_list_lines", reader)
+    backend = _backend(_SELECTION, _Screen(program="SAPMSSY0", dynpro="0120"))
+    backend.com.run = AsyncMock(side_effect=lambda func, **_: func())
+    result = await _run(backend, max_rows=4)
+    assert result.list_lines == ["line"]
+    assert seen == {"max_lines": 5, "wide": True}
+
+
+@pytest.mark.anyio
+async def test_an_output_file_that_is_a_directory_fails_before_the_report_runs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(utils, "_default_output_base_dir", lambda: tmp_path)
+    (tmp_path / "taken").mkdir()
+    backend = _backend(_SELECTION, _result_screen())
+    result = await _run(backend, output_file="taken")
+    assert not result.success
+    assert "directory" in (result.error or "")
+    backend.enter_transaction.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_an_output_file_below_a_file_fails_before_the_report_runs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(utils, "_default_output_base_dir", lambda: tmp_path)
+    (tmp_path / "plain.txt").write_text("keep", encoding="utf-8")
+    backend = _backend(_SELECTION, _result_screen())
+    result = await _run(backend, output_file="plain.txt/out.json")
+    assert not result.success
+    assert "not a directory" in (result.error or "")
+    assert (tmp_path / "plain.txt").read_text(encoding="utf-8") == "keep"
+    backend.enter_transaction.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_an_output_file_that_is_a_symlink_fails_before_the_report_runs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(utils, "_default_output_base_dir", lambda: tmp_path)
+    target = tmp_path / "target.txt"
+    target.write_text("keep", encoding="utf-8")
+    try:
+        (tmp_path / "link.json").symlink_to(target)
+    except OSError:
+        pytest.skip("symbolic links are not available")
+    backend = _backend(_SELECTION, _result_screen())
+    result = await _run(backend, output_file="link.json")
+    assert not result.success
+    assert "symbolic link" in (result.error or "")
+    assert target.read_text(encoding="utf-8") == "keep"
+    backend.enter_transaction.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_report_executed_tells_whether_f8_was_sent() -> None:
+    assert (await _run(_backend(_SELECTION, _result_screen()))).report_executed is True
+
+    not_sent = _backend(_SELECTION, _result_screen())
+    not_sent.fill_form.return_value = FillFormResult(success=False, error="Fields not found: X", not_found=["X"])
+    assert (await _run(not_sent, fields={"X": "1"})).report_executed is False
+
+    refused = _backend(_SELECTION, _result_screen())
+    refused.press_key.side_effect = None
+    refused.press_key.return_value = KeyboardResult(success=False, key="F8", error="nope")
+    result = await _run(refused)
+    assert not result.success
+    assert result.report_executed is False
+
+
+@pytest.mark.anyio
+async def test_a_failure_after_f8_says_that_the_report_was_executed() -> None:
+    reading = _backend(_SELECTION, _result_screen())
+    reading.read_table.side_effect = RuntimeError("COM gone while reading")
+    result = await _run(reading)
+    assert not result.success
+    assert result.report_executed is True
+
+    keys = _backend(_SELECTION, _Screen(program="SAPLSPO1", dynpro="0100", popup=_POPUP))
+    keys.check_popup = AsyncMock(side_effect=[None, None, _POPUP, _POPUP])
+    keys.press_key.side_effect = _next_result(
+        iter([KeyboardResult(key="F8"), KeyboardResult(success=False, key="Enter", error="no")])
+    )
+    result = await _run(keys, post_f8_keys=["Enter"])
+    assert not result.success
+    assert result.report_executed is True
