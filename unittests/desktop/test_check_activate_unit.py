@@ -236,8 +236,17 @@ class _Window:
 class StackedSession:
     """Fake GuiSession with a real window stack: Ctrl+F3 opens the worklist, Enter opens an error dialog."""
 
-    def __init__(self, activation_fails: bool) -> None:
+    def __init__(
+        self,
+        activation_fails: bool = False,
+        worklist_title: str = INACTIVE_OBJECTS,
+        ignored_f12: int = 0,
+        endless_worklist: bool = False,
+    ) -> None:
         self._activation_fails = activation_fails
+        self._worklist_title = worklist_title
+        self._ignored_f12 = ignored_f12  # F12 presses that leave the window open
+        self._endless_worklist = endless_worklist  # Enter never closes the worklist
         self.windows: dict[int, str] = {}
         self.message = ""
         self.keys: list[tuple[int, int]] = []
@@ -247,15 +256,18 @@ class StackedSession:
         if index != max(self.windows, default=0):
             raise AssertionError(f"key {key} sent to covered window wnd[{index}]")
         if index == 0 and key == 27:
-            self.windows[1] = INACTIVE_OBJECTS
+            self.windows[1] = self._worklist_title
         elif index == 1 and key == 0:
             if self._activation_fails:
                 self.windows[2] = "Aktivierungsfehler"
-            else:
+            elif not self._endless_worklist:
                 del self.windows[1]
                 self.message = "Objekt(e) wurde(n) aktiviert"
         elif index > 0 and key == 12:
-            del self.windows[index]
+            if self._ignored_f12 > 0:
+                self._ignored_f12 -= 1
+            else:
+                del self.windows[index]
 
     def find_by_id(self, element_id: str, raise_error: bool = True) -> Any:
         del raise_error  # a missing window is always None here
@@ -291,3 +303,39 @@ class TestActivationErrorDialog:
         assert result.activated is True
         assert (1, 0) in session.keys
         assert (1, 12) not in session.keys
+
+    @pytest.mark.anyio
+    async def test_unknown_worklist_title_is_still_recognised_by_position(self):
+        """Language independence: an unrecognised worklist title must not turn Enter on wnd[2] into 'Activate'."""
+        session = StackedSession(activation_fails=True, worklist_title="Lista oggetti sconosciuta")
+        result = await make_backend(session).check_and_activate()
+        assert result.success is False
+        assert "Aktivierungsfehler" in (result.error or "")
+        assert (2, 0) not in session.keys
+        assert (2, 12) in session.keys
+        assert session.windows == {}
+
+    @pytest.mark.anyio
+    async def test_dialog_ignoring_f12_is_retried_before_the_worklist_gets_a_key(self):
+        session = StackedSession(activation_fails=True, ignored_f12=1)
+        result = await make_backend(session).check_and_activate()
+        assert result.success is False
+        assert session.keys.count((2, 12)) == 2
+        assert session.windows == {}  # the fake raises if wnd[1] got a key while wnd[2] stood
+
+    @pytest.mark.anyio
+    async def test_dialog_that_never_closes_is_reported(self):
+        session = StackedSession(activation_fails=True, ignored_f12=100)
+        result = await make_backend(session).check_and_activate()
+        assert result.success is False
+        assert all(index == 2 for index, key in session.keys if key == 12)
+        assert any("still open after it was cancelled" in m for m in result.messages)
+
+    @pytest.mark.anyio
+    async def test_dialog_left_open_after_the_round_limit_is_cancelled_and_fails(self):
+        session = StackedSession(endless_worklist=True)
+        result = await make_backend(session).check_and_activate()
+        assert result.success is False
+        assert result.activated is False
+        assert (1, 12) in session.keys
+        assert session.windows == {}
