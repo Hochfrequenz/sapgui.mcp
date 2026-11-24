@@ -29,6 +29,26 @@ async def _open_source(pack, backend) -> None:
     assert tab_error is None, f"Source tab failed: {tab_error}"
 
 
+async def _restore_original(pack, backend, original: str, *, test_failed: bool) -> None:
+    """Put the test function module back and activate it.
+
+    A failed restore fails the test, but never masks an earlier error.
+    """
+    try:
+        await go_home(backend)
+        restored = await _edit_check_activate_fm(backend, TEST_FUNCTION_MODULE, original, pack)
+        await go_home(backend)
+        cleanup_error = None if restored.success and restored.activated else f"restore failed: {restored.error}"
+    except Exception as exc:  # pylint: disable=broad-except
+        cleanup_error = f"restore raised: {exc!r}"
+    if cleanup_error:
+        print(f"WARNING: could not restore {TEST_FUNCTION_MODULE}: {cleanup_error}")
+        if not test_failed:
+            pytest.fail(
+                f"Cleanup of {TEST_FUNCTION_MODULE} failed, the test object may be left modified: {cleanup_error}"
+            )
+
+
 @skip_no_sap
 @pytest.mark.anyio
 async def test_se37_navigate_and_read_source(pack, backend):
@@ -89,18 +109,27 @@ async def test_se37_edit_persists_and_is_reverted(pack, backend):
         assert persisted is not None
         assert _trim(persisted) == _trim(modified), f"Persisted source does not match: {persisted!r}"
     finally:
-        # Always put the test function module back. A failed restore fails the test, but never masks an earlier error.
-        test_failed = sys.exc_info()[0] is not None
-        try:
-            await go_home(backend)
-            restored = await _edit_check_activate_fm(backend, TEST_FUNCTION_MODULE, original, pack)
-            await go_home(backend)
-            cleanup_error = None if restored.success and restored.activated else f"restore failed: {restored.error}"
-        except Exception as exc:  # pylint: disable=broad-except
-            cleanup_error = f"restore raised: {exc!r}"
-        if cleanup_error:
-            print(f"WARNING: could not restore {TEST_FUNCTION_MODULE}: {cleanup_error}")
-            if not test_failed:
-                pytest.fail(
-                    f"Cleanup of {TEST_FUNCTION_MODULE} failed, the test object may be left modified: {cleanup_error}"
-                )
+        await _restore_original(pack, backend, original, test_failed=sys.exc_info()[0] is not None)
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_se37_broken_source_is_reverted_and_reactivated(pack, backend):
+    """SE37: a syntax error makes the tool restore and re-activate the original source (#862)."""
+    await _open_source(pack, backend)
+    original = await backend.read_editor_source()
+    assert original
+    await go_home(backend)
+
+    broken = original.rstrip() + "\nENDFUNCTION."  # a second ENDFUNCTION, like the duplicated ENDFORM of #859
+    try:
+        result = await _edit_check_activate_fm(backend, TEST_FUNCTION_MODULE, broken, pack)
+        assert not result.success, "A syntax error must fail the edit"
+        assert "Auto-reverted to original source and re-activated successfully" in (result.error or ""), result.error
+        await go_home(backend)
+
+        await _open_source(pack, backend)
+        assert _trim(await backend.read_editor_source() or "") == _trim(original)
+    finally:
+        # Only a failed auto-revert leaves the broken source saved; restoring the unchanged source is then harmless.
+        await _restore_original(pack, backend, original, test_failed=sys.exc_info()[0] is not None)

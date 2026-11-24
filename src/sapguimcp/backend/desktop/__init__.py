@@ -2600,6 +2600,15 @@ class DesktopBackend:
         ``activated`` is only True when the final message positively confirms
         an activation; ``success`` is False only on explicit error evidence,
         so a merely unconfirmed activation does not trigger an auto-revert.
+
+        Keys only ever go to the topmost window.  A dialog standing on top of
+        another one (``wnd[2]`` over ``wnd[1]``, typically the activation-error
+        dialog over the "Inactive Objects" worklist, whose Enter would answer
+        "Activate") is an explicit activation failure, recognised by position
+        and not by title: all open dialogs are cancelled with F12, one at a time
+        and topmost first, and ``success`` is False so the edit tools revert.
+        Dialogs still open after the confirmation rounds are cancelled and
+        reported as a failure as well (#1169).
         """
 
         session = self.require_session()
@@ -2610,6 +2619,7 @@ class DesktopBackend:
             wnd = session.find_by_id("wnd[0]")
             messages: list[str] = []
             unexpected_dialogs: list[str] = []
+            error_dialogs: list[str] = []
 
             def read_sbar() -> tuple[str, str]:
                 sbar = session.find_by_id("wnd[0]/sbar")
@@ -2619,6 +2629,22 @@ class DesktopBackend:
                 entry = f"{label}: {msg}"
                 if entry not in messages:
                     messages.append(entry)
+
+            def cancel_all(label: str) -> None:
+                """Cancel every open dialog with F12, topmost first, and re-look after each key.
+
+                Only the topmost window ever gets a key.  A dialog that ignores F12 is
+                retried; the number of keys is bounded and a leftover is recorded.
+                """
+                for _ in range(_MAX_POPUP_ROUNDS + 1):
+                    window = next(
+                        (w for i in (3, 2, 1) if (w := session.find_by_id(f"wnd[{i}]", raise_error=False))), None
+                    )
+                    if window is None:
+                        return
+                    cast(Any, window).send_v_key(12)  # F12 = Cancel
+                if any(session.find_by_id(f"wnd[{i}]", raise_error=False) is not None for i in (1, 2, 3)):
+                    note(label, "a dialog is still open after it was cancelled with F12")
 
             def collect(label: str) -> tuple[str, str]:
                 """Read the status bar, answering popups until none is left.
@@ -2635,6 +2661,15 @@ class DesktopBackend:
                     if msg:
                         last_msg, last_type = msg, msg_type
                         note(label, msg)
+                    stacked = session.find_by_id("wnd[2]", raise_error=False)
+                    if stacked is not None:
+                        # Position, not title: a dialog on top of a dialog we confirmed is the
+                        # activation-error dialog, and Enter would answer "Activate" (#1169).
+                        error_title = str(cast(Any, stacked).text)
+                        error_dialogs.append(error_title)
+                        note(label, f"activation error dialog '{error_title}' appeared and is being cancelled")
+                        cancel_all(label)
+                        return last_msg, last_type
                     popup = session.find_by_id("wnd[1]", raise_error=False)
                     if popup is None:
                         return last_msg, last_type
@@ -2644,22 +2679,25 @@ class DesktopBackend:
                         logger.warning("check_and_activate_unexpected_dialog", extra={"title": title})
                     cast(Any, popup).send_v_key(0)  # Confirm with Enter
 
-                if session.find_by_id("wnd[1]", raise_error=False) is not None:
-                    unexpected_dialogs.append("<dialog still open>")
-                    note(label, f"a dialog was still open after {_MAX_POPUP_ROUNDS} confirmations")
+                if any(session.find_by_id(f"wnd[{i}]", raise_error=False) is not None for i in (1, 2, 3)):
+                    error_dialogs.append("<dialog still open>")
+                    note(
+                        label, f"a dialog was still open after {_MAX_POPUP_ROUNDS} confirmations and is being cancelled"
+                    )
+                    cancel_all(label)
                 return last_msg, last_type
 
             # Check (Ctrl+F2 = VKey 26)
             cast(Any, wnd).send_v_key(26)
             _, check_type = collect("Check")
-            if check_type in _ERROR_MESSAGE_TYPES:
+            if check_type in _ERROR_MESSAGE_TYPES or error_dialogs:
                 return messages, False, False
 
             # Activate (Ctrl+F3 = VKey 27)
             cast(Any, wnd).send_v_key(27)
             msg, msg_type = collect("Activate")
 
-            failed = msg_type in _ERROR_MESSAGE_TYPES
+            failed = msg_type in _ERROR_MESSAGE_TYPES or bool(error_dialogs)
             activated = not failed and not unexpected_dialogs and _confirms_activation(msg)
             if not failed and not activated:
                 detail = (
