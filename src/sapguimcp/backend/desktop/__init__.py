@@ -2739,6 +2739,7 @@ class DesktopBackend:
         Never Enter, whose default answer can be "Yes", that is: save.
         """
         session = self.require_session()
+        answered: list[str] = []  # what each dialog got, logged so a live run shows whether "No" was pressed
 
         def _answer_dialogs() -> None:
             for _ in range(_MAX_POPUP_ROUNDS + 1):
@@ -2748,8 +2749,10 @@ class DesktopBackend:
                 no_button = session.find_by_id(f"wnd[{index}]/usr/btnSPOP-OPTION2", raise_error=False)
                 if no_button is not None:
                     cast(Any, no_button).press()
+                    answered.append("no")
                 else:
                     cast(Any, session.find_by_id(f"wnd[{index}]")).send_v_key(12)  # F12 = Cancel
+                    answered.append("cancel")
 
         def _dialog_open() -> bool:
             return any(session.find_by_id(f"wnd[{i}]", raise_error=False) is not None for i in (1, 2, 3))
@@ -2766,7 +2769,7 @@ class DesktopBackend:
             return not _dialog_open() and str(session.info.transaction) != tcode
 
         left = await self.com.run(_leave)
-        logger.info("leave_transaction_without_saving", extra={"tcode": tcode, "left": left})
+        logger.info("leave_transaction_without_saving", extra={"tcode": tcode, "left": left, "answered": answered})
         return left
 
     async def dismiss_language_dialog(self) -> None:
