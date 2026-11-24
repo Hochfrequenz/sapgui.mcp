@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _MAX_POST_F8_KEYS = 3
-_CLASSIC_LIST_SCREEN = ("SAPMSSY0", "0120")  # program and screen of every classic list, also of its detail lists
+_CLASSIC_LIST_SCREEN = ("SAPMSSY0", "120")  # program and screen of every classic list, also of its detail lists
 # A plain code, or a code in a namespace (/NAMESPACE/NAME, optionally with parameters). Every other code starting
 # with "/" is a command (/n, /o, /i, /nex, /*, /h ...) that leaves the transaction or opens another window.
 _TCODE = re.compile(r"(?:/[A-Z0-9_]{3,10}/)?[A-Za-z0-9_]+(?: .*)?")  # namespace upper case: "/nab/x" is a command
@@ -82,7 +82,8 @@ async def _classify(  # noqa: PLR0911
         return ScreenClassification.EMPTY if empty else ScreenClassification.ERROR, status, None, None
 
     # Only a classic list screen has the positioned labels the list reader looks at; a dynpro may have such labels too.
-    lines = await _read_list_lines(backend, max_rows) if (info.program, info.dynpro) == _CLASSIC_LIST_SCREEN else []
+    on_list = (info.program, (info.dynpro or "").lstrip("0")) == _CLASSIC_LIST_SCREEN  # COM gives 120, not 0120
+    lines = await _read_list_lines(backend, max_rows) if on_list else []
     if lines:
         return ScreenClassification.LIST, status, None, lines
     return ScreenClassification.UNKNOWN, status, None, None

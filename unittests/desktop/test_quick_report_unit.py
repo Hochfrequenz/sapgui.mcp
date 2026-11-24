@@ -174,7 +174,7 @@ async def test_staying_on_the_selection_screen_without_a_message_is_an_error() -
 
 @pytest.mark.anyio
 async def test_a_classic_list_is_returned_as_lines() -> None:
-    backend = _backend(_SELECTION, _Screen(program="SAPMSSY0", dynpro="0120", lines=["head", "row 1"]))
+    backend = _backend(_SELECTION, _Screen(program="SAPMSSY0", dynpro="120", lines=["head", "row 1"]))
     result = await _run(backend, max_rows=5)
     assert result.screen_type == ScreenClassification.LIST
     assert result.list_lines == ["head", "row 1"]
@@ -427,11 +427,11 @@ async def test_post_f8_keys_are_not_pressed_on_an_unknown_screen_without_a_popup
 @pytest.mark.anyio
 async def test_a_classic_list_longer_than_max_rows_is_cut_and_flagged() -> None:
     lines = [f"line {i}" for i in range(7)]
-    backend = _backend(_SELECTION, _Screen(program="SAPMSSY0", dynpro="0120", lines=lines))
+    backend = _backend(_SELECTION, _Screen(program="SAPMSSY0", dynpro="120", lines=lines))
     result = await _run(backend, max_rows=5)
     assert result.list_lines == lines[:5]
     assert result.list_truncated is True
-    result = await _run(_backend(_SELECTION, _Screen(program="SAPMSSY0", dynpro="0120", lines=lines[:5])), max_rows=5)
+    result = await _run(_backend(_SELECTION, _Screen(program="SAPMSSY0", dynpro="120", lines=lines[:5])), max_rows=5)
     assert result.list_truncated is False
 
 
@@ -471,7 +471,7 @@ async def test_the_classic_list_is_read_with_horizontal_stitching(monkeypatch: p
         return ["line"]
 
     monkeypatch.setattr(quick_report_tools, "read_classic_list_lines", reader)
-    backend = _backend(_SELECTION, _Screen(program="SAPMSSY0", dynpro="0120"))
+    backend = _backend(_SELECTION, _Screen(program="SAPMSSY0", dynpro="120"))
     backend.com.run = AsyncMock(side_effect=lambda func, **_: func())
     result = await _run(backend, max_rows=4)
     assert result.list_lines == ["line"]

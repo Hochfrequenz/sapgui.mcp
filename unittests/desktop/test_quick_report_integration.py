@@ -6,7 +6,7 @@ import pytest
 
 from sapguimcp.models.quick_report_models import ScreenClassification
 from sapguimcp.tools.quick_report_tools import _execute_quick_report
-from unittests.desktop.conftest import go_home, skip_no_sap
+from unittests.desktop.conftest import TEST_REPORT, go_home, skip_no_sap
 
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
@@ -55,5 +55,19 @@ async def test_quick_report_does_not_press_f8_when_a_field_is_missing(backend):
         assert not result.success
         assert "NoSuchFieldLabelXyz" in (result.error or "")
         assert "F8 was not pressed" in (result.error or "")
+    finally:
+        await go_home(backend)
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_quick_report_reads_a_classic_list(backend):
+    """SA38 runs the test report, which WRITEs one line: the result is a classic list holding that line."""
+    result = await _execute_quick_report(backend, tcode="SA38", fields={"RS38M-PROGRAMM": TEST_REPORT})
+    try:
+        assert result.success, result.error
+        assert result.report_executed
+        assert result.screen_type == ScreenClassification.LIST, result.model_dump_json(indent=2)
+        assert any("HELLO WORLD" in line for line in result.list_lines or []), result.list_lines
     finally:
         await go_home(backend)
