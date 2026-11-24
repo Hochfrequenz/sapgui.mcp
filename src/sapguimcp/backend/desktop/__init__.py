@@ -704,7 +704,18 @@ def _table_control_view(session: Any, element_id: str) -> _TableControlView:
     top = int(raw.VerticalScrollbar.Position) if row_count > visible else 0
     data = _read_table_control(control, 1, None, max(row_count, 1))
     rows = {r["row"]: r["data"] for r in data["rows"]}
-    return _TableControlView(raw, row_count, visible, top, data["total_rows"], rows)
+    view = _TableControlView(raw, row_count, visible, top, data["total_rows"], rows)
+    _check_scroll_position(view)  # the rows above were numbered from ``top``
+    return view
+
+
+def _check_scroll_position(view: _TableControlView) -> None:
+    """Refuse if the window no longer starts at ``view.top``: every window line would address another row."""
+    now = int(view.control.VerticalScrollbar.Position) if view.row_count > view.visible else 0
+    if now != view.top:
+        raise ValueError(
+            f"The table control's window moved from row {view.top + 1} to row {now + 1} at the top while it was read."
+        )
 
 
 def _line_in_view(view: _TableControlView, row: int) -> int | None:
@@ -2370,33 +2381,47 @@ class DesktopBackend:
             columns = _table_control_columns(getattr(control, "com", getattr(control, "_com", control)))
             col_index, col = _resolve_table_control_column(columns, column)
             expected = _expected(lambda k: _resolve_table_control_column(columns, k)[1], col)
-            view = _table_control_view(session, element_id)
-            if not 1 <= row <= view.row_count:
-                raise ValueError(
-                    f"Row {row} is out of range: the table control has {view.total} row(s) and "
-                    f"{view.row_count - view.total} empty line(s) after them."
-                )
-            if row > view.total and not allow_empty_row:
-                raise ValueError(
-                    f"Row {row} is an empty line after the table control's last row ({view.total}); pass "
-                    "allow_empty_row=True to write into it. A last row that is only partly visible on screen also "
-                    "reads as empty."
-                )
+
+            def _read_view() -> _TableControlView:
+                view = _table_control_view(session, element_id)
+                if not 1 <= row <= view.row_count:
+                    raise ValueError(
+                        f"Row {row} is out of range: the table control has {view.total} row(s) and "
+                        f"{view.row_count - view.total} empty line(s) after them."
+                    )
+                if row > view.total and not allow_empty_row:
+                    raise ValueError(
+                        f"Row {row} is an empty line after the table control's last row ({view.total}); pass "
+                        "allow_empty_row=True to write into it. A last row that is only partly visible on screen "
+                        "also reads as empty."
+                    )
+                return view
+
+            view = _read_view()
             line = _line_in_view(view, row)
             if line is None:
+                scrolled = True  # set before the scroll is sent: a refusal after it must still report it
                 _scroll_table_control(session, element_id, row, wnd_id)
-                scrolled = True
-                view = _table_control_view(session, element_id)  # the scroll invalidated the old control
+                view = _read_view()  # the scroll invalidated the old control
                 line = _line_in_view(view, row)
                 if line is None:
+                    status = _status_bar_text(session, wnd_id)
                     raise ValueError(
                         f"Row {row} could not be brought into view; the table control now shows rows {view.top + 1} "
                         f"to {view.top + view.visible}."
+                        + (f" Status bar: {status}" if status else "")  # lang-ok: our own message
                     )
             cell = _table_control_cell(view, row, line, col_index, col, columns)
-            shown = view.rows.get(row, {})
-            current = {c: shown.get(c, "").strip() for c, _ in expected}
+            index_of = {header: i for i, (header, _) in enumerate(columns)}
+            current: dict[str, str] = {}
+            for c, _ in expected:
+                try:
+                    current[c] = str(view.control.GetCell(line, index_of[c]).Text).strip()
+                except Exception as exc:
+                    raise ValueError(f"Column {c} has no cell in row {row} on screen to compare ({exc}).") from exc
             current[col] = str(cell.Text).strip()
+            # Last check before the write: nothing between here and the write makes a round trip to the server.
+            _check_scroll_position(view)
 
             def write(text: str) -> None:
                 cell.Text = text

@@ -231,7 +231,8 @@ For general-purpose exploration of unknown screens:
   is unknown.
 - A table control only holds the rows in its window. A row outside it is scrolled to the top of the window first
   (`scrolled=True`), and the scroll position stays there. The write is refused if the row cannot be brought into
-  view.
+  view. Scrolling submits the screen like Enter: the program's input checks run, and cells you wrote earlier reach
+  the program. An input error then stops the scroll; the refusal quotes the status bar.
 - A table control shows empty lines after its last row. Writing into one (for example to add an entry on a "New
   Entries" screen) needs `allow_empty_row=True`. Only text fields are written; checkboxes and dropdowns are refused.
 - The change usually reaches SAP only with Enter or a save (some grids react at once): press Enter (`sap_press_key`)

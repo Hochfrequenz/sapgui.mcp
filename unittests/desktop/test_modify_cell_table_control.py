@@ -98,6 +98,8 @@ class _TableControl:
         self.on_scroll: Any = lambda: None
         self.id_override: dict[tuple[int, int], tuple[int, int]] = {}  # (col, line) -> (col, line) the cell id claims
         self.last_line_partly_visible = False
+        self.on_dump: Any = lambda: None  # e.g. SAP correcting the scroll position while the window settles
+        self.on_get_cell: Any = lambda _line, _col: None
 
     def column(self, index: int) -> Any:
         title, name, _ = _COLUMNS[index]
@@ -107,6 +109,7 @@ class _TableControl:
         return self.data[row0][_COLUMNS[col][1]] if row0 < len(self.data) else ""
 
     def dump_tree(self) -> list[Any]:
+        self.on_dump()
         elements = []
         for line in range(self.VisibleRowCount):
             partly = self.last_line_partly_visible and line == self.VisibleRowCount - 1
@@ -116,6 +119,7 @@ class _TableControl:
         return elements
 
     def GetCell(self, line: int, col: int) -> _Cell:  # noqa: N802 - COM name
+        self.on_get_cell(line, col)
         return _Cell(self, self.top + line, col, line)
 
 
@@ -224,12 +228,79 @@ async def test_a_row_still_outside_the_window_after_the_scroll_is_refused() -> N
 
 
 @pytest.mark.anyio
+async def test_the_status_bar_explains_a_row_the_scroll_did_not_reach() -> None:
+    tc = _TableControl()
+    session = _Session(tc)
+    tc.shown_top = lambda _: 0  # an input check of the screen stopped the scroll
+
+    def _blocked() -> None:
+        session.sbar.text = "input-check-error"
+
+    tc.on_scroll = _blocked
+    _refused(await _modify(session, 9, "Airline", "UA"), tc, "Status bar: input-check-error")
+
+
+@pytest.mark.anyio
+async def test_the_scroll_position_changing_while_the_window_settles_is_refused() -> None:
+    tc = _TableControl()
+    reads = []
+
+    def _move_on_second_read() -> None:
+        reads.append(1)
+        if len(reads) == 2:
+            tc.top = 1  # GetCell(line 2) would now address row 4, not row 3
+
+    tc.on_dump = _move_on_second_read
+    _refused(await _modify(_Session(tc), 3, "Airline", "UA"), tc, "moved from row 1 to row 2")
+
+
+@pytest.mark.anyio
+async def test_the_scroll_position_changing_before_the_write_is_refused() -> None:
+    tc = _TableControl()
+
+    def _move_after_the_cell_was_found(_line: int, _col: int) -> None:
+        tc.top = 1
+
+    tc.on_get_cell = _move_after_the_cell_was_found
+    _refused(await _modify(_Session(tc), 3, "Airline", "UA"), tc, "moved from row 1 to row 2")
+
+
+@pytest.mark.anyio
+async def test_a_row_that_is_an_empty_line_after_the_scroll_is_refused() -> None:
+    tc = _TableControl()
+
+    def _rows_removed() -> None:  # the screen's processing removed rows: row 10 is an empty line now
+        del tc.data[8:]
+        tc.RowCount = 8 + tc.VisibleRowCount - 1
+        tc.top = min(tc.top, 7)  # the last row can be scrolled to the top, no further
+
+    tc.on_scroll = _rows_removed
+    result = await _modify(_Session(tc), 10, "Airline", "UA")
+    _refused(result, tc, "Row 10 is an empty line after the table control's last row (8)")
+    assert result.scrolled
+
+
+@pytest.mark.anyio
+async def test_an_expected_column_without_a_cell_is_refused() -> None:
+    tc = _TableControl()
+
+    def _no_cell_in_from(_line: int, col: int) -> None:
+        if col == 3:
+            raise OSError("DISP_E_EXCEPTION")
+
+    tc.on_get_cell = _no_cell_in_from
+    result = await _modify(_Session(tc), 2, "Airline", "UA", expected_row={"From": ""})
+    _refused(result, tc, "Column From has no cell in row 2")
+
+
+@pytest.mark.anyio
 async def test_a_failing_scroll_is_not_retried_and_writes_nothing() -> None:
     tc = _TableControl()
     tc.scroll_error = OSError("RPC_E_SERVERFAULT")
     result = await _modify(_Session(tc), 9, "Airline", "UA")
     _refused(result, tc, "Could not scroll the table control to row 9")
     assert tc.VerticalScrollbar.writes == [8]
+    assert result.scrolled  # the scroll may have reached SAP before the error
 
 
 @pytest.mark.anyio

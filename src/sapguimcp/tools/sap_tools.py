@@ -802,7 +802,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         description=(
             "Write one cell of the editable ALV grid or table control shown by sap_read_table and read it back. "
             "When you read the row earlier, pass its key columns as expected_row: the write is refused if the row "
-            "moved. A table control row outside its window is scrolled into view (scrolled=True). "
+            "moved. A table control row outside its window is scrolled into view (scrolled=True); the scroll "
+            "submits the screen, so the program's input checks run and earlier cell writes reach the program. "
             "The change usually reaches SAP only with Enter or Save; some grids react at once."
         ),
     )
