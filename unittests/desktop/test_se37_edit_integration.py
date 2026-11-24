@@ -104,3 +104,25 @@ async def test_se37_edit_persists_and_is_reverted(pack, backend):
                 pytest.fail(
                     f"Cleanup of {TEST_FUNCTION_MODULE} failed, the test object may be left modified: {cleanup_error}"
                 )
+
+
+@skip_no_sap
+@pytest.mark.anyio
+async def test_se37_broken_source_is_reverted_and_reactivated(pack, backend):
+    """SE37: a syntax error makes the tool restore and re-activate the original source (#862)."""
+    await _open_source(pack, backend)
+    original = await backend.read_editor_source()
+    assert original
+    await go_home(backend)
+
+    broken = original.rstrip() + "\nENDFUNCTION."  # a second ENDFUNCTION, like the duplicated ENDFORM of #859
+    try:
+        result = await _edit_check_activate_fm(backend, TEST_FUNCTION_MODULE, broken, pack)
+        assert not result.success, "A syntax error must fail the edit"
+        assert "Auto-reverted to original source and re-activated successfully" in (result.error or ""), result.error
+        await go_home(backend)
+
+        await _open_source(pack, backend)
+        assert _trim(await backend.read_editor_source() or "") == _trim(original)
+    finally:
+        await go_home(backend)
