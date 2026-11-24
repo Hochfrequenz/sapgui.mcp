@@ -289,3 +289,32 @@ async def test_annotations_per_tool():
     assert tools["sap_tree_select"].read_only_hint is False
     assert tools["sap_tree_activate"].destructive_hint is True
     assert tools["sap_tree_activate"].idempotent_hint is False
+
+
+def test_key_lookup_stops_at_the_requested_key(monkeypatch: pytest.MonkeyPatch):
+    tree = _tree()
+    read: list[int] = []
+    original = tree.GetAllNodeKeys
+
+    def _counting_keys() -> Any:
+        collection = original()
+        item = collection.Item
+        collection.Item = lambda i: (read.append(i), item(i))[1]  # type: ignore[method-assign]
+        return collection
+
+    monkeypatch.setattr(tree, "GetAllNodeKeys", _counting_keys)
+    select_node(dock(tree), None, "          1")
+    assert read == [0], "a key found first must not scan the rest of the tree"
+
+
+@pytest.mark.anyio
+async def test_action_tool_reports_a_missing_session_as_failure():
+    backend = _backend(dock(_tree()))
+
+    def _no_session() -> Any:
+        raise ValueError("No active SAP session")
+
+    backend.require_session = _no_session  # type: ignore[method-assign]
+    data = await _call(backend, "sap_tree_select", {"node_key": "          1"})
+    assert data["success"] is False
+    assert "No active SAP session" in data["error"]

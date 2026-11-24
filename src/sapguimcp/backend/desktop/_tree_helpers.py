@@ -342,11 +342,20 @@ def _require_node(tree: Any, tree_id: str, node_key: str) -> str:
     try:
         key_collection = tree.GetAllNodeKeys()
         total = int(key_collection.Count)
-        keys = [str(k) for k in _collection(key_collection, MAX_SCAN_NODES)]
+        keys: list[str] = []
+        for i in range(min(total, MAX_SCAN_NODES)):  # stop at the key: only a miss scans up to the ceiling
+            try:
+                key = str(key_collection.Item(i))
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                _reraise_if_transient(exc)
+                key = str(key_collection(i))
+            if key == node_key:
+                return _TreeReader(tree, tree_id).text(node_key)
+            keys.append(key)
     except Exception as exc:
         _reraise_if_transient(exc)
         raise RuntimeError(f"tree {tree_id!r}: reading node keys failed: {exc}") from exc
-    if node_key not in keys and total <= len(keys):
+    if total <= len(keys):
         raise ValueError(
             f"node_key {node_key!r} not found among the loaded nodes of tree {tree_id!r} "
             f"(keys are exact and padded); some valid keys: {keys[:_KEY_HINT_COUNT]}"

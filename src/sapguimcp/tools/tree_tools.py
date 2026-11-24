@@ -169,10 +169,9 @@ async def _run_tree_action(
     """
     try:
         backend = await get_backend(session=session, agent_id=agent_id, tool_name=tool_name)
+        desktop_session = backend.require_session()
     except ValueError as e:
         return TreeActionResult.failure(str(e))
-
-    desktop_session = backend.require_session()
 
     def _run() -> dict[str, Any]:
         return action(getattr(desktop_session, "com", getattr(desktop_session, "_com", desktop_session)))
