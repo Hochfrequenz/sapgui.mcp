@@ -1,12 +1,14 @@
 """Live tests for sap_modify_cell on an editable ALV grid (#1010).
 
-Target: SAP's demo report BCALV_EDIT_01, an ALV grid over SFLIGHT that is ready for input, shown in a dialog window
-(wnd[1]). The report has no save function, so the edits never reach the database; the tests leave it without saving.
+Targets: SAP's demo reports BCALV_EDIT_01, an ALV grid over SFLIGHT that is ready for input, shown in a dialog
+window (wnd[1]), and BCALV_EDIT_02, whose key column CARRID is always read-only. Neither report has a save function,
+so the edits never reach the database; the tests leave them without saving.
 """
 
 from __future__ import annotations
 
 import sys
+from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -20,6 +22,7 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 
 _REPORT = "BCALV_EDIT_01"
+_READ_ONLY_REPORT = "BCALV_EDIT_02"  # CARRID is disabled in every row
 _NUMERIC_COLUMNS = ("SEATSMAX", "SEATSOCC", "PRICE")
 
 
@@ -35,14 +38,14 @@ async def _changeable_columns(backend: Any, headers: list[str]) -> dict[str, boo
     return result
 
 
-@pytest.fixture
-async def edit_grid(backend: Any) -> AsyncIterator[Any]:
-    """Start BCALV_EDIT_01 and leave it afterwards (F3, then F12 for a dialog that stays open), never saving."""
+@asynccontextmanager
+async def _report_grid(backend: Any, report: str) -> AsyncIterator[Any]:
+    """Start ``report`` and leave it afterwards (F3, then F12 for a dialog that stays open), never saving."""
     await backend.enter_transaction("SA38")
-    assert await backend.focus_and_type("RS38M-PROGRAMM", _REPORT)
+    assert await backend.focus_and_type("RS38M-PROGRAMM", report)
     await backend.press_key("F8")
     await backend.wait_for_ready()
-    assert await backend.wait_for_condition(lambda s: _locate_table(s) is not None), f"{_REPORT} shows no grid"
+    assert await backend.wait_for_condition(lambda s: _locate_table(s) is not None), f"{report} shows no grid"
     try:
         yield backend
     finally:
@@ -53,6 +56,12 @@ async def edit_grid(backend: Any) -> AsyncIterator[Any]:
                 break
             await backend.press_key("F12")
         await backend.enter_transaction("/n")
+
+
+@pytest.fixture
+async def edit_grid(backend: Any) -> AsyncIterator[Any]:
+    async with _report_grid(backend, _REPORT) as grid_backend:
+        yield grid_backend
 
 
 @skip_no_sap
@@ -92,17 +101,16 @@ async def test_edit_a_cell_read_it_back_and_refuse_a_stale_row(edit_grid: Any) -
 
 @skip_no_sap
 @pytest.mark.anyio
-async def test_a_cell_that_is_not_editable_is_refused(edit_grid: Any) -> None:
-    backend = edit_grid
-    table = await backend.read_table(max_rows=1)
-    changeable = await _changeable_columns(backend, table.headers)
-    col = next((c for c, editable in changeable.items() if not editable), None)
-    if col is None:
-        pytest.skip(f"{_REPORT} shows every column of row 1 ready for input")
-    before = table.rows[0].data[col]
+async def test_a_cell_that_is_not_editable_is_refused(backend: Any) -> None:
+    async with _report_grid(backend, _READ_ONLY_REPORT):
+        table = await backend.read_table(max_rows=1)
+        assert table.success, table.error
+        col = "CARRID"
+        assert (await _changeable_columns(backend, [col]))[col] is False
+        before = table.rows[0].data[col]
 
-    result = await backend.modify_cell(1, col, "X")
-    assert not result.success
-    assert not result.written
-    assert "not editable" in (result.error or "")
-    assert (await backend.read_table(max_rows=1)).rows[0].data[col] == before
+        result = await backend.modify_cell(1, col, "X")
+        assert not result.success
+        assert not result.written
+        assert "not editable" in (result.error or "")
+        assert (await backend.read_table(max_rows=1)).rows[0].data[col] == before
