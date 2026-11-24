@@ -156,10 +156,41 @@ async def test_matching_expected_row_writes() -> None:
 
 
 @pytest.mark.anyio
-async def test_without_get_cell_type_a_cell_counts_as_text() -> None:
+async def test_an_unknown_cell_type_refuses_the_write() -> None:
     grid = _Grid(_rows())
     grid.cell_types = None
-    assert (await _modify(_Session(grid), 1, "PRICE", "5.00")).success
+    result = await _modify(_Session(grid), 1, "PRICE", "5.00")
+    assert not result.success
+    assert "No cell was modified" in (result.error or "")
+    assert grid.writes == []
+
+
+@pytest.mark.anyio
+async def test_expected_current_does_not_override_a_conflicting_expected_row_entry() -> None:
+    grid = _Grid(_rows())
+    result = await _modify(_Session(grid), 1, "PRICE", "5.00", expected_current="100.00", expected_row={"PRICE": "200"})
+    assert not result.success
+    assert "PRICE holds '100.00', not '200'" in (result.error or "")
+    assert grid.writes == []
+
+
+@pytest.mark.anyio
+async def test_an_error_after_the_write_was_sent_is_reported_as_unknown() -> None:
+    grid = _Grid(_rows())
+    backend = DesktopBackend.__new__(DesktopBackend)
+    backend._session = _Session(grid)  # type: ignore[assignment]
+
+    async def run_then_halt(fn: Any, **_: Any) -> Any:
+        fn()  # the write happens, then the COM watchdog replaces the result
+        raise RuntimeError("SAP session halted")
+
+    backend.com = MagicMock()
+    backend.com.run = run_then_halt
+    result = await backend.modify_cell(1, "PRICE", "5.00")
+    assert grid.writes == [(0, "PRICE", "5.00")]
+    assert not result.success
+    assert "unknown whether the cell was modified" in (result.error or "")
+    assert "No cell was modified" not in (result.error or "")
 
 
 @pytest.mark.parametrize(
@@ -280,6 +311,24 @@ async def test_an_unloaded_row_is_scrolled_to_before_anything_is_read() -> None:
     assert result.success, result.error
     assert grid.first_visible_row == 2
     assert grid.writes == [(2, "PRICE", "8.00")]
+
+
+@pytest.mark.anyio
+async def test_a_popup_opened_by_scrolling_stops_the_write() -> None:
+    session_holder: list[_Session] = []
+
+    class _PopupOnScroll(_Grid):
+        @_Grid.first_visible_row.setter  # type: ignore[attr-defined]
+        def first_visible_row(self, value: int) -> None:
+            _Grid.first_visible_row.fset(self, value)  # type: ignore[attr-defined]
+            session_holder[0].popup = True
+
+    grid = _PopupOnScroll(_rows(), loaded={0})
+    session_holder.append(_Session(grid))
+    result = await _modify(session_holder[0], 3, "PRICE", "8.00")
+    assert not result.success
+    assert "opened window wnd[1]" in (result.error or "")
+    assert grid.writes == []
 
 
 @pytest.mark.anyio

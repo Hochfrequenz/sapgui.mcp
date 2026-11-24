@@ -2211,8 +2211,10 @@ class DesktopBackend:
         the frontend until Enter or a save; some grids react at once.
         """
         session = self.require_session()
+        write_started = False  # set on the COM thread; read here if the call ends in an error (e.g. a watchdog halt)
 
         def _modify() -> ModifyCellResult:
+            nonlocal write_started
             found = _locate_table(session)
             if found is None:
                 raise ValueError("No ALV grid on screen.")
@@ -2224,35 +2226,36 @@ class DesktopBackend:
                 raise ValueError(f"Row {row} is out of range: the grid has {row_count} row(s).")
             columns = _grid_column_names(grid)
             col = _resolve_grid_column(columns, column)
-            expected = {_resolve_grid_column(columns, k): v.strip() for k, v in (expected_row or {}).items()}
+            # Every condition is kept, also two on the same column (expected_current and an expected_row entry).
+            expected = [(_resolve_grid_column(columns, k), v.strip()) for k, v in (expected_row or {}).items()]
             if expected_current is not None:
-                expected[col] = expected_current.strip()
+                expected.append((col, expected_current.strip()))
             row0 = row - 1
+            wnd_id = _active_window_id(session)
             # An untransferred row reads blank or as a placeholder, its changeable state included: load it first.
             if _row_not_fully_loaded({c: str(grid.get_cell_value(row0, c)) for c in columns}, row0):
                 try:
                     grid.first_visible_row = row0
                 except Exception as exc:
                     raise ValueError(f"Could not scroll to row {row} to load it ({exc}).") from exc
+                if (now_wnd := _active_window_id(session)) != wnd_id:
+                    raise ValueError(f"Scrolling to row {row} opened window {now_wnd}: handle it first.")
             if not grid.get_cell_changeable(row0, col):
                 raise ValueError(f"The cell in row {row}, column {col} is not editable.")
-            try:
-                cell_type = str(grid.get_cell_type(row0, col))
-            except Exception:
-                cell_type = "Normal"  # lang-ok: COM cell type; GetCellType missing, assume a text cell
+            cell_type = str(grid.get_cell_type(row0, col))  # an error here refuses the write: the type is unknown
             if cell_type != "Normal":  # lang-ok: COM cell type
                 raise ValueError(f"The cell in row {row}, column {col} is a {cell_type} cell; only text cells.")
-            current = {c: str(grid.get_cell_value(row0, c)).strip() for c in {col, *expected}}
+            current = {c: str(grid.get_cell_value(row0, c)).strip() for c in {col, *(c for c, _ in expected)}}
             previous = current[col]
-            differing = [f"{c} holds '{current[c]}', not '{v}'" for c, v in expected.items() if current[c] != v]
+            differing = [f"{c} holds '{current[c]}', not '{v}'" for c, v in expected if current[c] != v]
             if differing:
                 raise ValueError(
                     f"Row {row} is not the expected row: {'; '.join(differing)}. It may have moved since it was read."
                 )
-            wnd_id = _active_window_id(session)
             status_before = _status_bar_text(session, wnd_id)
             base: dict[str, Any] = {"row": row, "column": col, "previous_value": previous}
             try:
+                write_started = True
                 grid.modify_cell(row0, col, value)
             except Exception as exc:
                 try:
@@ -2309,7 +2312,13 @@ class DesktopBackend:
         try:
             return await self.com.run(_modify)
         except Exception as e:
-            logger.debug("modify_cell refused or failed before the write", exc_info=True)
+            logger.debug("modify_cell refused or failed", exc_info=True)
+            if write_started:  # e.g. the session was halted after the write was sent
+                return ModifyCellResult.failure(
+                    f"{e} The write was already sent: it is unknown whether the cell was modified; read it again.",
+                    row=row,
+                    column=str(column),
+                )
             return ModifyCellResult.failure(f"{e} No cell was modified.", row=row, column=str(column))
 
     async def get_dropdown_options(self, label: str) -> list[str]:
