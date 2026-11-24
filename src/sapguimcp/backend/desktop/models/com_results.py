@@ -3,6 +3,7 @@
 from pydantic import BaseModel, Field
 
 from sapguimcp.models.base import ToolResult
+from sapguimcp.models.sap_results import StatusBarType
 
 
 class ComOperation(ToolResult):
@@ -112,3 +113,19 @@ class TreeReadResult(ToolResult):
     skipped_nodes: int = Field(default=0, description="Nodes skipped because of a per-node COM error")
     truncated: bool = Field(default=False, description="True when more matching nodes exist than max_nodes")
     scan_limit_hit: bool = Field(default=False, description="True when the tree exceeded the internal scan ceiling")
+
+
+class TreeActionResult(ToolResult):
+    """Result from sap_tree_expand, sap_tree_select and sap_tree_activate."""
+
+    tree_id: str = Field(default="", description="Element ID of the tree")
+    node_key: str = Field(default="", description="Node key the action was applied to")
+    node_text: str = Field(default="", description="Node label, read before the action")
+    expanded: bool | None = Field(default=None, description="Expand state read back (sap_tree_expand only)")
+    child_count: int | None = Field(default=None, description="Loaded children after expanding (sap_tree_expand only)")
+    current_session_title_after: str | None = Field(
+        default=None,
+        description="Title of the current session's active window after the action (a parallel session is not seen)",
+    )
+    status_bar_type: StatusBarType | None = Field(default=None, description="Status bar message type after the action")
+    status_bar_message: str | None = Field(default=None, description="Status bar text after the action")

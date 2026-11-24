@@ -1,14 +1,16 @@
-"""Pure COM-layer helpers for reading ``GuiTree`` controls (desktop backend).
+"""Pure COM-layer helpers for reading and operating ``GuiTree`` controls (desktop backend).
 
 Everything here runs on the COM thread and is synchronous. The helpers take a *raw* COM session
 (``FindById`` / ``Children``) so they work with both sapsucker-wrapped and raw sessions and are
 easy to fake in unit tests. Reading never expands, collapses or selects anything: it only sees the
-nodes the control has already loaded (``GetAllNodeKeys``).
+nodes the control has already loaded (``GetAllNodeKeys``). The action helpers (``expand_node``,
+``select_node``, ``activate_node``) each call exactly one tree method on one node.
 """
 
 from __future__ import annotations
 
 import logging
+import time
 from typing import TYPE_CHECKING, Any
 
 from sapguimcp.backend.desktop._com_thread import _RPC_E_DISCONNECTED, RERAISE_COM_ERRORS, _get_com_error_code
@@ -21,9 +23,12 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "MAX_SCAN_NODES",
     "TREE_TYPE_NAMES",
+    "activate_node",
+    "expand_node",
     "find_tree_shells",
     "read_tree",
     "resolve_tree",
+    "select_node",
 ]
 
 #: Hard ceiling on nodes scanned per call: a huge scan blocks the single COM engine for every agent.
@@ -36,6 +41,9 @@ TREE_TYPE_NAMES = {0: "simple", 1: "list", 2: "column"}
 _MAX_WALK_DEPTH = 12
 _ANCESTOR_LIMIT = 200
 _KEY_HINT_COUNT = 5
+#: Lazy folders load their children from the server: poll the expand state this often, this far apart.
+_EXPAND_POLLS = 5
+_EXPAND_POLL_S = 0.2
 
 
 def _reraise_if_transient(exc: Exception) -> None:
@@ -180,13 +188,17 @@ class _TreeReader:
         return texts
 
 
+def _column_names(tree: Any) -> list[str]:
+    """Internal column names; a missing ``GetColumnNames`` degrades to no columns."""
+    return _try(lambda: [str(n) for n in _collection(tree.GetColumnNames())]) or []
+
+
 def _read_columns(tree: Any, tree_type: str) -> list[dict[str, str]]:
     """Named columns (column trees only); missing methods degrade to no columns."""
     if tree_type != "column":
         return []
-    names = _try(lambda: [str(n) for n in _collection(tree.GetColumnNames())]) or []
     columns = []
-    for name in names:
+    for name in _column_names(tree):
         title = _try(tree.GetColumnTitleFromName, name)
         title = "" if title is None else str(title)
         columns.append({"name": name, "title": title})
@@ -319,3 +331,104 @@ def read_tree(  # pylint: disable=too-many-locals
         "truncated": truncated,
         "scan_limit_hit": scan_limit_hit,
     }
+
+
+def _require_node(tree: Any, tree_id: str, node_key: str) -> str:
+    """Return the label of ``node_key``; raise ``ValueError`` with some valid keys when it is unknown."""
+    try:
+        return _TreeReader(tree, tree_id).text(node_key)
+    except Exception as exc:
+        _reraise_if_transient(exc)
+        hints = _try(lambda: [str(k) for k in _collection(tree.GetAllNodeKeys(), _KEY_HINT_COUNT)]) or []
+        raise ValueError(
+            f"node_key {node_key!r} not found in tree {tree_id!r} (keys are exact and padded); some valid keys: {hints}"
+        ) from exc
+
+
+def _call(tree: Any, tree_id: str, node_key: str, method: str, *args: Any) -> None:
+    """Call one tree method; a failure becomes ``RuntimeError`` naming tree, node and operation."""
+    try:
+        getattr(tree, method)(*args)
+    except Exception as exc:
+        _reraise_if_transient(exc)
+        raise RuntimeError(f"tree {tree_id!r}: {method} on node {node_key!r} failed: {exc}") from exc
+
+
+def expand_node(raw_session: Any, tree_id: str | None, node_key: str, *, expand: bool = True) -> dict[str, Any]:
+    """Expand (or collapse) one node, without recursion, and read the state back.
+
+    Raises ``ValueError`` for an unknown key or a node that is not a folder, ``RuntimeError`` when the
+    call fails or the node does not reach the requested state.
+    """
+    tree, resolved_id = resolve_tree(raw_session, tree_id)
+    text = _require_node(tree, resolved_id, node_key)
+    expandable = _try(tree.IsFolderExpandable, node_key)
+    if expandable is not None and not expandable:
+        raise ValueError(f"node {node_key!r} ({text!r}) of tree {resolved_id!r} is not an expandable folder")
+    method = "ExpandNode" if expand else "CollapseNode"
+    _call(tree, resolved_id, node_key, method, node_key)
+
+    expanded = count = None
+    for attempt in range(_EXPAND_POLLS):
+        if attempt:
+            time.sleep(_EXPAND_POLL_S)
+        expanded = _try(tree.IsFolderExpanded, node_key)
+        count = _try(tree.GetNodeChildrenCount, node_key)
+        if expanded is None or (bool(expanded) == expand and (count or not expand)):
+            break
+    if expanded is not None and bool(expanded) != expand:
+        state = "collapsed" if expand else "expanded"
+        raise RuntimeError(f"tree {resolved_id!r}: node {node_key!r} ({text!r}) is still {state} after {method}")
+    return {
+        "tree_id": resolved_id,
+        "node_key": node_key,
+        "node_text": text,
+        "expanded": None if expanded is None else bool(expanded),
+        "child_count": None if count is None else int(count),
+    }
+
+
+def select_node(raw_session: Any, tree_id: str | None, node_key: str) -> dict[str, Any]:
+    """Select one node (``SelectNode``) and check ``SelectedNode`` where the tree exposes it."""
+    tree, resolved_id = resolve_tree(raw_session, tree_id)
+    text = _require_node(tree, resolved_id, node_key)
+    _call(tree, resolved_id, node_key, "SelectNode", node_key)
+    # Multiple-selection trees have no single SelectedNode; only a different, non-empty value is a failure.
+    selected = _try(getattr, tree, "SelectedNode")
+    if selected and str(selected) != node_key:
+        raise RuntimeError(f"tree {resolved_id!r}: after SelectNode {node_key!r} the selected node is {selected!r}")
+    return {"tree_id": resolved_id, "node_key": node_key, "node_text": text}
+
+
+def activate_node(
+    raw_session: Any,
+    tree_id: str | None,
+    node_key: str,
+    *,
+    mode: str = "double_click",
+    item_name: str | None = None,
+) -> dict[str, Any]:
+    """Double-click a node or item, or click a link item. May navigate or start an action.
+
+    ``mode="double_click"`` calls ``DoubleClickNode``, or ``DoubleClickItem`` when ``item_name`` is
+    given; ``mode="click_link"`` calls ``ClickLink`` and requires ``item_name``. The node label is
+    read before the call, because the tree may be gone afterwards.
+    """
+    if mode not in ("double_click", "click_link"):
+        raise ValueError(f"mode must be 'double_click' or 'click_link'; got {mode!r}")
+    if mode == "click_link" and item_name is None:
+        raise ValueError("mode='click_link' needs item_name (a column name from sap_tree_read)")
+    tree, resolved_id = resolve_tree(raw_session, tree_id)
+    text = _require_node(tree, resolved_id, node_key)
+    method = "ClickLink" if mode == "click_link" else "DoubleClickItem"
+    args: tuple[str, ...] = (node_key, item_name) if item_name is not None else (node_key,)
+    if item_name is None:  # only a double-click gets here without an item
+        method = "DoubleClickNode"
+    try:
+        _call(tree, resolved_id, node_key, method, *args)
+    except RuntimeError as exc:
+        _reraise_if_transient(exc)
+        if item_name is None:
+            raise
+        raise RuntimeError(f"{exc}; column names of this tree: {_column_names(tree)}") from exc
+    return {"tree_id": resolved_id, "node_key": node_key, "node_text": text}
