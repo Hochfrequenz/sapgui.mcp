@@ -85,7 +85,15 @@ async def test_edit_a_cell_read_it_back_and_refuse_a_stale_row(edit_grid: Any) -
     assert not refused.written
     assert (await backend.read_table(max_rows=1)).rows[0].data[col].strip() == before
 
-    result = await backend.modify_cell(1, col, new, expected_current=before)
+    # The key columns of another row (a row that moved) refuse the write as well.
+    keys = ("CARRID", "CONNID", "FLDATE")
+    row2_keys = {k: table.rows[1].data[k] for k in keys}
+    refused = await backend.modify_cell(1, col, new, expected_row=row2_keys)
+    assert not refused.success
+    assert not refused.written
+
+    row1_keys = {k: table.rows[0].data[k] for k in keys}
+    result = await backend.modify_cell(1, col, new, expected_current=before, expected_row=row1_keys)
     assert result.success, result.error
     assert result.written
     assert (result.previous_value, result.value, result.column) == (before, new, col)

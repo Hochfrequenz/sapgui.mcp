@@ -801,8 +801,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         ),
         description=(
             "Write one cell of the editable ALV grid shown by sap_read_table and read it back. "
-            "Pass expected_current when you read the cell earlier: the write is refused if the cell changed. "
-            "Nothing is sent to SAP until Enter, nothing saved until Save."
+            "When you read the row earlier, pass its key columns as expected_row: the write is refused if the row "
+            "moved. The change usually reaches SAP only with Enter or Save; some grids react at once."
         ),
     )
     async def sap_modify_cell(
@@ -810,6 +810,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
         column: int | str,
         value: str,
         expected_current: str | None = None,
+        expected_row: dict[str, str] | None = None,
         session: str | None = None,
         agent_id: str | None = None,
     ) -> ModifyCellResult:
@@ -821,6 +822,8 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             column: Column index (0-based) or technical column name, as in sap_read_table's headers
             value: New cell value
             expected_current: Value the cell must hold now (trimmed); otherwise nothing is written
+            expected_row: Technical column name -> value (trimmed) the row must hold now, e.g. its key columns;
+                otherwise nothing is written
             session: Session ID (e.g., "s1", "s2"). None uses primary session.
             agent_id: Agent identifier for binding check. Optional.
 
@@ -834,7 +837,7 @@ def register_sap_tools(mcp: FastMCP) -> None:  # pylint: disable=too-many-statem
             return ModifyCellResult.failure(str(e), row=row, column=str(column))
 
         try:
-            return await backend.modify_cell(row, column, value, expected_current)
+            return await backend.modify_cell(row, column, value, expected_current, expected_row)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.exception("Modifying table cell", extra={"row": row, "column": column})
             return ModifyCellResult.failure(

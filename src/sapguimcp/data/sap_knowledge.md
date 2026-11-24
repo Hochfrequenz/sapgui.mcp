@@ -221,12 +221,15 @@ For general-purpose exploration of unknown screens:
 - `sap_modify_cell(row, column, value)` writes one cell of an editable ALV grid; row and column are numbered as in
   `sap_read_table`. It reads the cell back and reports that value, not the one you sent.
 - Row numbers are positions in the current view: after a sort, a filter or a refresh they can point at another
-  record. When you read first and write later, pass the value you read as `expected_current`; the write is then
-  refused if the cell holds something else.
+  record. When you read first and write later, pass the row's key columns as `expected_row` (technical column name
+  to the value `sap_read_table` showed, e.g. `{"CARRID": "LH", "CONNID": "0400", "FLDATE": "..."}`); the write is
+  then refused if the row holds something else. `expected_current` (the cell's own value) only protects you if that
+  value is unique: an empty cell or a common value also matches in another row.
 - `success=False` with `written=True` means the cell did change, but to another value than requested (SAP converted
-  or reformatted it).
-- The grid keeps the change until the next round trip: press Enter (`sap_press_key`) to run SAP's input checks, then
-  save. Table controls (for example SM30) are not supported yet.
+  or reformatted it). If the write itself raised an error, the message says whether the cell changed or whether that
+  is unknown.
+- The change usually reaches SAP only with Enter or a save (some grids react at once): press Enter (`sap_press_key`)
+  to run SAP's input checks, then save. Table controls (for example SM30) are not supported yet.
 
 ## Multi-Session Support (Parallel Agents)
 

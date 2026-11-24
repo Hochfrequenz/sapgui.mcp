@@ -41,6 +41,9 @@ class _Grid:
         self.scroll_error = scroll_error
         self.writes: list[tuple[int, str, str]] = []
         self.on_write: Any = None
+        self.write_error: Exception | None = None  # raised by modify_cell before the cell changes
+        self.read_error: Exception | None = None  # raised by get_cell_value once set
+        self.cell_types: dict[str, str] | None = {}  # None: GetCellType is not available
         self._first = 0
 
     @property
@@ -55,13 +58,22 @@ class _Grid:
         self.loaded.update(range(value, value + 2))
 
     def get_cell_value(self, row: int, column: str) -> str:
+        if self.read_error is not None:
+            raise self.read_error
         return self.cells[row][column] if row in self.loaded else ""
 
     def get_cell_changeable(self, row: int, column: str) -> bool:
         return row in self.loaded and column in self.editable
 
+    def get_cell_type(self, row: int, column: str) -> str:  # noqa: ARG002 - the COM signature
+        if self.cell_types is None:
+            raise AttributeError("GetCellType")
+        return self.cell_types.get(column, "Normal")
+
     def modify_cell(self, row: int, column: str, value: str) -> None:
         self.writes.append((row, column, value))
+        if self.write_error is not None:
+            raise self.write_error
         self.cells[row][column] = self.convert(value)
         if self.on_write is not None:
             self.on_write()
@@ -135,10 +147,27 @@ async def test_matching_expected_current_writes() -> None:
     assert grid.writes == [(0, "PRICE", "5.00")]
 
 
+@pytest.mark.anyio
+async def test_matching_expected_row_writes() -> None:
+    grid = _Grid(_rows())
+    result = await _modify(_Session(grid), 2, "PRICE", "5.00", expected_row={"carrid": "LH", "CONNID": " 0401 "})
+    assert result.success, result.error
+    assert grid.writes == [(1, "PRICE", "5.00")]
+
+
+@pytest.mark.anyio
+async def test_without_get_cell_type_a_cell_counts_as_text() -> None:
+    grid = _Grid(_rows())
+    grid.cell_types = None
+    assert (await _modify(_Session(grid), 1, "PRICE", "5.00")).success
+
+
 @pytest.mark.parametrize(
     ("row", "column", "kwargs", "message"),
     [
-        (1, "PRICE", {"expected_current": "101.00"}, "not the expected '101.00'"),
+        (1, "PRICE", {"expected_current": "101.00"}, "PRICE holds '100.00', not '101.00'"),
+        (1, "PRICE", {"expected_row": {"CONNID": "0401", "CARRID": "LH"}}, "CONNID holds '0400', not '0401'"),
+        (1, "PRICE", {"expected_row": {"NOPE": "x"}}, "Column 'NOPE' not found"),
         (0, "PRICE", {}, "out of range"),
         (4, "PRICE", {}, "out of range"),
         (1, "CONNID", {}, "not editable"),
@@ -190,6 +219,61 @@ async def test_a_new_status_message_after_the_write_is_reported() -> None:
 
 
 @pytest.mark.anyio
+async def test_a_checkbox_cell_is_refused() -> None:
+    grid = _Grid(_rows())
+    grid.cell_types = {"PRICE": "CheckBox"}
+    result = await _modify(_Session(grid), 1, "PRICE", "X")
+    assert not result.success
+    assert "CheckBox cell" in (result.error or "")
+    assert grid.writes == []
+
+
+@pytest.mark.anyio
+async def test_a_value_sap_did_not_take_is_not_reported_as_written() -> None:
+    grid = _Grid(_rows(), convert=lambda _: "100.00")
+    result = await _modify(_Session(grid), 1, "PRICE", "abc")
+    assert not result.success
+    assert not result.written
+    assert "still holds '100.00'" in (result.error or "")
+
+
+@pytest.mark.anyio
+async def test_a_failing_write_that_changed_the_cell_says_so() -> None:
+    grid = _Grid(_rows())
+
+    def _fail_after_the_change() -> None:
+        raise OSError("rpc")
+
+    grid.on_write = _fail_after_the_change
+    result = await _modify(_Session(grid), 1, "PRICE", "5.00")
+    assert not result.success
+    assert result.written
+    assert result.value == "5.00"
+    assert "changed from '100.00' to '5.00'" in (result.error or "")
+
+
+@pytest.mark.anyio
+async def test_a_failing_write_that_left_the_cell_unchanged_does_not_claim_nothing_happened() -> None:
+    grid = _Grid(_rows())
+    grid.write_error = OSError("rpc")
+    result = await _modify(_Session(grid), 1, "PRICE", "5.00")
+    assert not result.success
+    assert not result.written
+    assert "unknown whether anything was written" in (result.error or "")
+    assert "No cell was modified" not in (result.error or "")
+
+
+@pytest.mark.anyio
+async def test_a_failing_read_back_reports_the_cell_as_written() -> None:
+    grid = _Grid(_rows())
+    grid.on_write = lambda: setattr(grid, "read_error", OSError("gone"))
+    result = await _modify(_Session(grid), 1, "PRICE", "5.00")
+    assert not result.success
+    assert result.written
+    assert "could not be read back" in (result.error or "")
+
+
+@pytest.mark.anyio
 async def test_an_unloaded_row_is_scrolled_to_before_anything_is_read() -> None:
     grid = _Grid(_rows(), loaded={0})
     result = await _modify(_Session(grid), 3, "PRICE", "8.00", expected_current="102.00")
@@ -237,7 +321,7 @@ async def test_the_tool_passes_its_arguments_to_the_backend() -> None:
     backend = MagicMock()
     backend.modify_cell = AsyncMock(return_value=ModifyCellResult(row=2, column="PRICE", value="1", written=True))
     data = await _call_tool(AsyncMock(return_value=backend))
-    backend.modify_cell.assert_awaited_once_with(2, "PRICE", "1", None)
+    backend.modify_cell.assert_awaited_once_with(2, "PRICE", "1", None, None)
     assert data["success"] is True
 
 

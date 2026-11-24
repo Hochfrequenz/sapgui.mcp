@@ -2196,14 +2196,19 @@ class DesktopBackend:
             return TableCellClickResult(success=False, row=row, column=str(column), selector_used="com", error=str(e))
 
     async def modify_cell(
-        self, row: int, column: int | str, value: str, expected_current: str | None = None
+        self,
+        row: int,
+        column: int | str,
+        value: str,
+        expected_current: str | None = None,
+        expected_row: dict[str, str] | None = None,
     ) -> ModifyCellResult:
         """Write one cell of the editable ALV grid on screen and read it back (#1010).
 
         Never writes a cell other than the requested one: a grid addresses rows absolutely (no window offset to get
-        wrong), an untransferred row is loaded before it is read, and ``expected_current`` turns the write into a
-        compare-and-swap against a row that moved since it was read. The grid keeps the change in the frontend until
-        the next round trip, so nothing reaches SAP before Enter, and nothing is saved before Save.
+        wrong), an untransferred row is loaded before it is read, and ``expected_current`` / ``expected_row`` turn the
+        write into a compare-and-swap against a row that moved since it was read. The grid usually keeps the change in
+        the frontend until Enter or a save; some grids react at once.
         """
         session = self.require_session()
 
@@ -2219,6 +2224,9 @@ class DesktopBackend:
                 raise ValueError(f"Row {row} is out of range: the grid has {row_count} row(s).")
             columns = _grid_column_names(grid)
             col = _resolve_grid_column(columns, column)
+            expected = {_resolve_grid_column(columns, k): v.strip() for k, v in (expected_row or {}).items()}
+            if expected_current is not None:
+                expected[col] = expected_current.strip()
             row0 = row - 1
             # An untransferred row reads blank or as a placeholder, its changeable state included: load it first.
             if _row_not_fully_loaded({c: str(grid.get_cell_value(row0, c)) for c in columns}, row0):
@@ -2228,16 +2236,43 @@ class DesktopBackend:
                     raise ValueError(f"Could not scroll to row {row} to load it ({exc}).") from exc
             if not grid.get_cell_changeable(row0, col):
                 raise ValueError(f"The cell in row {row}, column {col} is not editable.")
-            previous = str(grid.get_cell_value(row0, col)).strip()
-            if expected_current is not None and previous != expected_current.strip():
+            try:
+                cell_type = str(grid.get_cell_type(row0, col))
+            except Exception:
+                cell_type = "Normal"  # lang-ok: COM cell type; GetCellType missing, assume a text cell
+            if cell_type != "Normal":  # lang-ok: COM cell type
+                raise ValueError(f"The cell in row {row}, column {col} is a {cell_type} cell; only text cells.")
+            current = {c: str(grid.get_cell_value(row0, c)).strip() for c in {col, *expected}}
+            previous = current[col]
+            differing = [f"{c} holds '{current[c]}', not '{v}'" for c, v in expected.items() if current[c] != v]
+            if differing:
                 raise ValueError(
-                    f"The cell in row {row}, column {col} holds '{previous}', not the expected "
-                    f"'{expected_current.strip()}': the row may have moved since it was read."
+                    f"Row {row} is not the expected row: {'; '.join(differing)}. It may have moved since it was read."
                 )
             wnd_id = _active_window_id(session)
             status_before = _status_bar_text(session, wnd_id)
-            grid.modify_cell(row0, col, value)
-            written: dict[str, Any] = {"row": row, "column": col, "previous_value": previous, "written": True}
+            base: dict[str, Any] = {"row": row, "column": col, "previous_value": previous}
+            try:
+                grid.modify_cell(row0, col, value)
+            except Exception as exc:
+                try:
+                    now: str | None = str(grid.get_cell_value(row0, col)).strip()
+                except Exception:
+                    now = None
+                if now is not None and now != previous:
+                    return ModifyCellResult.failure(
+                        f"The write raised an error ({exc}), but the cell changed from '{previous}' to '{now}'.",
+                        value=now,
+                        written=True,
+                        **base,
+                    )
+                state = "could not be read again" if now is None else f"still reads '{previous}'"
+                return ModifyCellResult.failure(
+                    f"The write raised an error ({exc}) and the cell {state}: it is unknown whether anything was "
+                    "written.",
+                    value=now or "",
+                    **base,
+                )
             try:
                 post_wnd = _active_window_id(session)
                 notes = []
@@ -2248,18 +2283,28 @@ class DesktopBackend:
                     notes.append(f"Status bar: {status_after}")  # lang-ok: our own message
                 actual = str(grid.get_cell_value(row0, col)).strip()
             except Exception as exc:
-                return ModifyCellResult.failure(f"The cell was written but could not be read back: {exc}", **written)
-            if actual != value.strip():
                 return ModifyCellResult.failure(
-                    f"The cell in row {row}, column {col} changed from '{previous}' to '{actual}', "
-                    f"not to the requested '{value.strip()}'.",
-                    value=actual,
-                    note=" ".join(notes),
-                    active_window=post_wnd,
-                    **written,
+                    f"The cell was written but could not be read back: {exc}", written=True, **base
                 )
-            notes.append("Not sent to SAP yet: press Enter to run its input checks, then save.")
-            return ModifyCellResult(value=actual, note=" ".join(notes), active_window=post_wnd, **written)
+            taken = actual == value.strip()
+            if taken:
+                notes.append(
+                    "The change usually reaches SAP only with Enter or a save (some grids react at once): "
+                    "press Enter to run its input checks, then save."
+                )
+            result: dict[str, Any] = {"value": actual, "note": " ".join(notes), "active_window": post_wnd, **base}
+            if taken:
+                return ModifyCellResult(written=True, **result)
+            if actual == previous:
+                return ModifyCellResult.failure(
+                    f"The cell still holds '{previous}': SAP did not take '{value.strip()}'.", **result
+                )
+            return ModifyCellResult.failure(
+                f"The cell in row {row}, column {col} changed from '{previous}' to '{actual}', "
+                f"not to the requested '{value.strip()}'.",
+                written=True,
+                **result,
+            )
 
         try:
             return await self.com.run(_modify)
