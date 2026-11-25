@@ -1980,34 +1980,49 @@ class DesktopBackend:
         and text values from dump_tree(). This is NOT an ARIA snapshot.
         Used for LLM context, not structured parsing.
         """
-        snapshot, _, _ = await self.get_snapshot_with_depth()
+        snapshot, *_ = await self.get_snapshot_with_depth()
         return snapshot
 
-    async def get_snapshot_with_depth(self, depth: int | None = None) -> tuple[ComTreeSnapshot, int, int]:
+    async def get_snapshot_with_depth(
+        self, depth: int | None = None, root: str | None = None, exclude: list[str] | None = None
+    ) -> tuple[ComTreeSnapshot, int, int, int]:
         """Get a text dump with optional truncation and metadata.
 
         Args:
-            depth: If given, truncate the tree to this many levels.
+            depth: If given, truncate the tree to this many levels (counted from *root*).
+            root: Element id to dump instead of the active window, e.g. ``wnd[0]/usr``.
+            exclude: Element ids whose subtrees are left out, e.g. ``wnd[0]/mbar``.
 
         Returns:
-            (snapshot, max_depth_found, elements_hidden)
+            (snapshot, max_depth_found, elements_hidden, elements_excluded)
+
+        Raises:
+            ValueError: *root* does not exist on the current screen.
         """
         from sapguimcp.backend.desktop._snapshot_render import (  # pylint: disable=import-outside-toplevel
             render_snapshot_lines,
         )
         from sapguimcp.backend.desktop._truncation import (  # pylint: disable=import-outside-toplevel
+            prune_tree,
             truncate_tree,
         )
 
         session = self.require_session()
 
-        def _dump() -> tuple[str, int, int]:
-            wnd_id = _active_window_id(session)
-            wnd = session.find_by_id(wnd_id)
-            tree = cast(Any, wnd).dump_tree()
+        def _dump() -> tuple[str, int, int, int]:
+            start = session.find_by_id(root or _active_window_id(session), raise_error=False)
+            if start is None:
+                raise ValueError(f"Element '{root}' not found on the current screen. Copy an id= from the snapshot.")
+            if not hasattr(start, "dump_tree"):  # only containers (user area, shells, tabs, ...) have children
+                raise ValueError(f"Element '{root}' has no child elements. Pass a container id as root.")
+            tree = cast(Any, start).dump_tree()
 
             max_depth_found = 0
             elements_hidden = 0
+            elements_excluded = 0
+
+            if exclude:
+                tree, elements_excluded = prune_tree(tree, exclude)
 
             if depth is not None:
                 tree, max_depth_found, elements_hidden = truncate_tree(tree, depth)
@@ -2022,10 +2037,10 @@ class DesktopBackend:
                     f"Use depth={max_depth_found} to see everything.]"
                 )
 
-            return "\n".join(lines), max_depth_found, elements_hidden
+            return "\n".join(lines), max_depth_found, elements_hidden, elements_excluded
 
-        text, max_depth_found, elements_hidden = await self.com.run(_dump, retry_server_fault=True)
-        return ComTreeSnapshot(text), max_depth_found, elements_hidden
+        text, max_depth_found, elements_hidden, elements_excluded = await self.com.run(_dump, retry_server_fault=True)
+        return ComTreeSnapshot(text), max_depth_found, elements_hidden, elements_excluded
 
     async def take_screenshot(self) -> bytes:
         """Take a screenshot of the SAP GUI window."""

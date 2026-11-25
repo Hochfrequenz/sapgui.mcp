@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from sapsucker.models import ElementInfo
 
-from sapguimcp.backend.desktop._truncation import compute_tree_depth, truncate_tree
+from sapguimcp.backend.desktop._truncation import compute_tree_depth, prune_tree, truncate_tree
 
 
 def _elem(id: str, children: list | None = None) -> ElementInfo:
@@ -60,3 +60,34 @@ def test_compute_tree_depth_empty():
 def test_compute_tree_depth_nested():
     tree = [_elem("a", children=[_elem("b", children=[_elem("c")])])]
     assert compute_tree_depth(tree) == 3
+
+
+_W = "/app/con[0]/ses[0]/wnd[0]"
+
+
+def _window_tree() -> list[ElementInfo]:
+    return [
+        _elem(f"{_W}/mbar", children=[_elem(f"{_W}/mbar/menu[0]"), _elem(f"{_W}/mbar/menu[1]")]),
+        _elem(f"{_W}/mbarX"),
+        _elem(f"{_W}/usr", children=[_elem(f"{_W}/usr/txtFIELD")]),
+    ]
+
+
+def test_prune_tree_drops_the_prefix_and_its_subtree():
+    result, pruned = prune_tree(_window_tree(), ["wnd[0]/mbar"])
+    assert [e.id for e in result] == [f"{_W}/mbarX", f"{_W}/usr"]  # mbarX is not below mbar (path boundary)
+    assert pruned == 3
+    assert result[1].children[0].id == f"{_W}/usr/txtFIELD"
+
+
+def test_prune_tree_matches_nested_and_absolute_prefixes():
+    result, pruned = prune_tree(_window_tree(), [f"{_W}/usr/txtFIELD/", "wnd[0]/mbar/menu[1]"])
+    assert result[2].children == []
+    assert [e.id for e in result[0].children] == [f"{_W}/mbar/menu[0]"]
+    assert pruned == 2
+
+
+def test_prune_tree_without_prefixes_keeps_everything():
+    result, pruned = prune_tree(_window_tree(), [])
+    assert result == _window_tree()
+    assert pruned == 0
