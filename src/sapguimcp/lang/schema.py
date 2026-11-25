@@ -243,6 +243,7 @@ class Se37Section:
     changing_tab: Text
     tables_tab: Text
     exceptions_tab: Text
+    source_tab: Text
     parameter_name_column: Text
     """Column titles of the parameter / exception table controls (row dict keys)."""
     typing_column: Text

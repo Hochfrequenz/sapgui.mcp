@@ -194,6 +194,17 @@ def _parse_se37_params(
     return params
 
 
+async def _fill_fm_name_desktop(backend: DesktopBackend, fm_name: str, t: LanguagePack) -> bool:
+    """Fill the function module name field of the SE37 initial screen. Returns whether a field was filled."""
+    for label in t.se37.fm_field_label:
+        try:
+            await backend.fill_field(label, fm_name.upper())
+            return True
+        except ValueError:
+            continue
+    return await backend.focus_and_type("RS38L-NAME", fm_name.upper())
+
+
 async def _lookup_fm_desktop(  # pylint: disable=too-many-locals
     backend: DesktopBackend, fm_name: str, t: LanguagePack
 ) -> SE37Entry | SE37Error:
@@ -203,18 +214,7 @@ async def _lookup_fm_desktop(  # pylint: disable=too-many-locals
     now = datetime.now(UTC)
     await backend.wait_for_ready()
 
-    # Fill FM name field
-    filled = False
-    for label in t.se37.fm_field_label:
-        try:
-            await backend.fill_field(label, fm_name.upper())
-            filled = True
-            break
-        except ValueError:
-            continue
-    if not filled:
-        filled = await backend.focus_and_type("RS38L-NAME", fm_name.upper())
-    if not filled:
+    if not await _fill_fm_name_desktop(backend, fm_name, t):
         return SE37Error(function_module=fm_name, error="Could not fill function module field", retrieved_at=now)
 
     # Press F7 (Display)

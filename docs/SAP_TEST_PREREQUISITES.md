@@ -34,6 +34,7 @@ Install via abapGit pull, or create manually:
 | Object                              | Transaction | Details                                                                                                                                                              |
 | ----------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Report `ZTEST_MCP_EDIT`             | SE38        | Must contain `REPORT ZTEST_MCP_EDIT.` + `WRITE 'MCP test report'.`                                                                                                   |
+| Function module `Z_MCP_TEST_FM`     | SE37        | In function group `Z_MCP_TEST_FUNKTIONSGRUPPE`; must contain `FUNCTION Z_MCP_TEST_FM.` + `WRITE 'MCP test FM'.` + `ENDFUNCTION.` (SE37 edit tests)                   |
 | Class `ZCL_TEST_MCP_EDIT`           | SE24        | Public class with method `DO_SOMETHING`                                                                                                                              |
 | Class `ZCL_SAPGUIMCP_ORIGLANG_TEST` | SE24        | Local (`$TMP`) class with original language **EN**, i.e. different from the DE logon language of the test user (optional: the language dialog test skips without it) |
 
@@ -49,7 +50,7 @@ Create `ZCL_SAPGUIMCP_ORIGLANG_TEST` **logged on in EN** (SE24, Create, Local Ob
 > flavour the test user has configured. Issue #859 only affected `GuiAbapEditor`. To cover
 > both, run the desktop edit tests once per setting.
 
-> **Note**: Test object names are centralized in `unittests/desktop/conftest.py` (`TEST_REPORT`, `TEST_CLASS`, `TEST_METHOD`). If you use different names, update them there.
+> **Note**: Test object names are centralized in `unittests/desktop/conftest.py` (`TEST_REPORT`, `TEST_FUNCTION_MODULE`, `TEST_CLASS`, `TEST_METHOD`). If you use different names, update them there.
 
 ### abapGit test repositories
 
@@ -58,7 +59,7 @@ Two public GitHub repositories (`Hochfrequenz/...`) back the abapGit and edit te
 | Repository                         | Must be registered in abapGit on                                                                        | Used by                   | Branches                     |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------- | ---------------------------- |
 | `Z_PUBLIC_ABAPGIT_TEST_REPOSITORY` | S/4HANA systems (required). ERP 6.0 systems: optional, the dependent desktop tests skip if it is absent | abapGit integration tests | `main`, `test/branch-switch` |
-| `Z_MCP_TEST_EDITABLE_WB_OBJECTS`   | all system types (provides `ZTEST_MCP_EDIT`, `ZCL_TEST_MCP_EDIT`)                                       | edit / SE09 tests         | `main`, `test/branch-switch` |
+| `Z_MCP_TEST_EDITABLE_WB_OBJECTS`   | all system types (provides `ZTEST_MCP_EDIT`, `Z_MCP_TEST_FM`, `ZCL_TEST_MCP_EDIT`)                      | edit / SE09 tests         | `main`, `test/branch-switch` |
 
 - Desktop tests that need `Z_PUBLIC_ABAPGIT_TEST_REPOSITORY` (`test_abapgit_pull_public_repo`, `test_abapgit_pull_returns_status_message`, `test_abapgit_pull_without_trkorr_returns_transport_guidance`, `test_abapgit_list_repos`) first list the registered repositories and skip with a reason naming the repository if it is missing. They skip only when the listing succeeded and returned at least one repository; a failed or empty listing never causes a skip, so a broken listing still fails visibly. The repository name is matched exactly.
 - `test/branch-switch` is a copy of `main` with a changed `WRITE` text. It is used by the live tests of the `branch` parameter of `sap_abapgit_pull` (`test_abapgit_pull_unknown_branch_leaves_branch_unchanged`, `test_abapgit_pull_branch_failure_restores_previous_branch`, `test_abapgit_pull_branch_switch_and_back`): do not delete it and do not merge it into `main`.

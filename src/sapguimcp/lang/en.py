@@ -139,6 +139,7 @@ EN = LanguagePack(
         changing_tab=Text(("Changing",)),
         tables_tab=Text(("Tables",)),
         exceptions_tab=Text(("Exceptions",)),
+        source_tab=Text(("Source Code", "Source text")),
         parameter_name_column=Text(("Parameter Name",)),
         typing_column=Text(("Typing",)),
         type_ref_column=Text(("Associated Type",)),

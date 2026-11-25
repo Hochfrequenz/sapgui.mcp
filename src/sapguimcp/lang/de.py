@@ -151,6 +151,7 @@ DE = LanguagePack(
         changing_tab=Text(("Changing",)),
         tables_tab=Text(("Tabellen",)),
         exceptions_tab=Text(("Ausnahmen",)),
+        source_tab=Text(("Quelltext",)),
         parameter_name_column=Text(("Parametername",)),
         typing_column=Text(("Typisierung",)),
         type_ref_column=Text(("Bezugstyp",)),

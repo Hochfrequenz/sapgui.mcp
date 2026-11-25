@@ -101,6 +101,7 @@ _TAGS: dict[str, Backend] = {
     "se37.changing_tab": Backend.DESKTOP,
     "se37.tables_tab": Backend.DESKTOP,
     "se37.exceptions_tab": Backend.DESKTOP,
+    "se37.source_tab": Backend.DESKTOP,
     "se37.parameter_name_column": Backend.BOTH,
     "se37.typing_column": Backend.BOTH,
     "se37.type_ref_column": Backend.BOTH,
