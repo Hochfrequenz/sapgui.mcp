@@ -16,7 +16,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from sap_mcp_config import Config as SapMcpConfig
 from sap_mcp_config import load_default as load_sap_config
 
-from sapguimcp.lang import supported_languages
+from sapguimcp.lang import logon_languages
 
 __all__ = [
     "SapGuiSettings",
@@ -35,8 +35,9 @@ _sap_config: SapMcpConfig | None = None
 def get_sap_config() -> SapMcpConfig:
     """Load the shared SAP system config (singleton).
 
-    A system whose ``language`` has no language pack (``lang.supported_languages()``) makes this
-    raise a ``ValueError`` instead of letting the language through.  An omitted
+    A system whose ``language`` has neither a full nor a core language pack
+    (``lang.logon_languages()``) makes this raise a ``ValueError`` instead of letting the
+    language through.  An omitted
     language defaults to ``EN``.  A failed load is not cached, so fixing the file
     takes effect on the next call.
 
@@ -52,7 +53,7 @@ def get_sap_config() -> SapMcpConfig:
         return _sap_config
     message = ""
     try:
-        _sap_config = load_sap_config(supported_languages=supported_languages())
+        _sap_config = load_sap_config(supported_languages=logon_languages())
         return _sap_config
     except (ValidationError, yaml.YAMLError) as exc:
         message = _describe_config_error(exc)

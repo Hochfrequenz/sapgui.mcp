@@ -9,7 +9,7 @@ import pytest
 from sapguimcp.lang import _register_for_tests, supported_languages
 from sapguimcp.models import config as config_module
 from sapguimcp.utils import SapLanguage
-from unittests.lang.synthetic_pack import synthetic_pack
+from unittests.lang.synthetic_pack import CORE_CODE, core_pack, synthetic_pack
 
 
 def _system(**overrides: str) -> dict[str, str]:
@@ -63,6 +63,13 @@ def test_config_accepts_every_registered_pack_language(monkeypatch: pytest.Monke
     with _register_for_tests(synthetic_pack()):
         config_module.get_sap_config()
     assert seen == [("DE", "EN", "IT", "XX")]
+
+
+def test_config_accepts_a_core_pack_language(config_file: Path) -> None:
+    """#1081: a language with only a core pack may be configured; its transaction tools fail at call time."""
+    _write(config_file, language=CORE_CODE.lower())
+    with _register_for_tests(core_pack()):
+        assert config_module.get_sap_config().systems["dev"].language == CORE_CODE
 
 
 def test_unsupported_language_fails_loudly(config_file: Path) -> None:

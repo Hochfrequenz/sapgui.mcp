@@ -107,6 +107,8 @@ SAP_LANGUAGE=DE
 
 The connection name, user, password, and mandant are read from `systems.json`.
 
+`test_parallel_multi_client_integration.py` logs on to a second client in parallel. It uses any `systems.json` entry that has the same `connection_name` as the default system and a different client, and skips when there is none.
+
 ### Running the Tests
 
 Every test that requests the `backend` or `sap_mcp_client` fixture is marked `integration` automatically (see `unittests/conftest.py`). Use `-m integration` to run only live tests and `-m "not integration"` to exclude them. Marked tests generally still skip when SAP is not configured (some desktop files only gate on the Windows platform).

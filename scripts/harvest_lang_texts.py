@@ -43,7 +43,7 @@ from typing import TYPE_CHECKING
 import httpx
 from sap_mcp_config import load_default
 
-from sapguimcp.lang import pack_for, supported_languages
+from sapguimcp.lang import logon_languages, pack_for, supported_languages
 from sapguimcp.lang.schema import Leaf, iter_leaves, sections
 from sapguimcp.lang.sources import (
     SOURCES,
@@ -338,7 +338,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.sap_texts is not None:
         fetch = _fetch_from_file(json.loads(args.sap_texts.read_text(encoding="utf-8")))
     else:  # only the direct ADT mode needs systems.json and credentials
-        config = load_default(supported_languages=supported_languages())
+        # Every language the server accepts, so a systems.json with a core-pack language still loads (#1081).
+        config = load_default(supported_languages=logon_languages())
         if args.system is not None and args.system not in config.systems:
             parser.error(f"unknown --system {args.system!r}; known: {', '.join(sorted(config.systems))}")
         preview = AdtPreview.for_system(config.systems[args.system or config.default_system])

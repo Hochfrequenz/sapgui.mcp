@@ -43,6 +43,7 @@ class ComSnapshotResult(ToolResult):
     depth_shown: int | None = Field(default=None, description="Tree depth shown in this response")
     max_depth_found: int | None = Field(default=None, description="Maximum depth in the full tree")
     elements_hidden: int | None = Field(default=None, description="Elements beyond depth cutoff not shown")
+    elements_excluded: int | None = Field(default=None, description="Elements left out by the exclude parameter")
 
 
 class TreeContextMenuItem(BaseModel):
