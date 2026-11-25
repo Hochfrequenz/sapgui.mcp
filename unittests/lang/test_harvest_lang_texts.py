@@ -3,15 +3,16 @@
 import importlib.util
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sapguimcp.lang import pack_for, supported_languages
+from sapguimcp.lang import _register_for_tests, logon_languages, pack_for, supported_languages
 from sapguimcp.lang.schema import iter_leaves
 from sapguimcp.lang.sources import SOURCES, DataElement, DomainValue, Manual, Message, ScreenText, Source, Transaction
 from sapguimcp.lang.text import RegexText, Template, Text
 from unittests.lang.harvest_script import harvest
+from unittests.lang.synthetic_pack import core_pack
 
 PREVIEW_XML = """<?xml version="1.0" encoding="utf-8"?>
 <dataPreview:tableData xmlns:dataPreview="http://www.sap.com/adt/dataPreview">
@@ -237,6 +238,17 @@ def test_unsupported_language_is_a_parser_error(capsys: pytest.CaptureFixture[st
         harvest.main(["XX", "--verify", "--sap-texts", "x.json"])
     assert exit_info.value.code == 2
     assert "unsupported language" in capsys.readouterr().err
+
+
+def test_systems_json_may_hold_a_core_pack_language() -> None:
+    """#1081: the script loads systems.json with every logon language, not only the full packs."""
+    load = MagicMock(return_value=SimpleNamespace(systems={"sysA": object()}, default_system="sysA"))
+    with _register_for_tests(core_pack()) as core, patch.object(harvest, "load_default", load):
+        expected = logon_languages()
+        with pytest.raises(SystemExit):  # the unknown --system stops it right after loading
+            harvest.main(["EN", "--verify", "--system", "sysZ"])
+    assert core.code in expected
+    assert load.call_args.kwargs["supported_languages"] == expected
 
 
 def test_unknown_system_is_a_parser_error(capsys: pytest.CaptureFixture[str]) -> None:

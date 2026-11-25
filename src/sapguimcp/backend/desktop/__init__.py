@@ -309,6 +309,10 @@ _WINDOW_UNCHANGED_TIMEOUT_S = 0.3
 _WINDOW_RELAYOUT_TIMEOUT_S = 0.5
 
 
+class _MinimizedWindowError(Exception):
+    """The main window is minimized: read the table control without maximizing it."""
+
+
 @contextmanager
 def _maximized_main_window(session: Any, element_id: str) -> Iterator[None]:
     """Maximize the main window while a table control inside it is read, and restore its size afterwards.
@@ -317,7 +321,8 @@ def _maximized_main_window(session: Any, element_id: str) -> Iterator[None]:
     ``_read_table_control``), so a larger window is the only way to read more of its rows. Nothing is done for a
     control in a popup. If maximizing does not change the window's size it already was maximized (on any monitor), and
     it is left as it is. A window that was resized is restored in any case, also if reading fails; a failing resize
-    only means fewer rows are read.
+    only means fewer rows are read. A minimized window is left minimized: maximizing and restoring it would bring it to
+    the front of the user's desktop.
     """
     window: Any = None
     candidate: Any = None
@@ -329,11 +334,15 @@ def _maximized_main_window(session: Any, element_id: str) -> Iterator[None]:
             candidate = getattr(candidate, "com", getattr(candidate, "_com", candidate))
             control = session.find_by_id(element_id)
             raw = getattr(control, "com", getattr(control, "_com", control))
+            if _is_minimized(candidate):
+                raise _MinimizedWindowError
             size_before = (int(candidate.Width), int(candidate.Height))
             visible_before = int(raw.VisibleRowCount)
             candidate.maximize()
             if _wait_for_window_resize(session, candidate, element_id, size_before, visible_before):
                 window = candidate
+        except _MinimizedWindowError:
+            logger.debug("The main window is minimized, reading the table control without maximizing it")
         except Exception:  # pylint: disable=broad-exception-caught
             logger.warning("The main window could not be maximized, reading the table control as it is", exc_info=True)
             window = _window_if_resized(candidate, size_before)
@@ -353,6 +362,17 @@ def _maximized_main_window(session: Any, element_id: str) -> Iterator[None]:
                     logger.warning(
                         "The table control's layout after restoring the window is not readable", exc_info=True
                     )
+
+
+def _is_minimized(window: Any) -> bool:
+    """True if the SAP GUI window is minimized (iconified); False if that cannot be told."""
+    try:
+        import win32gui  # type: ignore[import-untyped]  # pylint: disable=import-outside-toplevel
+
+        return bool(win32gui.IsIconic(int(window.Handle)))
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.debug("Could not tell whether the main window is minimized", exc_info=True)
+        return False
 
 
 def _window_if_resized(window: Any, size_before: tuple[int, int] | None) -> Any:
@@ -944,7 +964,13 @@ class DesktopBackend:
                         "success": True,
                     },
                 )
-                return LoginResult(success=True, user=user_name, session_id=new_session_id)
+                return LoginResult(
+                    success=True,
+                    user=user_name,
+                    session_id=new_session_id,
+                    language=logon_language,
+                    language_support=lang.language_support(logon_language) if logon_language else None,
+                )
             except Exception as e:
                 # #789: surface the real COM cause sapsucker's message hides. No retry (#879).
                 failure = classify_login_failure(e)
@@ -2008,34 +2034,49 @@ class DesktopBackend:
         and text values from dump_tree(). This is NOT an ARIA snapshot.
         Used for LLM context, not structured parsing.
         """
-        snapshot, _, _ = await self.get_snapshot_with_depth()
+        snapshot, *_ = await self.get_snapshot_with_depth()
         return snapshot
 
-    async def get_snapshot_with_depth(self, depth: int | None = None) -> tuple[ComTreeSnapshot, int, int]:
+    async def get_snapshot_with_depth(
+        self, depth: int | None = None, root: str | None = None, exclude: list[str] | None = None
+    ) -> tuple[ComTreeSnapshot, int, int, int]:
         """Get a text dump with optional truncation and metadata.
 
         Args:
-            depth: If given, truncate the tree to this many levels.
+            depth: If given, truncate the tree to this many levels (counted from *root*).
+            root: Element id to dump instead of the active window, e.g. ``wnd[0]/usr``.
+            exclude: Element ids whose subtrees are left out, e.g. ``wnd[0]/mbar``.
 
         Returns:
-            (snapshot, max_depth_found, elements_hidden)
+            (snapshot, max_depth_found, elements_hidden, elements_excluded)
+
+        Raises:
+            ValueError: *root* does not exist on the current screen.
         """
         from sapguimcp.backend.desktop._snapshot_render import (  # pylint: disable=import-outside-toplevel
             render_snapshot_lines,
         )
         from sapguimcp.backend.desktop._truncation import (  # pylint: disable=import-outside-toplevel
+            prune_tree,
             truncate_tree,
         )
 
         session = self.require_session()
 
-        def _dump() -> tuple[str, int, int]:
-            wnd_id = _active_window_id(session)
-            wnd = session.find_by_id(wnd_id)
-            tree = cast(Any, wnd).dump_tree()
+        def _dump() -> tuple[str, int, int, int]:
+            start = session.find_by_id(root or _active_window_id(session), raise_error=False)
+            if start is None:
+                raise ValueError(f"Element '{root}' not found on the current screen. Copy an id= from the snapshot.")
+            if not hasattr(start, "dump_tree"):  # only containers (user area, shells, tabs, ...) have children
+                raise ValueError(f"Element '{root}' has no child elements. Pass a container id as root.")
+            tree = cast(Any, start).dump_tree()
 
             max_depth_found = 0
             elements_hidden = 0
+            elements_excluded = 0
+
+            if exclude:
+                tree, elements_excluded = prune_tree(tree, exclude)
 
             if depth is not None:
                 tree, max_depth_found, elements_hidden = truncate_tree(tree, depth)
@@ -2050,10 +2091,10 @@ class DesktopBackend:
                     f"Use depth={max_depth_found} to see everything.]"
                 )
 
-            return "\n".join(lines), max_depth_found, elements_hidden
+            return "\n".join(lines), max_depth_found, elements_hidden, elements_excluded
 
-        text, max_depth_found, elements_hidden = await self.com.run(_dump, retry_server_fault=True)
-        return ComTreeSnapshot(text), max_depth_found, elements_hidden
+        text, max_depth_found, elements_hidden, elements_excluded = await self.com.run(_dump, retry_server_fault=True)
+        return ComTreeSnapshot(text), max_depth_found, elements_hidden, elements_excluded
 
     async def take_screenshot(self) -> bytes:
         """Take a screenshot of the SAP GUI window."""

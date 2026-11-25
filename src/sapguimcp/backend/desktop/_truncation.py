@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from sapsucker.models import ElementInfo
 
+from sapguimcp.backend.desktop._snapshot_render import _strip_absolute_prefix
+
 
 def compute_tree_depth(tree: list[ElementInfo]) -> int:
     """Return the maximum depth of the tree (1-indexed, 0 if empty)."""
@@ -53,3 +55,31 @@ def truncate_tree(tree: list[ElementInfo], depth: int) -> tuple[list[ElementInfo
 
     truncated = _truncate(tree, 0)
     return truncated, max_depth_found, hidden[0]
+
+
+def prune_tree(tree: list[ElementInfo], prefixes: list[str]) -> tuple[list[ElementInfo], int]:
+    """Drop every element whose id is one of *prefixes* or lies below one, together with its subtree.
+
+    Ids and prefixes are compared window-relative (``wnd[0]/mbar``), on a path boundary: ``wnd[0]/mbar`` does not
+    drop ``wnd[0]/mbarX``.
+
+    Returns:
+        (pruned_tree, elements_pruned)
+    """
+    relative = [_strip_absolute_prefix(p).rstrip("/") for p in prefixes]
+    pruned = [0]  # mutable counter
+
+    def _excluded(elem_id: str) -> bool:
+        rel = _strip_absolute_prefix(elem_id)
+        return any(rel == p or rel.startswith(p + "/") for p in relative)
+
+    def _prune(nodes: list[ElementInfo]) -> list[ElementInfo]:
+        result = []
+        for elem in nodes:
+            if _excluded(elem.id):
+                pruned[0] += _count_all(elem)
+                continue
+            result.append(elem.model_copy(update={"children": _prune(elem.children)}))
+        return result
+
+    return _prune(tree), pruned[0]

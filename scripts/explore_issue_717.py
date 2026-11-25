@@ -52,7 +52,7 @@ async def _phase1_capture_and_probe(backend: DesktopBackend, com: ComThread, fix
         print("[phase1] /NA2/DCS not installed — skipping both phases")
         return -1
 
-    snapshot, max_depth, hidden = await backend.get_snapshot_with_depth(depth=6)
+    snapshot, max_depth, hidden, _ = await backend.get_snapshot_with_depth(depth=6)
     text = str(snapshot)
     fixture_path.parent.mkdir(parents=True, exist_ok=True)
     fixture_path.write_text(text, encoding="utf-8")

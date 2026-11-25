@@ -243,6 +243,7 @@ class Se37Section:
     changing_tab: Text
     tables_tab: Text
     exceptions_tab: Text
+    source_tab: Text
     parameter_name_column: Text
     """Column titles of the parameter / exception table controls (row dict keys)."""
     typing_column: Text
@@ -397,8 +398,20 @@ class UniversalView:
     keys: KeysSection
 
 
+@dataclass(frozen=True, slots=True)
+class CorePack(UniversalView):
+    """Only the ``all`` sections of one logon language, for a language without a full pack (#1081).
+
+    Enough for login, the language-independent tools and popup handling; the transaction tools
+    (``lang.current()``) still raise ``UnsupportedLanguageError`` for this language.
+    """
+
+    code: str
+    """SAP language key, e.g. ``"FR"``."""
+
+
 PackLike = LanguagePack | UniversalView
-"""What the walkers accept: a pack, a merged view of it, or the universal view."""
+"""What the walkers accept: a pack, a merged view of it, the universal view or a core pack."""
 
 
 # =============================================================================

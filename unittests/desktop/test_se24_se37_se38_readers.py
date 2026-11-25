@@ -152,6 +152,12 @@ def _tool_function(module: Any, register: str, tool: str) -> Any:
             "sap_se24_edit",
             {"class_name": "C", "method_name": "M", "new_source": "x"},
         ),
+        (
+            "se37_edit_tools",
+            "register_se37_edit_tools",
+            "sap_se37_edit",
+            {"function_module": "Z_X", "new_source": "x"},
+        ),
         ("se38_edit_tools", "register_se38_edit_tools", "sap_se38_edit", {"program_name": "Z", "new_source": "x"}),
     ],
 )

@@ -54,6 +54,18 @@ class DropdownInfo(BaseModel):
 class LoginResult(ToolResult):
     """Result from sap_login tool."""
 
+    language: str | None = Field(default=None, description="SAP logon language of the session (e.g. 'DE')")
+    language_support: Literal["full", "core", "none"] | None = Field(
+        default=None,
+        description=(
+            "How far this server supports the logon language. 'full': every tool works. 'core': "
+            "login, popups and the language-independent tools work, but the transaction tools that "
+            "read screen labels (SE16, SE24, SM37, ST22, ...) fail with an unsupported-language error. "
+            "'none': no pack at all; the transaction tools fail the same way and popups in this "
+            "language may not be classified. None when the logon language could not be read."
+        ),
+    )
+
     url: str | None = Field(default=None, description="SAP URL that was accessed")
     user: str | None = Field(default=None, description="Logged in username")
     already_logged_in: bool = Field(default=False, description="Was already logged in")
