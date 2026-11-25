@@ -128,7 +128,11 @@ Every text the server reads from or types into an SAP screen (button labels, tab
 titles, status-bar messages, column headers) depends on the SAP logon language. These texts live
 only in the language packs under `src/sapguimcp/lang/` (`de.py`, `en.py`, schema in `schema.py`);
 the session language is set at login and `lang.current()` returns the matching merged view (session
-pack, then EN). Design and rationale:
+pack, then EN). A language can also have only a _core pack_ (`CorePack`: the four sections
+`lang.universal()` reads, namely popups, activation status, the debugger window title and key
+names). It is accepted at login (`lang.logon_languages()`), and `lang.current()` raises
+`UnsupportedLanguageError` for it, so the transaction tools fail before they touch SAP (#1081).
+Design and rationale:
 [`docs/superpowers/specs/2026-11-10-language-packs-design.md`](docs/superpowers/specs/2026-11-10-language-packs-design.md).
 
 **The rule: no SAP UI literal outside `lang/`.** Tool and backend code reads a `Text`,
@@ -283,7 +287,7 @@ All settings are in `src/sapguimcp/models/config.py` and loaded from environment
 
 ### SAP systems
 
-The SAP connection name, credentials and logon language (`DE`, `EN` or `IT`) are configured per system in `~/.config/sap-mcp/systems.json`.
+The SAP connection name, credentials and logon language (`DE`, `EN`, `IT`, or a language with a core pack) are configured per system in `~/.config/sap-mcp/systems.json`.
 
 SAP credentials (user, password, mandant) are loaded from `~/.config/sap-mcp/systems.json` (or the path set via `SAP_CONFIG_FILE`). See the [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) package.
 

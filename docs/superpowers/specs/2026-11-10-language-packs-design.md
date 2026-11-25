@@ -319,6 +319,11 @@ unsupported language in `systems.json` is a loud config error.
   `UnsupportedLanguageError`.
 - `sap_get_capabilities` reports the session language and whether a pack exists.
 
+Realised by #1081, with two changes: `supported_languages()` stays the list of full packs (its
+callers iterate `pack_for()`), and the config takes `logon_languages()` (full packs plus core packs)
+instead. `sap_login` reports the language and its level (`language_support`: full, core or none),
+because `sap_get_capabilities` has no session and the language belongs to a session.
+
 ### 7. Prefer no text at all
 
 Before a literal is moved into a pack, check for a language-independent alternative. Where one

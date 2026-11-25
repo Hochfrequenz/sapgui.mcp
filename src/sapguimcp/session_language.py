@@ -11,26 +11,21 @@ holds the primary session's language there. Nothing on those paths reads it toda
 wrap such backend methods in ``use_language(registry.language_of(session_id))`` if they ever need
 texts.
 
-Phase 1 of #1044: this module only carries the language. The language packs of phase 2 build on
-it (``lang.current()``).
+This module only carries the language; the language packs (``lang.current()``) build on it. An
+unknown or pack-less language is never replaced by EN: the tools that need texts raise
+``lang.UnsupportedLanguageError`` instead (#1081).
 """
 
 from __future__ import annotations
 
-import logging
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import TYPE_CHECKING, cast, get_args
-
-from sapguimcp.utils import SapLanguage, as_sap_language
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-logger = logging.getLogger(__name__)
-
 _session_language: ContextVar[str | None] = ContextVar("session_language", default=None)
-_warned_languages: set[str] = set()
 
 
 def normalize_language(code: str | None) -> str | None:
@@ -64,29 +59,3 @@ def use_language(code: str | None) -> Iterator[None]:
         yield
     finally:
         _session_language.reset(token)
-
-
-def session_sap_language() -> SapLanguage:
-    """The current session's language narrowed to what the tools handle today.
-
-    A session language outside :data:`SapLanguage` (the real logon language, not config-validated)
-    collapses to ``"EN"`` with a one-time warning per code, until phase 2 of #1044 brings the
-    language packs. When the session language is unknown, falls back to the configured default
-    system's language (the behaviour before #1044); that fallback raises like the old call sites
-    did if the config is missing or invalid.
-    """
-    code = current_language()
-    if code is None:
-        # Imported on the fallback path only: the models package imports widely, and this
-        # module must stay cheap to import from the backends.
-        from sapguimcp.models.config import get_sap_config  # noqa: PLC0415
-
-        default_code = get_sap_config().get_default().language
-        logger.debug("session language unknown, using the default system's", extra={"language": default_code})
-        return as_sap_language(default_code)
-    if code in get_args(SapLanguage):
-        return cast("SapLanguage", code)
-    if code not in _warned_languages:
-        _warned_languages.add(code)
-        logger.warning("session language not supported, using EN", extra={"language": code})
-    return "EN"

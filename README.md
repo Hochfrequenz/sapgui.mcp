@@ -46,6 +46,7 @@ The core of this MCP is _not_ language-specific, meaning it generally works with
 However, there is also built-in support for specific transactions like `SE16` or `ST22`.
 These transaction-specific tools only work for certain logon languages, because the MCP server relies on button or column labels, which vary by language.
 We support English (`EN`), German (`DE`) and Italian (`IT`).
+A new language can also start with a small "core" language pack (popup handling and key names only): you can then log on in it and use the language-independent tools, while the transaction-specific tools fail with a clear error, and `sap_login` reports this as `language_support: "core"`. No core pack is shipped yet; [`ADDING_A_LANGUAGE.md`](src/sapguimcp/lang/ADDING_A_LANGUAGE.md) explains how to add one.
 
 ### Under the hood
 
@@ -379,7 +380,7 @@ Your AI client automatically discovers all individual tools and their schemas dy
 
 ### SAP Credentials (via `systems.json`)
 
-SAP credentials (user, password, client, language, host) are configured in `systems.json` (or a YAML file that `SAP_CONFIG_FILE` points to), **not** via server environment variables. See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the file format. Override the config file path with `SAP_CONFIG_FILE`. The `language` of each system must be `DE`, `EN` or `IT` (case-insensitive; omitted means `EN`) - these are the languages this server supports, and any other value, such as `FR`, is rejected when the config is loaded with `language must be one of "DE", "EN", "IT"`. Older versions read `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`, `SAP_LANGUAGE`, `SAP_CONNECTION_NAME` and `SAP_CREDENTIALS` from the MCP config's `env` block; these are ignored now and can be removed from existing configs.
+SAP credentials (user, password, client, language, host) are configured in `systems.json` (or a YAML file that `SAP_CONFIG_FILE` points to), **not** via server environment variables. See [sap-mcp-config](https://github.com/Hochfrequenz/sap-mcp-config) for the file format. Override the config file path with `SAP_CONFIG_FILE`. The `language` of each system must be `DE`, `EN` or `IT`, or a language with a core language pack (case-insensitive; omitted means `EN`) - these are the languages this server supports, and any other value, such as `FR`, is rejected when the config is loaded with `language must be one of "DE", "EN", "IT"`. Older versions read `SAP_USER`, `SAP_PASSWORD`, `SAP_MANDANT`, `SAP_LANGUAGE`, `SAP_CONNECTION_NAME` and `SAP_CREDENTIALS` from the MCP config's `env` block; these are ignored now and can be removed from existing configs.
 
 The WebGUI settings are ignored. The server checks `BACKEND_TYPE=webgui`, `SAP_URL` and `CDP_URL` in the environment and in `.env`: if one is set, it logs a warning and adds a note to its instructions that points to [sapwebgui.mcp](https://github.com/Hochfrequenz/sapwebgui.mcp). Other old WebGUI settings, such as `BROWSER_*` and `CHROME_*`, are silently ignored.
 
