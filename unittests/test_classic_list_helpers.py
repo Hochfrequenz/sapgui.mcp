@@ -309,3 +309,46 @@ def test_list_lines_that_repeat_further_down_are_no_header() -> None:
     # 5 rows on screen, a page of 8: the second page starts 4 lines down, where "-----" recurs
     lines = read_classic_list_lines(_session(_Usr(pages, _Scrollbar(maximum=5, page_size=8))), 100)
     assert lines == texts
+
+
+class _WideUsr:
+    """A list wider than its window: ``rows`` maps a row to its labels as (absolute column, text)."""
+
+    def __init__(self, rows: dict[int, list[tuple[int, str]]], width: int, total: int) -> None:
+        self._rows = rows
+        self._width = width
+        self.horizontal_scrollbar = _Scrollbar(maximum=total - width, page_size=width)
+        self.vertical_scrollbar = None
+
+    def dump_tree(self) -> list[Any]:
+        left = self.horizontal_scrollbar.position
+        elements = []
+        for row, labels in self._rows.items():
+            for start, text in labels:
+                first = max(start, left)
+                visible = text[first - start : left + self._width - start]
+                if visible:
+                    elements.append(_label(first - left, row, visible))
+        return elements
+
+
+def test_lines_wider_than_the_window_are_stitched_from_horizontal_slices() -> None:
+    long_text = "".join(str(i % 10) for i in range(100))
+    rows = {
+        0: [(0, "Title"), (100, "right of the first slice")],  # a label that only starts beyond the window
+        1: [(0, long_text), (100, "tail")],  # touching labels stay two labels
+        2: [(0, "short"), (30, "x" * 60)],  # the second label reaches over the window edge
+    }
+    usr = _WideUsr(rows, width=40, total=200)
+    lines = read_classic_list_lines(_session(usr), 100, wide=True)  # type: ignore[arg-type]
+    assert lines == [
+        "Title right of the first slice",
+        f"{long_text} tail",
+        f"short {'x' * 60}",
+    ]
+    assert usr.horizontal_scrollbar.position == 0
+
+
+def test_lines_are_read_in_the_window_only_unless_wide_is_asked_for() -> None:
+    usr = _WideUsr({0: [(0, "a" * 100)]}, width=40, total=100)
+    assert read_classic_list_lines(_session(usr), 100) == ["a" * 40]  # type: ignore[arg-type]

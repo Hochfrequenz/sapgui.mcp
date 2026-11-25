@@ -26,6 +26,10 @@ from sapguimcp.models.intent_models import (
     IntentEntry,
     IntentLogResult,
 )
+from sapguimcp.models.quick_report_models import (
+    QuickReportResult,
+    ScreenClassification,
+)
 from sapguimcp.models.sap_results import (
     ButtonInfo,
     CapabilitiesResult,
@@ -247,6 +251,9 @@ __all__ = [
     "SE37EditResult",
     # SE38 edit models
     "SE38EditResult",
+    # Quick report models
+    "QuickReportResult",
+    "ScreenClassification",
     # SM37 models
     "SM37Job",
     "SM37JobListResult",

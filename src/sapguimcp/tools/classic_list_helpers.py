@@ -25,6 +25,7 @@ _POSITIONED = re.compile(r"/(lbl|chk)\[(\d+),(\d+)\]$")
 # Pages overlap by this many lines: the page size also counts lines that are no data (the list header), so stepping by
 # the full page size could skip lines. Lines are keyed by their absolute row, so the overlap costs nothing.
 _PAGE_OVERLAP = 4
+_H_OVERLAP = 25  # columns two horizontal slices share, so that no label falls between them
 
 
 def _scroll_positions(maximum: int, page_size: int) -> list[int]:
@@ -175,7 +176,46 @@ def _fixed_header_rows(first_page: dict[int, str], scrolled_page: dict[int, str]
     return fixed
 
 
-def read_classic_list_lines(session: Any, max_lines: int) -> list[str]:
+def _labels_across_width(usr: Any) -> dict[int, dict[int, str]]:
+    """The labels of the screen by row and *absolute* column, also those right of the window (one slice per step).
+
+    SAP GUI shows a window-sized part of a list: a label that reaches over the window edge holds only its visible
+    part. The horizontal scrollbar is moved over the list in overlapping slices; a label of a slice starts at the
+    slice's scroll position plus its column, and the parts of one label seen in several slices are put together.
+    The scrollbar is reset afterwards. A list that fits the window is read as it is.
+    """
+    scrollbar = getattr(usr, "horizontal_scrollbar", None)
+    maximum = max(int(scrollbar.maximum), 0) if scrollbar is not None else 0
+    if scrollbar is None or maximum == 0:
+        return _cells(usr)[0]
+    page_size = max(int(scrollbar.page_size), 1)
+    step = max(page_size - _H_OVERLAP, page_size // 2, 1)
+    parts: dict[int, list[tuple[int, str]]] = {}
+    try:
+        for wanted in dict.fromkeys([0, *range(step, maximum + 1, step), maximum]):
+            scrollbar.position = wanted
+            offset = int(scrollbar.position)  # SAP clamps: use where it really is
+            for row, cells in _cells(usr)[0].items():
+                parts.setdefault(row, []).extend((offset + column, text) for column, text in cells.items())
+    finally:
+        try:
+            scrollbar.position = 0
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.debug("Could not reset the horizontal scrollbar of the classic list", exc_info=True)
+    labels: dict[int, dict[int, str]] = {}
+    for row, pieces in parts.items():
+        merged: list[tuple[int, str]] = []
+        for start, text in sorted(pieces, key=lambda piece: piece[0]):
+            if merged and start < merged[-1][0] + len(merged[-1][1]):  # overlaps the label before: the same label
+                first, joined = merged[-1]
+                merged[-1] = (first, joined + text[first + len(joined) - start :])
+            else:
+                merged.append((start, text))
+        labels[row] = dict(merged)
+    return labels
+
+
+def read_classic_list_lines(session: Any, max_lines: int, wide: bool = False) -> list[str]:
     """Read the text of the classic list on screen line by line (COM thread): the cells of a line joined by a space.
 
     A list taller than the window is read page by page with the vertical scrollbar, which is reset afterwards.
@@ -196,7 +236,7 @@ def read_classic_list_lines(session: Any, max_lines: int) -> list[str]:
             if scrollbar is not None and maximum > 0:
                 scrollbar.position = wanted
             offset = int(scrollbar.position) if scrollbar is not None and maximum > 0 else 0
-            labels, _checkboxes = _cells(usr)
+            labels = _labels_across_width(usr) if wide else _cells(usr)[0]
             page = {
                 row: " ".join(cells[column].strip() for column in sorted(cells) if cells[column].strip())
                 for row, cells in labels.items()
