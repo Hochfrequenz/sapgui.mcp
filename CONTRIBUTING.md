@@ -84,6 +84,7 @@ Desktop integration tests run against SAP GUI via COM. They:
 - Auto-skip on non-Windows or when SAP credentials are missing
 - Are marked `integration` automatically (any test requesting `backend` or `sap_mcp_client`), so `-m "not integration"` excludes them and `-m integration` selects only them
 - Test object names are centralized in `conftest.py` (`TEST_REPORT`, `TEST_CLASS`, etc.)
+- Open visible SAP GUI windows by default. Set `SAPGUI_TEST_MINIMIZED=1` to minimize each window right after a test opens it, so a live run can go on in the background while you work. A new window can still show for a few seconds before it is minimized.
 
 ```python
 from unittests.desktop.conftest import go_home, skip_no_sap
