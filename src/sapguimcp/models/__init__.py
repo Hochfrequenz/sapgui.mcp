@@ -12,6 +12,7 @@ from sapguimcp.models.abapgit_models import (
     AbapGitRepoSummary,
 )
 from sapguimcp.models.alv_models import (
+    ModifyCellResult,
     TableCellClickResult,
 )
 from sapguimcp.models.base import TCODE_PATTERN, PopupButton, PopupInfo, PopupType, SessionId, TCode, ToolResult
@@ -159,6 +160,7 @@ __all__ = [
     "TCode",
     "ToolResult",
     # ALV models
+    "ModifyCellResult",
     "TableCellClickResult",
     # Config models
     "SapGuiSettings",

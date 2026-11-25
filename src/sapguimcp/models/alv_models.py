@@ -13,3 +13,17 @@ class TableCellClickResult(ToolResult):
     selector_used: str = Field(description="CSS selector that was used for the click")
     page_title: str = Field(default="", description="Page title after click")
     was_hotspot: bool = Field(default=False, description="Whether cell was a navigation hotspot")
+
+
+class ModifyCellResult(ToolResult):
+    """Result from sap_modify_cell tool. Every field has a default, so ``failure(...)`` needs only the error."""
+
+    row: int = Field(default=0, description="Row that was addressed (1-indexed, as in sap_read_table)")
+    column: str = Field(default="", description="Technical column name the column argument resolved to")
+    previous_value: str = Field(default="", description="Cell value before the write")
+    value: str = Field(default="", description="Cell value read back after the write (not an echo of the input)")
+    written: bool = Field(
+        default=False,
+        description="True once the write was sent; a failure with written=True means the cell DID change",
+    )
+    note: str = Field(default="", description="What to do next, or a popup / status message the write caused")

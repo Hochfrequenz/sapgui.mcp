@@ -67,7 +67,7 @@ from sapguimcp.backend.desktop._element_finder import (
 )
 from sapguimcp.backend.desktop._key_mapping import key_to_vkey
 from sapguimcp.backend.desktop.types import ComTreeSnapshot
-from sapguimcp.models.alv_models import TableCellClickResult
+from sapguimcp.models.alv_models import ModifyCellResult, TableCellClickResult
 from sapguimcp.models.base import CheckActivateResult, PopupButton, PopupInfo, PopupType
 from sapguimcp.models.sap_results import (
     ButtonInfo,
@@ -634,6 +634,54 @@ def _read_grid_rows(grid: Any, headers: list[str], start: int, end: int) -> list
             except Exception:  # pylint: disable=broad-exception-caught
                 logger.debug("Could not restore the grid's first visible row", exc_info=True)
     return rows
+
+
+def _locate_table(session: Any) -> tuple[Any, str, str] | None:
+    """``(control, type name, element id)`` of the first grid or table control of the active window, or None.
+
+    Same lookup and order as ``read_table``, so a write targets the control ``sap_read_table`` showed.
+    """
+    wnd = session.find_by_id(_active_window_id(session))
+    for elem in _flatten(cast(Any, wnd).dump_tree()):
+        if elem.type_as_number == 80:
+            return session.find_by_id(elem.id), "GuiTableControl", elem.id
+        if elem.type_as_number == 122:
+            shell = session.find_by_id(elem.id)
+            if isinstance(shell, GuiGridView):
+                return shell, "GuiGridView", elem.id
+    return None
+
+
+def _grid_column_names(grid: Any) -> list[str]:
+    """Technical names of a grid's columns in displayed order, the headers ``read_table`` shows."""
+    col_order = grid.column_order
+    # a Python list from sapsucker, or a raw COM collection
+    return (
+        [str(c) for c in col_order]
+        if isinstance(col_order, list)
+        else [str(col_order(i)) for i in range(col_order.Count)]
+    )
+
+
+def _resolve_grid_column(columns: list[str], column: int | str) -> str:
+    """Technical column name for a 0-based index or a name (case-insensitive) among the displayed columns.
+
+    A hidden column is not in ``columns`` and is refused: ``sap_read_table`` does not show it either.
+    """
+    if isinstance(column, int):
+        if not 0 <= column < len(columns):
+            raise ValueError(f"Column index {column} is out of range: the grid has {len(columns)} column(s).")
+        return columns[column]
+    wanted = column.strip().upper()
+    for name in columns:
+        if name.upper() == wanted:
+            return name
+    raise ValueError(f"Column '{column}' not found. Columns: {', '.join(columns)}.")
+
+
+def _status_bar_text(session: Any, wnd_id: str) -> str:
+    sbar = session.find_by_id(f"{wnd_id}/sbar", raise_error=False)
+    return "" if sbar is None else str(cast(Any, sbar).text).strip()
 
 
 class DesktopBackend:
@@ -2187,6 +2235,132 @@ class DesktopBackend:
             return TableCellClickResult(success=True, row=row, column=str(column), selector_used="com")
         except Exception as e:
             return TableCellClickResult(success=False, row=row, column=str(column), selector_used="com", error=str(e))
+
+    async def modify_cell(
+        self,
+        row: int,
+        column: int | str,
+        value: str,
+        expected_current: str | None = None,
+        expected_row: dict[str, str] | None = None,
+    ) -> ModifyCellResult:
+        """Write one cell of the editable ALV grid on screen and read it back (#1010).
+
+        Never writes a cell other than the requested one: a grid addresses rows absolutely (no window offset to get
+        wrong), an untransferred row is loaded before it is read, and ``expected_current`` / ``expected_row`` turn the
+        write into a compare-and-swap against a row that moved since it was read. The grid usually keeps the change in
+        the frontend until Enter or a save; some grids react at once.
+        """
+        session = self.require_session()
+        write_started = False  # set on the COM thread; read here if the call ends in an error (e.g. a watchdog halt)
+
+        def _modify() -> ModifyCellResult:
+            nonlocal write_started
+            found = _locate_table(session)
+            if found is None:
+                raise ValueError("No ALV grid on screen.")
+            grid, kind, _ = found
+            if kind != "GuiGridView":  # lang-ok: COM type name
+                raise ValueError("Table controls are not supported yet, only ALV grids.")
+            row_count = int(grid.row_count)
+            if not 1 <= row <= row_count:
+                raise ValueError(f"Row {row} is out of range: the grid has {row_count} row(s).")
+            columns = _grid_column_names(grid)
+            col = _resolve_grid_column(columns, column)
+            # Every condition is kept, also two on the same column (expected_current and an expected_row entry).
+            expected = [(_resolve_grid_column(columns, k), v.strip()) for k, v in (expected_row or {}).items()]
+            if expected_current is not None:
+                expected.append((col, expected_current.strip()))
+            row0 = row - 1
+            wnd_id = _active_window_id(session)
+            # An untransferred row reads blank or as a placeholder, its changeable state included: load it first.
+            if _row_not_fully_loaded({c: str(grid.get_cell_value(row0, c)) for c in columns}, row0):
+                try:
+                    grid.first_visible_row = row0
+                except Exception as exc:
+                    raise ValueError(f"Could not scroll to row {row} to load it ({exc}).") from exc
+                if (now_wnd := _active_window_id(session)) != wnd_id:
+                    raise ValueError(f"Scrolling to row {row} opened window {now_wnd}: handle it first.")
+            if not grid.get_cell_changeable(row0, col):
+                raise ValueError(f"The cell in row {row}, column {col} is not editable.")
+            cell_type = str(grid.get_cell_type(row0, col))  # an error here refuses the write: the type is unknown
+            if cell_type != "Normal":  # lang-ok: COM cell type
+                raise ValueError(f"The cell in row {row}, column {col} is a {cell_type} cell; only text cells.")
+            current = {c: str(grid.get_cell_value(row0, c)).strip() for c in {col, *(c for c, _ in expected)}}
+            previous = current[col]
+            differing = [f"{c} holds '{current[c]}', not '{v}'" for c, v in expected if current[c] != v]
+            if differing:
+                raise ValueError(
+                    f"Row {row} is not the expected row: {'; '.join(differing)}. It may have moved since it was read."
+                )
+            status_before = _status_bar_text(session, wnd_id)
+            base: dict[str, Any] = {"row": row, "column": col, "previous_value": previous}
+            try:
+                write_started = True
+                grid.modify_cell(row0, col, value)
+            except Exception as exc:
+                try:
+                    now: str | None = str(grid.get_cell_value(row0, col)).strip()
+                except Exception:
+                    now = None
+                if now is not None and now != previous:
+                    return ModifyCellResult.failure(
+                        f"The write raised an error ({exc}), but the cell changed from '{previous}' to '{now}'.",
+                        value=now,
+                        written=True,
+                        **base,
+                    )
+                state = "could not be read again" if now is None else f"still reads '{previous}'"
+                return ModifyCellResult.failure(
+                    f"The write raised an error ({exc}) and the cell {state}: it is unknown whether anything was "
+                    "written.",
+                    value=now or "",
+                    **base,
+                )
+            try:
+                post_wnd = _active_window_id(session)
+                notes = []
+                if post_wnd != wnd_id:
+                    notes.append(f"The write opened window {post_wnd}: handle it first.")
+                status_after = _status_bar_text(session, post_wnd)
+                if status_after and status_after != status_before:
+                    notes.append(f"Status bar: {status_after}")  # lang-ok: our own message
+                actual = str(grid.get_cell_value(row0, col)).strip()
+            except Exception as exc:
+                return ModifyCellResult.failure(
+                    f"The cell was written but could not be read back: {exc}", written=True, **base
+                )
+            taken = actual == value.strip()
+            if taken:
+                notes.append(
+                    "The change usually reaches SAP only with Enter or a save (some grids react at once): "
+                    "press Enter to run its input checks, then save."
+                )
+            result: dict[str, Any] = {"value": actual, "note": " ".join(notes), "active_window": post_wnd, **base}
+            if taken:
+                return ModifyCellResult(written=True, **result)
+            if actual == previous:
+                return ModifyCellResult.failure(
+                    f"The cell still holds '{previous}': SAP did not take '{value.strip()}'.", **result
+                )
+            return ModifyCellResult.failure(
+                f"The cell in row {row}, column {col} changed from '{previous}' to '{actual}', "
+                f"not to the requested '{value.strip()}'.",
+                written=True,
+                **result,
+            )
+
+        try:
+            return await self.com.run(_modify)
+        except Exception as e:
+            logger.debug("modify_cell refused or failed", exc_info=True)
+            if write_started:  # e.g. the session was halted after the write was sent
+                return ModifyCellResult.failure(
+                    f"{e} The write was already sent: it is unknown whether the cell was modified; read it again.",
+                    row=row,
+                    column=str(column),
+                )
+            return ModifyCellResult.failure(f"{e} No cell was modified.", row=row, column=str(column))
 
     async def get_dropdown_options(self, label: str) -> list[str]:
         """Get options from a GuiComboBox dropdown found by label.
