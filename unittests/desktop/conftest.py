@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import faulthandler
 import os
-from typing import TYPE_CHECKING, AsyncIterator
+from typing import TYPE_CHECKING, Any, AsyncIterator, Iterator
 from unittest.mock import MagicMock
 
 import pytest
@@ -190,6 +191,39 @@ def close_owned_connections(sessions, protected_sessions=()) -> int:  # type: ig
 # ---------------------------------------------------------------------------
 # Integration backend fixture (auto-discovered by pytest)
 # ---------------------------------------------------------------------------
+
+
+def _iconify_registered_windows(backend: DesktopBackend) -> None:
+    """Minimize the main window of every registered session. Must run on the COM thread. Best effort."""
+    for sid in backend.registry.list_sessions():
+        with contextlib.suppress(Exception):
+            backend.registry.get_session(sid).find_by_id("wnd[0]").iconify()  # type: ignore[attr-defined]
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _minimized_sap_gui_windows() -> Iterator[None]:
+    """With ``SAPGUI_TEST_MINIMIZED=1``, minimize each SAP GUI window a live test opens, so it stays out of the way."""
+    if os.environ.get("SAPGUI_TEST_MINIMIZED") != "1":
+        yield
+        return
+    original_login, original_open = DesktopBackend.login, DesktopBackend.open_new_session
+
+    async def login(self: DesktopBackend, *args: Any, **kwargs: Any) -> Any:
+        result = await original_login(self, *args, **kwargs)
+        if isinstance(self.com, ComThread):  # not in unit tests with a fake COM thread
+            await self.com.run(lambda: _iconify_registered_windows(self))
+        return result
+
+    async def open_new_session(self: DesktopBackend, *args: Any, **kwargs: Any) -> Any:
+        result = await original_open(self, *args, **kwargs)
+        if isinstance(self.com, ComThread):  # not in unit tests with a fake COM thread
+            await self.com.run(lambda: _iconify_registered_windows(self))
+        return result
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(DesktopBackend, "login", login)
+        mp.setattr(DesktopBackend, "open_new_session", open_new_session)
+        yield
 
 
 @pytest.fixture(scope="module")

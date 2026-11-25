@@ -10,8 +10,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from sapsucker.components.grid import GuiGridView
 
+from sapguimcp.backend import desktop
 from sapguimcp.backend.desktop import (
     DesktopBackend,
+    _is_minimized,
     _maximized_main_window,
     _read_table_control,
     _table_control_headers,
@@ -365,6 +367,33 @@ def test_an_already_maximized_window_is_left_alone() -> None:
     with _maximized_main_window(_WindowSession(window), _TABLE):
         pass
     assert window.calls == ["maximize"]  # a no-op for SAP GUI: no restore, or the user's window would shrink
+
+
+def test_a_minimized_window_is_left_minimized(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(desktop, "_is_minimized", lambda _window: True)
+    window = _Window()
+    with _maximized_main_window(_WindowSession(window), _TABLE):
+        pass
+    assert window.calls == []  # maximize + restore would bring it to the front of the desktop
+
+
+def test_an_error_while_reading_a_minimized_window_propagates(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(desktop, "_is_minimized", lambda _window: True)
+    with pytest.raises(ValueError, match="boom"), _maximized_main_window(_WindowSession(_Window()), _TABLE):
+        raise ValueError("boom")
+
+
+@pytest.mark.parametrize(("iconic", "expected"), [(1, True), (0, False)])
+def test_is_minimized_asks_windows_about_the_window_handle(iconic: int, expected: bool) -> None:
+    fake = SimpleNamespace(IsIconic=MagicMock(return_value=iconic))
+    with patch.dict("sys.modules", {"win32gui": fake}):
+        assert _is_minimized(SimpleNamespace(Handle=4711)) is expected
+    fake.IsIconic.assert_called_once_with(4711)
+
+
+def test_is_minimized_is_false_when_it_cannot_be_told() -> None:
+    with patch.dict("sys.modules", {"win32gui": None}):
+        assert _is_minimized(SimpleNamespace(Handle=4711)) is False
 
 
 def test_a_popup_is_left_alone() -> None:
