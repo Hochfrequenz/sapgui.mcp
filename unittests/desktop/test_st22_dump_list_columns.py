@@ -79,6 +79,16 @@ async def test_title_keyed_list_still_works() -> None:
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("program_title", ["Program", "Terminated Program", "Canceled Program"])
+async def test_title_keyed_list_en_program_column(program_title: str) -> None:
+    """S/4HANA 2023 titles the program column "Canceled Program" (#1092)."""
+    row = TableRow(row=1, data={"Time": "10:00:00", program_title: "ZPROG"})
+    result = await _lookup(TableData(success=True, headers=["Time", program_title], rows=[row]), "EN")
+    assert result.success
+    assert result.dumps[0].program == "ZPROG"
+
+
+@pytest.mark.anyio
 async def test_unknown_columns_are_an_error_not_empty_dumps() -> None:
     row = TableRow(row=1, data={"FOO": "1", "BAR": "2"})
     result = await _lookup(TableData(success=True, headers=["FOO", "BAR"], rows=[row]))
