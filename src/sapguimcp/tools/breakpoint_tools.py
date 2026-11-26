@@ -22,6 +22,7 @@ from sapguimcp.models.breakpoint_models import (
     BreakpointSetResult,
 )
 from sapguimcp.tools.confirmation_helpers import confirm_destructive_action
+from sapguimcp.tools.desktop_wait_predicates import tab_table_control_loaded
 from sapguimcp.tools.field_helpers import fill_field_with_keyboard
 
 if TYPE_CHECKING:
@@ -341,7 +342,8 @@ async def _navigate_clas(  # pylint: disable=too-many-statements
     for tab_label in ("Methoden", "Methods"):
         try:
             await backend.click_tab(tab_label)
-            await backend.wait(500)
+            # The next step reads the tab's table control, which SAP builds lazily; bound = former fixed wait (#928)
+            await backend.wait_for_condition(tab_table_control_loaded(tab_label), timeout_ms=500)
             break
         except Exception:  # pylint: disable=broad-exception-caught
             continue
