@@ -1,9 +1,9 @@
-"""Tree context-menu tool for the SAP GUI desktop backend.
+"""Tree tools for the SAP GUI desktop backend: read, expand, select, activate, context menu.
 
-Follow-up to https://github.com/Hochfrequenz/sapgui.mcp/issues/717.
+The context-menu tool is a follow-up to https://github.com/Hochfrequenz/sapgui.mcp/issues/717.
 #717's snapshot-ID fix made ``GuiShell`` trees inside a ``GuiDockShell``
 reachable, but the reporter's actual workflow (right-click → "Task
-anlegen" on ``/n/NA2/DCS``) still failed because
+anlegen" on ``/n/ABC/EXAMPLE``) still failed because
 ``SelectContextMenuItemByText("Task anlegen")`` raises
 ``SAP Error 613 — The method got an invalid argument``.
 
@@ -26,14 +26,15 @@ all in one lambda on the COM thread.
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from sapguimcp.backend.desktop._tree_helpers import read_tree
+from sapguimcp.backend.desktop._tree_helpers import activate_node, expand_node, read_tree, select_node
 from sapguimcp.backend.desktop.models.com_results import (
+    TreeActionResult,
     TreeColumn,
     TreeContextMenuItem,
     TreeContextMenuResult,
@@ -42,9 +43,16 @@ from sapguimcp.backend.desktop.models.com_results import (
 )
 from sapguimcp.backend.manager import get_backend
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 logger = logging.getLogger(__name__)
 
 __all__ = ["register_tree_tools", "_invoke_tree_context_menu", "_read_tree"]
+
+# Shared parameters of the tree action tools.
+_TreeId = Annotated[str | None, Field(description="Tree element ID from sap_tree_read. Omit to auto-discover.")]
+_NodeKey = Annotated[str, Field(description="Node `key` from sap_tree_read, unchanged (padded).")]
 
 
 def _invoke_tree_context_menu(  # pylint: disable=too-many-arguments,too-many-locals
@@ -84,7 +92,7 @@ def _invoke_tree_context_menu(  # pylint: disable=too-many-arguments,too-many-lo
     shell = raw_session.FindById(shell_id)
 
     # SelectNode before NodeContextMenu mirrors what SAP GUI Scripting Recorder
-    # emits for tree right-clicks — the DCS TableTreeControl.1 probe (see
+    # emits for tree right-clicks — a TableTreeControl.1 probe (see
     # scripts/probe_tree_context_menu.py) confirmed both calls are needed for
     # CurrentContextMenu to populate. Trees that don't require it still tolerate
     # the extra selectionChanged event; this path prioritises "works everywhere".
@@ -151,6 +159,42 @@ def _read_tree(
     return read_tree(raw_session, tree_id, search=search, column=column, max_nodes=max_nodes, root_key=root_key)
 
 
+async def _run_tree_action(
+    tool_name: str, session: str | None, agent_id: str | None, action: Callable[[Any], dict[str, Any]]
+) -> TreeActionResult:
+    """Shared body of the tree action tools: run ``action(raw_session)`` on the COM thread.
+
+    ``ValueError`` / ``RuntimeError`` become failures. The current session's title and status bar are
+    read afterwards, because an action can navigate; a failure to read them is tolerated.
+    """
+    try:
+        backend = await get_backend(session=session, agent_id=agent_id, tool_name=tool_name)
+        desktop_session = backend.require_session()
+    except ValueError as e:
+        return TreeActionResult.failure(str(e))
+
+    def _run() -> dict[str, Any]:
+        return action(getattr(desktop_session, "com", getattr(desktop_session, "_com", desktop_session)))
+
+    try:
+        raw = await backend.com.run(_run)
+    except (ValueError, RuntimeError) as exc:
+        return TreeActionResult.failure(str(exc))
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        logger.exception("%s failed", tool_name)
+        return TreeActionResult.failure(f"COM execution error: {exc}")
+
+    result = TreeActionResult(**raw)
+    try:
+        result.current_session_title_after = await backend.get_page_title()
+        status = await backend.get_status_bar()
+        result.status_bar_type, result.status_bar_message = status.type, status.message
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        logger.debug("%s: reading title / status bar after the action failed: %s", tool_name, exc)
+    logger.info("tree_action", extra={"tool": tool_name, "tree_id": result.tree_id, "node_key": result.node_key})
+    return result
+
+
 def register_tree_tools(mcp: FastMCP) -> None:
     """Register tree tools with the MCP server."""
 
@@ -166,7 +210,9 @@ def register_tree_tools(mcp: FastMCP) -> None:
             "navigation tree, ...). Read-only: never expands, collapses "
             "or selects anything.\n\n"
             "Only nodes the control has ALREADY LOADED (expanded) are visible; collapsed subtrees "
-            "stay hidden until they are expanded in the GUI. Without `tree_id` the single tree of "
+            "stay hidden until they are expanded. Workflow: read, `sap_tree_expand` a folder, read "
+            "again (`root_key` = that folder), then `sap_tree_select` or `sap_tree_activate` a node "
+            "by its `key`. Without `tree_id` the single tree of "
             "the active window is auto-discovered, including trees in docking containers "
             "(`wnd[0]/shellcont/...`); with several trees the error lists the candidate IDs.\n\n"
             "`search` is a case-insensitive substring match over loaded nodes (node text and, for "
@@ -233,6 +279,68 @@ def register_tree_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         annotations=ToolAnnotations(
+            read_only_hint=False, destructive_hint=False, idempotent_hint=True, open_world_hint=False
+        ),
+        description=(
+            "Expand (or with expand=false collapse) one folder node of a tree; not recursive. "
+            "Returns the state read back and the number of loaded children."
+        ),
+    )
+    async def sap_tree_expand(
+        node_key: _NodeKey,
+        tree_id: _TreeId = None,
+        expand: bool = True,
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> TreeActionResult:
+        return await _run_tree_action(
+            "sap_tree_expand", session, agent_id, lambda raw: expand_node(raw, tree_id, node_key, expand=expand)
+        )
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False, destructive_hint=False, idempotent_hint=True, open_world_hint=False
+        ),
+        description="Select one node of a tree (changes only the selection).",
+    )
+    async def sap_tree_select(
+        node_key: _NodeKey,
+        tree_id: _TreeId = None,
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> TreeActionResult:
+        return await _run_tree_action(
+            "sap_tree_select", session, agent_id, lambda raw: select_node(raw, tree_id, node_key)
+        )
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            read_only_hint=False, destructive_hint=True, idempotent_hint=False, open_world_hint=False
+        ),
+        description=(
+            "Activate a tree node like a user would: double-click the node (or the item `item_name`), "
+            "or with mode='click_link' click the hyperlink item `item_name` (a column name from "
+            "sap_tree_read; list trees number their items '1', '2', ...). "
+            "Can navigate or start an action; check the returned title and status bar."
+        ),
+    )
+    async def sap_tree_activate(
+        node_key: _NodeKey,
+        tree_id: _TreeId = None,
+        mode: Literal["double_click", "click_link"] = "double_click",
+        item_name: Annotated[str | None, Field(description="Column name of the item to click.")] = None,
+        session: str | None = None,
+        agent_id: str | None = None,
+    ) -> TreeActionResult:
+        return await _run_tree_action(
+            "sap_tree_activate",
+            session,
+            agent_id,
+            lambda raw: activate_node(raw, tree_id, node_key, mode=mode, item_name=item_name),
+        )
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
             read_only_hint=False,
             destructive_hint=True,
             open_world_hint=False,
@@ -240,7 +348,7 @@ def register_tree_tools(mcp: FastMCP) -> None:
         description=(
             "Invoke the right-click context menu on a ``GuiShell``/``GuiTree`` node.\n\n"
             "Use this when you want to discover or fire an action from a tree node's "
-            "context menu — e.g. 'Task: Anlegen' on ``/n/NA2/DCS`` — and the plain "
+            "context menu — e.g. a 'create' entry in an application tree — and the plain "
             "``sap_com_evaluate`` path fails because you don't know the exact label text.\n\n"
             "**Workflow:**\n"
             "1. `sap_com_snapshot` → copy the tree's ``id=`` (e.g. `wnd[0]/shellcont/shell`).\n"
@@ -256,7 +364,7 @@ def register_tree_tools(mcp: FastMCP) -> None:
             "language-independent (e.g. `T_1310` regardless of SAP logon language) and "
             "immune to punctuation/casing drift.\n\n"
             "Some menu actions open the follow-up screen in a PARALLEL SAP session "
-            "(e.g. DCS 'Task: Anlegen' opens in a new session), not the current window. "
+            "(e.g. some 'create' entries open in a new session), not the current window. "
             "After a select call, use `sap_com_snapshot` or iterate the connection's "
             "child sessions to locate the new screen.\n\n"
             "`select_*` args are mutually exclusive; pass at most one."
@@ -324,7 +432,7 @@ def register_tree_tools(mcp: FastMCP) -> None:
         selected = TreeContextMenuItem(**raw["selected"]) if raw["selected"] is not None else None
 
         # Current-session title after the action — note that many menu actions
-        # open a PARALLEL session (DCS 'Task: Anlegen' does), in which case this
+        # open a PARALLEL session, in which case this
         # stays on the original screen. The field name reflects that honestly.
         current_session_title_after: str | None = None
         try:
